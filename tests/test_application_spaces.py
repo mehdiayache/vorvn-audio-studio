@@ -14,6 +14,9 @@ class FakeSpaceRecords:
     def space(self, space_id):
         return {"id": space_id, "name": "Hudson"} if space_id == 4 else None
 
+    def project(self, identifier):
+        return {"id": 12, "public_id": "project-12"} if str(identifier) in {"12", "project-12"} else None
+
     def folders(self, space_id):
         return [{"id": 9, "space_id": space_id, "name": "Campaign"}]
 
@@ -55,6 +58,9 @@ class SpaceServiceTests(unittest.TestCase):
         self.assertEqual(
             self.records.created[-1],
             ("project", 4, "Episode 1", "Pilot", 9))
+
+    def test_project_identity_resolves_without_the_work_hierarchy(self):
+        self.assertEqual(self.service.project("project-12")["id"], 12)
 
     def test_blank_names_are_rejected(self):
         with self.assertRaises(DomainValidation):

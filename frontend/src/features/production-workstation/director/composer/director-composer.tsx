@@ -56,8 +56,9 @@ function initialHiddenRequests(productionId: number) {
   }
 }
 
-export function DirectorComposer({ productionId, ventureId, createOpen, onCreateOpenChange, uploading, uploadLabel, libraryAssets, recentAssetIds = [], usageCounts, onUploadReference, onGenerationOutputReady, onPreviewGenerated, onAddGeneratedToTimeline, renderCreations }: {
+export function DirectorComposer({ productionId, spaceId, ventureId, createOpen, onCreateOpenChange, uploading, uploadLabel, libraryAssets, recentAssetIds = [], usageCounts, onUploadReference, onGenerationOutputReady, onPreviewGenerated, onAddGeneratedToTimeline, renderCreations }: {
   productionId: number
+  spaceId?: number
   ventureId?: number
   createOpen?: boolean
   onCreateOpenChange?: (open: boolean) => void
@@ -129,9 +130,12 @@ export function DirectorComposer({ productionId, ventureId, createOpen, onCreate
   }, [])
 
   useEffect(() => {
-    if (!ventureId) return
-    void studioApi.savedVisualReferences(ventureId).then(setSavedReferences).catch((reason) => setComposerError(reason instanceof Error ? reason.message : "Saved references could not be loaded."))
-  }, [ventureId])
+    if (!spaceId && !ventureId) return
+    const request = spaceId
+      ? studioApi.spaceSavedVisualReferences(spaceId)
+      : studioApi.savedVisualReferences(ventureId!)
+    void request.then(setSavedReferences).catch((reason) => setComposerError(reason instanceof Error ? reason.message : "Saved references could not be loaded."))
+  }, [spaceId, ventureId])
 
   useEffect(() => () => {
     pickerRequestId.current += 1
@@ -422,9 +426,12 @@ export function DirectorComposer({ productionId, ventureId, createOpen, onCreate
   }
 
   async function saveCurrentReference(name: string, type: SavedVisualReference["type"]) {
-    if (!ventureId) throw new Error("This Production has no Venture reference scope.")
+    if (!spaceId && !ventureId) throw new Error("This Project has no reference scope.")
     const assetIds = [...new Set(visibleAttachments.flatMap(({ assetId }) => assetId ? [assetId] : []))]
-    const created = await studioApi.createSavedVisualReference(ventureId, { name, type, asset_ids: assetIds })
+    const payload = { name, type, asset_ids: assetIds }
+    const created = spaceId
+      ? await studioApi.createSpaceSavedVisualReference(spaceId, payload)
+      : await studioApi.createSavedVisualReference(ventureId!, payload)
     setSavedReferences((current) => [created, ...current])
   }
 

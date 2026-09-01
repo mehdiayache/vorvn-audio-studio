@@ -81,7 +81,7 @@ export function WorkstationPartInspector({ productionId, part, directory, playin
       <div className="ws-inspector-title-copy">
         <span>Part {formatPartNumber(part.position ?? 0)}{role ? ` · ${role}` : ""}</span>
         <h3>{part.kind === "silence" ? "Intentional pause" : part.kind === "asset" ? part.title || "Linked audio" : facts.selectedVoiceName}</h3>
-        <p>{part.kind === "silence" ? "Editorial timing" : part.kind === "asset" ? "Venture audio asset" : facts.methodLine}</p>
+        <p>{part.kind === "silence" ? "Editorial timing" : part.kind === "asset" ? "Space audio asset" : facts.methodLine}</p>
       </div>
       {playable && <div className="ws-inspector-media-actions">
         <OperatorIconButton label={currentPlaying ? "Pause selected Part" : "Play selected Part"} variant="outline" size="icon" onClick={() => onPlay(source)}>{currentPlaying ? <Pause /> : <Play />}</OperatorIconButton>
@@ -93,7 +93,7 @@ export function WorkstationPartInspector({ productionId, part, directory, playin
       <Fact label="Duration" value={facts.durationLabel} />
       {part.kind === "asset" ? <>
         <Fact label="Cost" value={part.cost > 0 ? formatMoney(part.cost) : "Free / reuse"} />
-        <Fact label="Collection" value={part.asset_collection || part.asset_kind || "Venture audio"} />
+        <Fact label="Collection" value={part.asset_collection || part.asset_kind || "Space audio"} />
         <Fact label="State" value={part.missing ? "Missing source" : "Linked"} />
       </> : <>
         <Fact label="Spend" value={facts.spendValue} />
@@ -116,9 +116,9 @@ export function WorkstationPartInspector({ productionId, part, directory, playin
         <TabsContent value="recording" className="ws-inspector-tab">
           {part.kind === "asset" ? playable ? <>
             <div className="ws-inspector-waveform"><AudioWaveform url={part.filename ? audioUrl(part.filename) : undefined} bars={96} /><OperatorTooltip label={currentPlaying ? "Pause linked audio" : "Play linked audio"}><button aria-label={currentPlaying ? "Pause linked audio" : "Play linked audio"} onClick={() => onPlay(source)}>{currentPlaying ? <Pause /> : <Play />}</button></OperatorTooltip><span><b>{facts.durationLabel}</b><small>Venture source</small></span></div>
-            <div className="ws-inspector-section-heading"><div><span>Reusable audio</span><b>{part.asset_collection || part.asset_kind || "Venture Assets"}</b></div></div>
-            <p className="ws-inspector-script">This Part links to a reusable Venture audio asset. Replacing the source updates this placement without creating speech or provider spend.</p>
-          </> : <div className="ws-inspector-empty"><FileAudio /><h3>Source unavailable</h3><p>Choose another Venture audio asset for this Part.</p></div> : facts.recorded ? <>
+            <div className="ws-inspector-section-heading"><div><span>Reusable audio</span><b>{part.asset_collection || part.asset_kind || "Space Files"}</b></div></div>
+            <p className="ws-inspector-script">This Part links to a reusable Space audio asset. Replacing the source updates this placement without creating speech or provider spend.</p>
+          </> : <div className="ws-inspector-empty"><FileAudio /><h3>Source unavailable</h3><p>Choose another Space audio asset for this Part.</p></div> : facts.recorded ? <>
             <div className="ws-inspector-waveform"><AudioWaveform url={part.filename ? audioUrl(part.filename) : undefined} bars={96} /><OperatorTooltip label={currentPlaying ? "Pause recording" : "Play recording"}><button aria-label={currentPlaying ? "Pause recording" : "Play recording"} onClick={() => onPlay(source)}>{currentPlaying ? <Pause /> : <Play />}</button></OperatorTooltip><span><b>{facts.durationLabel}</b><small>{wording.label} input</small></span></div>
             <div className="ws-inspector-section-heading"><div><span>Words used for this recording</span><b>{wording.label}</b></div><CopyTextButton text={wording.text} /></div>
             <div className="ws-inspector-script" dir={textDirection(wording.text)}>{wording.text ? wording.label === "Tagged" ? <InlineDeliveryTags text={wording.text} /> : wording.text : "This historical recording does not contain a reliable wording snapshot."}</div>
@@ -137,7 +137,7 @@ export function WorkstationPartInspector({ productionId, part, directory, playin
 
         <TabsContent value="details" className="ws-inspector-tab">
           {part.kind === "asset" ? <dl className="ws-inspector-details">
-            <Fact label="Source" value="Venture audio asset" />
+            <Fact label="Source" value="Space audio asset" />
             <Fact label="Collection" value={part.asset_collection} />
             <Fact label="Asset kind" value={part.asset_kind} />
             <Fact label="Filename" value={part.filename} mono />

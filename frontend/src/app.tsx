@@ -1,4 +1,4 @@
-import { lazy, Suspense } from "react"
+import { lazy, Suspense, useEffect, useState } from "react"
 import {
   BrowserRouter, Navigate, Route, Routes, useLocation, useParams,
 } from "react-router-dom"
@@ -15,6 +15,7 @@ import { useProduction } from "@/hooks/use-production"
 import { useStudioResources } from "@/hooks/use-studio-resources"
 import { useProjectOverview, useSeriesOverview, useVentureOverview } from "@/hooks/use-work-overview"
 import { normalizeStudioLocation } from "@/lib/routes"
+import { studioApi } from "@/lib/api"
 import { productIdentity } from "@/lib/product-identity"
 import type { ResourceType } from "@/types/domain"
 
@@ -41,12 +42,30 @@ function ProductionRoute({ productionId }: { productionId: number }) {
     {data && visualScene.status === "error" && <InlineResourceError message={`Visual timeline unavailable: ${visualScene.error}`} retry={() => void refresh()} />}
     {data && resources.assetError && resources.assetState.data && <InlineResourceError message={`Asset library refresh failed: ${resources.assetError}`} retry={() => void resources.refreshAssets().catch(() => undefined)} />}
     {data && resources.voiceError && <InlineResourceError message="Voice directory refresh failed. Existing voice data is preserved." retry={() => void resources.refreshVoices()} />}
-    {data && soundScene.data && visualScene.data && <LazyRoute label="Loading Production workspace"><ProductionWorkstationPage production={data} tree={tree.data || null} soundScene={soundScene.data} visualScene={visualScene.data} assets={resources.assets} assetCollections={resources.assetCollections} directorAssetIds={resources.directorAssetIds} assetState={resources.assetState} config={resources.config} directory={resources.voiceDirectory} refresh={refresh} refreshAssets={resources.refreshAssets} /></LazyRoute>}
+    {data && soundScene.data && visualScene.data && <LazyRoute label="Loading Project workspace"><ProductionWorkstationPage production={data} tree={tree.data || null} soundScene={soundScene.data} visualScene={visualScene.data} assets={resources.assets} assetCollections={resources.assetCollections} projectFileIds={resources.projectFileIds} directorAssetIds={resources.directorAssetIds} assetState={resources.assetState} config={resources.config} directory={resources.voiceDirectory} refresh={refresh} refreshAssets={resources.refreshAssets} /></LazyRoute>}
   </>
 }
 
 function SpaceHomeRoute({ view = "create" }: { view?: "create" | "projects" | "files" }) {
   return <LazyRoute label="Opening your Space"><SpaceHomePage view={view} /></LazyRoute>
+}
+
+function AudiovisualProjectRoute() {
+  const { identifier = "" } = useParams()
+  const [state, setState] = useState<{ id?: number; error?: string }>({})
+  useEffect(() => {
+    let active = true
+    setState({})
+    void studioApi.audiovisualProject(identifier).then((project) => {
+      if (active) setState({ id: project.id })
+    }).catch((error) => {
+      if (active) setState({ error: error instanceof Error ? error.message : "Unable to open this Project." })
+    })
+    return () => { active = false }
+  }, [identifier])
+  if (state.id) return <ProductionRoute productionId={state.id} />
+  if (state.error) return <ErrorState title="Project unavailable" message={state.error} retry={() => window.location.reload()} />
+  return <PageLoading label="Opening audiovisual Project" />
 }
 
 function VentureRoute({ id }: { id: number }) {
@@ -105,6 +124,7 @@ function AudioStudioRoutes({ mode }: { mode: AudioStudioMountMode }) {
         <Route index element={<SpaceHomeRoute />} />
         <Route path="create" element={<SpaceHomeRoute />} />
         <Route path="projects" element={<SpaceHomeRoute view="projects" />} />
+        <Route path="projects/audiovisual/:identifier" element={<AudiovisualProjectRoute />} />
         <Route path="files" element={<SpaceHomeRoute view="files" />} />
         <Route path="speak" element={<LazyRoute label="Loading Speak"><SpeakPage /></LazyRoute>} />
         <Route path="voices" element={<LazyRoute label="Loading voices"><VoicesPage /></LazyRoute>} />

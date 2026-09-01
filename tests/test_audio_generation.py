@@ -137,6 +137,9 @@ class FakeUploads:
     def generated_asset(self, *, candidate_id):
         return self.existing
 
+    def generated_space_file(self, *, space_id, candidate_id):
+        return self.existing
+
     def prepare_asset_upload(self, *args, **kwargs):
         return {"args": args, "values": kwargs}
 
@@ -235,7 +238,7 @@ class AudioGenerationApplicationTests(unittest.TestCase):
             target.write_bytes(b"stale candidate")
             result = service.keep(
                 candidate_id=candidate_id, collection_id=41, name="Ignored",
-                category="music", scope="venture", tags=())
+                category="music", scope="space", tags=())
             self.assertEqual(result, {
                 "asset": uploads.existing, "duplicate": True})
             self.assertEqual(uploads.saved, [])

@@ -9,7 +9,7 @@ from audio_studio.domain.media import AssetMediaType
 AssetCategory = Literal[
     "music", "ambience", "sfx",
 ]
-AssetScope = Literal["venture", "studio"]
+AssetScope = Literal["space", "studio"]
 ASSET_CATEGORIES = frozenset({
     "music", "ambience", "sfx",
 })

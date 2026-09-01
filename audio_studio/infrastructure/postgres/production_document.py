@@ -576,23 +576,40 @@ class ProductionDocumentRepository:
                 SELECT asset.id, version.id, asset.name, version.duration_ms
                   FROM assets asset
                   JOIN productions production ON production.id = %s
-                  JOIN work_projects project ON project.id = production.project_id
+                  LEFT JOIN work_projects project ON project.id = production.project_id
                   JOIN LATERAL (
                     SELECT item.* FROM asset_versions item
                      WHERE item.asset_id = asset.id ORDER BY item.version DESC LIMIT 1
                   ) version ON true
                  WHERE asset.id = %s
-                   AND (asset.venture_id = project.venture_id
+                   AND ((production.space_id IS NOT NULL
+                         AND asset.space_id = production.space_id)
+                        OR (production.space_id IS NULL
+                            AND asset.venture_id = project.venture_id)
                         OR asset.scope = 'studio')
             """, (production_id, asset_id))
             row = cursor.fetchone()
         if not row:
             return None
-        return self.create_part(production_id, {
+        part_id = self.create_part(production_id, {
             "kind": "asset", "text": row[2] or "", "title": row[2] or "",
             "asset_id": row[0], "asset_version_id": row[1],
             "duration_ms": row[3],
         }, before_part_public_id)
+        if part_id is not None:
+            with transaction() as cursor:
+                cursor.execute("""
+                    INSERT INTO project_files (project_id, file_id, purpose)
+                    SELECT production.id, asset.id, 'script'
+                      FROM productions production
+                      JOIN assets asset ON asset.id=%s
+                     WHERE production.id=%s
+                       AND production.project_type='audiovisual'
+                       AND production.space_id=asset.space_id
+                    ON CONFLICT (project_id, file_id) DO UPDATE
+                       SET purpose=EXCLUDED.purpose
+                """, (asset_id, production_id))
+        return part_id
 
     def replace_asset(self, production_id: int, part_id: int,
                       asset_id: int) -> bool:
@@ -601,14 +618,17 @@ class ProductionDocumentRepository:
                 SELECT version.id, asset.name, version.duration_ms
                   FROM assets asset
                   JOIN productions production ON production.id=%s
-                  JOIN work_projects project ON project.id=production.project_id
+                  LEFT JOIN work_projects project ON project.id=production.project_id
                   JOIN LATERAL (
                     SELECT item.* FROM asset_versions item
                      WHERE item.asset_id=asset.id
                      ORDER BY item.version DESC LIMIT 1
                   ) version ON true
                  WHERE asset.id=%s
-                   AND (asset.venture_id=project.venture_id
+                   AND ((production.space_id IS NOT NULL
+                         AND asset.space_id=production.space_id)
+                        OR (production.space_id IS NULL
+                            AND asset.venture_id=project.venture_id)
                         OR asset.scope='studio')
             """, (production_id, asset_id))
             asset = cursor.fetchone()
@@ -622,7 +642,20 @@ class ProductionDocumentRepository:
                    AND archived_at IS NULL
             """, (asset_id, asset[0], asset[1] or "", asset[1] or "",
                   asset[2], part_id, production_id))
-            return cursor.rowcount == 1
+            updated = cursor.rowcount == 1
+            if updated:
+                cursor.execute("""
+                    INSERT INTO project_files (project_id, file_id, purpose)
+                    SELECT production.id, file.id, 'script'
+                      FROM productions production
+                      JOIN assets file ON file.id=%s
+                     WHERE production.id=%s
+                       AND production.project_type='audiovisual'
+                       AND production.space_id=file.space_id
+                    ON CONFLICT (project_id, file_id) DO UPDATE
+                       SET purpose=EXCLUDED.purpose
+                """, (asset_id, production_id))
+            return updated
 
     def reorder(self, production_id: int, ordered_ids: list[int]) -> bool:
         ordered_ids = [int(item) for item in ordered_ids]

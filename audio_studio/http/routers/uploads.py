@@ -10,6 +10,7 @@ from audio_studio.config import settings
 
 from audio_studio.application.uploads import MAX_ASSET_UPLOAD_BYTES, UploadError
 from audio_studio.composition.uploads import upload_service
+from audio_studio.composition.spaces import space_service
 from audio_studio.http.errors import ApiProblem
 from audio_studio.http.upload_contracts import (
     UpdateAssetBody,
@@ -139,6 +140,76 @@ async def upload_venture_asset(collection_id: int, request: Request,
         raise ApiProblem(400, "invalid_asset", str(exc)) from exc
     except RuntimeError as exc:
         raise ApiProblem(503, "asset_storage_failed", str(exc)) from exc
+    finally:
+        incoming.unlink(missing_ok=True)
+    return {"data": result}
+
+
+@router.post(
+    "/spaces/{space_id}/files/upload",
+    operation_id="uploadSpaceFile",
+    status_code=201,
+    response_model=UploadedAssetEnvelope,
+)
+async def upload_space_file(
+    space_id: int, request: Request,
+    x_filename: str = Header(default="media.mp3"),
+    x_asset_category: str | None = Header(default=None),
+    x_asset_name: str | None = Header(default=None),
+    x_asset_tags: str | None = Header(default=None),
+) -> dict:
+    try:
+        details = upload_service.prepare_asset_upload(
+            x_filename, name=x_asset_name, category=x_asset_category,
+            scope="space", encoded_tags=x_asset_tags)
+    except UploadError as exc:
+        raise ApiProblem(400, "invalid_file", str(exc)) from exc
+    incoming, size = await _stream_to_file(request, MAX_ASSET_UPLOAD_BYTES)
+    try:
+        result = upload_service.save_space_file(
+            space_id, incoming, size, x_filename, details=details)
+    except UploadError as exc:
+        raise ApiProblem(400, "invalid_file", str(exc)) from exc
+    except RuntimeError as exc:
+        raise ApiProblem(503, "file_storage_failed", str(exc)) from exc
+    finally:
+        incoming.unlink(missing_ok=True)
+    return {"data": result}
+
+
+@router.post(
+    "/audiovisual-projects/{project_id}/files/upload",
+    operation_id="uploadAudiovisualProjectFile",
+    status_code=201,
+    response_model=UploadedAssetEnvelope,
+)
+async def upload_audiovisual_project_file(
+    project_id: int, request: Request,
+    x_filename: str = Header(default="media.mp3"),
+    x_asset_category: str | None = Header(default=None),
+    x_asset_name: str | None = Header(default=None),
+    x_asset_tags: str | None = Header(default=None),
+) -> dict:
+    project = space_service.project(str(project_id))
+    if not project:
+        raise ApiProblem(404, "project_not_found",
+                         "Audiovisual Project not found.")
+    try:
+        details = upload_service.prepare_asset_upload(
+            x_filename, name=x_asset_name, category=x_asset_category,
+            scope="space", encoded_tags=x_asset_tags)
+    except UploadError as exc:
+        raise ApiProblem(400, "invalid_file", str(exc)) from exc
+    incoming, size = await _stream_to_file(request, MAX_ASSET_UPLOAD_BYTES)
+    try:
+        result = upload_service.save_space_file(
+            project["space_id"], incoming, size, x_filename, details=details)
+        if not space_service.attach_file(project_id, result["id"], "media"):
+            raise RuntimeError("The File could not be associated with this Project.")
+    except UploadError as exc:
+        raise ApiProblem(400, "invalid_file", str(exc)) from exc
+    except RuntimeError as exc:
+        raise ApiProblem(503, "file_storage_failed", str(exc)) from exc
     finally:
         incoming.unlink(missing_ok=True)
     return {"data": result}

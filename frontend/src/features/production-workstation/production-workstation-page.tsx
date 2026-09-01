@@ -69,13 +69,14 @@ function partDeletionLabel(part: ProductionPart) {
   return `Part ${number} · ${formatAuthoredRole(part.authored_role) || part.voice_name || part.voice || "Speech"}`
 }
 
-export function ProductionWorkstationPage({ production, tree, soundScene, visualScene, assets, assetCollections, directorAssetIds, assetState, config, directory, refresh, refreshAssets }: {
+export function ProductionWorkstationPage({ production, tree, soundScene, visualScene, assets, assetCollections, projectFileIds, directorAssetIds, assetState, config, directory, refresh, refreshAssets }: {
   production: Production
   tree: HierarchyNode[] | null
   soundScene: SoundScene
   visualScene: VisualScene
   assets: VentureAsset[]
   assetCollections: AssetCollection[]
+  projectFileIds: number[]
   directorAssetIds: number[]
   assetState: LoadState<StudioAssetResources>
   config: StudioConfig | null
@@ -424,7 +425,8 @@ export function ProductionWorkstationPage({ production, tree, soundScene, visual
         {stage === "director" && <DirectorStage
           centerPaneRef={centerPaneRef}
           productionId={production.id}
-          ventureId={Number(production.trail[0]?.id)}
+          spaceId={production.space_id ?? undefined}
+          ventureId={!production.space_id && production.trail[0]?.type === "venture" ? Number(production.trail[0].id) : undefined}
           createOpen={directorCreateOpen}
           onCreateOpenChange={setDirectorCreateOpen}
           assets={assets}
@@ -438,17 +440,20 @@ export function ProductionWorkstationPage({ production, tree, soundScene, visual
           }}
           onUpload={async (file) => {
             const collectionId = assetCollectionIds.Assets
-            if (!collectionId) throw new Error("The Asset Library is unavailable.")
-            return await studioApi.uploadAsset(collectionId, file, {
+            if (!production.space_id && !collectionId) throw new Error("The File library is unavailable.")
+            const details = {
               name: file.name.replace(/\.[^.]+$/, ""),
               category: null,
-              scope: "venture",
               tags: [],
-            }) as VentureAsset
+            }
+            return await (production.space_id
+              ? studioApi.uploadAudiovisualProjectFile(production.id, file, details)
+              : studioApi.uploadAsset(collectionId!, file, { ...details, scope: "space" })) as VentureAsset
           }}
         />}
         {stage === "sound" && <TimelineStage
           centerPaneRef={centerPaneRef}
+          projectFileIds={projectFileIds}
           directorAssetIds={directorAssetIds}
           session={soundSession}
           inspector={inspectorOpen ? inspector : undefined}
@@ -540,10 +545,10 @@ export function ProductionWorkstationPage({ production, tree, soundScene, visual
         else await soundSession.addTrack(asset, soundSession.snapshot().playhead)
         setTool(null); setAudioTarget(null); setStage("sound")
       }}
-      onUploadAsset={async (folder, input) => { const collectionId = assetCollectionIds[folder]; if (!collectionId) throw new Error(`${folder} library is unavailable.`); return actions.uploadAsset(collectionId, folder, input) }}
+      onUploadAsset={async (folder, input) => actions.uploadAsset(assetCollectionIds[folder] || 0, folder, input)}
       onUpdateAsset={actions.updateAsset}
-      onKeepAsset={async (folder, input) => { const collectionId = assetCollectionIds[folder]; if (!collectionId) throw new Error(`${folder} library is unavailable.`); return actions.keepFreesound(collectionId, input) }}
-      onKeepGenerated={async (folder, input) => { const collectionId = assetCollectionIds[folder]; if (!collectionId) throw new Error(`${folder} library is unavailable.`); return actions.keepGeneratedAudio(collectionId, input) }}
+      onKeepAsset={async (folder, input) => actions.keepFreesound(assetCollectionIds[folder] || 0, input)}
+      onKeepGenerated={async (folder, input) => actions.keepGeneratedAudio(assetCollectionIds[folder] || 0, input)}
       onImported={() => { actions.invalidatePreview(); void refresh().then(() => setTool(null)) }}
       onPlay={(source) => void playSource(source)} onConfirmAction={setConfirmAction} onRetryAssets={refreshAssets}
     />}

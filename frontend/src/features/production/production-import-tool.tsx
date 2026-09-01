@@ -36,7 +36,7 @@ type Existing = {
   name: string
   description: string
   partCount: number
-  parent: Parent
+  parent?: Parent
 }
 type Stage = "source" | "destination" | "voices" | "preparation" | "review" | "running"
 type DestinationChoice = "current" | "new"
@@ -240,14 +240,15 @@ export function ProductionImportTool({ existing, newParent, config, directory, p
   }
 
   async function execute() {
-    if (!validation || !parent || !title.trim() || !rolesReady) return
+    if (!validation || (destinationChoice === "new" && !parent)
+        || !title.trim() || !rolesReady) return
     setSubmitting(true); setError("")
     try {
       const plan: ProductionImportPlan = {
         document: validation.document,
         destination: destinationChoice === "current" && existing
           ? { kind: "existing", production_id: existing.id }
-          : { kind: "new", parent_type: parent.type, parent_id: parent.id },
+          : { kind: "new", parent_type: parent!.type, parent_id: parent!.id },
         title: title.trim(), description: description.trim(),
         role_routes: roleRoutes(),
         preparation: { text_version: textVersion, tag_density: supportsTags ? tagDensity : "none", output_format: outputFormat, language },
@@ -265,7 +266,8 @@ export function ProductionImportTool({ existing, newParent, config, directory, p
   }
 
   const currentIndex = stages.findIndex((item) => item.id === stage)
-  const canContinue = stage === "destination" ? Boolean(title.trim() && parent)
+  const canContinue = stage === "destination" ? Boolean(
+    title.trim() && (destinationChoice === "current" || parent))
     : stage === "voices" ? rolesReady
     : stage === "preparation" ? Boolean(language)
     : true

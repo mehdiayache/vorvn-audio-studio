@@ -200,6 +200,7 @@ export const studioApi = {
   createSpace: (name: string, description = "") => postV1<SpaceSummary>("/api/v1/spaces", { name, description }),
   createFolder: (spaceId: number, name: string, parentId: number | null = null) => postV1<SpaceFolder>(`/api/v1/spaces/${spaceId}/folders`, { name, parent_id: parentId }),
   createAudiovisualProject: (spaceId: number, name: string, description = "", folderId: number | null = null) => postV1<SpaceProject>(`/api/v1/spaces/${spaceId}/projects/audiovisual`, { name, description, folder_id: folderId }),
+  audiovisualProject: (identifier: string) => v1<SpaceProject>(`/api/v1/audiovisual-projects/${identifier}`),
   activity: (filters: { kind?: string; failed?: boolean; limit?: number } = {}) => {
     const query = new URLSearchParams()
     if (filters.kind) query.set("kind", filters.kind)
@@ -296,6 +297,9 @@ export const studioApi = {
   savedVisualReferences: (ventureId: number) => request<{ data: import("@/types/domain").SavedVisualReference[] }>(`/api/v1/ventures/${ventureId}/saved-references`).then((response) => response.data),
   createSavedVisualReference: (ventureId: number, payload: { name: string; type: import("@/types/domain").SavedVisualReference["type"]; asset_ids: number[] }) => request<{ data: import("@/types/domain").SavedVisualReference }>(`/api/v1/ventures/${ventureId}/saved-references`, { method: "POST", body: JSON.stringify(payload) }).then((response) => response.data),
   deleteSavedVisualReference: (ventureId: number, referenceId: string) => request<void>(`/api/v1/ventures/${ventureId}/saved-references/${encodeURIComponent(referenceId)}`, { method: "DELETE" }),
+  spaceSavedVisualReferences: (spaceId: number) => request<{ data: import("@/types/domain").SavedVisualReference[] }>(`/api/v1/spaces/${spaceId}/saved-references`).then((response) => response.data),
+  createSpaceSavedVisualReference: (spaceId: number, payload: { name: string; type: import("@/types/domain").SavedVisualReference["type"]; asset_ids: number[] }) => request<{ data: import("@/types/domain").SavedVisualReference }>(`/api/v1/spaces/${spaceId}/saved-references`, { method: "POST", body: JSON.stringify(payload) }).then((response) => response.data),
+  deleteSpaceSavedVisualReference: (spaceId: number, referenceId: string) => request<void>(`/api/v1/spaces/${spaceId}/saved-references/${encodeURIComponent(referenceId)}`, { method: "DELETE" }),
   projectOverview: (id: number) => request<ProjectOverviewEnvelope>(`/api/v1/projects/${id}/overview`).then((response) => response.data),
   seriesOverview: (id: number) => request<SeriesOverviewEnvelope>(`/api/v1/series/${id}/overview`).then((response) => response.data),
   production: (id: number) => v1<Production>(`/api/v1/productions/${id}/editor`),
@@ -315,7 +319,7 @@ export const studioApi = {
     request<{ data: { id: number; type: "production"; deleted: boolean } }>(`/api/v1/productions/${id}`, { method: "DELETE" }).then((response) => response.data),
   soundScene: (id: number) => v1<SoundScene>(`/api/v1/productions/${id}/sound-scene`),
   visualScene: (id: number) => v1<VisualScene>(`/api/v1/productions/${id}/visual-scene`),
-  assets: (id: number) => v1<{ assets?: VentureAsset[]; collections?: AssetCollection[]; director_asset_ids?: number[] }>(`/api/v1/productions/${id}/assets`),
+  assets: (id: number) => v1<{ assets?: VentureAsset[]; collections?: AssetCollection[]; project_file_ids?: number[]; director_asset_ids?: number[] }>(`/api/v1/productions/${id}/assets`),
   attachDirectorAsset: (productionId: number, assetId: number) => request<DirectorAssetEnvelope>(
     `/api/v1/productions/${productionId}/director-assets`, {
       method: "POST",
@@ -456,7 +460,7 @@ export const studioApi = {
   uploadAsset: async (collectionId: number, file: File, details?: {
     name?: string
     category?: string | null
-    scope?: "venture" | "studio"
+    scope?: "space" | "studio"
     tags?: string[]
   }) => {
     const headers: Record<string, string> = {}
@@ -467,6 +471,34 @@ export const studioApi = {
     const response = await uploadFile<{ data: UploadedAsset }>(
       `/api/v1/asset-collections/${collectionId}/assets/upload`, file,
       headers,
+    )
+    return response.data
+  },
+  uploadSpaceFile: async (spaceId: number, file: File, details?: {
+    name?: string
+    category?: string | null
+    tags?: string[]
+  }) => {
+    const headers: Record<string, string> = {}
+    if (details?.name) headers["X-Asset-Name"] = encodeURIComponent(details.name)
+    if (details?.category) headers["X-Asset-Category"] = details.category
+    if (details?.tags) headers["X-Asset-Tags"] = encodeURIComponent(JSON.stringify(details.tags))
+    const response = await uploadFile<{ data: UploadedAsset }>(
+      `/api/v1/spaces/${spaceId}/files/upload`, file, headers,
+    )
+    return response.data
+  },
+  uploadAudiovisualProjectFile: async (projectId: number, file: File, details?: {
+    name?: string
+    category?: string | null
+    tags?: string[]
+  }) => {
+    const headers: Record<string, string> = {}
+    if (details?.name) headers["X-Asset-Name"] = encodeURIComponent(details.name)
+    if (details?.category) headers["X-Asset-Category"] = details.category
+    if (details?.tags) headers["X-Asset-Tags"] = encodeURIComponent(JSON.stringify(details.tags))
+    const response = await uploadFile<{ data: UploadedAsset }>(
+      `/api/v1/audiovisual-projects/${projectId}/files/upload`, file, headers,
     )
     return response.data
   },
@@ -523,6 +555,12 @@ export const studioApi = {
   keepFreesound: (payload: FreesoundKeepBody) => request<FreesoundKeepEnvelope>("/api/v1/audio-catalogs/freesound/keep", {
     method: "POST", body: JSON.stringify(payload),
   }).then((response) => response.data),
+  keepFreesoundInSpace: (spaceId: number, payload: Omit<FreesoundKeepBody, "collection_id" | "scope">) => request<FreesoundKeepEnvelope>(`/api/v1/audio-catalogs/freesound/spaces/${spaceId}/keep`, {
+    method: "POST", body: JSON.stringify(payload),
+  }).then((response) => response.data),
+  keepFreesoundInAudiovisualProject: (projectId: number, payload: Omit<FreesoundKeepBody, "collection_id" | "scope">) => request<FreesoundKeepEnvelope>(`/api/v1/audio-catalogs/freesound/audiovisual-projects/${projectId}/keep`, {
+    method: "POST", body: JSON.stringify(payload),
+  }).then((response) => response.data),
   audioGenerationStatus: () => request<AudioGenerationStatusEnvelope>("/api/v1/audio-generations/status").then((response) => response.data),
   soundRecipeTaxonomy: () => request<SoundRecipeTaxonomyEnvelope>("/api/v1/audio-generations/recipe/taxonomy").then((response) => response.data),
   compileSoundRecipe: (payload: SoundRecipeCompileBody, signal?: AbortSignal) => request<SoundRecipeCompileEnvelope>("/api/v1/audio-generations/recipe/compile", {
@@ -548,6 +586,12 @@ export const studioApi = {
   },
   audioGenerationCandidate: (candidateId: string) => request<AudioGenerationCandidateEnvelope>(`/api/v1/audio-generations/${encodeURIComponent(candidateId)}`).then((response) => response.data),
   keepGeneratedAudio: (candidateId: string, payload: GeneratedKeepBody) => request<GeneratedKeepEnvelope>(`/api/v1/audio-generations/${encodeURIComponent(candidateId)}/keep`, {
+    method: "POST", body: JSON.stringify(payload),
+  }).then((response) => response.data),
+  keepGeneratedAudioInSpace: (candidateId: string, spaceId: number, payload: Omit<GeneratedKeepBody, "collection_id" | "scope">) => request<GeneratedKeepEnvelope>(`/api/v1/audio-generations/${encodeURIComponent(candidateId)}/spaces/${spaceId}/keep`, {
+    method: "POST", body: JSON.stringify(payload),
+  }).then((response) => response.data),
+  keepGeneratedAudioInAudiovisualProject: (candidateId: string, projectId: number, payload: Omit<GeneratedKeepBody, "collection_id" | "scope">) => request<GeneratedKeepEnvelope>(`/api/v1/audio-generations/${encodeURIComponent(candidateId)}/audiovisual-projects/${projectId}/keep`, {
     method: "POST", body: JSON.stringify(payload),
   }).then((response) => response.data),
   discardGeneratedAudio: (candidateId: string) => request<GeneratedDiscardEnvelope>(`/api/v1/audio-generations/${encodeURIComponent(candidateId)}/candidate`, { method: "DELETE" }).then((response) => response.data),

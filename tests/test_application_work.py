@@ -51,10 +51,14 @@ class Records:
 
     @staticmethod
     def production_assets(_production_id):
-        return [{"id": 12, "kind": "music", "scope": "venture"}]
+        return [{"id": 12, "kind": "music", "scope": "space"}]
 
     def director_asset_ids(self, production_id):
         return list(self.director_assets.get(production_id, []))
+
+    @staticmethod
+    def project_file_ids(_production_id):
+        return [44]
 
     def attach_director_asset(self, production_id, asset_id):
         if production_id != 6 or asset_id == 99:
@@ -170,7 +174,8 @@ class WorkServiceTests(unittest.TestCase):
         result = self.service.production_assets(6)
         self.assertEqual(result["venture"]["id"], 2)
         self.assertEqual(result["collections"][0]["kind"], "music")
-        self.assertEqual(result["assets"][0]["scope"], "venture")
+        self.assertEqual(result["assets"][0]["scope"], "space")
+        self.assertEqual(result["project_file_ids"], [44])
         self.assertEqual(result["director_asset_ids"], [44])
 
     def test_director_collection_is_idempotent_and_never_deletes_asset_truth(self):

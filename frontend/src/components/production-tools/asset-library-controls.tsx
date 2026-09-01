@@ -29,7 +29,7 @@ export function AssetScopeSelect({ value, onChange }: {
   return <label className="asset-field"><span>Available in</span><Select value={value} onValueChange={(next) => onChange(next as AudioAssetScope)}>
     <SelectTrigger aria-label="Available in"><SelectValue /></SelectTrigger>
     <SelectContent>
-      <SelectItem value="venture">This Venture</SelectItem>
+      <SelectItem value="space">This Space</SelectItem>
       <SelectItem value="studio">Studio Library</SelectItem>
     </SelectContent>
   </Select><small>{value === "studio" ? "Reusable across Ventures" : "Only Productions in this Venture"}</small></label>

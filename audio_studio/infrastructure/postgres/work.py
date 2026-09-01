@@ -152,15 +152,17 @@ def production_get(production_id: int) -> dict[str, Any] | None:
                    production.settings, production.updated_at,
                    project.name, project.public_id, project.venture_id,
                    venture.name, venture.public_id, venture.icon,
-                   series.name, series.public_id
+                   series.name, series.public_id,
+                   production.space_id, space.name, space.public_id
               FROM productions production
-              JOIN work_projects project ON project.id = production.project_id
-              JOIN ventures venture ON venture.id = project.venture_id
+              LEFT JOIN work_projects project ON project.id = production.project_id
+              LEFT JOIN ventures venture ON venture.id = project.venture_id
               LEFT JOIN series ON series.id = production.series_id
+              LEFT JOIN spaces space ON space.id = production.space_id
              WHERE production.id = %s
                AND production.archived_at IS NULL
-               AND project.archived_at IS NULL
-               AND venture.archived_at IS NULL
+               AND (project.id IS NULL OR project.archived_at IS NULL)
+               AND (venture.id IS NULL OR venture.archived_at IS NULL)
         """, (production_id,))
         row = cur.fetchone()
     if not row:
@@ -168,19 +170,24 @@ def production_get(production_id: int) -> dict[str, Any] | None:
     (ident, public_id, name, description, status, project_id, series_id,
      production_settings, updated, project_name, project_public_id,
      venture_id, venture_name, venture_public_id, venture_icon,
-     series_name, series_public_id) = row
-    trail = [
-        {"id": venture_id, "public_id": str(venture_public_id), "type": "venture", "name": venture_name,
-         "icon": venture_icon or ""},
-        {"id": project_id, "public_id": str(project_public_id), "type": "project", "name": project_name},
-    ]
+     series_name, series_public_id, space_id, space_name,
+     space_public_id) = row
+    trail = ([{
+        "id": int(space_id), "public_id": str(space_public_id),
+        "type": "space", "name": space_name, "icon": "",
+    }] if space_id is not None else [
+        {"id": venture_id, "public_id": str(venture_public_id),
+         "type": "venture", "name": venture_name, "icon": venture_icon or ""},
+        {"id": project_id, "public_id": str(project_public_id),
+         "type": "project", "name": project_name},
+    ])
     if series_id:
         trail.append({"id": series_id, "public_id": str(series_public_id), "type": "series", "name": series_name})
     return {
         "id": ident, "public_id": str(public_id), "type": "production",
         "key": f"production:{ident}", "name": name,
         "description": description or "", "status": status,
-        "project_id": project_id, "series_id": series_id,
+        "space_id": space_id, "project_id": project_id, "series_id": series_id,
         "settings": production_settings or {}, "trail": trail,
         "updated_at": _iso(updated),
     }
@@ -823,9 +830,10 @@ def create_production(project_id: int, name: str, description: str = "",
         ident = cur.fetchone()[0]
         cur.execute("""
             INSERT INTO productions
-                (id, project_id, series_id, legacy_container_id, slug, name,
+                (id, project_id, series_id, legacy_container_id, project_type,
+                 slug, name,
                  description, settings)
-            VALUES (%s, %s, %s, %s, %s, %s, %s,
+            VALUES (%s, %s, %s, %s, 'legacy_work', %s, %s, %s,
                     coalesce((SELECT defaults FROM series WHERE id = %s), '{}'::jsonb))
             ON CONFLICT (id) DO UPDATE SET project_id = EXCLUDED.project_id,
               series_id = EXCLUDED.series_id, name = EXCLUDED.name,

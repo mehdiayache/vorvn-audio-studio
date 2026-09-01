@@ -32,7 +32,7 @@ class SeriesOverviewMetricsResponse(SummaryMetricsResponse):
 class TrailItemResponse(BaseModel):
     id: int
     public_id: str
-    type: Literal["venture", "project", "series"]
+    type: Literal["space", "venture", "project", "series"]
     name: str
     icon: str | None = None
 
@@ -250,7 +250,7 @@ class VentureAssetResponse(BaseModel):
     filename: str | None = None
     missing: bool | None = None
     venture_id: int | None = None
-    scope: Literal["venture", "studio"] = "venture"
+    scope: Literal["space", "studio"] = "space"
     media_type: Literal["audio", "image", "video"] = "audio"
     category: str | None = None
     kind: str | None = None
@@ -271,10 +271,21 @@ class VentureAssetResponse(BaseModel):
     updated_at: str | None = None
 
 
+class SpaceAssetOwnerResponse(BaseModel):
+    id: int
+    public_id: str
+    name: str
+    description: str
+    created_at: str
+    updated_at: str
+
+
 class VentureAssetLibraryResponse(BaseModel):
-    venture: HierarchyNodeResponse
+    venture: HierarchyNodeResponse | None = None
+    space: SpaceAssetOwnerResponse | None = None
     collections: list[AssetCollectionResponse]
     assets: list[VentureAssetResponse]
+    project_file_ids: list[int] = Field(default_factory=list)
     director_asset_ids: list[int] = Field(default_factory=list)
 
 
@@ -442,7 +453,8 @@ class ProductionRenderJobResponse(BaseModel):
 
 class ProductionEditorResponse(WorkResourceResponse):
     type: Literal["production"]
-    project_id: int
+    space_id: int | None = None
+    project_id: int | None = None
     series_id: int | None
     settings: dict[str, Any]
     trail: list[TrailItemResponse]

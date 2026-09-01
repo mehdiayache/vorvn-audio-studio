@@ -313,8 +313,26 @@ class AudioGenerationService:
     def keep(self, *, candidate_id: UUID, collection_id: int, name: str,
              category: AssetCategory, scope: AssetScope,
              tags: tuple[str, ...]) -> dict:
-        existing = self.uploads.generated_asset(
-            candidate_id=str(candidate_id))
+        return self._keep(
+            candidate_id=candidate_id, collection_id=collection_id,
+            space_id=None, name=name, category=category, scope=scope,
+            tags=tags)
+
+    def keep_in_space(
+        self, *, candidate_id: UUID, space_id: int, name: str,
+        category: AssetCategory, tags: tuple[str, ...],
+    ) -> dict:
+        return self._keep(
+            candidate_id=candidate_id, collection_id=None,
+            space_id=space_id, name=name, category=category,
+            scope="space", tags=tags)
+
+    def _keep(
+        self, *, candidate_id: UUID, collection_id: int | None,
+        space_id: int | None, name: str, category: AssetCategory,
+        scope: AssetScope, tags: tuple[str, ...],
+    ) -> dict:
+        existing = self._kept_file(candidate_id, space_id)
         if existing:
             self._candidate_path(candidate_id).unlink(missing_ok=True)
             return {"asset": existing, "duplicate": True}
@@ -323,8 +341,7 @@ class AudioGenerationService:
         except LookupError:
             # A concurrent Keep may have committed and removed the temporary
             # candidate after our first lookup. Resolve that canonical winner.
-            existing = self.uploads.generated_asset(
-                candidate_id=str(candidate_id))
+            existing = self._kept_file(candidate_id, space_id)
             if existing:
                 return {"asset": existing, "duplicate": True}
             raise
@@ -369,17 +386,29 @@ class AudioGenerationService:
             try:
                 shutil.copy2(source, copy)
             except FileNotFoundError:
-                existing = self.uploads.generated_asset(
-                    candidate_id=str(candidate_id))
+                existing = self._kept_file(candidate_id, space_id)
                 if existing:
                     return {"asset": existing, "duplicate": True}
                 raise LookupError(
                     "That temporary generated candidate is no longer available.")
-            result = self.uploads.save_generated_asset_file(
-                collection_id, copy, copy.stat().st_size,
-                candidate_id=str(candidate_id), details=details)
+            if space_id is not None:
+                result = self.uploads.save_generated_space_file(
+                    space_id, copy, copy.stat().st_size,
+                    candidate_id=str(candidate_id), details=details)
+            else:
+                result = self.uploads.save_generated_asset_file(
+                    collection_id, copy, copy.stat().st_size,
+                    candidate_id=str(candidate_id), details=details)
         source.unlink(missing_ok=True)
         return result
+
+    def _kept_file(
+        self, candidate_id: UUID, space_id: int | None,
+    ) -> dict | None:
+        if space_id is not None:
+            return self.uploads.generated_space_file(
+                space_id=space_id, candidate_id=str(candidate_id))
+        return self.uploads.generated_asset(candidate_id=str(candidate_id))
 
 
 def create_audio_generation_service(

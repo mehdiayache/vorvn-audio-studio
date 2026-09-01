@@ -58,6 +58,25 @@ class AudioCatalogService:
         if existing:
             return {"asset": existing, "duplicate": True}
 
+        return self._keep(
+            collection_id=collection_id, space_id=None,
+            external_id=external_id, name=name, category=category,
+            scope=scope, tags=tags)
+
+    def keep_in_space(
+        self, *, space_id: int, external_id: str, name: str,
+        category: AssetCategory | None, tags: tuple[str, ...],
+    ) -> dict:
+        return self._keep(
+            collection_id=None, space_id=space_id,
+            external_id=external_id, name=name, category=category,
+            scope="space", tags=tags)
+
+    def _keep(
+        self, *, collection_id: int | None, space_id: int | None,
+        external_id: str, name: str, category: AssetCategory | None,
+        scope: AssetScope, tags: tuple[str, ...],
+    ) -> dict:
         sound = self.catalog.sound(external_id)
         self.scratch_root.mkdir(parents=True, exist_ok=True)
         with TemporaryDirectory(
@@ -86,8 +105,14 @@ class AudioCatalogService:
                 category=category, scope=scope,
                 encoded_tags=None, supplied_tags=tags,
                 metadata=provenance)
-            result = self.uploads.save_catalog_asset_file(
-                collection_id, Path(downloaded.path), downloaded.size_bytes,
-                origin="freesound", external_id=sound.external_id,
-                details=details)
+            if space_id is not None:
+                result = self.uploads.save_space_catalog_file(
+                    space_id, Path(downloaded.path), downloaded.size_bytes,
+                    origin="freesound", external_id=sound.external_id,
+                    details=details)
+            else:
+                result = self.uploads.save_catalog_asset_file(
+                    collection_id, Path(downloaded.path), downloaded.size_bytes,
+                    origin="freesound", external_id=sound.external_id,
+                    details=details)
         return result

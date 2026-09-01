@@ -51,7 +51,7 @@ describe("TransportStrip", () => {
 
   it("labels every supported product source without page-specific players", () => {
     const kinds: Array<[PlayerSource["kind"], string]> = [
-      ["production", "Production preview"], ["voice", "Voice preview"], ["asset", "Venture audio"],
+      ["production", "Production preview"], ["voice", "Voice preview"], ["asset", "Space audio"],
       ["music", "Music"], ["subtitle", "Subtitle source"], ["standalone", "Standalone recording"],
     ]
     const { rerender } = render(<TransportStripView {...props} source={{ ...source, kind: "production" }} />)

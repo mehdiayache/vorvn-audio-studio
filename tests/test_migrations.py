@@ -79,8 +79,6 @@ class MigrationTests(unittest.TestCase):
                 "052_asset_classification.sql",
                 "053_normalize_freesound_assets.sql",
                 "054_space_create_core.sql",
-                "055_space_legacy_bridge.sql",
-                "056_space_legacy_writes.sql",
         ])
             self.assertEqual(migrations.run(), [])
             with psycopg.connect(test_url) as database:

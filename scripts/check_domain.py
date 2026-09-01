@@ -8,27 +8,18 @@ from audio_studio.infrastructure.postgres.session import read_only
 
 
 CHECKS = {
-    "database enforces same-Project Series placement": """
-        SELECT CASE WHEN EXISTS (
-          SELECT 1 FROM pg_constraint
-           WHERE conname = 'productions_series_project_fkey'
-             AND conrelid = 'productions'::regclass
-        ) THEN 0 ELSE 1 END
-    """,
-    "every Production has a Project": """
-        SELECT count(*) FROM productions production
-        LEFT JOIN work_projects project ON project.id = production.project_id
-        WHERE project.id IS NULL
-    """,
-    "every typed Project belongs to a Space": """
-        SELECT count(*) FROM productions project
-        LEFT JOIN spaces space ON space.id = project.space_id
-        WHERE space.id IS NULL
-    """,
-    "every Series belongs to its Production's Project": """
+    "legacy Series placement never crosses its Work Project": """
         SELECT count(*) FROM productions production
         JOIN series ON series.id = production.series_id
-        WHERE series.project_id <> production.project_id
+        WHERE production.project_id IS NULL
+           OR series.project_id <> production.project_id
+    """,
+    "every audiovisual Project is owned only by a Space": """
+        SELECT count(*) FROM productions project
+        LEFT JOIN spaces space ON space.id = project.space_id
+        WHERE project.project_type = 'audiovisual'
+          AND (space.id IS NULL OR project.project_id IS NOT NULL
+               OR project.legacy_container_id IS NOT NULL)
     """,
     "every canonical Part belongs to an existing Production": """
         SELECT count(*) FROM production_parts part
@@ -69,11 +60,12 @@ CHECKS = {
           ON reference.id=identity.preferred_reference_id
         WHERE reference.identity_id<>identity.id
     """,
-    "assets have canonical Venture ownership": """
+    "legacy Assets keep internally complete ownership": """
         SELECT count(*) FROM assets asset
         LEFT JOIN ventures venture ON venture.id = asset.venture_id
         LEFT JOIN asset_collections collection ON collection.id = asset.collection_id
-        WHERE venture.id IS NULL OR collection.id IS NULL
+        WHERE asset.space_id IS NULL
+          AND (venture.id IS NULL OR collection.id IS NULL)
     """,
     "every File belongs to a Space": """
         SELECT count(*) FROM assets file

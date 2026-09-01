@@ -19,7 +19,7 @@ export type SoundRecipeNormalizationResult = SoundRecipeCompilation & {
 export type SoundRecipeTaxonomy = components["schemas"]["SoundRecipeTaxonomyResponse"]
 export type SoundRecipeTaxonomyItem = SoundRecipeTaxonomy["items"][number]
 
-export type ResourceType = "venture" | "project" | "series" | "production"
+export type ResourceType = "space" | "venture" | "project" | "series" | "production"
 
 export type HierarchyNode = components["schemas"]["HierarchyNodeResponse"]
 
@@ -39,6 +39,7 @@ export type WorkResource = {
   updated_at?: string | null
   locked?: boolean
   project_id?: number
+  space_id?: number | null
 }
 
 export type SeriesSummary = components["schemas"]["ProjectSeriesSummaryResponse"]
@@ -170,7 +171,8 @@ export type Production = {
   name: string
   description: string
   status: "draft" | "in_progress" | "review" | "approved" | "released" | "archived" | string
-  project_id?: number
+  space_id?: number | null
+  project_id?: number | null
   series_id: number | null
   updated_at?: string
   trail: TrailItem[]
@@ -384,7 +386,7 @@ export type VentureAsset = {
   kind?: string
   category?: string | null
   venture_id?: number
-  scope?: "venture" | "studio"
+  scope?: "space" | "studio"
   tags?: string[]
   metadata?: Record<string, unknown>
   filename?: string

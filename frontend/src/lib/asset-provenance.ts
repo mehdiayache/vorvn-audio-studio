@@ -151,7 +151,7 @@ export function assetDetails(asset: VentureAsset): AssetDetail[] {
   if (asset.audio_format) details.push({ label: "Format", value: asset.audio_format.toUpperCase() })
   details.push({
     label: "Scope",
-    value: asset.scope === "studio" ? "Studio Library" : "This Venture",
+    value: asset.scope === "studio" ? "Studio Library" : "This Space",
   })
   return details
 }

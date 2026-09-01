@@ -47,14 +47,17 @@ jobs:
       - name: Create disposable database fixture
         run: |
           .venv/bin/python - <<'PY'
-          from audio_studio.infrastructure.postgres import work
+          from audio_studio.application.spaces import SpaceService
           from audio_studio.infrastructure.postgres.production_document import ProductionDocumentRepository
+          from audio_studio.infrastructure.postgres.spaces import SpaceRepository
 
-          venture = work.create_venture("CI Venture")
-          project = work.create_project(venture["id"], "CI Project")
-          production = work.create_production(project["id"], "CI Production")
+          service = SpaceService(SpaceRepository())
+          space = service.create_space("CI Space")
+          project = service.create_audiovisual_project(
+              space["id"], "CI Audiovisual Project"
+          )
           ProductionDocumentRepository().create_part(
-              production["id"], {"kind": "speech", "text": "CI fixture"}
+              project["id"], {"kind": "speech", "text": "CI fixture"}
           )
           PY
       - name: Run full backend test suite
@@ -201,7 +204,7 @@ jobs:
           exit 1
         env:
           PYTHONWARNINGS: error
-      - name: Verify Production workstation in Chromium
+      - name: Verify audiovisual Project workstation in Chromium
         run: pnpm test:browser:smoke
         env:
           AUVI_E2E_BASE_URL: http://127.0.0.1:7860

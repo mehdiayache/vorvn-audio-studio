@@ -41,7 +41,7 @@ describe("SpaceHomePage", () => {
     renderPage()
     expect(await screen.findByRole("heading", { name: "What do you want to create?" })).toBeTruthy()
     expect(screen.getByRole("link", { name: /Generate speech/ }).getAttribute("href")).toBe("/audio-studio/speak")
-    expect(screen.getByRole("link", { name: "Open Launch film" }).getAttribute("href")).toBe("/audio-studio/productions/project-8")
+    expect(screen.getByRole("link", { name: "Open Launch film" }).getAttribute("href")).toBe("/audio-studio/projects/audiovisual/project-8")
     expect(screen.getByText("Score.wav")).toBeTruthy()
   })
 

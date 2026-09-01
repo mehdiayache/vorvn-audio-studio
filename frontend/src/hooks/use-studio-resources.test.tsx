@@ -16,7 +16,7 @@ describe("useStudioResources partial refreshes", () => {
   it("preserves the asset library and exposes scoped asset and voice errors", async () => {
     const assets = [{ id: "asset-1", name: "Music" }]
     const collections = [{ id: "collection-1", name: "Music" }]
-    api.assets.mockResolvedValueOnce({ assets, collections, director_asset_ids: [1188] })
+    api.assets.mockResolvedValueOnce({ assets, collections, project_file_ids: [1177], director_asset_ids: [1188] })
     const { result } = renderHook(() => useStudioResources(7))
     expect(result.current.assetState.status).toBe("loading")
     await waitFor(() => expect(result.current.assets).toEqual(assets))
@@ -27,6 +27,7 @@ describe("useStudioResources partial refreshes", () => {
 
     expect(result.current.assets).toEqual(assets)
     expect(result.current.assetCollections).toEqual(collections)
+    expect(result.current.projectFileIds).toEqual([1177])
     expect(result.current.directorAssetIds).toEqual([1188])
     expect(result.current.assetState.status).toBe("error")
     expect(result.current.assetState.data?.assets).toEqual(assets)

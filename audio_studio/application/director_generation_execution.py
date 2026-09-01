@@ -23,6 +23,7 @@ class DirectorExecutionAssets(Protocol):
     def output_collection_for_production(
         self, production_id: int,
     ) -> int | None: ...
+    def output_space_for_project(self, project_id: int) -> int | None: ...
     def attach_to_director(
         self, production_id: int, asset_id: int,
     ) -> bool | None: ...
@@ -284,11 +285,13 @@ class DirectorGenerationHandler:
                     receipt=state.raw or {})
                 provider_succeeded = True
 
-            collection_id = self.assets.output_collection_for_production(
-                production_id)
-            if collection_id is None:
-                raise JobFailed(
-                    "The Production has no Asset library for generated media.")
+            space_id = self.assets.output_space_for_project(production_id)
+            collection_id = (
+                None if space_id is not None
+                else self.assets.output_collection_for_production(production_id)
+            )
+            if space_id is None and collection_id is None:
+                raise JobFailed("The Project has no File library for generated media.")
             output = operation.get("output") or {}
             extension = str(output.get("extension") or "mp4").lstrip(".")
             artifact = ((attempt or {}).get("diagnostics") or {}).get(
@@ -315,7 +318,8 @@ class DirectorGenerationHandler:
                                or "Director result").strip()[:120]
                     details = self.uploads.prepare_asset_upload(
                         target.name, name=name, category=None,
-                        scope="venture", supplied_tags=("director",),
+                        scope="space",
+                        supplied_tags=("director",),
                         metadata={
                             "origin": "director-generation",
                             "external_id": candidate_id,
@@ -330,9 +334,14 @@ class DirectorGenerationHandler:
                             "recipe": recipe,
                         },
                     )
-                    kept = self.uploads.save_generated_asset_file(
-                        collection_id, target, size,
-                        candidate_id=candidate_id, details=details)
+                    if space_id is not None:
+                        kept = self.uploads.save_generated_space_file(
+                            space_id, target, size,
+                            candidate_id=candidate_id, details=details)
+                    else:
+                        kept = self.uploads.save_generated_asset_file(
+                            collection_id, target, size,
+                            candidate_id=candidate_id, details=details)
                     asset_id = int(kept["asset"]["id"])
                     self.assets.attach_to_director(production_id, asset_id)
                     output_ids.append(asset_id)

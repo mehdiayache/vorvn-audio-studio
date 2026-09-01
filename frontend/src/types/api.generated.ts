@@ -55,6 +55,23 @@ export interface paths {
         patch: operations["updateAsset"];
         trace?: never;
     };
+    "/api/v1/audio-catalogs/freesound/audiovisual-projects/{project_id}/keep": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Keep Freesound In Audiovisual Project */
+        post: operations["keepFreesoundFileInAudiovisualProject"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/audio-catalogs/freesound/keep": {
         parameters: {
             query?: never;
@@ -83,6 +100,23 @@ export interface paths {
         get: operations["searchFreesound"];
         put?: never;
         post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/audio-catalogs/freesound/spaces/{space_id}/keep": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Keep Freesound In Space */
+        post: operations["keepFreesoundFileInSpace"];
         delete?: never;
         options?: never;
         head?: never;
@@ -191,6 +225,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/audio-generations/{candidate_id}/audiovisual-projects/{project_id}/keep": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Keep Generated Audio In Audiovisual Project */
+        post: operations["keepGeneratedAudioFileInAudiovisualProject"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/audio-generations/{candidate_id}/candidate": {
         parameters: {
             query?: never;
@@ -220,6 +271,57 @@ export interface paths {
         put?: never;
         /** Keep Generated Audio */
         post: operations["keepGeneratedAudio"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/audio-generations/{candidate_id}/spaces/{space_id}/keep": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Keep Generated Audio In Space */
+        post: operations["keepGeneratedAudioFileInSpace"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/audiovisual-projects/{project_identifier}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Audiovisual Project */
+        get: operations["getAudiovisualProject"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/audiovisual-projects/{project_id}/files/upload": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Upload Audiovisual Project File */
+        post: operations["uploadAudiovisualProjectFile"];
         delete?: never;
         options?: never;
         head?: never;
@@ -1548,6 +1650,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/spaces/{space_id}/files/upload": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Upload Space File */
+        post: operations["uploadSpaceFile"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/spaces/{space_id}/folders": {
         parameters: {
             query?: never;
@@ -1577,6 +1696,41 @@ export interface paths {
         /** Create Audiovisual Project */
         post: operations["createAudiovisualProject"];
         delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/spaces/{space_id}/saved-references": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List Space Saved References */
+        get: operations["listSpaceSavedReferences"];
+        put?: never;
+        /** Create Space Saved Reference */
+        post: operations["createSpaceSavedReference"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/spaces/{space_id}/saved-references/{reference_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /** Delete Space Saved Reference */
+        delete: operations["deleteSpaceSavedReference"];
         options?: never;
         head?: never;
         patch?: never;
@@ -4031,10 +4185,21 @@ export interface components {
             name: string;
             /**
              * Scope
-             * @default venture
+             * @default space
              * @enum {string}
              */
-            scope: "venture" | "studio";
+            scope: "space" | "studio";
+            /** Tags */
+            tags?: string[];
+        };
+        /** KeepFreesoundInSpaceBody */
+        KeepFreesoundInSpaceBody: {
+            /** Category */
+            category?: ("music" | "ambience" | "sfx") | null;
+            /** External Id */
+            external_id: string;
+            /** Name */
+            name: string;
             /** Tags */
             tags?: string[];
         };
@@ -4053,7 +4218,19 @@ export interface components {
              * Scope
              * @enum {string}
              */
-            scope: "venture" | "studio";
+            scope: "space" | "studio";
+            /** Tags */
+            tags?: string[];
+        };
+        /** KeepGeneratedInSpaceBody */
+        KeepGeneratedInSpaceBody: {
+            /**
+             * Category
+             * @enum {string}
+             */
+            category: "music" | "ambience" | "sfx";
+            /** Name */
+            name: string;
             /** Tags */
             tags?: string[];
         };
@@ -4447,7 +4624,7 @@ export interface components {
             /** Parts */
             parts: components["schemas"]["ProductionPartResponse"][];
             /** Project Id */
-            project_id: number;
+            project_id?: number | null;
             /** Public Id */
             public_id: string;
             /** Series Id */
@@ -4456,6 +4633,8 @@ export interface components {
             settings: {
                 [key: string]: unknown;
             };
+            /** Space Id */
+            space_id?: number | null;
             /** Status */
             status?: string | null;
             /** System Role */
@@ -5917,6 +6096,21 @@ export interface components {
              */
             mutation_kind: "operator" | "derived_visual_audio";
         };
+        /** SpaceAssetOwnerResponse */
+        SpaceAssetOwnerResponse: {
+            /** Created At */
+            created_at: string;
+            /** Description */
+            description: string;
+            /** Id */
+            id: number;
+            /** Name */
+            name: string;
+            /** Public Id */
+            public_id: string;
+            /** Updated At */
+            updated_at: string;
+        };
         /** SpaceCreateRequest */
         SpaceCreateRequest: {
             /**
@@ -6656,7 +6850,7 @@ export interface components {
              * Type
              * @enum {string}
              */
-            type: "venture" | "project" | "series";
+            type: "space" | "venture" | "project" | "series";
         };
         /** TranscriptSentenceResponse */
         TranscriptSentenceResponse: {
@@ -6778,7 +6972,7 @@ export interface components {
              * Scope
              * @enum {string}
              */
-            scope: "venture" | "studio";
+            scope: "space" | "studio";
             /** Tags */
             tags?: string[];
         };
@@ -6830,7 +7024,7 @@ export interface components {
              * Scope
              * @enum {string}
              */
-            scope: "venture" | "studio";
+            scope: "space" | "studio";
             /** Size Bytes */
             size_bytes: number;
             /** Tags */
@@ -6921,7 +7115,10 @@ export interface components {
             collections: components["schemas"]["AssetCollectionResponse"][];
             /** Director Asset Ids */
             director_asset_ids?: number[];
-            venture: components["schemas"]["HierarchyNodeResponse"];
+            /** Project File Ids */
+            project_file_ids?: number[];
+            space?: components["schemas"]["SpaceAssetOwnerResponse"] | null;
+            venture?: components["schemas"]["HierarchyNodeResponse"] | null;
         };
         /** VentureAssetResponse */
         VentureAssetResponse: {
@@ -6969,10 +7166,10 @@ export interface components {
             sample_rate?: number | null;
             /**
              * Scope
-             * @default venture
+             * @default space
              * @enum {string}
              */
-            scope: "venture" | "studio";
+            scope: "space" | "studio";
             /** Size Bytes */
             size_bytes?: number | null;
             /** Tags */
@@ -8178,6 +8375,41 @@ export interface operations {
             };
         };
     };
+    keepFreesoundFileInAudiovisualProject: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                project_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["KeepFreesoundInSpaceBody"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CatalogKeepEnvelope"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     keepFreesoundAsset: {
         parameters: {
             query?: never;
@@ -8232,6 +8464,41 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["CatalogSearchEnvelope"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    keepFreesoundFileInSpace: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                space_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["KeepFreesoundInSpaceBody"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CatalogKeepEnvelope"];
                 };
             };
             /** @description Validation Error */
@@ -8400,6 +8667,42 @@ export interface operations {
             };
         };
     };
+    keepGeneratedAudioFileInAudiovisualProject: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                candidate_id: string;
+                project_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["KeepGeneratedInSpaceBody"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["GeneratedKeepEnvelope"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     playAudioGenerationCandidate: {
         parameters: {
             query?: never;
@@ -8482,6 +8785,109 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["GeneratedKeepEnvelope"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    keepGeneratedAudioFileInSpace: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                candidate_id: string;
+                space_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["KeepGeneratedInSpaceBody"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["GeneratedKeepEnvelope"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    getAudiovisualProject: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                project_identifier: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProjectMutationEnvelope"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    uploadAudiovisualProjectFile: {
+        parameters: {
+            query?: never;
+            header?: {
+                "x-filename"?: string;
+                "x-asset-category"?: string | null;
+                "x-asset-name"?: string | null;
+                "x-asset-tags"?: string | null;
+            };
+            path: {
+                project_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["UploadedAssetEnvelope"];
                 };
             };
             /** @description Validation Error */
@@ -11238,6 +11644,42 @@ export interface operations {
             };
         };
     };
+    uploadSpaceFile: {
+        parameters: {
+            query?: never;
+            header?: {
+                "x-filename"?: string;
+                "x-asset-category"?: string | null;
+                "x-asset-name"?: string | null;
+                "x-asset-tags"?: string | null;
+            };
+            path: {
+                space_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["UploadedAssetEnvelope"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     createFolder: {
         parameters: {
             query?: never;
@@ -11296,6 +11738,102 @@ export interface operations {
                 content: {
                     "application/json": components["schemas"]["ProjectMutationEnvelope"];
                 };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    listSpaceSavedReferences: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                space_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SavedReferenceListEnvelope"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    createSpaceSavedReference: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                space_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SavedReferenceCreate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SavedReferenceEnvelope"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    deleteSpaceSavedReference: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                space_id: number;
+                reference_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
             };
             /** @description Validation Error */
             422: {

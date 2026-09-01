@@ -9,6 +9,7 @@ from pydantic import BaseModel, ConfigDict, Field
 
 from audio_studio.application.uploads import UploadError
 from audio_studio.composition.audio_generation import audio_generation_service
+from audio_studio.composition.spaces import space_service
 from audio_studio.domain.uploads import AssetCategory, AssetScope
 from audio_studio.http.audio_generation_contracts import (
     AudioGenerationCandidateEnvelope,
@@ -36,6 +37,14 @@ class KeepGeneratedBody(BaseModel):
     name: str = Field(min_length=1, max_length=120)
     category: AssetCategory
     scope: AssetScope
+    tags: list[str] = Field(default_factory=list, max_length=12)
+
+
+class KeepGeneratedInSpaceBody(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    name: str = Field(min_length=1, max_length=120)
+    category: AssetCategory
     tags: list[str] = Field(default_factory=list, max_length=12)
 
 
@@ -114,6 +123,58 @@ def keep_generated_audio(candidate_id: UUID,
     except RuntimeError as exc:
         raise ApiProblem(
             503, "generated_asset_storage_failed", str(exc)) from exc
+
+
+@router.post(
+    "/{candidate_id}/spaces/{space_id}/keep",
+    operation_id="keepGeneratedAudioFileInSpace",
+    status_code=201,
+    response_model=GeneratedKeepEnvelope,
+)
+def keep_generated_audio_in_space(
+    candidate_id: UUID, space_id: int, payload: KeepGeneratedInSpaceBody,
+) -> dict:
+    try:
+        return {"data": audio_generation_service.keep_in_space(
+            candidate_id=candidate_id, space_id=space_id,
+            name=payload.name, category=payload.category,
+            tags=tuple(payload.tags))}
+    except LookupError as exc:
+        raise ApiProblem(404, "generated_candidate_not_found", str(exc)) from exc
+    except (UploadError, ValueError) as exc:
+        raise ApiProblem(400, "invalid_generated_file", str(exc)) from exc
+    except RuntimeError as exc:
+        raise ApiProblem(503, "generated_file_storage_failed", str(exc)) from exc
+
+
+@router.post(
+    "/{candidate_id}/audiovisual-projects/{project_id}/keep",
+    operation_id="keepGeneratedAudioFileInAudiovisualProject",
+    status_code=201,
+    response_model=GeneratedKeepEnvelope,
+)
+def keep_generated_audio_in_audiovisual_project(
+    candidate_id: UUID, project_id: int, payload: KeepGeneratedInSpaceBody,
+) -> dict:
+    project = space_service.project(str(project_id))
+    if not project:
+        raise ApiProblem(404, "project_not_found",
+                         "Audiovisual Project not found.")
+    try:
+        result = audio_generation_service.keep_in_space(
+            candidate_id=candidate_id, space_id=project["space_id"],
+            name=payload.name, category=payload.category,
+            tags=tuple(payload.tags))
+        if not space_service.attach_file(
+                project_id, result["asset"]["id"], "audio"):
+            raise RuntimeError("The File could not be associated with this Project.")
+        return {"data": result}
+    except LookupError as exc:
+        raise ApiProblem(404, "generated_candidate_not_found", str(exc)) from exc
+    except (UploadError, ValueError) as exc:
+        raise ApiProblem(400, "invalid_generated_file", str(exc)) from exc
+    except RuntimeError as exc:
+        raise ApiProblem(503, "generated_file_storage_failed", str(exc)) from exc
 
 
 @router.delete("/{candidate_id}/candidate",

@@ -48,13 +48,9 @@ class ProductionExportRepository:
         """Atomically create one immutable Export."""
         with transaction() as cursor:
             cursor.execute("""
-                SELECT production.legacy_container_id, production.name
+                SELECT production.id, production.name
                   FROM productions production
-                  JOIN work_projects project ON project.id = production.project_id
-                  JOIN ventures venture ON venture.id = project.venture_id
                  WHERE production.id = %s AND production.archived_at IS NULL
-                   AND project.archived_at IS NULL
-                   AND venture.archived_at IS NULL
                  FOR SHARE
             """, (production_id,))
             production = cursor.fetchone()

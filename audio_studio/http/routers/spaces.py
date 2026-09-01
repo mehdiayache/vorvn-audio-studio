@@ -70,6 +70,19 @@ def create_audiovisual_project(
     return {"data": project}
 
 
+@router.get(
+    "/audiovisual-projects/{project_identifier}",
+    response_model=ProjectMutationEnvelope,
+    operation_id="getAudiovisualProject",
+)
+def get_audiovisual_project(project_identifier: str) -> dict:
+    project = space_service.project(project_identifier)
+    if not project:
+        raise HTTPException(status.HTTP_404_NOT_FOUND,
+                            "Audiovisual Project not found.")
+    return {"data": project}
+
+
 @router.get("/creation-actions", response_model=CreationActionListEnvelope,
             operation_id="listCreationActions")
 def list_creation_actions(

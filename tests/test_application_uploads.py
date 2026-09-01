@@ -86,7 +86,7 @@ class FakeRecords:
 
     def create_uploaded_asset(
             self, collection_id, *, name, stored, size_bytes, category=None,
-            scope="venture", tags=(), metadata=None):
+            scope="space", tags=(), metadata=None):
         if self.fail_asset:
             raise RuntimeError("database unavailable")
         self.created_assets.append({

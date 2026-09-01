@@ -118,7 +118,7 @@ class VentureAssetRepositoryTests(unittest.TestCase):
                 created = service.save_asset_file(
                     music["id"], source, source.stat().st_size,
                     "Quiet bed.wav", name="Quiet evening bed",
-                    category="music", scope="venture",
+                    category="music", scope="space",
                     encoded_tags="%5B%22calm%22%2C%22bed%22%5D")
             self.assertTrue((Path(output) / created["filename"]).is_file())
         asset = self.repository.get(created["id"])
@@ -126,7 +126,7 @@ class VentureAssetRepositoryTests(unittest.TestCase):
             (asset["venture_id"], asset["collection_id"], asset["kind"],
              asset["category"], asset["scope"], asset["audio_format"], asset["version_id"],
              asset["filename"]),
-            (self.venture_id, music["id"], "audio", "music", "venture", "wav",
+            (self.venture_id, music["id"], "audio", "music", "space", "wav",
              created["version_id"],
              created["filename"]),
         )
@@ -537,7 +537,7 @@ class VentureAssetRepositoryTests(unittest.TestCase):
                 name="Venture sound", filename=filename,
                 path=f"/media/{filename}", size_bytes=900,
                 duration_ms=450, audio_format="wav",
-                mime_type="audio/wav", category="sfx", scope="venture",
+                mime_type="audio/wav", category="sfx", scope="space",
                 metadata={"origin": "freesound",
                           "external_id": external_id})
 

@@ -34,7 +34,7 @@ export function VentureMedia({ ventureId, summary, refresh }: { ventureId: numbe
     if (!file || uploading || !collection) return
     setUploading(true)
     try {
-      await studioApi.uploadAsset(collection.collection_id, file, { name: file.name.replace(/\.[^.]+$/, ""), category: "audio", scope: "venture", tags: [] })
+      await studioApi.uploadAsset(collection.collection_id, file, { name: file.name.replace(/\.[^.]+$/, ""), category: "audio", scope: "space", tags: [] })
       toast.success(`${file.name} added to the Asset Library.`)
       await load(); refresh()
     } catch (reason) { toast.error(reason instanceof Error ? reason.message : "Unable to upload this file.") }

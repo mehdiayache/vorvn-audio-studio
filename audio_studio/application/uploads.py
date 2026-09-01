@@ -29,7 +29,7 @@ VISUAL_VIDEO_EXTENSIONS = {".mp4", ".mov", ".webm"}
 ASSET_EXTENSIONS = (
     AUDIO_EXTENSIONS | VISUAL_IMAGE_EXTENSIONS | VISUAL_VIDEO_EXTENSIONS
 )
-ASSET_SCOPES = frozenset({"venture", "studio"})
+ASSET_SCOPES = frozenset({"space", "studio"})
 MAX_ASSET_NAME_LENGTH = 120
 MAX_ASSET_TAGS = 12
 MAX_ASSET_TAG_LENGTH = 32
@@ -89,24 +89,45 @@ class UploadRecords(Protocol):
         normalized_size_bytes: int | None = None,
     ) -> str: ...
     def asset_collection(self, collection_id: int) -> dict | None: ...
+    def space(self, space_id: int) -> dict | None: ...
     def create_uploaded_asset(
         self, collection_id: int, *, name: str, stored: StoredAsset,
         size_bytes: int, category: AssetCategory | None = None,
-        scope: AssetScope = "venture", tags: tuple[str, ...] = (),
+        scope: AssetScope = "space", tags: tuple[str, ...] = (),
+        metadata: dict | None = None,
+    ) -> dict | None: ...
+    def create_space_file(
+        self, space_id: int, *, name: str, stored: StoredAsset,
+        size_bytes: int, category: AssetCategory | None = None,
+        scope: AssetScope = "space", tags: tuple[str, ...] = (),
         metadata: dict | None = None,
     ) -> dict | None: ...
     def create_catalog_asset(
         self, collection_id: int, *, origin: str, external_id: str,
         name: str, stored: StoredAsset, size_bytes: int,
         category: AssetCategory | None = None,
-        scope: AssetScope = "venture", tags: tuple[str, ...] = (),
+        scope: AssetScope = "space", tags: tuple[str, ...] = (),
+        metadata: dict | None = None,
+    ) -> tuple[dict | None, bool]: ...
+    def create_space_catalog_file(
+        self, space_id: int, *, origin: str, external_id: str,
+        name: str, stored: StoredAsset, size_bytes: int,
+        category: AssetCategory | None = None,
+        scope: AssetScope = "space", tags: tuple[str, ...] = (),
         metadata: dict | None = None,
     ) -> tuple[dict | None, bool]: ...
     def create_generated_asset(
         self, collection_id: int, *, candidate_id: str,
         name: str, stored: StoredAsset, size_bytes: int,
         category: AssetCategory | None = None,
-        scope: AssetScope = "venture", tags: tuple[str, ...] = (),
+        scope: AssetScope = "space", tags: tuple[str, ...] = (),
+        metadata: dict | None = None,
+    ) -> tuple[dict | None, bool]: ...
+    def create_generated_space_file(
+        self, space_id: int, *, candidate_id: str,
+        name: str, stored: StoredAsset, size_bytes: int,
+        category: AssetCategory | None = None,
+        scope: AssetScope = "space", tags: tuple[str, ...] = (),
         metadata: dict | None = None,
     ) -> tuple[dict | None, bool]: ...
     def catalog_asset(
@@ -114,6 +135,9 @@ class UploadRecords(Protocol):
         scope: AssetScope,
     ) -> dict | None: ...
     def generated_asset(self, *, candidate_id: str) -> dict | None: ...
+    def generated_space_file(
+        self, *, space_id: int, candidate_id: str,
+    ) -> dict | None: ...
     def update_asset_details(
         self, asset_id: int, *, name: str,
         category: AssetCategory | None, scope: AssetScope,
@@ -237,6 +261,30 @@ class UploadService:
         return {**created,
                 "url": self._asset_url(stored)}
 
+    def save_space_file(
+        self, space_id: int, source: Path, size_bytes: int,
+        encoded_name: str, *, name: str | None = None,
+        category: str | None = None, encoded_tags: str | None = None,
+        details: AssetUploadDetails | None = None,
+    ) -> dict:
+        prepared = details or self.prepare_asset_upload(
+            encoded_name, name=name, category=category, scope="space",
+            encoded_tags=encoded_tags)
+        stored = self._store_space_file(space_id, source, size_bytes, prepared)
+        try:
+            created = self.records.create_space_file(
+                space_id, name=prepared.name, stored=stored,
+                size_bytes=size_bytes, category=prepared.category,
+                scope=prepared.scope, tags=prepared.tags,
+                metadata=prepared.metadata)
+        except Exception:
+            self.workspace.discard_media(stored.filename)
+            raise
+        if not created:
+            self.workspace.discard_media(stored.filename)
+            raise RuntimeError("That Space no longer exists.")
+        return {**created, "url": self._asset_url(stored)}
+
     def save_catalog_asset_file(
         self, collection_id: int, source: Path, size_bytes: int, *,
         origin: str, external_id: str, details: AssetUploadDetails,
@@ -260,6 +308,27 @@ class UploadService:
             self.workspace.discard_media(stored.filename)
         return {"asset": asset, "duplicate": duplicate}
 
+    def save_space_catalog_file(
+        self, space_id: int, source: Path, size_bytes: int, *,
+        origin: str, external_id: str, details: AssetUploadDetails,
+    ) -> dict:
+        stored = self._store_space_file(space_id, source, size_bytes, details)
+        try:
+            file, duplicate = self.records.create_space_catalog_file(
+                space_id, origin=origin, external_id=external_id,
+                name=details.name, stored=stored, size_bytes=size_bytes,
+                category=details.category, scope=details.scope,
+                tags=details.tags, metadata=details.metadata)
+        except Exception:
+            self.workspace.discard_media(stored.filename)
+            raise
+        if not file:
+            self.workspace.discard_media(stored.filename)
+            raise RuntimeError("That Space no longer exists.")
+        if duplicate:
+            self.workspace.discard_media(stored.filename)
+        return {"asset": file, "duplicate": duplicate}
+
     def save_generated_asset_file(
         self, collection_id: int, source: Path, size_bytes: int, *,
         candidate_id: str, details: AssetUploadDetails,
@@ -282,6 +351,27 @@ class UploadService:
         if duplicate:
             self.workspace.discard_media(stored.filename)
         return {"asset": asset, "duplicate": duplicate}
+
+    def save_generated_space_file(
+        self, space_id: int, source: Path, size_bytes: int, *,
+        candidate_id: str, details: AssetUploadDetails,
+    ) -> dict:
+        stored = self._store_space_file(space_id, source, size_bytes, details)
+        try:
+            file, duplicate = self.records.create_generated_space_file(
+                space_id, candidate_id=candidate_id, name=details.name,
+                stored=stored, size_bytes=size_bytes,
+                category=details.category, scope=details.scope,
+                tags=details.tags, metadata=details.metadata)
+        except Exception:
+            self.workspace.discard_media(stored.filename)
+            raise
+        if not file:
+            self.workspace.discard_media(stored.filename)
+            raise RuntimeError("That Space no longer exists.")
+        if duplicate:
+            self.workspace.discard_media(stored.filename)
+        return {"asset": file, "duplicate": duplicate}
 
     def _store_asset_file(
         self, collection_id: int, source: Path, size_bytes: int,
@@ -308,6 +398,36 @@ class UploadService:
             raise UploadError(
                 "Music, ambience and SFX categories apply only to audio."
             )
+        return stored
+
+    def _store_space_file(
+        self, space_id: int, source: Path, size_bytes: int,
+        details: AssetUploadDetails,
+    ) -> StoredAsset:
+        if not self.records.space(space_id):
+            raise UploadError("Choose a Space first.")
+        return self._store_media(source, size_bytes, details)
+
+    def _store_media(
+        self, source: Path, size_bytes: int, details: AssetUploadDetails,
+    ) -> StoredAsset:
+        if size_bytes <= 0 or not source.is_file():
+            raise UploadError("That media file is empty.")
+        if size_bytes > MAX_ASSET_UPLOAD_BYTES:
+            raise UploadError("That file is over the 1 GB media limit.")
+        if Path(details.original_name).suffix.lower() not in ASSET_EXTENSIONS:
+            raise UploadError(
+                "Use supported audio, JPG, PNG, WebP, MP4, MOV or WebM media.")
+        try:
+            stored = self.workspace.store_asset(
+                source, original_name=details.original_name,
+                size_bytes=size_bytes)
+        except ValueError as exc:
+            raise UploadError(str(exc)) from exc
+        if stored.media_type != "audio" and details.category is not None:
+            self.workspace.discard_media(stored.filename)
+            raise UploadError(
+                "Music, ambience and SFX categories apply only to audio.")
         return stored
 
     @staticmethod
@@ -338,9 +458,9 @@ class UploadService:
         canonical_category = category.strip().lower() if category else None
         if canonical_category and canonical_category not in ASSET_CATEGORIES:
             raise UploadError("Choose a valid audio category.")
-        canonical_scope = (scope or "venture").strip().lower()
+        canonical_scope = (scope or "space").strip().lower()
         if canonical_scope not in ASSET_SCOPES:
-            raise UploadError("Choose Studio Library or This Venture.")
+            raise UploadError("Choose Studio Library or This Space.")
 
         raw_tags: object = list(supplied_tags or ())
         if encoded_tags is not None:
@@ -403,6 +523,12 @@ class UploadService:
 
     def generated_asset(self, *, candidate_id: str) -> dict | None:
         return self.records.generated_asset(candidate_id=candidate_id)
+
+    def generated_space_file(
+        self, *, space_id: int, candidate_id: str,
+    ) -> dict | None:
+        return self.records.generated_space_file(
+            space_id=space_id, candidate_id=candidate_id)
 
     def save_transcription_source_file(
         self, source: Path, size_bytes: int, encoded_name: str,

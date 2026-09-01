@@ -89,6 +89,9 @@ class FakeAssets:
     def output_collection_for_production(self, production_id):
         return 44
 
+    def output_space_for_project(self, project_id):
+        return None
+
     def attach_to_director(self, production_id, asset_id):
         self.attached.append((production_id, asset_id))
 

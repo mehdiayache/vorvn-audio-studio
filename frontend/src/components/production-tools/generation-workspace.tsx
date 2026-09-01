@@ -140,7 +140,7 @@ export function GenerationWorkspace({
   const [generationProgress, setGenerationProgress] = useState(0)
   const [name, setName] = useState("")
   const [category, setCategory] = useState<AudioAssetCategory>("sfx")
-  const [scope, setScope] = useState<AudioAssetScope>("venture")
+  const [scope, setScope] = useState<AudioAssetScope>("space")
   const [tags, setTags] = useState<string[]>([])
   const [keeping, setKeeping] = useState<"place" | "library" | null>(null)
   const [discarding, setDiscarding] = useState(false)

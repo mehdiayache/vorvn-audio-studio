@@ -18,7 +18,7 @@ const sourceLabels: Record<PlayerSource["kind"], string> = {
   clip: "Recording",
   production: "Production preview",
   voice: "Voice preview",
-  asset: "Venture audio",
+  asset: "Space audio",
   music: "Music",
   subtitle: "Subtitle source",
   standalone: "Standalone recording",

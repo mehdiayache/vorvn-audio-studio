@@ -1,7 +1,10 @@
+import { useState } from "react"
+
 import { ProductionToolDialog, type ToolKind } from "@/components/production-tools"
 import type { AssetUpdateInput, AssetUploadInput, CatalogKeepInput, GeneratedKeepInput } from "@/components/production-tools/asset-tool"
 import { ProductionComposerDialog } from "@/features/composer/production-composer-host"
 import { DeleteConfirmationDialog } from "@/components/delete-confirmation-dialog"
+import { ActionButton } from "@/components/operator-action"
 import { Button } from "@/components/ui/button"
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { formatAuthoredRole, formatPartNumber } from "@/lib/format"
@@ -89,6 +92,3 @@ export default function ProductionOverlays({ tool, production, nextPartNumber, i
     /> : <Dialog open={Boolean(confirmAction)} onOpenChange={(open) => { if (!open && !confirmBusy) onConfirmAction(null) }}><DialogContent><DialogHeader><DialogTitle>{confirmAction?.title}</DialogTitle><DialogDescription>{confirmAction?.description}</DialogDescription></DialogHeader><DialogFooter><Button variant="outline" disabled={confirmBusy} onClick={() => onConfirmAction(null)}>Cancel</Button><ActionButton variant={confirmAction?.variant || "destructive"} busy={confirmBusy} busyLabel="Working…" onClick={() => void confirm()}>{confirmAction?.confirmLabel || "Confirm"}</ActionButton></DialogFooter></DialogContent></Dialog>}
   </>
 }
-import { useState } from "react"
-
-import { ActionButton } from "@/components/operator-action"

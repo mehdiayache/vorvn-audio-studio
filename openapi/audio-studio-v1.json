@@ -5312,9 +5312,9 @@
             "type": "string"
           },
           "scope": {
-            "default": "venture",
+            "default": "space",
             "enum": [
-              "venture",
+              "space",
               "studio"
             ],
             "title": "Scope",
@@ -5335,6 +5335,53 @@
           "name"
         ],
         "title": "KeepFreesoundBody",
+        "type": "object"
+      },
+      "KeepFreesoundInSpaceBody": {
+        "additionalProperties": false,
+        "properties": {
+          "category": {
+            "anyOf": [
+              {
+                "enum": [
+                  "music",
+                  "ambience",
+                  "sfx"
+                ],
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Category"
+          },
+          "external_id": {
+            "maxLength": 40,
+            "minLength": 1,
+            "title": "External Id",
+            "type": "string"
+          },
+          "name": {
+            "maxLength": 120,
+            "minLength": 1,
+            "title": "Name",
+            "type": "string"
+          },
+          "tags": {
+            "items": {
+              "type": "string"
+            },
+            "maxItems": 12,
+            "title": "Tags",
+            "type": "array"
+          }
+        },
+        "required": [
+          "external_id",
+          "name"
+        ],
+        "title": "KeepFreesoundInSpaceBody",
         "type": "object"
       },
       "KeepGeneratedBody": {
@@ -5362,7 +5409,7 @@
           },
           "scope": {
             "enum": [
-              "venture",
+              "space",
               "studio"
             ],
             "title": "Scope",
@@ -5384,6 +5431,40 @@
           "scope"
         ],
         "title": "KeepGeneratedBody",
+        "type": "object"
+      },
+      "KeepGeneratedInSpaceBody": {
+        "additionalProperties": false,
+        "properties": {
+          "category": {
+            "enum": [
+              "music",
+              "ambience",
+              "sfx"
+            ],
+            "title": "Category",
+            "type": "string"
+          },
+          "name": {
+            "maxLength": 120,
+            "minLength": 1,
+            "title": "Name",
+            "type": "string"
+          },
+          "tags": {
+            "items": {
+              "type": "string"
+            },
+            "maxItems": 12,
+            "title": "Tags",
+            "type": "array"
+          }
+        },
+        "required": [
+          "name",
+          "category"
+        ],
+        "title": "KeepGeneratedInSpaceBody",
         "type": "object"
       },
       "LinkedVisualAudioClipSettings": {
@@ -6396,8 +6477,15 @@
             "type": "array"
           },
           "project_id": {
-            "title": "Project Id",
-            "type": "integer"
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Project Id"
           },
           "public_id": {
             "title": "Public Id",
@@ -6418,6 +6506,17 @@
             "additionalProperties": true,
             "title": "Settings",
             "type": "object"
+          },
+          "space_id": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Space Id"
           },
           "status": {
             "anyOf": [
@@ -6480,7 +6579,6 @@
           "key",
           "name",
           "description",
-          "project_id",
           "series_id",
           "settings",
           "trail",
@@ -10719,6 +10817,44 @@
         "title": "SoundSceneUpdateBody",
         "type": "object"
       },
+      "SpaceAssetOwnerResponse": {
+        "properties": {
+          "created_at": {
+            "title": "Created At",
+            "type": "string"
+          },
+          "description": {
+            "title": "Description",
+            "type": "string"
+          },
+          "id": {
+            "title": "Id",
+            "type": "integer"
+          },
+          "name": {
+            "title": "Name",
+            "type": "string"
+          },
+          "public_id": {
+            "title": "Public Id",
+            "type": "string"
+          },
+          "updated_at": {
+            "title": "Updated At",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "public_id",
+          "name",
+          "description",
+          "created_at",
+          "updated_at"
+        ],
+        "title": "SpaceAssetOwnerResponse",
+        "type": "object"
+      },
       "SpaceCreateRequest": {
         "properties": {
           "description": {
@@ -12636,6 +12772,7 @@
           },
           "type": {
             "enum": [
+              "space",
               "venture",
               "project",
               "series"
@@ -12921,7 +13058,7 @@
           },
           "scope": {
             "enum": [
-              "venture",
+              "space",
               "studio"
             ],
             "title": "Scope",
@@ -13080,7 +13217,7 @@
           },
           "scope": {
             "enum": [
-              "venture",
+              "space",
               "studio"
             ],
             "title": "Scope",
@@ -13348,12 +13485,35 @@
             "title": "Director Asset Ids",
             "type": "array"
           },
+          "project_file_ids": {
+            "items": {
+              "type": "integer"
+            },
+            "title": "Project File Ids",
+            "type": "array"
+          },
+          "space": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/SpaceAssetOwnerResponse"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
           "venture": {
-            "$ref": "#/components/schemas/HierarchyNodeResponse"
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/HierarchyNodeResponse"
+              },
+              {
+                "type": "null"
+              }
+            ]
           }
         },
         "required": [
-          "venture",
           "collections",
           "assets"
         ],
@@ -13548,9 +13708,9 @@
             "title": "Sample Rate"
           },
           "scope": {
-            "default": "venture",
+            "default": "space",
             "enum": [
-              "venture",
+              "space",
               "studio"
             ],
             "title": "Scope",
@@ -17086,6 +17246,58 @@
         ]
       }
     },
+    "/api/v1/audio-catalogs/freesound/audiovisual-projects/{project_id}/keep": {
+      "post": {
+        "operationId": "keepFreesoundFileInAudiovisualProject",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "project_id",
+            "required": true,
+            "schema": {
+              "title": "Project Id",
+              "type": "integer"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/KeepFreesoundInSpaceBody"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CatalogKeepEnvelope"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Keep Freesound In Audiovisual Project",
+        "tags": [
+          "audio-catalogs"
+        ]
+      }
+    },
     "/api/v1/audio-catalogs/freesound/keep": {
       "post": {
         "operationId": "keepFreesoundAsset",
@@ -17213,6 +17425,58 @@
           }
         },
         "summary": "Search Freesound",
+        "tags": [
+          "audio-catalogs"
+        ]
+      }
+    },
+    "/api/v1/audio-catalogs/freesound/spaces/{space_id}/keep": {
+      "post": {
+        "operationId": "keepFreesoundFileInSpace",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "space_id",
+            "required": true,
+            "schema": {
+              "title": "Space Id",
+              "type": "integer"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/KeepFreesoundInSpaceBody"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CatalogKeepEnvelope"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Keep Freesound In Space",
         "tags": [
           "audio-catalogs"
         ]
@@ -17407,6 +17671,68 @@
         ]
       }
     },
+    "/api/v1/audio-generations/{candidate_id}/audiovisual-projects/{project_id}/keep": {
+      "post": {
+        "operationId": "keepGeneratedAudioFileInAudiovisualProject",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "candidate_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Candidate Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "project_id",
+            "required": true,
+            "schema": {
+              "title": "Project Id",
+              "type": "integer"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/KeepGeneratedInSpaceBody"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GeneratedKeepEnvelope"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Keep Generated Audio In Audiovisual Project",
+        "tags": [
+          "audio-generations"
+        ]
+      }
+    },
     "/api/v1/audio-generations/{candidate_id}/candidate": {
       "delete": {
         "operationId": "discardAudioGenerationCandidate",
@@ -17534,6 +17860,210 @@
         "summary": "Keep Generated Audio",
         "tags": [
           "audio-generations"
+        ]
+      }
+    },
+    "/api/v1/audio-generations/{candidate_id}/spaces/{space_id}/keep": {
+      "post": {
+        "operationId": "keepGeneratedAudioFileInSpace",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "candidate_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Candidate Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "space_id",
+            "required": true,
+            "schema": {
+              "title": "Space Id",
+              "type": "integer"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/KeepGeneratedInSpaceBody"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GeneratedKeepEnvelope"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Keep Generated Audio In Space",
+        "tags": [
+          "audio-generations"
+        ]
+      }
+    },
+    "/api/v1/audiovisual-projects/{project_identifier}": {
+      "get": {
+        "operationId": "getAudiovisualProject",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "project_identifier",
+            "required": true,
+            "schema": {
+              "title": "Project Identifier",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProjectMutationEnvelope"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Get Audiovisual Project",
+        "tags": [
+          "Spaces"
+        ]
+      }
+    },
+    "/api/v1/audiovisual-projects/{project_id}/files/upload": {
+      "post": {
+        "operationId": "uploadAudiovisualProjectFile",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "project_id",
+            "required": true,
+            "schema": {
+              "title": "Project Id",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "header",
+            "name": "x-filename",
+            "required": false,
+            "schema": {
+              "default": "media.mp3",
+              "title": "X-Filename",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "x-asset-category",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Asset-Category"
+            }
+          },
+          {
+            "in": "header",
+            "name": "x-asset-name",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Asset-Name"
+            }
+          },
+          {
+            "in": "header",
+            "name": "x-asset-tags",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Asset-Tags"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UploadedAssetEnvelope"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Upload Audiovisual Project File",
+        "tags": [
+          "uploads"
         ]
       }
     },
@@ -21460,6 +21990,106 @@
         ]
       }
     },
+    "/api/v1/spaces/{space_id}/files/upload": {
+      "post": {
+        "operationId": "uploadSpaceFile",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "space_id",
+            "required": true,
+            "schema": {
+              "title": "Space Id",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "header",
+            "name": "x-filename",
+            "required": false,
+            "schema": {
+              "default": "media.mp3",
+              "title": "X-Filename",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "x-asset-category",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Asset-Category"
+            }
+          },
+          {
+            "in": "header",
+            "name": "x-asset-name",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Asset-Name"
+            }
+          },
+          {
+            "in": "header",
+            "name": "x-asset-tags",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Asset-Tags"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UploadedAssetEnvelope"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Upload Space File",
+        "tags": [
+          "uploads"
+        ]
+      }
+    },
     "/api/v1/spaces/{space_id}/folders": {
       "post": {
         "operationId": "createFolder",
@@ -21561,6 +22191,142 @@
         "summary": "Create Audiovisual Project",
         "tags": [
           "Spaces"
+        ]
+      }
+    },
+    "/api/v1/spaces/{space_id}/saved-references": {
+      "get": {
+        "operationId": "listSpaceSavedReferences",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "space_id",
+            "required": true,
+            "schema": {
+              "title": "Space Id",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SavedReferenceListEnvelope"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "List Space Saved References",
+        "tags": [
+          "saved-references"
+        ]
+      },
+      "post": {
+        "operationId": "createSpaceSavedReference",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "space_id",
+            "required": true,
+            "schema": {
+              "title": "Space Id",
+              "type": "integer"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SavedReferenceCreate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SavedReferenceEnvelope"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Create Space Saved Reference",
+        "tags": [
+          "saved-references"
+        ]
+      }
+    },
+    "/api/v1/spaces/{space_id}/saved-references/{reference_id}": {
+      "delete": {
+        "operationId": "deleteSpaceSavedReference",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "space_id",
+            "required": true,
+            "schema": {
+              "title": "Space Id",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "path",
+            "name": "reference_id",
+            "required": true,
+            "schema": {
+              "title": "Reference Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Delete Space Saved Reference",
+        "tags": [
+          "saved-references"
         ]
       }
     },

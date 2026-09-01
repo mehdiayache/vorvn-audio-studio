@@ -31,7 +31,7 @@ export function DirectorReferenceLibraryDialog({ open, title, assets, recentAsse
   onUpload?: () => void
 }) {
   const [query, setQuery] = useState("")
-  const [scope, setScope] = useState<"recent" | "all" | "venture" | "studio">("recent")
+  const [scope, setScope] = useState<"recent" | "all" | "space" | "studio">("recent")
   const [sort, setSort] = useState<SortMode>("used")
   const recentOrder = useMemo(() => new Map(recentAssetIds.map((id, index) => [id, index])), [recentAssetIds])
   const mediaTypeCandidates = useMemo(() => assets.filter((asset) => acceptedMediaTypes.includes(asset.media_type as DirectorAttachmentKind)), [acceptedMediaTypes, assets])
@@ -40,7 +40,7 @@ export function DirectorReferenceLibraryDialog({ open, title, assets, recentAsse
   const visible = useMemo(() => {
     const normalized = query.trim().toLowerCase()
     const sorted = compatible
-      .filter((asset) => scope === "venture" ? asset.scope === "venture" : scope === "studio" ? asset.scope === "studio" : true)
+      .filter((asset) => scope === "space" ? asset.scope === "space" : scope === "studio" ? asset.scope === "studio" : true)
       .filter((asset) => !normalized || visualAssetName(asset).toLowerCase().includes(normalized) || asset.tags?.some((tag) => tag.toLowerCase().includes(normalized)))
       .sort((left, right) => {
         if (sort === "name") return visualAssetName(left).localeCompare(visualAssetName(right))
@@ -63,7 +63,7 @@ export function DirectorReferenceLibraryDialog({ open, title, assets, recentAsse
         <DialogDescription>Choose compatible media from this Venture, or upload a new item for this exact input.</DialogDescription>
       </DialogHeader>
       <div className="director-reference-picker-nav">
-        <Tabs value={scope} onValueChange={(value) => setScope(value as typeof scope)}><TabsList><TabsTrigger value="recent">Recent</TabsTrigger><TabsTrigger value="venture">This Venture</TabsTrigger><TabsTrigger value="studio">Studio Library</TabsTrigger><TabsTrigger value="all">All available</TabsTrigger></TabsList></Tabs>
+        <Tabs value={scope} onValueChange={(value) => setScope(value as typeof scope)}><TabsList><TabsTrigger value="recent">Recent</TabsTrigger><TabsTrigger value="space">This Space</TabsTrigger><TabsTrigger value="studio">Studio Library</TabsTrigger><TabsTrigger value="all">All available</TabsTrigger></TabsList></Tabs>
         {onUpload && <Button type="button" variant="outline" onClick={onUpload}><Upload />Upload</Button>}
       </div>
       <div className="director-reference-picker-tools">

@@ -7,10 +7,11 @@ import type { VentureAsset } from "@/types/domain"
 
 type TimelineStageProps = ComponentProps<typeof TimelineWorkspace> & {
   centerPaneRef: RefObject<HTMLElement | null>
+  projectFileIds: number[]
   directorAssetIds: number[]
 }
 
-export function TimelineStage({ centerPaneRef, directorAssetIds, ...workspaceProps }: TimelineStageProps) {
+export function TimelineStage({ centerPaneRef, projectFileIds, directorAssetIds, ...workspaceProps }: TimelineStageProps) {
   const [targetTrackId, setTargetTrackId] = useState<string | null | undefined>(undefined)
   const [previewAsset, setPreviewAsset] = useState<VentureAsset | null>(null)
   const [pendingId, setPendingId] = useState<number | null>(null)
@@ -25,8 +26,8 @@ export function TimelineStage({ centerPaneRef, directorAssetIds, ...workspacePro
   const usedVisualAssetIds = visual?.session.snapshot().document.tracks.flatMap((track) => track.clips.map((clip) => clip.asset_id)) || []
   const workspaceVisual = visual ? { ...visual, onAddVisual: (trackId?: string) => setTargetTrackId(trackId || null) } : undefined
   return <main className="ws-center-pane" ref={centerPaneRef}>
-    <TimelineWorkspace {...workspaceProps} visual={workspaceVisual} productionAssetIds={directorAssetIds} />
-    {visual && <DirectorLibraryDialog open={targetTrackId !== undefined} assets={availableVisuals} productionAssetIds={directorAssetIds} usedAssetIds={usedVisualAssetIds} defaultSource="production" pendingId={pendingId} title={targetMediaType ? `Add ${targetMediaType} to Timeline` : "Add media to Timeline"} description={targetMediaType ? `Choose a ${targetMediaType} from this Production, Venture or Studio Assets. It will be placed on this ${targetMediaType === "video" ? "Video" : "Image"} track at the playhead.` : "Choose an image or video from this Production, Venture or Studio Assets. A matching track will be used or created at the playhead."} emptyDescription={`Upload ${targetMediaType ? `a ${targetMediaType}` : "an image or video"} in Director first.`} addLabel={targetTrackId ? "Add to track" : "Add at playhead"} onOpenChange={(open) => { if (!open) setTargetTrackId(undefined) }} onPreview={setPreviewAsset} onAdd={(asset) => {
+    <TimelineWorkspace {...workspaceProps} visual={workspaceVisual} productionAssetIds={projectFileIds} />
+    {visual && <DirectorLibraryDialog open={targetTrackId !== undefined} assets={availableVisuals} productionAssetIds={directorAssetIds} usedAssetIds={usedVisualAssetIds} defaultSource="production" pendingId={pendingId} title={targetMediaType ? `Add ${targetMediaType} to Timeline` : "Add media to Timeline"} description={targetMediaType ? `Choose a ${targetMediaType} from this Project, Space or Studio Files. It will be placed on this ${targetMediaType === "video" ? "Video" : "Image"} track at the playhead.` : "Choose an image or video from this Project, Space or Studio Files. A matching track will be used or created at the playhead."} emptyDescription={`Upload ${targetMediaType ? `a ${targetMediaType}` : "an image or video"} in Director first.`} addLabel={targetTrackId ? "Add to track" : "Add at playhead"} onOpenChange={(open) => { if (!open) setTargetTrackId(undefined) }} onPreview={setPreviewAsset} onAdd={(asset) => {
       setPendingId(asset.id)
       void visual.session.addVisual(asset, workspaceProps.session.snapshot().playhead * 1000, targetTrackId || undefined).then(() => setTargetTrackId(undefined)).finally(() => setPendingId(null))
     }} />}

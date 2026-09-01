@@ -1,4 +1,4 @@
-"""Venture-owned saved Director references."""
+"""Space-owned saved Director references and the retiring Work routes."""
 
 from typing import Literal
 
@@ -72,5 +72,45 @@ def create_saved_reference(
 )
 def delete_saved_reference(venture_id: int, reference_id: str) -> None:
     if not saved_reference_service.delete(venture_id, reference_id):
+        raise ApiProblem(404, "saved_reference_not_found",
+                         "That saved reference was not found.")
+
+
+@router.get(
+    "/spaces/{space_id}/saved-references",
+    response_model=SavedReferenceListEnvelope,
+    operation_id="listSpaceSavedReferences",
+)
+def list_space_saved_references(space_id: int) -> dict:
+    return {"data": saved_reference_service.list_space(space_id)}
+
+
+@router.post(
+    "/spaces/{space_id}/saved-references",
+    response_model=SavedReferenceEnvelope,
+    status_code=status.HTTP_201_CREATED,
+    operation_id="createSpaceSavedReference",
+)
+def create_space_saved_reference(
+    space_id: int, payload: SavedReferenceCreate,
+) -> dict:
+    try:
+        created = saved_reference_service.create_space(
+            space_id, name=payload.name, reference_type=payload.type,
+            asset_ids=payload.asset_ids)
+    except ValueError as problem:
+        raise ApiProblem(422, "invalid_saved_reference", str(problem)) from problem
+    if not created:
+        raise ApiProblem(404, "space_not_found", "That Space was not found.")
+    return {"data": created}
+
+
+@router.delete(
+    "/spaces/{space_id}/saved-references/{reference_id}",
+    status_code=status.HTTP_204_NO_CONTENT,
+    operation_id="deleteSpaceSavedReference",
+)
+def delete_space_saved_reference(space_id: int, reference_id: str) -> None:
+    if not saved_reference_service.delete_space(space_id, reference_id):
         raise ApiProblem(404, "saved_reference_not_found",
                          "That saved reference was not found.")

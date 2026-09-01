@@ -15,6 +15,7 @@ class WorkRecords(Protocol):
     def hierarchy(self) -> list[dict]: ...
     def resolve_id(self, collection: str, identifier: str) -> int | None: ...
     def production(self, production_id: int) -> dict | None: ...
+    def space(self, space_id: int) -> dict | None: ...
     def resource(self, kind: str, resource_id: int) -> dict | None: ...
     def overview(self, collection: str, resource_id: int) -> dict | None: ...
     def ensure_asset_collections(self, venture_id: int) -> list[dict]: ...
@@ -22,6 +23,7 @@ class WorkRecords(Protocol):
     def assets(self, venture_id: int) -> list[dict]: ...
     def production_assets(self, production_id: int) -> list[dict]: ...
     def director_asset_ids(self, production_id: int) -> list[int]: ...
+    def project_file_ids(self, project_id: int) -> list[int]: ...
     def attach_director_asset(
         self, production_id: int, asset_id: int,
     ) -> bool | None: ...
@@ -111,14 +113,26 @@ class WorkService:
         if internal_id is None:
             return None
         production = self.records.production(internal_id)
-        if not production or not production.get("trail"):
+        if not production:
             return None
+        if production.get("space_id") is not None:
+            space = self.records.space(int(production["space_id"]))
+            if not space:
+                return None
+            return {
+                "space": space,
+                "collections": [],
+                "assets": self.records.production_assets(internal_id),
+                "project_file_ids": self.records.project_file_ids(internal_id),
+                "director_asset_ids": self.records.director_asset_ids(internal_id),
+            }
         library = self.venture_assets(int(production["trail"][0]["id"]))
         if not library:
             return None
         return {
             **library,
             "assets": self.records.production_assets(internal_id),
+            "project_file_ids": self.records.project_file_ids(internal_id),
             "director_asset_ids": self.records.director_asset_ids(internal_id),
         }
 

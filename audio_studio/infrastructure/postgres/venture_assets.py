@@ -61,6 +61,19 @@ class VentureAssetRepository:
         preferred = next((item for item in collections if item["kind"] == "assets"), None)
         return int(preferred["id"]) if preferred else None
 
+    def output_space_for_project(self, project_id: int) -> int | None:
+        """Return the direct Space owner used by new audiovisual Projects."""
+        with read_only() as cursor:
+            cursor.execute("""
+                SELECT space_id
+                  FROM productions
+                 WHERE id = %s
+                   AND project_type = 'audiovisual'
+                   AND archived_at IS NULL
+            """, (project_id,))
+            row = cursor.fetchone()
+        return int(row[0]) if row and row[0] is not None else None
+
     def ensure_collections(self, venture_id: int) -> list[dict]:
         """Create one canonical Asset Library while IDs bridge legacy rows."""
         with transaction() as cursor:
@@ -176,7 +189,7 @@ class VentureAssetRepository:
     def _listed_assets(where: str, parameters: tuple) -> list[dict]:
         with read_only() as cursor:
             cursor.execute(f"""
-                SELECT collection.name, asset.id, '', asset.name,
+                SELECT COALESCE(collection.name, 'Files'), asset.id, '', asset.name,
                        'Uploaded', version.duration_ms, version.filename,
                        version.path,
                        asset.kind, asset.media_type, asset.category, version.id,
@@ -189,7 +202,7 @@ class VentureAssetRepository:
                        version.size_bytes, version.mime_type,
                        version.metadata
                   FROM assets asset
-                  JOIN asset_collections collection
+                  LEFT JOIN asset_collections collection
                     ON collection.id = asset.collection_id
                   JOIN LATERAL (
                        SELECT item.* FROM asset_versions item
@@ -229,16 +242,19 @@ class VentureAssetRepository:
         return self._listed_assets("asset.venture_id = %s", (venture_id,))
 
     def list_for_production(self, production_id: int) -> list[dict]:
-        """Return every Asset the Production may legally reference."""
+        """Return Files visible in the owning Space or legacy Venture."""
         return self._listed_assets("""
             EXISTS (
                 SELECT 1
                   FROM productions production
-                  JOIN work_projects project
+                  LEFT JOIN work_projects project
                     ON project.id = production.project_id
                  WHERE production.id = %s
                    AND production.archived_at IS NULL
-                   AND (asset.venture_id = project.venture_id
+                   AND ((production.space_id IS NOT NULL
+                         AND asset.space_id = production.space_id)
+                        OR (production.space_id IS NULL
+                            AND asset.venture_id = project.venture_id)
                         OR asset.scope = 'studio')
             )
         """, (production_id,))
@@ -256,6 +272,15 @@ class VentureAssetRepository:
             """, (production_id,))
             return [int(row[0]) for row in cursor.fetchall()]
 
+    def project_file_ids(self, project_id: int) -> list[int]:
+        with read_only() as cursor:
+            cursor.execute("""
+                SELECT file_id FROM project_files
+                 WHERE project_id=%s
+                 ORDER BY created_at, file_id
+            """, (project_id,))
+            return [int(row[0]) for row in cursor.fetchall()]
+
     def attach_to_director(
         self, production_id: int, asset_id: int,
     ) -> bool | None:
@@ -265,10 +290,13 @@ class VentureAssetRepository:
                 SELECT 1
                   FROM assets asset
                   JOIN productions production ON production.id = %s
-                  JOIN work_projects project ON project.id = production.project_id
+                  LEFT JOIN work_projects project ON project.id = production.project_id
                  WHERE asset.id = %s
                    AND asset.media_type IN ('image', 'video')
-                   AND (asset.venture_id = project.venture_id
+                   AND ((production.space_id IS NOT NULL
+                         AND asset.space_id = production.space_id)
+                        OR (production.space_id IS NULL
+                            AND asset.venture_id = project.venture_id)
                         OR asset.scope = 'studio')
                    AND production.archived_at IS NULL
             """, (production_id, asset_id))
@@ -280,6 +308,17 @@ class VentureAssetRepository:
                 VALUES (%s, %s)
                 ON CONFLICT (production_id, asset_id) DO NOTHING
             """, (production_id, asset_id))
+            cursor.execute("""
+                INSERT INTO project_files (project_id, file_id, purpose)
+                SELECT production.id, asset.id, 'director'
+                  FROM productions production
+                  JOIN assets asset ON asset.id = %s
+                 WHERE production.id = %s
+                   AND production.project_type = 'audiovisual'
+                   AND production.space_id = asset.space_id
+                ON CONFLICT (project_id, file_id) DO UPDATE
+                   SET purpose = EXCLUDED.purpose
+            """, (asset_id, production_id))
         return True
 
     def detach_from_director(
@@ -356,14 +395,26 @@ class VentureAssetRepository:
             "url": _asset_url(asset),
         } if asset else None)
 
+    def generated_space_file(
+            self, *, space_id: int, candidate_id: str) -> dict | None:
+        """Resolve a kept generation only inside its owning Space."""
+        with read_only() as cursor:
+            asset_id = self._generated_asset_id(
+                cursor, candidate_id=candidate_id, space_id=space_id)
+        asset = self.get(asset_id) if asset_id is not None else None
+        return ({**asset, "url": _asset_url(asset)} if asset else None)
+
     @staticmethod
-    def _generated_asset_id(cursor, *, candidate_id: str) -> int | None:
+    def _generated_asset_id(
+            cursor, *, candidate_id: str,
+            space_id: int | None = None) -> int | None:
         cursor.execute("""
             SELECT id FROM assets
              WHERE metadata ->> 'origin' = 'generated'
                AND metadata ->> 'external_id' = %s
+               AND (%s::bigint IS NULL OR space_id = %s)
              ORDER BY id LIMIT 1
-        """, (candidate_id,))
+        """, (candidate_id, space_id, space_id))
         row = cursor.fetchone()
         return row[0] if row else None
 
@@ -389,7 +440,7 @@ class VentureAssetRepository:
                AND asset.metadata ->> 'origin' = %s
                AND asset.metadata ->> 'external_id' = %s
                AND (%s = 'studio' AND asset.scope = 'studio'
-                    OR %s = 'venture'
+                    OR %s = 'space'
                        AND asset.venture_id = requested.venture_id)
              ORDER BY (asset.scope = 'studio') DESC, asset.id
              LIMIT 1
@@ -452,22 +503,53 @@ class VentureAssetRepository:
                 SELECT 1
                   FROM assets asset
                   JOIN productions production ON production.id = %s
-                  JOIN work_projects project
+                  LEFT JOIN work_projects project
                     ON project.id = production.project_id
                  WHERE asset.id = %s
-                   AND (asset.venture_id = project.venture_id
+                   AND ((production.space_id IS NOT NULL
+                         AND asset.space_id = production.space_id)
+                        OR (production.space_id IS NULL
+                            AND asset.venture_id = project.venture_id)
                         OR asset.scope = 'studio')
                    AND production.archived_at IS NULL
             """, (production_id, asset_id))
             row = cursor.fetchone()
         return bool(row)
 
+    def create_space_file(
+            self, space_id: int, *, name: str, filename: str, path: str,
+            size_bytes: int, duration_ms: int | None, audio_format: str | None,
+            mime_type: str, category: AssetCategory | None = None,
+            sample_rate: int | None = None, channels: int | None = None,
+            scope: AssetScope = "space", tags: tuple[str, ...] = (),
+            metadata: dict | None = None,
+            version_metadata: dict | None = None,
+            media_type: AssetMediaType = "audio",
+            media_format: str | None = None,
+            width: int | None = None, height: int | None = None,
+            video_codec: str | None = None, frame_rate: float | None = None,
+            ) -> dict | None:
+        with transaction() as cursor:
+            cursor.execute("SELECT 1 FROM spaces WHERE id = %s", (space_id,))
+            if not cursor.fetchone():
+                return None
+            return self._create_file(
+                cursor, space_id=space_id, venture_id=None,
+                collection_id=None, name=name, filename=filename, path=path,
+                size_bytes=size_bytes, duration_ms=duration_ms,
+                audio_format=audio_format, mime_type=mime_type,
+                category=category, sample_rate=sample_rate, channels=channels,
+                scope=scope, tags=tags, metadata=metadata,
+                version_metadata=version_metadata, media_type=media_type,
+                media_format=media_format, width=width, height=height,
+                video_codec=video_codec, frame_rate=frame_rate)
+
     def create_uploaded_asset(
             self, collection_id: int, *, name: str, filename: str, path: str,
             size_bytes: int, duration_ms: int | None, audio_format: str | None,
             mime_type: str, category: AssetCategory | None = None,
             sample_rate: int | None = None, channels: int | None = None,
-            scope: AssetScope = "venture", tags: tuple[str, ...] = (),
+            scope: AssetScope = "space", tags: tuple[str, ...] = (),
             metadata: dict | None = None,
             version_metadata: dict | None = None,
             media_type: AssetMediaType = "audio",
@@ -502,7 +584,7 @@ class VentureAssetRepository:
             duration_ms: int | None, audio_format: str | None, mime_type: str,
             category: AssetCategory | None = None,
             sample_rate: int | None = None, channels: int | None = None,
-            scope: AssetScope = "venture", tags: tuple[str, ...] = (),
+            scope: AssetScope = "space", tags: tuple[str, ...] = (),
             metadata: dict | None = None,
             version_metadata: dict | None = None,
             media_type: AssetMediaType = "audio",
@@ -551,13 +633,63 @@ class VentureAssetRepository:
             return None, duplicate
         return ({**asset, "url": _asset_url(asset)}, duplicate)
 
+    def create_space_catalog_file(
+            self, space_id: int, *, origin: str, external_id: str,
+            name: str, filename: str, path: str, size_bytes: int,
+            duration_ms: int | None, audio_format: str | None, mime_type: str,
+            category: AssetCategory | None = None,
+            sample_rate: int | None = None, channels: int | None = None,
+            scope: AssetScope = "space", tags: tuple[str, ...] = (),
+            metadata: dict | None = None,
+            version_metadata: dict | None = None,
+            media_type: AssetMediaType = "audio",
+            media_format: str | None = None,
+            width: int | None = None, height: int | None = None,
+            video_codec: str | None = None, frame_rate: float | None = None,
+            ) -> tuple[dict | None, bool]:
+        identity = f"file-catalog:{space_id}:{origin}:{external_id}"
+        lock_key = int.from_bytes(
+            hashlib.blake2b(identity.encode(), digest_size=8).digest(),
+            byteorder="big", signed=True)
+        with transaction() as cursor:
+            cursor.execute("SELECT 1 FROM spaces WHERE id = %s", (space_id,))
+            if not cursor.fetchone():
+                return None, False
+            cursor.execute("SELECT pg_advisory_xact_lock(%s)", (lock_key,))
+            cursor.execute("""
+                SELECT id FROM assets
+                 WHERE space_id = %s
+                   AND metadata ->> 'origin' = %s
+                   AND metadata ->> 'external_id' = %s
+                 ORDER BY id LIMIT 1
+            """, (space_id, origin, external_id))
+            row = cursor.fetchone()
+            duplicate = row is not None
+            if duplicate:
+                file_id = int(row[0])
+            else:
+                created = self._create_file(
+                    cursor, space_id=space_id, venture_id=None,
+                    collection_id=None, name=name, filename=filename,
+                    path=path, size_bytes=size_bytes,
+                    duration_ms=duration_ms, audio_format=audio_format,
+                    mime_type=mime_type, category=category,
+                    sample_rate=sample_rate, channels=channels, scope=scope,
+                    tags=tags, metadata=metadata,
+                    version_metadata=version_metadata, media_type=media_type,
+                    media_format=media_format, width=width, height=height,
+                    video_codec=video_codec, frame_rate=frame_rate)
+                file_id = int(created["id"])
+        file = self.get(file_id)
+        return ({**file, "url": _asset_url(file)} if file else None, duplicate)
+
     def create_generated_asset(
             self, collection_id: int, *, candidate_id: str,
             name: str, filename: str, path: str, size_bytes: int,
             duration_ms: int | None, audio_format: str | None, mime_type: str,
             category: AssetCategory | None = None,
             sample_rate: int | None = None, channels: int | None = None,
-            scope: AssetScope = "venture", tags: tuple[str, ...] = (),
+            scope: AssetScope = "space", tags: tuple[str, ...] = (),
             metadata: dict | None = None,
             version_metadata: dict | None = None,
             media_type: AssetMediaType = "audio",
@@ -603,6 +735,49 @@ class VentureAssetRepository:
             return None, duplicate
         return ({**asset, "url": _asset_url(asset)}, duplicate)
 
+    def create_generated_space_file(
+            self, space_id: int, *, candidate_id: str,
+            name: str, filename: str, path: str, size_bytes: int,
+            duration_ms: int | None, audio_format: str | None, mime_type: str,
+            category: AssetCategory | None = None,
+            sample_rate: int | None = None, channels: int | None = None,
+            scope: AssetScope = "space", tags: tuple[str, ...] = (),
+            metadata: dict | None = None,
+            version_metadata: dict | None = None,
+            media_type: AssetMediaType = "audio",
+            media_format: str | None = None,
+            width: int | None = None, height: int | None = None,
+            video_codec: str | None = None, frame_rate: float | None = None,
+            ) -> tuple[dict | None, bool]:
+        with transaction() as cursor:
+            cursor.execute("SELECT 1 FROM spaces WHERE id = %s", (space_id,))
+            if not cursor.fetchone():
+                return None, False
+            cursor.execute(
+                "SELECT pg_advisory_xact_lock(%s)",
+                (self._generation_lock_key(candidate_id),),
+            )
+            existing_id = self._generated_asset_id(
+                cursor, candidate_id=candidate_id, space_id=space_id)
+            duplicate = existing_id is not None
+            if duplicate:
+                file_id = int(existing_id)
+            else:
+                created = self._create_file(
+                    cursor, space_id=space_id, venture_id=None,
+                    collection_id=None, name=name, filename=filename,
+                    path=path, size_bytes=size_bytes,
+                    duration_ms=duration_ms, audio_format=audio_format,
+                    mime_type=mime_type, category=category,
+                    sample_rate=sample_rate, channels=channels, scope=scope,
+                    tags=tags, metadata=metadata,
+                    version_metadata=version_metadata, media_type=media_type,
+                    media_format=media_format, width=width, height=height,
+                    video_codec=video_codec, frame_rate=frame_rate)
+                file_id = int(created["id"])
+        file = self.get(file_id)
+        return ({**file, "url": _asset_url(file)} if file else None, duplicate)
+
     @staticmethod
     def _create_uploaded_asset(
             cursor, *, collection_id: int, collection: tuple, name: str,
@@ -618,6 +793,31 @@ class VentureAssetRepository:
             video_codec: str | None = None,
             frame_rate: float | None = None) -> dict:
         venture_id, _legacy_container_id, _collection_kind = collection
+        return VentureAssetRepository._create_file(
+            cursor, space_id=None, venture_id=venture_id,
+            collection_id=collection_id, name=name, filename=filename,
+            path=path, size_bytes=size_bytes, duration_ms=duration_ms,
+            audio_format=audio_format, mime_type=mime_type,
+            category=category, sample_rate=sample_rate, channels=channels,
+            scope=scope, tags=tags, metadata=metadata,
+            version_metadata=version_metadata, media_type=media_type,
+            media_format=media_format, width=width, height=height,
+            video_codec=video_codec, frame_rate=frame_rate)
+
+    @staticmethod
+    def _create_file(
+            cursor, *, space_id: int | None, venture_id: int | None,
+            collection_id: int | None, name: str, filename: str, path: str,
+            size_bytes: int, duration_ms: int | None,
+            audio_format: str | None, mime_type: str,
+            category: AssetCategory | None, sample_rate: int | None,
+            channels: int | None, scope: AssetScope, tags: tuple[str, ...],
+            metadata: dict | None, version_metadata: dict | None,
+            media_type: AssetMediaType = "audio",
+            media_format: str | None = None,
+            width: int | None = None, height: int | None = None,
+            video_codec: str | None = None,
+            frame_rate: float | None = None) -> dict:
         if media_type not in ASSET_MEDIA_TYPES:
             raise ValueError("Asset media type is not supported.")
         if media_type != "audio" and category is not None:
@@ -627,11 +827,11 @@ class VentureAssetRepository:
             raise ValueError("Asset category is not supported.")
         cursor.execute("""
             INSERT INTO assets
-                (venture_id, collection_id, name, kind, media_type, category,
-                 scope, tags, metadata, legacy_generation_id)
-            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, NULL)
+                (space_id, venture_id, collection_id, name, kind, media_type,
+                 category, scope, tags, metadata, legacy_generation_id)
+            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, NULL)
             RETURNING id, created_at, updated_at
-        """, (venture_id, collection_id, name, media_type, media_type,
+        """, (space_id, venture_id, collection_id, name, media_type, media_type,
               canonical_category, scope, list(tags), json.dumps(metadata or {})))
         asset_id, created_at, updated_at = cursor.fetchone()
         cursor.execute("""

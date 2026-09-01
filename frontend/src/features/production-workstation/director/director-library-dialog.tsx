@@ -8,7 +8,7 @@ import type { VentureAsset } from "@/types/domain"
 import { visualAssetName } from "./director-assets"
 import { VisualAssetCard } from "./visual-asset-card"
 
-type AssetSourceFilter = "all" | "production" | "venture" | "studio"
+type AssetSourceFilter = "all" | "production" | "space" | "studio"
 type AssetUsageFilter = "all" | "used" | "unused"
 type AssetSort = "recent" | "used" | "name"
 
@@ -42,7 +42,7 @@ export function DirectorLibraryDialog({ open, assets, productionAssetIds = [], u
       if (normalized && !visualAssetName(asset).toLowerCase().includes(normalized) && !asset.tags?.some((tag) => tag.toLowerCase().includes(normalized))) return false
       if (mediaType !== "all" && asset.media_type !== mediaType) return false
       if (source === "production" && !productionIds.has(asset.id)) return false
-      if (source === "venture" && asset.scope === "studio") return false
+      if (source === "space" && asset.scope === "studio") return false
       if (source === "studio" && asset.scope !== "studio") return false
       if (usage === "used" && !usedIds.has(asset.id)) return false
       if (usage === "unused" && usedIds.has(asset.id)) return false
@@ -64,7 +64,7 @@ export function DirectorLibraryDialog({ open, assets, productionAssetIds = [], u
         <Select value={source} onValueChange={(value) => setSource(value as AssetSourceFilter)}><SelectTrigger aria-label="Media source"><SelectValue /></SelectTrigger><SelectContent><SelectGroup>
           <SelectItem value="all">All available</SelectItem>
           {showProductionSource && <SelectItem value="production">This Production</SelectItem>}
-          <SelectItem value="venture">This Venture</SelectItem>
+          <SelectItem value="space">This Space</SelectItem>
           <SelectItem value="studio">Studio Library</SelectItem>
         </SelectGroup></SelectContent></Select>
         <Select value={mediaType} onValueChange={(value) => setMediaType(value as typeof mediaType)}><SelectTrigger aria-label="Media type"><SelectValue /></SelectTrigger><SelectContent><SelectGroup><SelectItem value="all">Images & videos</SelectItem><SelectItem value="image">Images</SelectItem><SelectItem value="video">Videos</SelectItem></SelectGroup></SelectContent></Select>

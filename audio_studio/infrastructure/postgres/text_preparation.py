@@ -16,10 +16,10 @@ class PostgresTextPreparationRepository:
     def style_for(self, production_id: int) -> str:
         with read_only() as cursor:
             cursor.execute("""
-                SELECT venture.style_prompt
+                SELECT coalesce(venture.style_prompt, '')
                   FROM productions production
-                  JOIN work_projects project ON project.id = production.project_id
-                  JOIN ventures venture ON venture.id = project.venture_id
+                  LEFT JOIN work_projects project ON project.id = production.project_id
+                  LEFT JOIN ventures venture ON venture.id = project.venture_id
                  WHERE production.id = %s AND production.archived_at IS NULL
             """, (production_id,))
             row = cursor.fetchone()

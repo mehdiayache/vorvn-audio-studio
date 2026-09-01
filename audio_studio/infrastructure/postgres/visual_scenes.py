@@ -156,14 +156,17 @@ class VisualSceneRepository:
                        version.duration_ms
                   FROM assets asset
                   JOIN productions production ON production.id=%s
-                  JOIN work_projects project ON project.id=production.project_id
+                  LEFT JOIN work_projects project ON project.id=production.project_id
                   LEFT JOIN LATERAL (
                       SELECT item.filename, item.duration_ms
                         FROM asset_versions item
                        WHERE item.asset_id=asset.id
                        ORDER BY item.version DESC LIMIT 1
                   ) version ON true
-                 WHERE (asset.venture_id=project.venture_id
+                 WHERE ((production.space_id IS NOT NULL
+                         AND asset.space_id=production.space_id)
+                        OR (production.space_id IS NULL
+                            AND asset.venture_id=project.venture_id)
                         OR asset.scope='studio')
                    AND asset.id = ANY(%s::bigint[])
             """, (production_id, asset_ids))
@@ -235,4 +238,21 @@ class VisualSceneRepository:
             """, (
                 current + 1, json.dumps(canonical), production_id,
             ))
+            asset_ids = sorted({
+                int(clip["asset_id"])
+                for track in canonical["tracks"]
+                for clip in track["clips"]
+            })
+            if asset_ids:
+                cursor.execute("""
+                    INSERT INTO project_files (project_id, file_id, purpose)
+                    SELECT production.id, file.id, 'timeline'
+                      FROM productions production
+                      JOIN assets file ON file.id=ANY(%s)
+                     WHERE production.id=%s
+                       AND production.project_type='audiovisual'
+                       AND production.space_id=file.space_id
+                    ON CONFLICT (project_id, file_id) DO UPDATE
+                       SET purpose=EXCLUDED.purpose
+                """, (asset_ids, production_id))
         return self.get(production_id)

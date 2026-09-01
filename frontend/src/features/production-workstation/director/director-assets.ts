@@ -77,7 +77,7 @@ export function visualAssetDetails(asset: VentureAsset) {
     { label: "MIME type", value: asset.mime_type || null },
   ].filter((item): item is { label: string; value: string } => Boolean(item.value))
   const library = [
-    { label: "Available in", value: asset.scope === "studio" ? "Studio Assets" : asset.scope === "venture" ? "Venture Assets" : null },
+    { label: "Available in", value: asset.scope === "studio" ? "Studio Files" : asset.scope === "space" ? "Space Files" : null },
     { label: "Category", value: asset.category ? String(asset.category) : null },
     { label: "Tags", value: asset.tags?.length ? asset.tags.join(", ") : null },
     { label: "Added", value: formatVisualDate(asset.created_at) },

@@ -121,7 +121,7 @@ export function WorkstationOutline({ parts, selectedId, playingKey, playerPlayin
         const playing = playerPlaying && playingKey === `part:${part.id}`
         const role = part.kind === "silence" ? "Pause" : part.kind === "asset" ? part.title || "Linked audio" : formatAuthoredRole(part.authored_role) || part.voice_name || part.voice || "Speech"
         const readiness = workstationPartReadiness(part)
-        const normalDetail = part.kind === "silence" ? `${partDurationMs(part) / 1000}s silence` : part.kind === "asset" ? `${part.asset_collection || part.asset_kind || "Venture audio"} · ${Math.round(partDurationMs(part) / 100) / 10}s` : readiness === "draft" ? "Draft · not recorded" : `${Math.round(partDurationMs(part) / 100) / 10}s`
+        const normalDetail = part.kind === "silence" ? `${partDurationMs(part) / 1000}s silence` : part.kind === "asset" ? `${part.asset_collection || part.asset_kind || "Space audio"} · ${Math.round(partDurationMs(part) / 100) / 10}s` : readiness === "draft" ? "Draft · not recorded" : `${Math.round(partDurationMs(part) / 100) / 10}s`
         const detail = state === "skipped" ? `Skipped · ${readiness === "ready" ? "content ready" : readiness === "draft" ? "not recorded" : "needs attention"}` : normalDetail
         return <button key={part.id} className={cn("ws-outline-item", selectedId === part.id && "is-selected", playing && "is-playing", part.enabled === false && "is-disabled")} aria-pressed={selectedId === part.id} aria-current={playing ? "true" : undefined} onClick={() => onSelect(part)}>
           <span className="ws-outline-number">{formatPartNumber(part.position ?? index)}</span>
@@ -185,7 +185,7 @@ export function WorkstationAssetCard({ part, index, selected, playing, actions, 
 }) {
   const state = workstationPartState(part)
   const title = part.title || part.text || "Linked audio"
-  const collection = part.asset_collection || part.asset_kind || "Venture audio"
+  const collection = part.asset_collection || part.asset_kind || "Space audio"
   const duration = compactAssetDuration(part)
   const playable = Boolean(part.filename && !part.missing)
   const hasIssue = state === "issue"
@@ -206,7 +206,7 @@ export function WorkstationAssetCard({ part, index, selected, playing, actions, 
         {playable && <AudioDownloadButton url={audioUrl(part.filename || "")} label={`${title} audio`} compact onClick={(event) => event.stopPropagation()} />}
         {playable && <span className={cn("ws-waveform", playing && "is-active")}><AudioWaveform url={audioUrl(part.filename || "")} bars={72} /></span>}
         <span className="ws-duration">{duration}</span>
-        <span className="ws-asset-source"><FileAudio /> Reusable Venture audio</span>
+        <span className="ws-asset-source"><FileAudio /> Reusable Space audio</span>
         {hasIssue && <span className="ws-card-issue"><CircleAlert /> Review source</span>}
         <PartStateIndicator state={state} />
         <strong>{part.cost > 0 ? formatMoney(part.cost) : "Free · reusable"}</strong>

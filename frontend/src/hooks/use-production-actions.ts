@@ -236,22 +236,24 @@ export function useProductionActions({ production, soundScene, player, refresh, 
   }, [mutate])
   const addSilence = useCallback((seconds: number, beforePartId: string | null) => mutate("production:add-silence", () => studioApi.addSilence(production.id, seconds, beforePartId), "Silence added"), [mutate, production.id])
   const insertAsset = useCallback((asset: VentureAsset, beforePartId: string | null) => mutate("production:add-asset", () => studioApi.insertAsset(production.id, asset.id, beforePartId), "Library audio inserted"), [mutate, production.id])
-  const replaceAsset = useCallback((part: ProductionPart, asset: VentureAsset) => mutate(`part:${part.id}:replace`, () => studioApi.replaceAsset(production.id, part.id, asset.id), "Venture audio replaced"), [mutate, production.id])
+  const replaceAsset = useCallback((part: ProductionPart, asset: VentureAsset) => mutate(`part:${part.id}:replace`, () => studioApi.replaceAsset(production.id, part.id, asset.id), "Space audio replaced"), [mutate, production.id])
   const moveParts = useCallback((ids: number[], targetId: number, targetName: string) => mutate("parts:move-production", () => studioApi.moveParts(production.id, ids, targetId), `Moved to ${targetName}`, true), [mutate, production.id])
   const uploadAsset = useCallback(async (collectionId: number, folder: string, details: {
     name: string
     category: AudioAssetCategory | null
-    scope: "venture" | "studio"
+    scope: "space" | "studio"
     tags: string[]
     file: File
   }): Promise<VentureAsset> => {
     return mutationActions.run("asset:upload", async () => {
-      const uploaded = await studioApi.uploadAsset(collectionId, details.file, details)
+      const uploaded = production.space_id
+        ? await studioApi.uploadAudiovisualProjectFile(production.id, details.file, details)
+        : await studioApi.uploadAsset(collectionId, details.file, details)
       await refreshAssets()
       toast.success(`${details.name} added to the Asset Library`)
       return uploaded as VentureAsset
     })
-  }, [mutationActions.run, refreshAssets])
+  }, [mutationActions.run, production.space_id, refreshAssets])
 
   const updateAsset = useCallback(async (asset: VentureAsset, details: {
     name: string
@@ -274,18 +276,23 @@ export function useProductionActions({ production, soundScene, player, refresh, 
     tags: string[]
   }): Promise<CatalogKeepResult> => mutationActions.run(
     `asset:keep:freesound:${details.result.external_id}`, async () => {
-      const kept = await studioApi.keepFreesound({
-        collection_id: collectionId,
+      const payload = {
         external_id: details.result.external_id,
         name: details.name,
         category: details.category,
         scope: details.scope,
         tags: details.tags,
-      })
+      }
+      const kept = production.space_id
+        ? await studioApi.keepFreesoundInAudiovisualProject(production.id, {
+          external_id: payload.external_id, name: payload.name,
+          category: payload.category, tags: payload.tags,
+        })
+        : await studioApi.keepFreesound({ collection_id: collectionId, ...payload })
       await refreshAssets()
       toast.success(kept.duplicate ? `${details.name} is already in the Asset Library` : `${details.name} saved to the Asset Library`)
       return kept
-    }), [mutationActions.run, refreshAssets])
+    }), [mutationActions.run, production.space_id, refreshAssets])
 
   const keepGeneratedAudio = useCallback(async (collectionId: number, details: {
     candidateId: string
@@ -295,17 +302,21 @@ export function useProductionActions({ production, soundScene, player, refresh, 
     tags: string[]
   }): Promise<GeneratedKeepResult> => mutationActions.run(
     `asset:keep:generated:${details.candidateId}`, async () => {
-      const kept = await studioApi.keepGeneratedAudio(details.candidateId, {
-        collection_id: collectionId,
+      const payload = {
         name: details.name,
         category: details.category,
         scope: details.scope,
         tags: details.tags,
-      })
+      }
+      const kept = production.space_id
+        ? await studioApi.keepGeneratedAudioInAudiovisualProject(details.candidateId, production.id, {
+          name: payload.name, category: payload.category, tags: payload.tags,
+        })
+        : await studioApi.keepGeneratedAudio(details.candidateId, { collection_id: collectionId, ...payload })
       await refreshAssets()
       toast.success(kept.duplicate ? `${details.name} is already in the Asset Library` : `${details.name} saved to the Asset Library`)
       return kept
-    }), [mutationActions.run, refreshAssets])
+    }), [mutationActions.run, production.space_id, refreshAssets])
 
   return { previewing, exporting, exportingFormat, exportJob, previewKey, playerPlaying, productionLoaded, productionPlaying, mutationStatus, isActionPending: mutationActions.isPending, invalidatePreview, toggleProduction, exportProduction, generatePart, recordPendingPart, updatePartEditorial, movePart, movePartToPosition, movePartsToPosition, updateSoundScene, undoSoundScene, redoSoundScene, duplicatePart, deletePart, editSilence, setPartEnabled, deleteParts, saveDraft, addSilence, insertAsset, replaceAsset, moveParts, uploadAsset, updateAsset, keepFreesound, keepGeneratedAudio }
 }

@@ -328,7 +328,7 @@ describe("AssetTool", () => {
 
   it("searches canonical names and tags and filters reusable scope", () => {
     const library = [
-      { id: 21, name: "Night room", category: "ambience", scope: "venture" as const, tags: ["quiet"] },
+      { id: 21, name: "Night room", category: "ambience", scope: "space" as const, tags: ["quiet"] },
       { id: 22, name: "Wooden knock", category: "sfx", scope: "studio" as const, tags: ["door"] },
     ]
     const { container } = render(<AssetTool assets={library} mode="sound" playerPlaying={false} onChoose={vi.fn()} onPlay={vi.fn()} onUpload={vi.fn()} onKeep={vi.fn()} />)
@@ -346,7 +346,7 @@ describe("AssetTool", () => {
 
   it("can focus the audio Library on Assets already used in this Production", () => {
     const library = [
-      { id: 21, name: "Night room", scope: "venture" as const },
+      { id: 21, name: "Night room", scope: "space" as const },
       { id: 22, name: "Wooden knock", scope: "studio" as const },
     ]
     const { container } = render(<AssetTool assets={library} usedAssetIds={[22]} mode="sound" playerPlaying={false} onChoose={vi.fn()} onPlay={vi.fn()} onUpload={vi.fn()} onKeep={vi.fn()} />)
@@ -430,7 +430,7 @@ describe("AssetTool", () => {
   })
 
   it("edits human Asset classification without touching its source identity", async () => {
-    const asset = { id: 41, name: "Raw sound", media_type: "audio" as const, category: null, scope: "venture" as const, tags: [], metadata: { origin: "freesound", source_tags: ["door", "wood"] }, filename: "raw.wav" }
+    const asset = { id: 41, name: "Raw sound", media_type: "audio" as const, category: null, scope: "space" as const, tags: [], metadata: { origin: "freesound", source_tags: ["door", "wood"] }, filename: "raw.wav" }
     const onUpdate = vi.fn().mockResolvedValue({ ...asset, name: "Door close", category: "sfx" })
     render(<AssetTool assets={[asset]} initialSelectedId={41} mode="sound" playerPlaying={false} onChoose={vi.fn()} onPlay={vi.fn()} onUpload={vi.fn()} onUpdate={onUpdate} onKeep={vi.fn()} />)
 
@@ -440,7 +440,7 @@ describe("AssetTool", () => {
     fireEvent.click(screen.getByRole("button", { name: "Save changes" }))
 
     await waitFor(() => expect(onUpdate).toHaveBeenCalledWith(asset, {
-      name: "Door close", category: "sfx", scope: "venture", tags: [],
+      name: "Door close", category: "sfx", scope: "space", tags: [],
     }))
     expect(screen.getByText("Source tags")).toBeTruthy()
   })
@@ -478,7 +478,7 @@ describe("AssetTool", () => {
 
     fireEvent.click(view.getByRole("button", { name: "Keep as Asset" }))
     await waitFor(() => expect(onKeep).toHaveBeenCalledWith("Assets", {
-      result, name: result.name, category: null, scope: "venture",
+      result, name: result.name, category: null, scope: "space",
       tags: [],
     }))
     expect(view.getByRole("button", { name: "Saved Asset" })).toBeTruthy()
@@ -507,7 +507,7 @@ describe("AssetTool", () => {
     expect(view.queryByLabelText("Suggested Ambience family")).toBeNull()
     fireEvent.click(view.getByRole("button", { name: "Keep as Asset" }))
     await waitFor(() => expect(onKeep).toHaveBeenCalledWith("Assets", {
-      result, name: result.name, category: null, scope: "venture",
+      result, name: result.name, category: null, scope: "space",
       tags: [],
     }))
   })

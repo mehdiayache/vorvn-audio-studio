@@ -90,9 +90,12 @@ class SoundSceneRepository:
                        version.sample_rate, version.channels, version.metadata
                   FROM assets asset
                   JOIN productions production ON production.id=%s
-                  JOIN work_projects project ON project.id=production.project_id
+                  LEFT JOIN work_projects project ON project.id=production.project_id
                   LEFT JOIN asset_versions version ON version.asset_id=asset.id
-                 WHERE (asset.venture_id=project.venture_id
+                 WHERE ((production.space_id IS NOT NULL
+                         AND asset.space_id=production.space_id)
+                        OR (production.space_id IS NULL
+                            AND asset.venture_id=project.venture_id)
                         OR asset.scope='studio')
                    AND asset.id = ANY(%s::bigint[])
                  ORDER BY asset.id, version.version DESC
@@ -218,6 +221,24 @@ class SoundSceneRepository:
                     VALUES (%s,%s,%s::jsonb)
                 """, (production_id, next_history_revision,
                       json.dumps(canonical)))
+            asset_ids = sorted({
+                int(clip["asset_id"])
+                for track in canonical["tracks"]
+                for clip in track["clips"]
+                if clip.get("asset_id")
+            })
+            if asset_ids:
+                cursor.execute("""
+                    INSERT INTO project_files (project_id, file_id, purpose)
+                    SELECT production.id, file.id, 'timeline'
+                      FROM productions production
+                      JOIN assets file ON file.id=ANY(%s)
+                     WHERE production.id=%s
+                       AND production.project_type='audiovisual'
+                       AND production.space_id=file.space_id
+                    ON CONFLICT (project_id, file_id) DO UPDATE
+                       SET purpose=EXCLUDED.purpose
+                """, (asset_ids, production_id))
         return self.get(production_id)
 
     def step(self, production_id: int, direction: int) -> dict[str, Any] | None:

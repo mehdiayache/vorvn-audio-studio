@@ -3,12 +3,11 @@
 from __future__ import annotations
 
 from audio_studio.domain.files import file_family
-from audio_studio.infrastructure.postgres import work as legacy_work
 from audio_studio.infrastructure.postgres.session import read_only, transaction
 
 
 class SpaceRepository:
-    """Own the new root while the final migration removes legacy containers."""
+    """Persist the application root without legacy container mirrors."""
 
     @staticmethod
     def _space_row(row) -> dict:
@@ -80,7 +79,9 @@ class SpaceRepository:
                   LEFT JOIN production_parts part
                     ON part.production_id = project.id
                    AND part.archived_at IS NULL
-                 WHERE project.space_id = %s AND project.archived_at IS NULL
+                 WHERE project.space_id = %s
+                   AND project.project_type = 'audiovisual'
+                   AND project.archived_at IS NULL
                  GROUP BY project.id
                  ORDER BY project.updated_at DESC, project.id
             """, (space_id,))
@@ -138,19 +139,47 @@ class SpaceRepository:
             return files
 
     def create_space(self, name: str, description: str) -> dict:
-        # Temporary write bridge: existing provider/editor services still read
-        # the Venture table. The final cutover deletes this paired row.
-        venture = legacy_work.create_venture(name, description)
         with transaction() as cursor:
             cursor.execute("""
-                INSERT INTO spaces (id, public_id, name, description)
-                SELECT id, public_id, name, description FROM ventures WHERE id=%s
-                ON CONFLICT (id) DO UPDATE SET
-                    name=EXCLUDED.name, description=EXCLUDED.description,
-                    updated_at=now()
+                INSERT INTO spaces (name, description)
+                VALUES (%s, %s)
                 RETURNING id, public_id, name, description, created_at, updated_at
-            """, (venture["id"],))
+            """, (name, description))
             return self._space_row(cursor.fetchone())
+
+    def project(self, identifier: str) -> dict | None:
+        value = str(identifier or "").strip()
+        if not value:
+            return None
+        with read_only() as cursor:
+            cursor.execute("""
+                SELECT project.id, project.public_id, project.space_id,
+                       project.folder_id, project.project_type, project.name,
+                       project.description, project.status, project.updated_at,
+                       count(DISTINCT project_file.file_id),
+                       count(DISTINCT part.id)
+                  FROM productions project
+                  LEFT JOIN project_files project_file
+                    ON project_file.project_id=project.id
+                  LEFT JOIN production_parts part
+                    ON part.production_id=project.id AND part.archived_at IS NULL
+                 WHERE project.archived_at IS NULL
+                   AND project.space_id IS NOT NULL
+                   AND project.project_type = 'audiovisual'
+                   AND (project.public_id::text=%s OR project.id::text=%s)
+                 GROUP BY project.id
+            """, (value, value))
+            row = cursor.fetchone()
+        if not row:
+            return None
+        return {
+            "id": int(row[0]), "public_id": str(row[1]),
+            "space_id": int(row[2]), "folder_id": row[3],
+            "project_type": row[4], "name": row[5],
+            "description": row[6], "status": row[7],
+            "updated_at": row[8].isoformat(), "file_count": int(row[9]),
+            "part_count": int(row[10]),
+        }
 
     def create_folder(
         self, space_id: int, name: str, parent_id: int | None,
@@ -181,7 +210,7 @@ class SpaceRepository:
         self, space_id: int, name: str, description: str,
         folder_id: int | None,
     ) -> dict | None:
-        with read_only() as cursor:
+        with transaction() as cursor:
             cursor.execute("SELECT 1 FROM spaces WHERE id=%s", (space_id,))
             if not cursor.fetchone():
                 return None
@@ -192,30 +221,51 @@ class SpaceRepository:
                 if not cursor.fetchone():
                     return None
             cursor.execute("""
-                SELECT id FROM work_projects
-                 WHERE venture_id=%s AND archived_at IS NULL
-                 ORDER BY created_at, id LIMIT 1
-            """, (space_id,))
-            bridge = cursor.fetchone()
-        if bridge:
-            work_project_id = int(bridge[0])
-        else:
-            work_project = legacy_work.create_project(
-                space_id, "Projects", "Temporary cutover container")
-            if not work_project:
-                return None
-            work_project_id = int(work_project["id"])
-        project = legacy_work.create_production(
-            work_project_id, name, description)
-        if not project:
-            return None
+                INSERT INTO productions
+                    (space_id, folder_id, project_type, slug, name,
+                     description, settings)
+                VALUES (%s, %s, 'audiovisual',
+                        'pending-' || gen_random_uuid()::text, %s, %s, '{}')
+                RETURNING id
+            """, (space_id, folder_id, name, description))
+            project_id = int(cursor.fetchone()[0])
+            cursor.execute(
+                "UPDATE productions SET slug=%s WHERE id=%s",
+                (f"audiovisual-{project_id}", project_id),
+            )
+            cursor.execute("""
+                INSERT INTO sound_scenes (production_id, document)
+                VALUES (%s, '{"version":1,"sequence_overrides":{},"tracks":[]}'::jsonb)
+                ON CONFLICT (production_id) DO NOTHING
+            """, (project_id,))
+            cursor.execute("""
+                INSERT INTO sound_scene_history
+                    (production_id, revision, document)
+                SELECT production_id, history_revision, document
+                  FROM sound_scenes WHERE production_id=%s
+                ON CONFLICT (production_id, revision) DO NOTHING
+            """, (project_id,))
+            cursor.execute("""
+                INSERT INTO visual_scenes (production_id)
+                VALUES (%s) ON CONFLICT (production_id) DO NOTHING
+            """, (project_id,))
+        return self.project(str(project_id))
+
+    def attach_file(
+        self, project_id: int, file_id: int, purpose: str,
+    ) -> bool:
         with transaction() as cursor:
             cursor.execute("""
-                UPDATE productions
-                   SET space_id=%s, folder_id=%s, project_type='audiovisual',
-                       updated_at=now()
-                 WHERE id=%s
-            """, (space_id, folder_id, project["id"]))
-        return next(
-            item for item in self.projects(space_id)
-            if item["id"] == int(project["id"]))
+                INSERT INTO project_files (project_id, file_id, purpose)
+                SELECT project.id, file.id, %s
+                  FROM productions project
+                  JOIN assets file ON file.id = %s
+                 WHERE project.id = %s
+                   AND project.project_type = 'audiovisual'
+                   AND project.space_id = file.space_id
+                   AND project.archived_at IS NULL
+                ON CONFLICT (project_id, file_id) DO UPDATE
+                   SET purpose = EXCLUDED.purpose
+                RETURNING project_id
+            """, (purpose, file_id, project_id))
+            return cursor.fetchone() is not None

@@ -114,7 +114,7 @@ describe("Production workflow", () => {
       video_codec: "h264",
       frame_rate: 29.97,
       size_bytes: 2_621_440,
-      scope: "venture",
+      scope: "space",
       category: null,
       tags: ["harbour", "dusk"],
       created_at: "2026-08-25T10:00:00Z",
@@ -127,7 +127,7 @@ describe("Production workflow", () => {
         { label: "File size", value: "2.5 MB" },
       ]),
       library: expect.arrayContaining([
-        { label: "Available in", value: "Venture Assets" },
+        { label: "Available in", value: "Space Files" },
         { label: "Tags", value: "harbour, dusk" },
       ]),
     })
@@ -250,7 +250,7 @@ describe("Production workflow", () => {
       video_codec: "h264",
       frame_rate: 29.97,
       size_bytes: 2_621_440,
-      scope: "venture",
+      scope: "space",
       tags: ["harbour"],
     }} onOpenChange={vi.fn()} />)
 
@@ -258,7 +258,7 @@ describe("Production workflow", () => {
     expect(screen.getByText("Technical")).toBeTruthy()
     expect(screen.getByText("1920 × 1080")).toBeTruthy()
     expect(screen.getByText("29.97 fps")).toBeTruthy()
-    expect(screen.getByText("Venture Assets")).toBeTruthy()
+    expect(screen.getByText("Space Files")).toBeTruthy()
     const video = screen.getByRole("dialog", { name: "Harbour move" }).querySelector("video")
     expect(video?.getAttribute("src")).toBe("/media/harbour.mp4")
     expect(video?.getAttribute("poster")).toBe("/api/v1/media/video-poster/harbour.mp4")

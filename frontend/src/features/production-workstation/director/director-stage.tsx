@@ -14,9 +14,10 @@ import { DirectorPreviewDialog } from "./director-preview-dialog"
 import type { DirectorUploadItem } from "./director-upload-card"
 import "./director-stage.css"
 
-export function DirectorStage({ centerPaneRef, productionId, ventureId, createOpen = true, onCreateOpenChange = () => undefined, assets, directorAssetIds, usageCounts, onUpload, onRefresh, onAddToTimeline, onConfirmAction }: {
+export function DirectorStage({ centerPaneRef, productionId, spaceId, ventureId, createOpen = true, onCreateOpenChange = () => undefined, assets, directorAssetIds, usageCounts, onUpload, onRefresh, onAddToTimeline, onConfirmAction }: {
   centerPaneRef?: RefObject<HTMLElement | null>
   productionId: number
+  spaceId?: number
   ventureId?: number
   createOpen?: boolean
   onCreateOpenChange?: (open: boolean) => void
@@ -180,13 +181,13 @@ export function DirectorStage({ centerPaneRef, productionId, ventureId, createOp
       upload(Array.from(event.dataTransfer.files))
     }}
   >
-    {dragging && <div className="director-drop-overlay" aria-hidden="true"><ImagePlus /><strong>Drop visuals into Director</strong><span>They become reusable Venture Assets and are collected in Director.</span></div>}
+    {dragging && <div className="director-drop-overlay" aria-hidden="true"><ImagePlus /><strong>Drop visuals into Director</strong><span>They become reusable Space Files and are collected in Director.</span></div>}
     <input ref={inputRef} hidden multiple type="file" accept={visualFileAccept} onChange={(event) => {
       if (event.target.files) void upload(Array.from(event.target.files))
       event.target.value = ""
     }} />
     <DirectorComposer
-      productionId={productionId} ventureId={ventureId} createOpen={createOpen} onCreateOpenChange={onCreateOpenChange} uploading={Boolean(activeUploads.length)} uploadLabel={uploadLabel}
+      productionId={productionId} spaceId={spaceId} ventureId={ventureId} createOpen={createOpen} onCreateOpenChange={onCreateOpenChange} uploading={Boolean(activeUploads.length)} uploadLabel={uploadLabel}
       libraryAssets={assets} recentAssetIds={[...directorAssetIds].reverse()} usageCounts={usageCounts} onUploadReference={uploadReference}
       onGenerationOutputReady={onRefresh} onPreviewGenerated={setPreviewAsset}
       onAddGeneratedToTimeline={onAddToTimeline}
@@ -206,7 +207,7 @@ export function DirectorStage({ centerPaneRef, productionId, ventureId, createOp
         }} onRetryUpload={retryUpload} onDismissUpload={releaseUpload} onUpload={() => inputRef.current?.click()} onOpenLibrary={() => setLibraryOpen(true)} />
       </>}
     />
-    <DirectorLibraryDialog open={libraryOpen} assets={available} usedAssetIds={[...(usageCounts?.keys() || [])]} pendingId={pendingId} defaultSource="venture" showProductionSource={false} onOpenChange={setLibraryOpen} onPreview={setPreviewAsset} onAdd={(asset) => void attach(asset)} />
+    <DirectorLibraryDialog open={libraryOpen} assets={available} usedAssetIds={[...(usageCounts?.keys() || [])]} pendingId={pendingId} defaultSource="space" showProductionSource={false} onOpenChange={setLibraryOpen} onPreview={setPreviewAsset} onAdd={(asset) => void attach(asset)} />
     <DirectorPreviewDialog asset={previewAsset} pending={Boolean(previewAsset && pendingId === previewAsset.id)} onAddToTimeline={onAddToTimeline ? (asset) => {
       setPendingId(asset.id)
       void onAddToTimeline(asset).then(() => setPreviewAsset(null)).catch((reason) => setError(reason instanceof Error ? reason.message : "The visual could not be added to Timeline.")).finally(() => setPendingId(null))

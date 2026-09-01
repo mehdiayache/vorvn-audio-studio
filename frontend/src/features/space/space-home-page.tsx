@@ -60,7 +60,7 @@ function CreateActionButton({ action }: { action: CreationActionSummary }) {
 
 function ProjectRow({ project }: { project: SpaceProject }) {
   return <article className="space-project-row">
-    <Link to={`/audio-studio/productions/${project.public_id}`} aria-label={`Open ${project.name}`} />
+    <Link to={`/audio-studio/projects/audiovisual/${project.public_id}`} aria-label={`Open ${project.name}`} />
     <span className="space-project-icon"><Clapperboard /></span>
     <span className="space-project-copy"><b>{project.name}</b><small>Audiovisual Project</small></span>
     <span className="space-project-meta"><b>{formatUpdated(project.updated_at) || "Recently"}</b><small>{project.part_count} Part{project.part_count === 1 ? "" : "s"}</small></span>
@@ -164,7 +164,7 @@ function ResourceDialog({ kind, open, onOpenChange, spaceId, onCreated }: {
           if (!spaceId) throw new Error("Choose a Space before creating a Project.")
           const project = await studioApi.createAudiovisualProject(spaceId, name.trim(), description.trim())
           onOpenChange(false); onCreated()
-          navigate(`/audio-studio/productions/${project.public_id}`)
+          navigate(`/audio-studio/projects/audiovisual/${project.public_id}`)
         } else {
           if (!spaceId) throw new Error("Choose a Space before creating a Folder.")
           await studioApi.createFolder(spaceId, name.trim())

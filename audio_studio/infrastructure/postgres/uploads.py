@@ -6,6 +6,7 @@ import psycopg
 
 from audio_studio.domain.uploads import AssetCategory, AssetScope, StoredAsset
 from audio_studio.infrastructure.postgres.venture_assets import VentureAssetRepository
+from audio_studio.infrastructure.postgres.spaces import SpaceRepository
 from audio_studio.infrastructure.postgres.voice_packages import VoicePackageRepository
 
 
@@ -16,6 +17,7 @@ class PostgresUploadRecords:
     ):
         self.voices = voices or VoicePackageRepository()
         self.assets = assets or VentureAssetRepository()
+        self.spaces = SpaceRepository()
 
     def create_voice_reference(
         self, *, reference_id: str, original_name: str,
@@ -50,10 +52,13 @@ class PostgresUploadRecords:
     def asset_collection(self, collection_id: int) -> dict | None:
         return self.assets.collection(collection_id)
 
+    def space(self, space_id: int) -> dict | None:
+        return self.spaces.space(space_id)
+
     def create_uploaded_asset(
         self, collection_id: int, *, name: str, stored: StoredAsset,
         size_bytes: int, category: AssetCategory | None = None,
-        scope: AssetScope = "venture", tags: tuple[str, ...] = (),
+        scope: AssetScope = "space", tags: tuple[str, ...] = (),
         metadata: dict | None = None,
     ) -> dict | None:
         try:
@@ -73,11 +78,32 @@ class PostgresUploadRecords:
             raise RuntimeError(
                 "The database could not save that Asset.") from exc
 
+    def create_space_file(
+        self, space_id: int, *, name: str, stored: StoredAsset,
+        size_bytes: int, category: AssetCategory | None = None,
+        scope: AssetScope = "space", tags: tuple[str, ...] = (),
+        metadata: dict | None = None,
+    ) -> dict | None:
+        try:
+            return self.assets.create_space_file(
+                space_id, name=name, filename=stored.filename,
+                path=stored.path, size_bytes=size_bytes,
+                duration_ms=stored.duration_ms,
+                audio_format=stored.audio_format, mime_type=stored.mime_type,
+                sample_rate=stored.sample_rate, channels=stored.channels,
+                media_type=stored.media_type, media_format=stored.media_format,
+                width=stored.width, height=stored.height,
+                video_codec=stored.video_codec, frame_rate=stored.frame_rate,
+                version_metadata=stored.metadata or {}, category=category,
+                scope=scope, tags=tags, metadata=metadata or {})
+        except psycopg.OperationalError as exc:
+            raise RuntimeError("The database could not save that File.") from exc
+
     def create_catalog_asset(
         self, collection_id: int, *, origin: str, external_id: str,
         name: str, stored: StoredAsset, size_bytes: int,
         category: AssetCategory | None = None,
-        scope: AssetScope = "venture", tags: tuple[str, ...] = (),
+        scope: AssetScope = "space", tags: tuple[str, ...] = (),
         metadata: dict | None = None,
     ) -> tuple[dict | None, bool]:
         try:
@@ -97,11 +123,30 @@ class PostgresUploadRecords:
             raise RuntimeError(
                 "The database could not save that Asset.") from exc
 
+    def create_space_catalog_file(
+        self, space_id: int, *, origin: str, external_id: str,
+        name: str, stored: StoredAsset, size_bytes: int,
+        category: AssetCategory | None = None,
+        scope: AssetScope = "space", tags: tuple[str, ...] = (),
+        metadata: dict | None = None,
+    ) -> tuple[dict | None, bool]:
+        return self.assets.create_space_catalog_file(
+            space_id, origin=origin, external_id=external_id, name=name,
+            filename=stored.filename, path=stored.path,
+            size_bytes=size_bytes, duration_ms=stored.duration_ms,
+            audio_format=stored.audio_format, mime_type=stored.mime_type,
+            sample_rate=stored.sample_rate, channels=stored.channels,
+            media_type=stored.media_type, media_format=stored.media_format,
+            width=stored.width, height=stored.height,
+            video_codec=stored.video_codec, frame_rate=stored.frame_rate,
+            version_metadata=stored.metadata or {}, category=category,
+            scope=scope, tags=tags, metadata=metadata or {})
+
     def create_generated_asset(
         self, collection_id: int, *, candidate_id: str,
         name: str, stored: StoredAsset, size_bytes: int,
         category: AssetCategory | None = None,
-        scope: AssetScope = "venture", tags: tuple[str, ...] = (),
+        scope: AssetScope = "space", tags: tuple[str, ...] = (),
         metadata: dict | None = None,
     ) -> tuple[dict | None, bool]:
         try:
@@ -122,8 +167,33 @@ class PostgresUploadRecords:
             raise RuntimeError(
                 "The database could not save that Asset.") from exc
 
+    def create_generated_space_file(
+        self, space_id: int, *, candidate_id: str,
+        name: str, stored: StoredAsset, size_bytes: int,
+        category: AssetCategory | None = None,
+        scope: AssetScope = "space", tags: tuple[str, ...] = (),
+        metadata: dict | None = None,
+    ) -> tuple[dict | None, bool]:
+        return self.assets.create_generated_space_file(
+            space_id, candidate_id=candidate_id, name=name,
+            filename=stored.filename, path=stored.path,
+            size_bytes=size_bytes, duration_ms=stored.duration_ms,
+            audio_format=stored.audio_format, mime_type=stored.mime_type,
+            sample_rate=stored.sample_rate, channels=stored.channels,
+            media_type=stored.media_type, media_format=stored.media_format,
+            width=stored.width, height=stored.height,
+            video_codec=stored.video_codec, frame_rate=stored.frame_rate,
+            version_metadata=stored.metadata or {}, category=category,
+            scope=scope, tags=tags, metadata=metadata or {})
+
     def generated_asset(self, *, candidate_id: str) -> dict | None:
         return self.assets.generated_asset(candidate_id=candidate_id)
+
+    def generated_space_file(
+        self, *, space_id: int, candidate_id: str,
+    ) -> dict | None:
+        return self.assets.generated_space_file(
+            space_id=space_id, candidate_id=candidate_id)
 
     def catalog_asset(
         self, collection_id: int, *, origin: str, external_id: str,

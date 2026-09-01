@@ -9,6 +9,7 @@ from audio_studio.infrastructure.postgres.jobs import JobRepository
 from audio_studio.infrastructure.postgres.production_document import (
     ProductionDocumentRepository,
 )
+from audio_studio.infrastructure.postgres.spaces import SpaceRepository
 from audio_studio.infrastructure.postgres.venture_assets import (
     VentureAssetRepository,
 )
@@ -21,12 +22,14 @@ class PostgresWorkRecords:
         documents: ProductionDocumentRepository | None = None,
         exports: ProductionExportRepository | None = None,
         jobs: JobRepository | None = None,
+        spaces: SpaceRepository | None = None,
     ):
         self.asset_records = assets or VentureAssetRepository()
         self.accounting_records = accounting or ProductionAccountingRepository()
         self.documents = documents or ProductionDocumentRepository()
         self.export_records = exports or ProductionExportRepository()
         self.job_records = jobs or JobRepository()
+        self.space_records = spaces or SpaceRepository()
 
     @staticmethod
     def hierarchy() -> list[dict]:
@@ -39,6 +42,9 @@ class PostgresWorkRecords:
     @staticmethod
     def production(production_id: int) -> dict | None:
         return work.production_get(production_id)
+
+    def space(self, space_id: int) -> dict | None:
+        return self.space_records.space(space_id)
 
     @staticmethod
     def resource(kind: str, resource_id: int) -> dict | None:
@@ -67,6 +73,9 @@ class PostgresWorkRecords:
 
     def director_asset_ids(self, production_id: int) -> list[int]:
         return self.asset_records.director_asset_ids(production_id)
+
+    def project_file_ids(self, project_id: int) -> list[int]:
+        return self.asset_records.project_file_ids(project_id)
 
     def attach_director_asset(
         self, production_id: int, asset_id: int,

@@ -7,6 +7,7 @@ import { useVoiceDirectory } from "@/hooks/use-voice-directory"
 export type StudioAssetResources = {
   assets: VentureAsset[]
   collections: AssetCollection[]
+  projectFileIds: number[]
   directorAssetIds: number[]
 }
 
@@ -27,6 +28,7 @@ export function useStudioResources(productionId: number) {
         data: {
           assets: result.assets || [],
           collections: result.collections || [],
+          projectFileIds: result.project_file_ids || [],
           directorAssetIds: result.director_asset_ids || [],
         },
       })
@@ -44,6 +46,7 @@ export function useStudioResources(productionId: number) {
   return {
     assets: assetState.data?.assets || EMPTY_ASSETS,
     assetCollections: assetState.data?.collections || EMPTY_COLLECTIONS,
+    projectFileIds: assetState.data?.projectFileIds || EMPTY_IDS,
     directorAssetIds: assetState.data?.directorAssetIds || EMPTY_IDS,
     assetState,
     assetError: assetState.status === "error" ? assetState.error || "The asset library is unavailable." : null,

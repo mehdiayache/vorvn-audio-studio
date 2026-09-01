@@ -89,7 +89,10 @@ until at least two real Project types prove the shared contract.
 - Development/demo rows may be reset instead of backfilled.
 - Preserve mature capabilities and invariants, not legacy names.
 - Do not add permanent compatibility routes or parallel domain models.
-- Temporary adapters must have an explicit deletion checkpoint.
+- The old Work hierarchy and the Space-first path stay isolated while old
+  screens are removed; new writes never mirror, backfill or preserve old rows.
+- Boundary adapters may translate storage details, but they must never create
+  a second owner, compatibility row or legacy write path.
 - Generated, Uploaded, Audio, Image and Video are smart views, not automatic
   Folders.
 - The application opens on the current Space with Create dominant and Recent,

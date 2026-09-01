@@ -9,8 +9,13 @@ from audio_studio.domain.saved_references import SavedReferenceDraft
 
 class SavedReferenceRecords(Protocol):
     def list(self, venture_id: int) -> list[dict]: ...
+    def list_space(self, space_id: int) -> list[dict]: ...
     def create(self, venture_id: int, draft: SavedReferenceDraft) -> dict | None: ...
+    def create_space(
+        self, space_id: int, draft: SavedReferenceDraft,
+    ) -> dict | None: ...
     def delete(self, venture_id: int, reference_id: str) -> bool | None: ...
+    def delete_space(self, space_id: int, reference_id: str) -> bool | None: ...
 
 
 class SavedReferenceService:
@@ -19,6 +24,9 @@ class SavedReferenceService:
 
     def list(self, venture_id: int) -> list[dict]:
         return self.records.list(venture_id)
+
+    def list_space(self, space_id: int) -> list[dict]:
+        return self.records.list_space(space_id)
 
     def create(
         self, venture_id: int, *, name: str, reference_type: str,
@@ -29,5 +37,17 @@ class SavedReferenceService:
             SavedReferenceDraft.create(name, reference_type, asset_ids),
         )
 
+    def create_space(
+        self, space_id: int, *, name: str, reference_type: str,
+        asset_ids: list[int],
+    ) -> dict | None:
+        return self.records.create_space(
+            space_id,
+            SavedReferenceDraft.create(name, reference_type, asset_ids),
+        )
+
     def delete(self, venture_id: int, reference_id: str) -> bool | None:
         return self.records.delete(venture_id, reference_id)
+
+    def delete_space(self, space_id: int, reference_id: str) -> bool | None:
+        return self.records.delete_space(space_id, reference_id)

@@ -30,7 +30,7 @@ export type GeneratedKeepInput = { candidateId: string; name: string; category: 
 export type AssetUpdateInput = { name: string; category: AudioAssetCategory | null; scope: AudioAssetScope; tags: string[] }
 
 type LibraryView = "library" | "upload" | "search" | "generate"
-type ScopeFilter = "all" | "venture" | "studio"
+type ScopeFilter = "all" | "space" | "studio"
 type SourceFilter = "all" | AssetSource
 type DurationFilter = "all" | "under-3" | "3-10" | "10-30" | "30-120" | "over-120"
 type UsageFilter = "all" | "used" | "unused"
@@ -69,7 +69,7 @@ export function AssetTool({ assets, loading = false, refreshing = false, resourc
   const [file, setFile] = useState<File | null>(null)
   const [name, setName] = useState("")
   const [uploadCategory, setUploadCategory] = useState<AudioAssetCategory | null>(null)
-  const [scope, setScope] = useState<AudioAssetScope>("venture")
+  const [scope, setScope] = useState<AudioAssetScope>("space")
   const [tags, setTags] = useState<string[]>([])
   const [error, setError] = useState("")
   const [catalogQuery, setCatalogQuery] = useState("")
@@ -81,7 +81,7 @@ export function AssetTool({ assets, loading = false, refreshing = false, resourc
   const [catalogActionError, setCatalogActionError] = useState("")
   const [selectedCatalogId, setSelectedCatalogId] = useState<string | null>(null)
   const [keepCategory, setKeepCategory] = useState<AudioAssetCategory | null>(null)
-  const [keepScope, setKeepScope] = useState<AudioAssetScope>("venture")
+  const [keepScope, setKeepScope] = useState<AudioAssetScope>("space")
   const [keepingId, setKeepingId] = useState<string | null>(null)
   const [kept, setKept] = useState<Record<string, number>>({})
 
@@ -97,7 +97,7 @@ export function AssetTool({ assets, loading = false, refreshing = false, resourc
     const matchesCategory = category === "all"
       || (category === "unclassified" ? !assetCategory : assetCategory === category)
     const used = usedIds.has(asset.id)
-    const matchesScope = scopeFilter === "all" || (asset.scope || "venture") === scopeFilter
+    const matchesScope = scopeFilter === "all" || (asset.scope || "space") === scopeFilter
     const seconds = Number(asset.duration_ms || 0) / 1000
     const matchesDuration = durationFilter === "all"
       || durationFilter === "under-3" && seconds < 3
@@ -166,7 +166,7 @@ export function AssetTool({ assets, loading = false, refreshing = false, resourc
   const chooseFile = (next?: File) => { if (next) { setFile(next); setName(humanName(next)); setError(""); setView("upload") } }
   const resetUpload = () => {
     if (fileInput.current) fileInput.current.value = ""
-    setFile(null); setName(""); setUploadCategory(null); setScope("venture"); setTags([]); setError(""); setDragging(false)
+    setFile(null); setName(""); setUploadCategory(null); setScope("space"); setTags([]); setError(""); setDragging(false)
   }
   const upload = async () => {
     if (!file) { setError("Choose an audio file first."); return }
@@ -216,7 +216,7 @@ export function AssetTool({ assets, loading = false, refreshing = false, resourc
             <div className="asset-filter-grid">
               <label><span>Category</span><Select value={category} onValueChange={(value) => setCategory(value as "all" | "unclassified" | AudioAssetCategory)}><SelectTrigger aria-label="Asset category"><SelectValue /></SelectTrigger><SelectContent><SelectItem value="all">All categories</SelectItem><SelectItem value="unclassified">No category</SelectItem>{ASSET_CATEGORIES.map(([value, label]) => <SelectItem key={value} value={value}>{label}</SelectItem>)}</SelectContent></Select></label>
               <label><span>Duration</span><Select value={durationFilter} onValueChange={(value) => setDurationFilter(value as DurationFilter)}><SelectTrigger aria-label="Asset duration"><SelectValue /></SelectTrigger><SelectContent><SelectItem value="all">Any duration</SelectItem><SelectItem value="under-3">Under 3 seconds</SelectItem><SelectItem value="3-10">3–10 seconds</SelectItem><SelectItem value="10-30">10–30 seconds</SelectItem><SelectItem value="30-120">30 seconds–2 min</SelectItem><SelectItem value="over-120">2 min or longer</SelectItem></SelectContent></Select></label>
-              <label><span>Available from</span><Select value={scopeFilter} onValueChange={(value) => setScopeFilter(value as ScopeFilter)}><SelectTrigger aria-label="Asset availability"><SelectValue /></SelectTrigger><SelectContent><SelectItem value="all">All available</SelectItem><SelectItem value="venture">This Venture</SelectItem><SelectItem value="studio">Studio Library</SelectItem></SelectContent></Select></label>
+              <label><span>Available from</span><Select value={scopeFilter} onValueChange={(value) => setScopeFilter(value as ScopeFilter)}><SelectTrigger aria-label="Asset availability"><SelectValue /></SelectTrigger><SelectContent><SelectItem value="all">All available</SelectItem><SelectItem value="space">This Space</SelectItem><SelectItem value="studio">Studio Library</SelectItem></SelectContent></Select></label>
               <label><span>Source</span><Select value={sourceFilter} onValueChange={(value) => setSourceFilter(value as SourceFilter)}><SelectTrigger aria-label="Asset source"><SelectValue /></SelectTrigger><SelectContent><SelectItem value="all">All sources</SelectItem>{(Object.keys(AUDIO_SOURCE_LABELS) as AssetSource[]).map((source) => <SelectItem key={source} value={source}>{AUDIO_SOURCE_LABELS[source]}</SelectItem>)}</SelectContent></Select></label>
               <label><span>Usage</span><Select value={usageFilter} onValueChange={(value) => setUsageFilter(value as UsageFilter)}><SelectTrigger aria-label="Asset usage in this Production"><SelectValue /></SelectTrigger><SelectContent><SelectItem value="all">Any usage</SelectItem><SelectItem value="used">Used in this Production</SelectItem><SelectItem value="unused">Unused here</SelectItem></SelectContent></Select></label>
               <label><span>Sort</span><Select value={assetSort} onValueChange={(value) => setAssetSort(value as AssetSort)}><SelectTrigger aria-label="Sort assets"><SelectValue /></SelectTrigger><SelectContent><SelectItem value="recent">Recently added</SelectItem><SelectItem value="name">Name</SelectItem><SelectItem value="duration">Duration</SelectItem></SelectContent></Select></label>

@@ -31,7 +31,7 @@ function DetailGroup({ title, rows }: { title: string; rows: Array<{ label: stri
 }
 
 function ScopeBadge({ scope }: { scope?: string | null }) {
-  return <span className="audio-scope-badge">{scope === "studio" ? "Studio" : "Venture"}</span>
+  return <span className="audio-scope-badge">{scope === "studio" ? "Studio" : "Space"}</span>
 }
 
 export function SavedAudioInspector({ asset, title, error, onSave }: {
@@ -45,14 +45,14 @@ export function SavedAudioInspector({ asset, title, error, onSave }: {
   const category = audioAssetCategory(asset)
   const [draftName, setDraftName] = useState(title)
   const [draftCategory, setDraftCategory] = useState<AudioAssetCategory | null>(category)
-  const [draftScope, setDraftScope] = useState<AudioAssetScope>(asset.scope === "studio" ? "studio" : "venture")
+  const [draftScope, setDraftScope] = useState<AudioAssetScope>(asset.scope === "studio" ? "studio" : "space")
   const [draftTags, setDraftTags] = useState(audioUsageTags(asset))
   const [saving, setSaving] = useState(false)
   const [editError, setEditError] = useState("")
   useEffect(() => {
     setDraftName(title)
     setDraftCategory(audioAssetCategory(asset))
-    setDraftScope(asset.scope === "studio" ? "studio" : "venture")
+    setDraftScope(asset.scope === "studio" ? "studio" : "space")
     setDraftTags(audioUsageTags(asset))
     setEditError("")
   }, [asset.id, asset.updated_at, title])

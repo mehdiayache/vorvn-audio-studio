@@ -15,7 +15,7 @@ import type { WorkstationSelection } from "./workstation-selection"
 import { WorkstationPaneHeader } from "./workstation-pane-header"
 
 type MediaFilter = "all" | "image" | "video" | "audio"
-type ScopeFilter = "production" | "venture" | "studio"
+type ScopeFilter = "production" | "space" | "studio"
 
 function assetLabel(asset: VentureAsset) {
   return String(asset.name || asset.title || asset.filename || "Untitled media")
@@ -43,7 +43,7 @@ export const TimelineMediaBrowser = memo(function TimelineMediaBrowser({ assets,
       if (!asset.media_type) return false
       if (media !== "all" && asset.media_type !== media) return false
       if (scope === "production" && !productionIds.has(asset.id) && !usedIds.has(asset.id)) return false
-      if (scope === "venture" && asset.scope === "studio") return false
+      if (scope === "space" && asset.scope === "studio") return false
       if (scope === "studio" && asset.scope !== "studio") return false
       if (normalized && !assetLabel(asset).toLowerCase().includes(normalized) && !asset.tags?.some((tag) => tag.toLowerCase().includes(normalized))) return false
       return true
@@ -51,13 +51,13 @@ export const TimelineMediaBrowser = memo(function TimelineMediaBrowser({ assets,
   }, [assets, media, productionIds, query, scope, usedIds])
 
   if (collapsed) return <aside className="timeline-media-browser is-collapsed" aria-label="Media Browser">
-    <OperatorIconButton label="Show Media Browser" detail="Browse Production, Venture and Studio media without leaving the Timeline." onClick={() => onCollapsedChange(false)}><PanelLeftOpen /></OperatorIconButton>
+    <OperatorIconButton label="Show Media Browser" detail="Browse Project, Space and Studio media without leaving the Timeline." onClick={() => onCollapsedChange(false)}><PanelLeftOpen /></OperatorIconButton>
   </aside>
 
   return <aside className="timeline-media-browser" aria-label="Media Browser">
     <WorkstationPaneHeader icon={<Library />} title="Media" actions={<OperatorIconButton label="Hide Media Browser" onClick={() => onCollapsedChange(true)}><PanelLeftClose /></OperatorIconButton>} />
     <div className="timeline-media-scope" aria-label="Media scope">
-      {(["production", "venture", "studio"] as ScopeFilter[]).map((value) => <button key={value} aria-pressed={scope === value} onClick={() => setScope(value)}>{value === "production" ? "Production" : value === "venture" ? "Venture" : "Studio"}</button>)}
+      {(["production", "space", "studio"] as ScopeFilter[]).map((value) => <button key={value} aria-pressed={scope === value} onClick={() => setScope(value)}>{value === "production" ? "Project" : value === "space" ? "Space" : "Studio"}</button>)}
     </div>
     <label className="timeline-media-search"><Search /><Input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Search media" /></label>
     <div className="timeline-media-types" aria-label="Media type">

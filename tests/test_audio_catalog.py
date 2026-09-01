@@ -343,7 +343,7 @@ class AudioCatalogApplicationTests(unittest.TestCase):
             service, _, _, records = self.service(Path(directory))
             service.keep(
                 collection_id=41, external_id="931", name="Wooden door",
-                category=None, scope="venture", tags=())
+                category=None, scope="space", tags=())
         created = records.created[0]
         self.assertIsNone(created["category"])
         self.assertEqual(created["tags"], ())
@@ -386,7 +386,7 @@ class AudioCatalogApplicationTests(unittest.TestCase):
             with self.assertRaisesRegex(AudioCatalogError, "download failed"):
                 service.keep(
                     collection_id=41, external_id="931", name="Door",
-                    category="sfx", scope="venture", tags=())
+                    category="sfx", scope="space", tags=())
             remaining = list((root / "incoming").rglob("*"))
         self.assertFalse(workspace.stored)
         self.assertFalse(records.created)

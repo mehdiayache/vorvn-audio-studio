@@ -4,8 +4,6 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 MIGRATION = ROOT / "audio_studio" / "migrations" / "054_space_create_core.sql"
-BRIDGE_MIGRATION = ROOT / "audio_studio" / "migrations" / "055_space_legacy_bridge.sql"
-WRITE_BRIDGE_MIGRATION = ROOT / "audio_studio" / "migrations" / "056_space_legacy_writes.sql"
 
 
 class SpaceCreateMigrationContractTests(unittest.TestCase):
@@ -27,6 +25,7 @@ class SpaceCreateMigrationContractTests(unittest.TestCase):
         self.assertIn("ALTER TABLE asset_versions", self.sql)
         self.assertIn("storage_key", self.sql)
         self.assertIn("mime_type SET NOT NULL", self.sql)
+        self.assertIn("scope IN ('space', 'studio')", self.sql)
 
     def test_project_association_is_separate_from_timeline_placement(self):
         self.assertIn("CREATE TABLE IF NOT EXISTS project_files", self.sql)
@@ -39,14 +38,16 @@ class SpaceCreateMigrationContractTests(unittest.TestCase):
         self.assertIn("output_file_ids", self.sql)
         self.assertNotIn("CREATE TABLE IF NOT EXISTS action_execution_jobs", self.sql)
 
-    def test_temporary_legacy_writer_preserves_required_space_ownership(self):
-        bridge = BRIDGE_MIGRATION.read_text()
-        write_bridge = WRITE_BRIDGE_MIGRATION.read_text()
-        self.assertIn("BEFORE INSERT OR UPDATE OF project_id, space_id", bridge)
-        self.assertIn("work_project.venture_id", bridge)
-        self.assertIn("AFTER INSERT OR UPDATE OF name, description ON ventures", write_bridge)
-        self.assertIn("BEFORE INSERT OR UPDATE OF venture_id, space_id ON assets", write_bridge)
-        self.assertNotIn("DROP NOT NULL", bridge + write_bridge)
+    def test_space_ownership_has_no_legacy_copy_or_sync_contract(self):
+        migration_names = {
+            path.name for path in MIGRATION.parent.glob("*.sql")
+        }
+        self.assertNotIn("055_space_legacy_bridge.sql", migration_names)
+        self.assertNotIn("056_space_legacy_writes.sql", migration_names)
+        self.assertNotIn("INSERT INTO spaces (id", self.sql)
+        self.assertNotIn("FROM ventures", self.sql)
+        self.assertIn("project_id DROP NOT NULL", self.sql)
+        self.assertIn("legacy_container_id DROP NOT NULL", self.sql)
 
 
 if __name__ == "__main__":
