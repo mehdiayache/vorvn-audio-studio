@@ -20,6 +20,11 @@ CHECKS = {
         LEFT JOIN work_projects project ON project.id = production.project_id
         WHERE project.id IS NULL
     """,
+    "every typed Project belongs to a Space": """
+        SELECT count(*) FROM productions project
+        LEFT JOIN spaces space ON space.id = project.space_id
+        WHERE space.id IS NULL
+    """,
     "every Series belongs to its Production's Project": """
         SELECT count(*) FROM productions production
         JOIN series ON series.id = production.series_id
@@ -69,6 +74,16 @@ CHECKS = {
         LEFT JOIN ventures venture ON venture.id = asset.venture_id
         LEFT JOIN asset_collections collection ON collection.id = asset.collection_id
         WHERE venture.id IS NULL OR collection.id IS NULL
+    """,
+    "every File belongs to a Space": """
+        SELECT count(*) FROM assets file
+        LEFT JOIN spaces space ON space.id = file.space_id
+        WHERE space.id IS NULL
+    """,
+    "every FileVersion has physical storage identity": """
+        SELECT count(*) FROM asset_versions version
+        WHERE version.mime_type IS NULL OR btrim(version.mime_type)=''
+           OR version.storage_key IS NULL OR btrim(version.storage_key)=''
     """,
 }
 

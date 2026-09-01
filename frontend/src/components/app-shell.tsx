@@ -1,7 +1,7 @@
 import { createContext, useContext, useState } from "react"
 import {
-  Activity, Captions, ChevronDown, Clapperboard, FolderKanban, Menu, Mic2,
-  PanelLeftClose, PanelLeftOpen, Settings2, UsersRound, Wrench,
+  Activity, ChevronDown, Clapperboard, Files, FolderKanban, Menu,
+  PanelLeftClose, PanelLeftOpen, Settings2, Sparkles, UsersRound, Wrench,
 } from "lucide-react"
 import type { LucideIcon } from "lucide-react"
 import { Link, NavLink, Outlet, useLocation } from "react-router-dom"
@@ -51,7 +51,7 @@ export function AudioStudioRailToggle({ className, tooltipSide = "right" }: { cl
 }
 
 type StudioNavigationItem = {
-  id: "work" | "speak" | "voices" | "subtitles" | "activity" | "settings"
+  id: "create" | "projects" | "files" | "voices" | "activity" | "settings"
   label: string
   icon: LucideIcon
   href: string
@@ -59,18 +59,23 @@ type StudioNavigationItem = {
 }
 
 export const audioStudioNavigation: StudioNavigationItem[] = [
-  { id: "work", label: "Productions", icon: FolderKanban, href: "/audio-studio/", group: "primary" },
-  { id: "speak", label: "Create", icon: Mic2, href: "/audio-studio/speak", group: "primary" },
+  { id: "create", label: "Create", icon: Sparkles, href: "/audio-studio/", group: "primary" },
+  { id: "projects", label: "Projects", icon: FolderKanban, href: "/audio-studio/projects", group: "primary" },
+  { id: "files", label: "Files", icon: Files, href: "/audio-studio/files", group: "primary" },
   { id: "voices", label: "Voices", icon: UsersRound, href: "/audio-studio/voices", group: "primary" },
-  { id: "subtitles", label: "Subtitles", icon: Captions, href: "/audio-studio/subtitles", group: "primary" },
   { id: "activity", label: "Activity", icon: Activity, href: "/audio-studio/activity", group: "tools" },
   { id: "settings", label: "Settings", icon: Settings2, href: "/audio-studio/settings", group: "system" },
 ]
 
 export function activeAudioStudioDestination(pathname: string) {
   const match = audioStudioNavigation.find((item) => (
-    item.id === "work"
-      ? pathname === "/audio-studio" || pathname === "/audio-studio/" || /^\/audio-studio\/(ventures|projects|series|productions|workspaces)\//.test(pathname)
+    item.id === "create"
+      ? pathname === "/audio-studio" || pathname === "/audio-studio/"
+        || pathname === "/audio-studio/create"
+        || pathname.startsWith("/audio-studio/speak")
+        || pathname.startsWith("/audio-studio/subtitles")
+      : item.id === "projects"
+        ? pathname === item.href || /^\/audio-studio\/(ventures|projects|series|productions|workspaces)\//.test(pathname)
       : pathname === item.href || pathname.startsWith(`${item.href}/`)
   ))
   return match?.label || productIdentity.name
@@ -125,7 +130,7 @@ function PrimaryNavigation() {
       <div className="studio-deck-primary-links">
         {primaryItems.map((item) => {
           const Icon = item.icon
-          const itemActive = item.id === "work"
+          const itemActive = item.id === "create" || item.id === "projects"
             ? activeAudioStudioDestination(location.pathname) === item.label
             : location.pathname === item.href || location.pathname.startsWith(`${item.href}/`)
           return (
@@ -184,7 +189,7 @@ function PrimaryNavigation() {
 }
 
 function railItemActive(item: StudioNavigationItem, pathname: string) {
-  return item.id === "work"
+  return item.id === "create" || item.id === "projects"
     ? activeAudioStudioDestination(pathname) === item.label
     : pathname === item.href || pathname.startsWith(`${item.href}/`)
 }

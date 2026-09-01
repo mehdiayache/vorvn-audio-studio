@@ -102,6 +102,11 @@
   --audio-ambience: oklch(0.54 0.11 190);
   --audio-ambience-soft: oklch(0.97 0.025 190);
   --audio-ambience-border: oklch(0.84 0.065 190);
+  /* Open File families. These describe MIME truth, not where a File came from. */
+  --file-image: oklch(0.58 0.16 330);
+  --file-image-soft: oklch(0.97 0.025 330);
+  --file-video: oklch(0.56 0.15 275);
+  --file-video-soft: oklch(0.97 0.025 275);
 
   --space-1: 0.25rem;
   --space-2: 0.5rem;

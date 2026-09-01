@@ -714,6 +714,87 @@ export type LoadState<T> =
   | { status: "ready"; data: T; error?: undefined }
   | { status: "error"; data?: T; error: string }
 
+export type SpaceSummary = {
+  id: number
+  public_id: string
+  name: string
+  description: string
+  project_count: number
+  file_count: number
+  folder_count: number
+  created_at: string
+  updated_at: string
+}
+
+export type SpaceFolder = {
+  id: number
+  public_id: string
+  space_id: number
+  parent_id: number | null
+  name: string
+  created_at: string
+  updated_at: string
+}
+
+export type SpaceProject = {
+  id: number
+  public_id: string
+  space_id: number
+  folder_id: number | null
+  project_type: string
+  name: string
+  description: string
+  status: string
+  updated_at: string
+  file_count: number
+  part_count: number
+}
+
+export type SpaceFileVersion = {
+  id: number
+  public_id: string
+  version: number
+  filename: string
+  storage_key: string
+  url: string
+  size_bytes: number
+  duration_ms: number | null
+  mime_type: string
+  family: string
+  width: number | null
+  height: number | null
+}
+
+export type SpaceFile = {
+  id: number
+  public_id: string
+  space_id: number
+  folder_id: number | null
+  name: string
+  source: string
+  tags: string[]
+  metadata: Record<string, unknown>
+  created_at: string
+  updated_at: string
+  current_version: SpaceFileVersion
+}
+
+export type SpaceOverview = {
+  space: SpaceSummary
+  folders: SpaceFolder[]
+  projects: SpaceProject[]
+  files: SpaceFile[]
+}
+
+export type CreationActionSummary = {
+  id: string
+  label: string
+  description: string
+  output_mime_types: string[]
+  supported_contexts: string[]
+  composer: string | null
+}
+
 export type PlayerSource = {
   key: string
   url: string

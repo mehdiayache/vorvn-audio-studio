@@ -23,6 +23,7 @@ from audio_studio.domain.jobs import IdempotencyConflict
 from audio_studio.http.routers.system import router as system_router
 from audio_studio.http.routers.work import router as work_router
 from audio_studio.http.routers.jobs import router as jobs_router
+from audio_studio.http.routers.spaces import router as spaces_router
 from audio_studio.http.routers.activity import router as activity_router
 from audio_studio.http.routers.settings import router as settings_router
 from audio_studio.http.routers.subtitles import router as subtitles_router
@@ -71,6 +72,7 @@ app.add_exception_handler(IdempotencyConflict, idempotency_handler)
 app.include_router(system_router)
 app.include_router(work_router)
 app.include_router(jobs_router)
+app.include_router(spaces_router)
 app.include_router(activity_router)
 app.include_router(settings_router)
 app.include_router(subtitles_router)

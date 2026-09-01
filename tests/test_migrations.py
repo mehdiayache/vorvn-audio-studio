@@ -78,6 +78,9 @@ class MigrationTests(unittest.TestCase):
                 "051_unified_asset_library.sql",
                 "052_asset_classification.sql",
                 "053_normalize_freesound_assets.sql",
+                "054_space_create_core.sql",
+                "055_space_legacy_bridge.sql",
+                "056_space_legacy_writes.sql",
         ])
             self.assertEqual(migrations.run(), [])
             with psycopg.connect(test_url) as database:
@@ -97,6 +100,7 @@ class MigrationTests(unittest.TestCase):
                     "visual_scenes",
                     "saved_visual_references",
                     "saved_visual_reference_assets",
+                    "spaces", "folders", "project_files",
                 }.issubset(tables))
                 self.assertNotIn("production_mixes", tables)
                 self.assertTrue({

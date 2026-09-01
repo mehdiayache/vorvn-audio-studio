@@ -82,8 +82,9 @@ function renderQueryWorkspace(path: string, queryKey: "subtitle-job") {
 describe("Auvi Studio shell", () => {
   it("derives one honest destination from tool and Work resource routes", () => {
     expect(activeAudioStudioDestination("/audio-studio/speak")).toBe("Create")
-    expect(activeAudioStudioDestination("/audio-studio/productions/production-id")).toBe("Productions")
-    expect(activeAudioStudioDestination("/audio-studio/projects/project-id")).toBe("Productions")
+    expect(activeAudioStudioDestination("/audio-studio/subtitles")).toBe("Create")
+    expect(activeAudioStudioDestination("/audio-studio/productions/production-id")).toBe("Projects")
+    expect(activeAudioStudioDestination("/audio-studio/projects/project-id")).toBe("Projects")
   })
   it("renders one standalone identity and the Studio-owned navigation", async () => {
     const { container } = renderShell("standalone", "/audio-studio/", true)
@@ -99,7 +100,7 @@ describe("Auvi Studio shell", () => {
     const { container } = renderShell("standalone", "/audio-studio/productions/production-id", true)
     expect(screen.getByRole("link", { name: "Auvi Studio Work" })).toBeTruthy()
     expect(screen.getByRole("navigation", { name: "Auvi Studio tools" })).toBeTruthy()
-    expect(screen.getByRole("link", { name: "Productions" }).getAttribute("aria-current")).toBe("page")
+    expect(screen.getByRole("link", { name: "Projects" }).getAttribute("aria-current")).toBe("page")
     expect(screen.getByRole("heading", { name: "Production content" })).toBeTruthy()
     expect(container.querySelector(".studio-app-shell")?.getAttribute("data-presentation")).toBe("standard")
   })
@@ -116,10 +117,11 @@ describe("Auvi Studio shell", () => {
     expect(screen.getByRole("button", { name: "Collapse Auvi Studio navigation" })).toBeTruthy()
   })
 
-  it("keeps Subtitles with primary creation navigation", () => {
+  it("keeps creation tools behind Create instead of bloating the permanent rail", () => {
     const { container } = renderShell("standalone", "/audio-studio/", true)
     const primary = container.querySelector(".studio-rail-group:not(.is-tools)")
-    expect(primary?.textContent).toContain("Subtitles")
+    expect(primary?.textContent).toContain("Create")
+    expect(primary?.textContent).not.toContain("Subtitles")
     expect(primary?.textContent).not.toContain("Activity")
   })
 

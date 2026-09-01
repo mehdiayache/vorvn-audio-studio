@@ -1505,6 +1505,39 @@
         "title": "AudioProject",
         "type": "object"
       },
+      "AudiovisualProjectCreateRequest": {
+        "properties": {
+          "description": {
+            "default": "",
+            "maxLength": 2000,
+            "title": "Description",
+            "type": "string"
+          },
+          "folder_id": {
+            "anyOf": [
+              {
+                "exclusiveMinimum": 0.0,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Folder Id"
+          },
+          "name": {
+            "maxLength": 180,
+            "minLength": 1,
+            "title": "Name",
+            "type": "string"
+          }
+        },
+        "required": [
+          "name"
+        ],
+        "title": "AudiovisualProjectCreateRequest",
+        "type": "object"
+      },
       "CaptionCueResponse": {
         "properties": {
           "end": {
@@ -2082,6 +2115,125 @@
           "cost"
         ],
         "title": "CostBasisResponse",
+        "type": "object"
+      },
+      "CreationActionListEnvelope": {
+        "properties": {
+          "data": {
+            "items": {
+              "$ref": "#/components/schemas/CreationActionResponse"
+            },
+            "title": "Data",
+            "type": "array"
+          }
+        },
+        "required": [
+          "data"
+        ],
+        "title": "CreationActionListEnvelope",
+        "type": "object"
+      },
+      "CreationActionResponse": {
+        "properties": {
+          "composer": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Composer"
+          },
+          "description": {
+            "title": "Description",
+            "type": "string"
+          },
+          "id": {
+            "title": "Id",
+            "type": "string"
+          },
+          "inputs": {
+            "items": {
+              "$ref": "#/components/schemas/CreationFieldResponse"
+            },
+            "title": "Inputs",
+            "type": "array"
+          },
+          "label": {
+            "title": "Label",
+            "type": "string"
+          },
+          "output_mime_types": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Output Mime Types",
+            "type": "array"
+          },
+          "parameters": {
+            "items": {
+              "$ref": "#/components/schemas/CreationFieldResponse"
+            },
+            "title": "Parameters",
+            "type": "array"
+          },
+          "supported_contexts": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Supported Contexts",
+            "type": "array"
+          }
+        },
+        "required": [
+          "id",
+          "label",
+          "description",
+          "inputs",
+          "parameters",
+          "output_mime_types",
+          "supported_contexts",
+          "composer"
+        ],
+        "title": "CreationActionResponse",
+        "type": "object"
+      },
+      "CreationFieldResponse": {
+        "properties": {
+          "choices": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Choices",
+            "type": "array"
+          },
+          "id": {
+            "title": "Id",
+            "type": "string"
+          },
+          "label": {
+            "title": "Label",
+            "type": "string"
+          },
+          "required": {
+            "title": "Required",
+            "type": "boolean"
+          },
+          "type": {
+            "title": "Type",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "label",
+          "type",
+          "required",
+          "choices"
+        ],
+        "title": "CreationFieldResponse",
         "type": "object"
       },
       "DeleteBody": {
@@ -4129,6 +4281,169 @@
         "title": "EnabledBody",
         "type": "object"
       },
+      "FileResponse": {
+        "additionalProperties": true,
+        "properties": {
+          "created_at": {
+            "title": "Created At",
+            "type": "string"
+          },
+          "current_version": {
+            "$ref": "#/components/schemas/FileVersionResponse"
+          },
+          "folder_id": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Folder Id"
+          },
+          "id": {
+            "title": "Id",
+            "type": "integer"
+          },
+          "metadata": {
+            "additionalProperties": true,
+            "title": "Metadata",
+            "type": "object"
+          },
+          "name": {
+            "title": "Name",
+            "type": "string"
+          },
+          "public_id": {
+            "title": "Public Id",
+            "type": "string"
+          },
+          "source": {
+            "title": "Source",
+            "type": "string"
+          },
+          "space_id": {
+            "title": "Space Id",
+            "type": "integer"
+          },
+          "tags": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Tags",
+            "type": "array"
+          },
+          "updated_at": {
+            "title": "Updated At",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "public_id",
+          "space_id",
+          "folder_id",
+          "name",
+          "source",
+          "tags",
+          "metadata",
+          "created_at",
+          "updated_at",
+          "current_version"
+        ],
+        "title": "FileResponse",
+        "type": "object"
+      },
+      "FileVersionResponse": {
+        "properties": {
+          "duration_ms": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Duration Ms"
+          },
+          "family": {
+            "title": "Family",
+            "type": "string"
+          },
+          "filename": {
+            "title": "Filename",
+            "type": "string"
+          },
+          "height": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Height"
+          },
+          "id": {
+            "title": "Id",
+            "type": "integer"
+          },
+          "mime_type": {
+            "title": "Mime Type",
+            "type": "string"
+          },
+          "public_id": {
+            "title": "Public Id",
+            "type": "string"
+          },
+          "size_bytes": {
+            "title": "Size Bytes",
+            "type": "integer"
+          },
+          "storage_key": {
+            "title": "Storage Key",
+            "type": "string"
+          },
+          "url": {
+            "title": "Url",
+            "type": "string"
+          },
+          "version": {
+            "title": "Version",
+            "type": "integer"
+          },
+          "width": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Width"
+          }
+        },
+        "required": [
+          "id",
+          "public_id",
+          "version",
+          "filename",
+          "storage_key",
+          "url",
+          "size_bytes",
+          "duration_ms",
+          "mime_type",
+          "family",
+          "width",
+          "height"
+        ],
+        "title": "FileVersionResponse",
+        "type": "object"
+      },
       "FilterEffect": {
         "additionalProperties": false,
         "properties": {
@@ -4176,6 +4491,95 @@
           "type"
         ],
         "title": "FilterEffect",
+        "type": "object"
+      },
+      "FolderCreateRequest": {
+        "properties": {
+          "name": {
+            "maxLength": 180,
+            "minLength": 1,
+            "title": "Name",
+            "type": "string"
+          },
+          "parent_id": {
+            "anyOf": [
+              {
+                "exclusiveMinimum": 0.0,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Parent Id"
+          }
+        },
+        "required": [
+          "name"
+        ],
+        "title": "FolderCreateRequest",
+        "type": "object"
+      },
+      "FolderMutationEnvelope": {
+        "properties": {
+          "data": {
+            "$ref": "#/components/schemas/FolderResponse"
+          }
+        },
+        "required": [
+          "data"
+        ],
+        "title": "FolderMutationEnvelope",
+        "type": "object"
+      },
+      "FolderResponse": {
+        "properties": {
+          "created_at": {
+            "title": "Created At",
+            "type": "string"
+          },
+          "id": {
+            "title": "Id",
+            "type": "integer"
+          },
+          "name": {
+            "title": "Name",
+            "type": "string"
+          },
+          "parent_id": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Parent Id"
+          },
+          "public_id": {
+            "title": "Public Id",
+            "type": "string"
+          },
+          "space_id": {
+            "title": "Space Id",
+            "type": "integer"
+          },
+          "updated_at": {
+            "title": "Updated At",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "public_id",
+          "space_id",
+          "parent_id",
+          "name",
+          "created_at",
+          "updated_at"
+        ],
+        "title": "FolderResponse",
         "type": "object"
       },
       "FreesoundSettingsUpdate": {
@@ -7532,6 +7936,18 @@
         "title": "ProjectEnvelope",
         "type": "object"
       },
+      "ProjectMutationEnvelope": {
+        "properties": {
+          "data": {
+            "$ref": "#/components/schemas/ProjectResponse"
+          }
+        },
+        "required": [
+          "data"
+        ],
+        "title": "ProjectMutationEnvelope",
+        "type": "object"
+      },
       "ProjectOverviewEnvelope": {
         "properties": {
           "data": {
@@ -7694,6 +8110,76 @@
           "cached"
         ],
         "title": "ProjectRenderResult",
+        "type": "object"
+      },
+      "ProjectResponse": {
+        "properties": {
+          "description": {
+            "title": "Description",
+            "type": "string"
+          },
+          "file_count": {
+            "title": "File Count",
+            "type": "integer"
+          },
+          "folder_id": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Folder Id"
+          },
+          "id": {
+            "title": "Id",
+            "type": "integer"
+          },
+          "name": {
+            "title": "Name",
+            "type": "string"
+          },
+          "part_count": {
+            "title": "Part Count",
+            "type": "integer"
+          },
+          "project_type": {
+            "title": "Project Type",
+            "type": "string"
+          },
+          "public_id": {
+            "title": "Public Id",
+            "type": "string"
+          },
+          "space_id": {
+            "title": "Space Id",
+            "type": "integer"
+          },
+          "status": {
+            "title": "Status",
+            "type": "string"
+          },
+          "updated_at": {
+            "title": "Updated At",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "public_id",
+          "space_id",
+          "folder_id",
+          "project_type",
+          "name",
+          "description",
+          "status",
+          "updated_at",
+          "file_count",
+          "part_count"
+        ],
+        "title": "ProjectResponse",
         "type": "object"
       },
       "ProjectSeriesSummaryResponse": {
@@ -10231,6 +10717,156 @@
           "document"
         ],
         "title": "SoundSceneUpdateBody",
+        "type": "object"
+      },
+      "SpaceCreateRequest": {
+        "properties": {
+          "description": {
+            "default": "",
+            "maxLength": 2000,
+            "title": "Description",
+            "type": "string"
+          },
+          "name": {
+            "maxLength": 180,
+            "minLength": 1,
+            "title": "Name",
+            "type": "string"
+          }
+        },
+        "required": [
+          "name"
+        ],
+        "title": "SpaceCreateRequest",
+        "type": "object"
+      },
+      "SpaceListEnvelope": {
+        "properties": {
+          "data": {
+            "items": {
+              "$ref": "#/components/schemas/SpaceResponse"
+            },
+            "title": "Data",
+            "type": "array"
+          }
+        },
+        "required": [
+          "data"
+        ],
+        "title": "SpaceListEnvelope",
+        "type": "object"
+      },
+      "SpaceMutationEnvelope": {
+        "properties": {
+          "data": {
+            "$ref": "#/components/schemas/SpaceResponse"
+          }
+        },
+        "required": [
+          "data"
+        ],
+        "title": "SpaceMutationEnvelope",
+        "type": "object"
+      },
+      "SpaceOverviewEnvelope": {
+        "properties": {
+          "data": {
+            "$ref": "#/components/schemas/SpaceOverviewResponse"
+          }
+        },
+        "required": [
+          "data"
+        ],
+        "title": "SpaceOverviewEnvelope",
+        "type": "object"
+      },
+      "SpaceOverviewResponse": {
+        "properties": {
+          "files": {
+            "items": {
+              "$ref": "#/components/schemas/FileResponse"
+            },
+            "title": "Files",
+            "type": "array"
+          },
+          "folders": {
+            "items": {
+              "$ref": "#/components/schemas/FolderResponse"
+            },
+            "title": "Folders",
+            "type": "array"
+          },
+          "projects": {
+            "items": {
+              "$ref": "#/components/schemas/ProjectResponse"
+            },
+            "title": "Projects",
+            "type": "array"
+          },
+          "space": {
+            "$ref": "#/components/schemas/SpaceResponse"
+          }
+        },
+        "required": [
+          "space",
+          "folders",
+          "projects",
+          "files"
+        ],
+        "title": "SpaceOverviewResponse",
+        "type": "object"
+      },
+      "SpaceResponse": {
+        "properties": {
+          "created_at": {
+            "title": "Created At",
+            "type": "string"
+          },
+          "description": {
+            "title": "Description",
+            "type": "string"
+          },
+          "file_count": {
+            "default": 0,
+            "title": "File Count",
+            "type": "integer"
+          },
+          "folder_count": {
+            "default": 0,
+            "title": "Folder Count",
+            "type": "integer"
+          },
+          "id": {
+            "title": "Id",
+            "type": "integer"
+          },
+          "name": {
+            "title": "Name",
+            "type": "string"
+          },
+          "project_count": {
+            "default": 0,
+            "title": "Project Count",
+            "type": "integer"
+          },
+          "public_id": {
+            "title": "Public Id",
+            "type": "string"
+          },
+          "updated_at": {
+            "title": "Updated At",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "public_id",
+          "name",
+          "description",
+          "created_at",
+          "updated_at"
+        ],
+        "title": "SpaceResponse",
         "type": "object"
       },
       "SpeechGenerateResultResponse": {
@@ -17043,6 +17679,50 @@
         ]
       }
     },
+    "/api/v1/creation-actions": {
+      "get": {
+        "operationId": "listCreationActions",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "context",
+            "required": false,
+            "schema": {
+              "default": "space",
+              "maxLength": 120,
+              "title": "Context",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CreationActionListEnvelope"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "List Creation Actions",
+        "tags": [
+          "Spaces"
+        ]
+      }
+    },
     "/api/v1/director-generation-capabilities": {
       "get": {
         "operationId": "getDirectorGenerationCapabilities",
@@ -20675,6 +21355,212 @@
         "summary": "Test Storage",
         "tags": [
           "settings"
+        ]
+      }
+    },
+    "/api/v1/spaces": {
+      "get": {
+        "operationId": "listSpaces",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SpaceListEnvelope"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "List Spaces",
+        "tags": [
+          "Spaces"
+        ]
+      },
+      "post": {
+        "operationId": "createSpace",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SpaceCreateRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SpaceMutationEnvelope"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Create Space",
+        "tags": [
+          "Spaces"
+        ]
+      }
+    },
+    "/api/v1/spaces/{space_id}": {
+      "get": {
+        "operationId": "getSpace",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "space_id",
+            "required": true,
+            "schema": {
+              "title": "Space Id",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SpaceOverviewEnvelope"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Get Space",
+        "tags": [
+          "Spaces"
+        ]
+      }
+    },
+    "/api/v1/spaces/{space_id}/folders": {
+      "post": {
+        "operationId": "createFolder",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "space_id",
+            "required": true,
+            "schema": {
+              "title": "Space Id",
+              "type": "integer"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/FolderCreateRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FolderMutationEnvelope"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Create Folder",
+        "tags": [
+          "Spaces"
+        ]
+      }
+    },
+    "/api/v1/spaces/{space_id}/projects/audiovisual": {
+      "post": {
+        "operationId": "createAudiovisualProject",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "space_id",
+            "required": true,
+            "schema": {
+              "title": "Space Id",
+              "type": "integer"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AudiovisualProjectCreateRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProjectMutationEnvelope"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Create Audiovisual Project",
+        "tags": [
+          "Spaces"
         ]
       }
     },

@@ -637,13 +637,13 @@ class VentureAssetRepository:
         cursor.execute("""
             INSERT INTO asset_versions
                 (asset_id, version, source_generation_id, filename, path,
-                 size_bytes, duration_ms, mime_type, audio_format,
+                 storage_key, size_bytes, duration_ms, mime_type, audio_format,
                  sample_rate, channels, media_format, width, height,
                  video_codec, frame_rate, metadata)
-            VALUES (%s, 1, NULL, %s, %s, %s, %s, %s, %s, %s, %s,
+            VALUES (%s, 1, NULL, %s, %s, %s, %s, %s, %s, %s, %s, %s,
                     %s, %s, %s, %s, %s, %s)
             RETURNING id
-        """, (asset_id, filename, path, size_bytes,
+        """, (asset_id, filename, path, path, size_bytes,
               duration_ms, mime_type, audio_format, sample_rate, channels,
               media_format or audio_format, width, height, video_codec,
               frame_rate, json.dumps(version_metadata or {})))

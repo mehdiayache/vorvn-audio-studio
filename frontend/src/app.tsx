@@ -26,8 +26,8 @@ const SubtitlesPage = lazy(() => import("@/features/subtitles/subtitles-page").t
 const ProductionWorkstationPage = lazy(() => import("@/features/production-workstation/production-workstation-page").then((module) => ({ default: module.ProductionWorkstationPage })))
 const ProjectPage = lazy(() => import("@/features/work/project-page").then((module) => ({ default: module.ProjectPage })))
 const SeriesPage = lazy(() => import("@/features/work/series-page").then((module) => ({ default: module.SeriesPage })))
-const VentureDirectoryPage = lazy(() => import("@/features/work/venture-directory-page").then((module) => ({ default: module.VentureDirectoryPage })))
 const VenturePage = lazy(() => import("@/features/work/venture-page").then((module) => ({ default: module.VenturePage })))
+const SpaceHomePage = lazy(() => import("@/features/space/space-home-page").then((module) => ({ default: module.SpaceHomePage })))
 
 function ProductionRoute({ productionId }: { productionId: number }) {
   const { production, tree, soundScene, visualScene, refresh } = useProduction(productionId)
@@ -45,13 +45,8 @@ function ProductionRoute({ productionId }: { productionId: number }) {
   </>
 }
 
-function HomeRoute() {
-  const hierarchy = useHierarchy()
-  return <>
-    {hierarchy.status === "loading" && !hierarchy.data && <PageLoading label="Loading Ventures" />}
-    {hierarchy.status === "error" && !hierarchy.data && <ErrorState title="Ventures unavailable" message={hierarchy.error || "Unable to load Ventures."} retry={() => void hierarchy.refresh()} />}
-    {hierarchy.data && <LazyRoute label="Loading Ventures"><VentureDirectoryPage items={hierarchy.data} /></LazyRoute>}
-  </>
+function SpaceHomeRoute({ view = "create" }: { view?: "create" | "projects" | "files" }) {
+  return <LazyRoute label="Opening your Space"><SpaceHomePage view={view} /></LazyRoute>
 }
 
 function VentureRoute({ id }: { id: number }) {
@@ -102,18 +97,15 @@ function LegacyRedirect() {
   return <Navigate replace to={replacement} />
 }
 
-function WorkIndexRedirect() {
-  const location = useLocation()
-  const replacement = normalizeStudioLocation(location.pathname, location.search)
-  return replacement ? <Navigate replace to={replacement} /> : <HomeRoute />
-}
-
 function AudioStudioRoutes({ mode }: { mode: AudioStudioMountMode }) {
   return (
     <Routes>
       <Route path="/studio/*" element={<LegacyRedirect />} />
       <Route path="/audio-studio" element={<AppShell mode={mode} />}>
-        <Route index element={<WorkIndexRedirect />} />
+        <Route index element={<SpaceHomeRoute />} />
+        <Route path="create" element={<SpaceHomeRoute />} />
+        <Route path="projects" element={<SpaceHomeRoute view="projects" />} />
+        <Route path="files" element={<SpaceHomeRoute view="files" />} />
         <Route path="speak" element={<LazyRoute label="Loading Speak"><SpeakPage /></LazyRoute>} />
         <Route path="voices" element={<LazyRoute label="Loading voices"><VoicesPage /></LazyRoute>} />
         <Route path="subtitles" element={<LazyRoute label="Loading Subtitles"><SubtitlesPage /></LazyRoute>} />

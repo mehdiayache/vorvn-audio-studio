@@ -278,6 +278,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/creation-actions": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List Creation Actions */
+        get: operations["listCreationActions"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/director-generation-capabilities": {
         parameters: {
             query?: never;
@@ -1496,6 +1513,75 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/spaces": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List Spaces */
+        get: operations["listSpaces"];
+        put?: never;
+        /** Create Space */
+        post: operations["createSpace"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/spaces/{space_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Space */
+        get: operations["getSpace"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/spaces/{space_id}/folders": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Create Folder */
+        post: operations["createFolder"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/spaces/{space_id}/projects/audiovisual": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Create Audiovisual Project */
+        post: operations["createAudiovisualProject"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/speak/recordings": {
         parameters: {
             query?: never;
@@ -2543,6 +2629,18 @@ export interface components {
             /** Tracks */
             tracks: components["schemas"]["ProjectTrack"][];
         };
+        /** AudiovisualProjectCreateRequest */
+        AudiovisualProjectCreateRequest: {
+            /**
+             * Description
+             * @default
+             */
+            description: string;
+            /** Folder Id */
+            folder_id?: number | null;
+            /** Name */
+            name: string;
+        };
         /** CaptionCueResponse */
         CaptionCueResponse: {
             /** End */
@@ -2765,6 +2863,43 @@ export interface components {
             raw_basis: string;
             /** Runs */
             runs: number;
+        };
+        /** CreationActionListEnvelope */
+        CreationActionListEnvelope: {
+            /** Data */
+            data: components["schemas"]["CreationActionResponse"][];
+        };
+        /** CreationActionResponse */
+        CreationActionResponse: {
+            /** Composer */
+            composer: string | null;
+            /** Description */
+            description: string;
+            /** Id */
+            id: string;
+            /** Inputs */
+            inputs: components["schemas"]["CreationFieldResponse"][];
+            /** Label */
+            label: string;
+            /** Output Mime Types */
+            output_mime_types: string[];
+            /** Parameters */
+            parameters: components["schemas"]["CreationFieldResponse"][];
+            /** Supported Contexts */
+            supported_contexts: string[];
+        };
+        /** CreationFieldResponse */
+        CreationFieldResponse: {
+            /** Choices */
+            choices: string[];
+            /** Id */
+            id: string;
+            /** Label */
+            label: string;
+            /** Required */
+            required: boolean;
+            /** Type */
+            type: string;
         };
         /** DeleteBody */
         DeleteBody: {
@@ -3526,6 +3661,61 @@ export interface components {
             /** Enabled */
             enabled: boolean;
         };
+        /** FileResponse */
+        FileResponse: {
+            /** Created At */
+            created_at: string;
+            current_version: components["schemas"]["FileVersionResponse"];
+            /** Folder Id */
+            folder_id: number | null;
+            /** Id */
+            id: number;
+            /** Metadata */
+            metadata: {
+                [key: string]: unknown;
+            };
+            /** Name */
+            name: string;
+            /** Public Id */
+            public_id: string;
+            /** Source */
+            source: string;
+            /** Space Id */
+            space_id: number;
+            /** Tags */
+            tags: string[];
+            /** Updated At */
+            updated_at: string;
+        } & {
+            [key: string]: unknown;
+        };
+        /** FileVersionResponse */
+        FileVersionResponse: {
+            /** Duration Ms */
+            duration_ms: number | null;
+            /** Family */
+            family: string;
+            /** Filename */
+            filename: string;
+            /** Height */
+            height: number | null;
+            /** Id */
+            id: number;
+            /** Mime Type */
+            mime_type: string;
+            /** Public Id */
+            public_id: string;
+            /** Size Bytes */
+            size_bytes: number;
+            /** Storage Key */
+            storage_key: string;
+            /** Url */
+            url: string;
+            /** Version */
+            version: number;
+            /** Width */
+            width: number | null;
+        };
         /** FilterEffect */
         FilterEffect: {
             /**
@@ -3559,6 +3749,34 @@ export interface components {
              * @enum {string}
              */
             type: "filter";
+        };
+        /** FolderCreateRequest */
+        FolderCreateRequest: {
+            /** Name */
+            name: string;
+            /** Parent Id */
+            parent_id?: number | null;
+        };
+        /** FolderMutationEnvelope */
+        FolderMutationEnvelope: {
+            data: components["schemas"]["FolderResponse"];
+        };
+        /** FolderResponse */
+        FolderResponse: {
+            /** Created At */
+            created_at: string;
+            /** Id */
+            id: number;
+            /** Name */
+            name: string;
+            /** Parent Id */
+            parent_id: number | null;
+            /** Public Id */
+            public_id: string;
+            /** Space Id */
+            space_id: number;
+            /** Updated At */
+            updated_at: string;
         };
         /** FreesoundSettingsUpdate */
         FreesoundSettingsUpdate: {
@@ -4679,6 +4897,10 @@ export interface components {
         ProjectEnvelope: {
             data: components["schemas"]["AudioProject"];
         };
+        /** ProjectMutationEnvelope */
+        ProjectMutationEnvelope: {
+            data: components["schemas"]["ProjectResponse"];
+        };
         /** ProjectOverviewEnvelope */
         ProjectOverviewEnvelope: {
             data: components["schemas"]["ProjectOverviewResponse"];
@@ -4739,6 +4961,31 @@ export interface components {
             tracks: number;
             /** Url */
             url: string;
+        };
+        /** ProjectResponse */
+        ProjectResponse: {
+            /** Description */
+            description: string;
+            /** File Count */
+            file_count: number;
+            /** Folder Id */
+            folder_id: number | null;
+            /** Id */
+            id: number;
+            /** Name */
+            name: string;
+            /** Part Count */
+            part_count: number;
+            /** Project Type */
+            project_type: string;
+            /** Public Id */
+            public_id: string;
+            /** Space Id */
+            space_id: number;
+            /** Status */
+            status: string;
+            /** Updated At */
+            updated_at: string;
         };
         /** ProjectSeriesSummaryResponse */
         ProjectSeriesSummaryResponse: {
@@ -5669,6 +5916,69 @@ export interface components {
              * @enum {string}
              */
             mutation_kind: "operator" | "derived_visual_audio";
+        };
+        /** SpaceCreateRequest */
+        SpaceCreateRequest: {
+            /**
+             * Description
+             * @default
+             */
+            description: string;
+            /** Name */
+            name: string;
+        };
+        /** SpaceListEnvelope */
+        SpaceListEnvelope: {
+            /** Data */
+            data: components["schemas"]["SpaceResponse"][];
+        };
+        /** SpaceMutationEnvelope */
+        SpaceMutationEnvelope: {
+            data: components["schemas"]["SpaceResponse"];
+        };
+        /** SpaceOverviewEnvelope */
+        SpaceOverviewEnvelope: {
+            data: components["schemas"]["SpaceOverviewResponse"];
+        };
+        /** SpaceOverviewResponse */
+        SpaceOverviewResponse: {
+            /** Files */
+            files: components["schemas"]["FileResponse"][];
+            /** Folders */
+            folders: components["schemas"]["FolderResponse"][];
+            /** Projects */
+            projects: components["schemas"]["ProjectResponse"][];
+            space: components["schemas"]["SpaceResponse"];
+        };
+        /** SpaceResponse */
+        SpaceResponse: {
+            /** Created At */
+            created_at: string;
+            /** Description */
+            description: string;
+            /**
+             * File Count
+             * @default 0
+             */
+            file_count: number;
+            /**
+             * Folder Count
+             * @default 0
+             */
+            folder_count: number;
+            /** Id */
+            id: number;
+            /** Name */
+            name: string;
+            /**
+             * Project Count
+             * @default 0
+             */
+            project_count: number;
+            /** Public Id */
+            public_id: string;
+            /** Updated At */
+            updated_at: string;
         };
         /**
          * SpeechGenerateResultResponse
@@ -8304,6 +8614,37 @@ export interface operations {
             };
         };
     };
+    listCreationActions: {
+        parameters: {
+            query?: {
+                context?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CreationActionListEnvelope"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     getDirectorGenerationCapabilities: {
         parameters: {
             query?: never;
@@ -10809,6 +11150,160 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["StorageTestEnvelope"];
+                };
+            };
+        };
+    };
+    listSpaces: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SpaceListEnvelope"];
+                };
+            };
+        };
+    };
+    createSpace: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SpaceCreateRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SpaceMutationEnvelope"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    getSpace: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                space_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SpaceOverviewEnvelope"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    createFolder: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                space_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["FolderCreateRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FolderMutationEnvelope"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    createAudiovisualProject: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                space_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AudiovisualProjectCreateRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProjectMutationEnvelope"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
                 };
             };
         };

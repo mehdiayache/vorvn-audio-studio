@@ -24,6 +24,11 @@ import type {
   VentureAssetLibrary,
   VisualScene,
   VisualSceneDocument,
+  SpaceSummary,
+  SpaceOverview,
+  SpaceFolder,
+  SpaceProject,
+  CreationActionSummary,
 } from "@/types/domain"
 import type { paths } from "@/types/api.generated"
 import { ApiError } from "@/lib/api-error"
@@ -189,6 +194,12 @@ async function enqueueSpeech(payload: GeneratePayload, partId?: number) {
 
 export const studioApi = {
   config: () => v1<StudioConfig>("/api/v1/config"),
+  spaces: () => v1<SpaceSummary[]>("/api/v1/spaces"),
+  space: (spaceId: number) => v1<SpaceOverview>(`/api/v1/spaces/${spaceId}`),
+  creationActions: () => v1<CreationActionSummary[]>("/api/v1/creation-actions?context=space"),
+  createSpace: (name: string, description = "") => postV1<SpaceSummary>("/api/v1/spaces", { name, description }),
+  createFolder: (spaceId: number, name: string, parentId: number | null = null) => postV1<SpaceFolder>(`/api/v1/spaces/${spaceId}/folders`, { name, parent_id: parentId }),
+  createAudiovisualProject: (spaceId: number, name: string, description = "", folderId: number | null = null) => postV1<SpaceProject>(`/api/v1/spaces/${spaceId}/projects/audiovisual`, { name, description, folder_id: folderId }),
   activity: (filters: { kind?: string; failed?: boolean; limit?: number } = {}) => {
     const query = new URLSearchParams()
     if (filters.kind) query.set("kind", filters.kind)
