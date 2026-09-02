@@ -38,15 +38,14 @@ describe("Project workflow", () => {
     ])
   })
 
-  it("starts the Project Library with Creator available but collapsed", async () => {
+  it("starts the Project Library with Creator open and the four creation capabilities", async () => {
     render(<ProjectLibraryStage projectId={7} workspaceId={1} files={[]} libraryFileIds={[]} onUpload={vi.fn()} onRefresh={vi.fn()} />)
 
     expect(screen.getByRole("heading", { name: "No media collected yet" })).toBeTruthy()
-    expect(screen.queryByRole("textbox", { name: "Media prompt" })).toBeNull()
-    fireEvent.click(screen.getByRole("button", { name: "Show Creator" }))
     expect(await screen.findByRole("textbox", { name: "Media prompt" })).toBeTruthy()
     expect(screen.getByRole("navigation", { name: "Creation capability" })).toBeTruthy()
-    expect(["Media", "Speech", "Music", "SFX", "Subtitles"].map((name) => screen.getByRole("button", { name }).getAttribute("aria-pressed"))).toEqual(["true", "false", "false", "false", "false"])
+    expect(["Media", "Speech", "Music", "SFX"].map((name) => screen.getByRole("button", { name }).getAttribute("aria-pressed"))).toEqual(["true", "false", "false", "false"])
+    expect(screen.queryByRole("button", { name: "Subtitles" })).toBeNull()
     expect(screen.getByRole("radio", { name: "Image: Create a still visual" })).toBeTruthy()
     expect(screen.getByRole("combobox", { name: "Choose generation model" }).textContent).toContain("Model A")
     expect(screen.getByRole("button", { name: "Choose image for Reference" })).toBeTruthy()
@@ -74,6 +73,26 @@ describe("Project workflow", () => {
     expect(screen.queryByRole("button", { name: /Add to Timeline/ })).toBeNull()
   })
 
+  it("collects reusable audio from Workspace Files through the same Project Library", async () => {
+    const refresh = vi.fn().mockResolvedValue(undefined)
+    api.attachProjectLibraryFile.mockResolvedValue({ file_id: 89, duplicate: false })
+    render(<ProjectLibraryStage
+      projectId={7}
+      workspaceId={1}
+      files={[{ id: 89, media_type: "audio", name: "Quiet score", filename: "quiet-score.mp3", category: "music", duration_ms: 12_000 }]}
+      libraryFileIds={[]}
+      onUpload={vi.fn()}
+      onRefresh={refresh}
+    />)
+
+    fireEvent.click(screen.getByRole("button", { name: "Open Workspace Library" }))
+    expect(screen.getByRole("combobox", { name: "File type" })).toBeTruthy()
+    fireEvent.click(screen.getByRole("button", { name: "Add" }))
+
+    await waitFor(() => expect(api.attachProjectLibraryFile).toHaveBeenCalledWith(7, 89))
+    expect(refresh).toHaveBeenCalledOnce()
+  })
+
   it("accepts visual files across the Project Library and shows the real pending object", async () => {
     let finishUpload: ((file: { id: number; media_type: "image"; name: string; filename: string }) => void) | undefined
     const onUpload = vi.fn(() => new Promise<{ id: number; media_type: "image"; name: string; filename: string }>((resolve) => { finishUpload = resolve }))
@@ -91,6 +110,20 @@ describe("Project workflow", () => {
     finishUpload?.({ id: 91, media_type: "image", name: "Harbour dusk", filename: "harbour-dusk.png" })
     await waitFor(() => expect(api.attachProjectLibraryFile).toHaveBeenCalledWith(7, 91))
     await waitFor(() => expect(refresh).toHaveBeenCalledOnce())
+  })
+
+  it("accepts audio uploads through the Project Library File entrance", async () => {
+    const onUpload = vi.fn().mockResolvedValue({ id: 92, media_type: "audio", name: "Narration", filename: "narration.mp3" })
+    const refresh = vi.fn().mockResolvedValue(undefined)
+    api.attachProjectLibraryFile.mockResolvedValue({ file_id: 92, duplicate: false })
+    render(<ProjectLibraryStage projectId={7} workspaceId={1} files={[]} libraryFileIds={[]} onUpload={onUpload} onRefresh={refresh} />)
+
+    const file = new File(["audio"], "narration.mp3", { type: "audio/mpeg" })
+    fireEvent.drop(screen.getByRole("main"), { dataTransfer: { files: [file], types: ["Files"], dropEffect: "none" } })
+
+    await waitFor(() => expect(onUpload).toHaveBeenCalledWith(file))
+    await waitFor(() => expect(api.attachProjectLibraryFile).toHaveBeenCalledWith(7, 92))
+    expect(refresh).toHaveBeenCalledOnce()
   })
 
   it("keeps a failed upload visible with an explicit retry", async () => {

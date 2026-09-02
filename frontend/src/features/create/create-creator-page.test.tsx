@@ -72,12 +72,12 @@ describe("CreateCreatorPage", () => {
   })
 
   it.each([
-    ["generate-speech", "Create speech", "speech-creator"],
-    ["create-subtitles", "Create subtitles", "subtitle-creator"],
-  ])("keeps %s inside the canonical Creator route", async (actionId, title, testId) => {
+    ["generate-speech", "Create speech", "speech-creator", "Creator Library"],
+    ["create-subtitles", "Create subtitles", "subtitle-creator", "Subtitles Tool"],
+  ])("keeps %s inside the canonical creation route", async (actionId, title, testId, heading) => {
     render(<MemoryRouter initialEntries={[`/origins/create/${actionId}`]}><Routes><Route path="/origins/create/:actionId" element={<CreateCreatorPage />} /></Routes></MemoryRouter>)
 
-    expect(screen.getByRole("heading", { name: "Creator Library" })).toBeTruthy()
+    expect(screen.getByRole("heading", { name: heading })).toBeTruthy()
     expect(screen.getAllByText(new RegExp(title)).length).toBeGreaterThan(0)
     const panel = await screen.findByTestId(testId)
     expect(panel.getAttribute("data-embedded")).toBe("true")

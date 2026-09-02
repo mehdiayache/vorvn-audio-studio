@@ -1,13 +1,15 @@
-import { Captions, FileText, Image as ImageIcon, MicVocal, Music2, Search, Video, Waves } from "lucide-react"
-import { useMemo, useState } from "react"
+import { Captions, FileText, FolderOpen, Image as ImageIcon, MicVocal, Music2, Search, Upload, Video, Waves } from "lucide-react"
+import { useEffect, useMemo, useState } from "react"
 
 import { AudioFileCard } from "@/components/audio-file-card"
 import { Input } from "@/components/ui/input"
+import { Button } from "@/components/ui/button"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group"
 import { audioFileCategory } from "@/features/sound-scene/audio-presentation"
 import { formatDuration } from "@/lib/format"
 import { cn } from "@/lib/utils"
-import type { PlayerSource, WorkspaceFile } from "@/types/domain"
+import type { PlayerSource, WorkspaceFile, WorkspaceFolder } from "@/types/domain"
 
 import "./creator-library-browser.css"
 
@@ -41,22 +43,26 @@ function FileCard({ file }: { file: WorkspaceFile }) {
   </article>
 }
 
-export function CreatorLibraryBrowser({ files, initialKind = "all", playingKey, playerPlaying, onPlay }: {
+export function CreatorLibraryBrowser({ files, folders = [], initialKind = "all", playingKey, playerPlaying, onPlay, onUpload }: {
   files: WorkspaceFile[]
+  folders?: WorkspaceFolder[]
   initialKind?: CreatorLibraryKind
   playingKey?: string
   playerPlaying?: boolean
   onPlay?: (source: PlayerSource) => void
+  onUpload?: () => void
 }) {
   const [kind, setKind] = useState<CreatorLibraryKind>(initialKind)
   const [query, setQuery] = useState("")
+  const [folderId, setFolderId] = useState("all")
+  useEffect(() => setKind(initialKind), [initialKind])
   const visible = useMemo(() => {
     const normalized = query.trim().toLowerCase()
-    return files.filter((file) => (kind === "all" || creatorLibraryKind(file) === kind) && (!normalized || `${file.name || ""} ${file.title || ""} ${(file.tags || []).join(" ")}`.toLowerCase().includes(normalized)))
-  }, [files, kind, query])
+    return files.filter((file) => (folderId === "all" || String(file.folder_id || "root") === folderId) && (kind === "all" || creatorLibraryKind(file) === kind) && (!normalized || `${file.name || ""} ${file.title || ""} ${(file.tags || []).join(" ")}`.toLowerCase().includes(normalized)))
+  }, [files, folderId, kind, query])
   return <section className="creator-library-browser">
     <header className="creator-library-browser-tools">
-      <label><Search /><Input aria-label="Search Library" value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Search Files" /></label>
+      <div className="creator-library-browser-primary"><label><Search /><Input aria-label="Search Library" value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Search Files" /></label>{folders.length > 0 && <Select value={folderId} onValueChange={setFolderId}><SelectTrigger aria-label="Library folder"><FolderOpen /><SelectValue /></SelectTrigger><SelectContent><SelectItem value="all">All folders</SelectItem><SelectItem value="root">Workspace root</SelectItem>{folders.map((folder) => <SelectItem key={folder.id} value={String(folder.id)}>{folder.name}</SelectItem>)}</SelectContent></Select>}{onUpload && <Button variant="outline" size="sm" onClick={onUpload}><Upload />Upload</Button>}</div>
       <ToggleGroup type="single" value={kind} onValueChange={(value) => value && setKind(value as CreatorLibraryKind)} aria-label="Library file type">
         {kinds.map((item) => <ToggleGroupItem key={item.id} value={item.id}>{item.id === "image" ? <ImageIcon /> : item.id === "video" ? <Video /> : item.id === "speech" ? <MicVocal /> : item.id === "music" ? <Music2 /> : item.id === "sfx" ? <Waves /> : item.id === "subtitle" ? <Captions /> : null}{item.label}</ToggleGroupItem>)}
       </ToggleGroup>

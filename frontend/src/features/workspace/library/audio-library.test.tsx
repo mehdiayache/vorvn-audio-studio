@@ -172,7 +172,10 @@ describe("AudioLibrary", () => {
 
   it("keeps type and mode together, then presents Expert as focused funnel screens", async () => {
     vi.spyOn(originsApi, "audioGenerationStatus").mockResolvedValue({
-      configured: true, sfx_ready: true, music_ready: true, reason: "", models: {},
+      configured: true, sfx_ready: true, music_ready: true, reason: "", models: {
+        sfx: { id: "stable-audio-3-small-sfx" },
+        music: { id: "stable-audio-3-small-music" },
+      },
     })
     vi.spyOn(originsApi, "recentAudioGenerations").mockResolvedValue([])
     vi.spyOn(originsApi, "soundPresetTaxonomy").mockResolvedValue({ version: "audio-taxonomy-v1", items: [] })
@@ -204,7 +207,10 @@ describe("AudioLibrary", () => {
 
   it("moves one generation through compare and deliberate finalization", async () => {
     vi.spyOn(originsApi, "audioGenerationStatus").mockResolvedValue({
-      configured: true, sfx_ready: true, music_ready: true, reason: "", models: {},
+      configured: true, sfx_ready: true, music_ready: true, reason: "", models: {
+        sfx: { id: "stable-audio-3-small-sfx" },
+        music: { id: "stable-audio-3-small-music" },
+      },
     })
     vi.spyOn(originsApi, "soundPresetTaxonomy").mockResolvedValue({ version: "audio-taxonomy-v1", items: [] })
     vi.spyOn(originsApi, "compileSoundPreset").mockResolvedValue({
@@ -248,6 +254,7 @@ describe("AudioLibrary", () => {
     const view = within(container)
     fireEvent.click(view.getByRole("tab", { name: "Generate" }))
     fireEvent.click(view.getByRole("button", { name: "Continue" }))
+    await waitFor(() => expect(view.getByRole("combobox", { name: "Sound Effect engine and model" }).textContent).toContain("Stability AI"))
     fireEvent.change(view.getByPlaceholderText(/heavy wooden church door/i), { target: { value: "A close wooden knock" } })
     await waitFor(() => expect(view.getByRole("button", { name: "Generate 1 variation" }).hasAttribute("disabled")).toBe(false))
     fireEvent.click(view.getByRole("button", { name: "Generate 1 variation" }))
@@ -256,7 +263,7 @@ describe("AudioLibrary", () => {
     expect(view.queryByRole("button", { name: "Keep in Library" })).toBeNull()
     fireEvent.click(view.getByRole("button", { name: "Choose variation A" }))
     expect(view.getByRole("heading", { name: "Name and keep the audio" })).toBeTruthy()
-    expect(view.getByRole("button", { name: "Keep in Files" })).toBeTruthy()
+    expect(view.getByRole("button", { name: "Save to Library" })).toBeTruthy()
   })
 
   it("keeps audition separate from explicit insertion", async () => {

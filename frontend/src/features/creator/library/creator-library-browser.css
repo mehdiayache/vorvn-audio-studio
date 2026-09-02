@@ -1,8 +1,11 @@
 .creator-library-browser { min-width: 0; min-height: 100%; display: grid; grid-template-rows: auto minmax(0, 1fr); align-content: start; }
 .creator-library-browser-tools { position: sticky; z-index: 3; top: 0; display: grid; gap: .55rem; padding: .7rem .8rem; border-bottom: 1px solid var(--border); background: var(--surface-raised); }
-.creator-library-browser-tools > label { position: relative; }
-.creator-library-browser-tools > label > svg { position: absolute; z-index: 1; top: .63rem; left: .65rem; width: .9rem; color: var(--muted-foreground); }
-.creator-library-browser-tools input { padding-left: 2rem; }
+.creator-library-browser-primary { min-width: 0; display: grid; grid-template-columns: minmax(12rem, 1fr) auto auto; gap: .45rem; }
+.creator-library-browser-primary > label { position: relative; }
+.creator-library-browser-primary > label > svg { position: absolute; z-index: 1; top: .63rem; left: .65rem; width: .9rem; color: var(--muted-foreground); }
+.creator-library-browser-primary input { padding-left: 2rem; }
+.creator-library-browser-primary [data-slot="select-trigger"] { min-width: 9rem; }
+.creator-library-browser-primary [data-slot="select-trigger"] svg { width: .85rem; }
 .creator-library-browser-tools [data-slot="toggle-group"] { display: flex; flex-wrap: wrap; gap: .3rem; }
 .creator-library-browser-tools [data-slot="toggle-group-item"] { min-height: 1.9rem; gap: .3rem; border-radius: var(--radius-md); padding-inline: .55rem; color: var(--foreground); font-size: var(--type-caption); }
 .creator-library-browser-tools [data-slot="toggle-group-item"] svg { width: .8rem; }

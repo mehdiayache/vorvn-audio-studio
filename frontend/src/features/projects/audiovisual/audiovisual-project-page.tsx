@@ -86,7 +86,7 @@ export function AudiovisualProjectPage({ project, soundScene, visualScene, files
   const player = useGlobalPlayer()
   const [stage, setStage] = useState<WorkstationStage>("sequence")
   const [outlineOpen, setOutlineOpen] = useState(true)
-  const [libraryCreatorOpen, setLibraryCreatorOpen] = useState(false)
+  const [libraryCreatorOpen, setLibraryCreatorOpen] = useState(true)
   const [selectedId, setSelectedId] = useState<number | null>(() => initialSelection(project))
   const [creatorOpen, setCreatorOpen] = useState(false)
   const [creatorPartId, setCreatorPartId] = useState<number | null>(null)
@@ -344,7 +344,7 @@ export function AudiovisualProjectPage({ project, soundScene, visualScene, files
   const playingPart = actions.playerPlaying && player.source?.key.startsWith("part:")
     ? sourceParts.find((part) => part.id === Number(player.source?.key.slice(5))) || null
     : null
-  const inspectorTitle = creatorOpen ? (creatorPart ? `Edit Part ${formatPartNumber(creatorPart.position ?? 0)}` : "New speech")
+  const inspectorTitle = creatorOpen ? "Creator · Speech"
     : stage === "sequence" && selectedPart ? `Part ${formatPartNumber(selectedPart.position ?? 0)} · ${formatAuthoredRole(selectedPart.authored_role) || partKindLabel(selectedPart)}`
       : stage === "sound" && visualClip ? `${visualTrack?.media_type === "video" ? "Video" : "Image"} clip`
         : stage === "sound" && soundSelection?.kind === "clip" ? audioClipTitle

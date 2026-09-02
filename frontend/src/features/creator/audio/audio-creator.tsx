@@ -13,6 +13,7 @@ import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, Command
 import { Input } from "@/components/ui/input"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 import { Progress } from "@/components/ui/progress"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Switch } from "@/components/ui/switch"
 import { Textarea } from "@/components/ui/textarea"
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group"
@@ -55,6 +56,13 @@ function modelLabel(models: Record<string, unknown>, capability: PresetCapabilit
   const id = model && typeof model === "object" && "id" in model ? String((model as { id?: unknown }).id || "") : ""
   if (!id) return "Audio generator"
   return id.split("-").map((part) => part === "sfx" ? "SFX" : part === "audio" ? "Audio" : part.charAt(0).toLocaleUpperCase() + part.slice(1)).join(" ")
+}
+
+function modelId(models: Record<string, unknown>, capability: PresetCapability) {
+  const model = models[capability]
+  return model && typeof model === "object" && "id" in model
+    ? String((model as { id?: unknown }).id || "")
+    : ""
 }
 
 function isWorking(item: AudioGenerationHistoryItem) {
@@ -398,6 +406,7 @@ export function AudioCreator({
         ? "Ready to create"
         : `Describe the ${capability === "music" ? "music" : "sound"} before generating`
   const activeModelLabel = modelLabel(models, capability)
+  const activeModelId = modelId(models, capability)
   const selectedIndex = selected ? sessionJobIds.indexOf(selected.job_id) : -1
   const selectedLabel = selectedIndex >= 0 ? String.fromCharCode(65 + selectedIndex) : ""
   const selectedActive = Boolean(candidate && playerPlaying && playingKey === `generated-candidate:${candidate.candidate_id}`)
@@ -452,9 +461,10 @@ export function AudioCreator({
           </div>
           <HistoryMenu history={capabilityHistory} selectedJobId={selectedJobId} open={historyOpen} onOpenChange={setHistoryOpen} onSelect={openHistoryItem} />
         </section> : <>
-          <header className="file-generation-context">
+          <header className={`file-generation-context${fixedCapability ? " is-fixed-capability" : ""}`}>
             {!fixedCapability && <Button variant="ghost" onClick={() => setComposeScreen("setup")}><ArrowLeft />Change setup</Button>}
-            <div><b>{capability === "music" ? "Music" : "Sound Effect"}</b><span>·</span><b>{promptMode === "expert" ? "Expert" : "Simple"}</b><span>·</span><b>{activeModelLabel}</b></div>
+            <div className="file-generation-context-copy"><b>{capability === "music" ? "Music" : "Sound Effect"}</b><span>·</span><b>{promptMode === "expert" ? "Expert" : "Simple"}</b></div>
+            <label className="file-generation-engine"><span>Engine & model</span><Select value={activeModelId || "unavailable"} disabled={!activeModelId}><SelectTrigger aria-label={`${capability === "music" ? "Music" : "Sound Effect"} engine and model`}><SelectValue /></SelectTrigger><SelectContent><SelectItem value={activeModelId || "unavailable"}>{activeModelId ? `Stability AI · ${activeModelLabel}` : "No model available"}</SelectItem></SelectContent></Select></label>
             <HistoryMenu history={capabilityHistory} selectedJobId={selectedJobId} open={historyOpen} onOpenChange={setHistoryOpen} onSelect={openHistoryItem} />
           </header>
 
@@ -503,7 +513,7 @@ export function AudioCreator({
     <CreatorCapabilityFooter className="file-action-bar file-generation-actions">
       <div>
         <b>{phase === "compose" ? composeScreen === "setup" ? "Start a new generation" : promptMode === "expert" ? `${stages[activeStage]} · Step ${activeStage + 1} of ${stages.length}` : capability === "music" ? "Create music" : "Create a sound effect" : phase === "generating" ? "Creating variations" : phase === "compare" ? "Choose what works" : candidate ? candidateName(selected!) : "Variation unavailable"}</b>
-        <span>{phase === "generating" ? generationStage === "understanding" ? "Understanding the creative direction…" : generationStage === "starting" ? `Starting ${generationProgress} of ${preset.variation_count}…` : `${sessionItems.filter((item) => item.candidate).length} of ${preset.variation_count} ready` : phase === "compare" ? "Audition freely. Nothing is kept until you choose it." : phase === "finalize" ? "Name and file the chosen audio before keeping it." : composeScreen === "setup" ? "Choose an audio type and creation mode together." : promptMode === "expert" && activeStage < stages.length - 1 ? "Complete this focused screen, then continue." : statusCopy}</span>
+        <span>{phase === "generating" ? generationStage === "understanding" ? "Understanding the creative direction…" : generationStage === "starting" ? `Starting ${generationProgress} of ${preset.variation_count}…` : `${sessionItems.filter((item) => item.candidate).length} of ${preset.variation_count} ready` : phase === "compare" ? "Audition every result, then explicitly choose one." : phase === "finalize" ? "Confirm its name, category and destination." : composeScreen === "setup" ? "Choose an audio type and creation mode together." : promptMode === "expert" && activeStage < stages.length - 1 ? "Complete this focused screen, then continue." : statusCopy}</span>
       </div>
       <div className="file-generation-footer-controls">
         {error && <p role="alert">{error}</p>}
@@ -513,7 +523,7 @@ export function AudioCreator({
         {phase === "compose" && composeScreen === "preset" && (promptMode === "simple" || activeStage === stages.length - 1) && <ActionButton busy={generating} busyLabel={generationStage === "understanding" ? "Understanding…" : "Starting…"} disabled={status !== "ready" || !hasCreativeDirection || !generatedPrompt || compiling || Boolean(unresolvedConflicts.length)} onClick={() => void generate()}><Sparkles />Generate {preset.variation_count} variation{preset.variation_count === 1 ? "" : "s"}</ActionButton>}
         {phase === "generating" && <div className="file-generation-footer-progress"><Progress value={Math.max(generationProgress / preset.variation_count, ...sessionItems.map((item) => item.progress)) * 100} /><span>{sessionItems.filter((item) => item.candidate).length}/{preset.variation_count}</span></div>}
         {phase === "compare" && <><Button variant="outline" onClick={() => { setComposeScreen("preset"); setPhase("compose") }}><ArrowLeft />Back to preset</Button><Button variant="ghost" onClick={startFresh}>Start fresh</Button></>}
-        {phase === "finalize" && candidate && !selected?.kept_file && <><ActionButton variant="ghost" busy={discarding} busyLabel="Discarding…" disabled={Boolean(keeping)} onClick={() => void discard()}><Trash2 />Discard</ActionButton><ActionButton variant={allowPlacement ? "outline" : "default"} busy={keeping === "library"} busyLabel="Keeping…" disabled={Boolean(keeping) || discarding || !name.trim()} onClick={() => void keep(false)}><Check />Keep in Files</ActionButton>{allowPlacement && <ActionButton busy={keeping === "place"} busyLabel={mode === "sound" ? "Adding to track…" : "Inserting…"} disabled={Boolean(keeping) || discarding || !name.trim()} onClick={() => void keep(true)}><Check />{mode === "sound" ? "Keep & Add to Track" : "Keep & Insert"}</ActionButton>}</>}
+        {phase === "finalize" && candidate && !selected?.kept_file && <><ActionButton variant="ghost" busy={discarding} busyLabel="Discarding…" disabled={Boolean(keeping)} onClick={() => void discard()}><Trash2 />Discard</ActionButton><ActionButton variant={allowPlacement ? "outline" : "default"} busy={keeping === "library"} busyLabel="Saving…" disabled={Boolean(keeping) || discarding || !name.trim()} onClick={() => void keep(false)}><Check />Save to Library</ActionButton>{allowPlacement && <ActionButton busy={keeping === "place"} busyLabel={mode === "sound" ? "Adding to track…" : "Inserting…"} disabled={Boolean(keeping) || discarding || !name.trim()} onClick={() => void keep(true)}><Check />{mode === "sound" ? "Save & Add to Track" : "Save & Insert"}</ActionButton>}</>}
         {phase === "finalize" && selected?.kept_file && <Button onClick={startFresh}><Sparkles />Create another</Button>}
       </div>
     </CreatorCapabilityFooter>

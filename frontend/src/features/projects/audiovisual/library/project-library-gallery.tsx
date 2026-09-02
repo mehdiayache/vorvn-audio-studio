@@ -1,7 +1,8 @@
-import { AlertTriangle, Captions, EyeOff, FileText, Images, X } from "lucide-react"
+import { AlertTriangle, Captions, EyeOff, FileText, FolderOpen, Images, Search, Upload, X } from "lucide-react"
 import { useEffect, useMemo, useRef, useState, type CSSProperties, type ReactNode } from "react"
 
 import { Button } from "@/components/ui/button"
+import { Input } from "@/components/ui/input"
 import { AudioFileCard } from "@/components/audio-file-card"
 import { OperatorIconButton } from "@/components/operator-action"
 import { creatorLibraryKind, type CreatorLibraryKind } from "@/features/creator/library/creator-library-browser"
@@ -45,6 +46,7 @@ export function ProjectLibraryGallery({ files, uploads, creationItems = [], usag
 }) {
   const [mediaFilter, setMediaFilter] = useState<CreatorLibraryKind>("all")
   const [originFilter, setOriginFilter] = useState<"all" | FileSource>("all")
+  const [query, setQuery] = useState("")
   const [showFailed, setShowFailed] = useState(false)
   const [columnCount, setColumnCount] = useState(5)
   const galleryRef = useRef<HTMLDivElement>(null)
@@ -57,6 +59,11 @@ export function ProjectLibraryGallery({ files, uploads, creationItems = [], usag
     ]
     return candidates
       .filter((entry) => entry.kind !== "generation" || showFailed || (entry.status !== "failed" && entry.status !== "canceled"))
+      .filter((entry) => {
+        if (!query.trim() || entry.kind !== "file") return true
+        const haystack = `${entry.file.name || ""} ${entry.file.title || ""} ${entry.file.filename || ""} ${(entry.file.tags || []).join(" ")}`.toLowerCase()
+        return haystack.includes(query.trim().toLowerCase())
+      })
       .filter((entry) => mediaFilter === "all" || entry.mediaType === mediaFilter)
       .filter((entry) => originFilter === "all" || entry.origin === originFilter)
       .sort((left, right) => {
@@ -65,7 +72,7 @@ export function ProjectLibraryGallery({ files, uploads, creationItems = [], usag
         if (Number.isFinite(leftTime) && Number.isFinite(rightTime) && leftTime !== rightTime) return rightTime - leftTime
         return left.order - right.order
       })
-  }, [files, creationItems, mediaFilter, originFilter, showFailed, uploads])
+  }, [files, creationItems, mediaFilter, originFilter, query, showFailed, uploads])
 
   useEffect(() => {
     const element = galleryRef.current
@@ -101,24 +108,22 @@ export function ProjectLibraryGallery({ files, uploads, creationItems = [], usag
 
   return <section className="project-library-gallery" aria-label="Project Library files">
     <header>
+      <div className="project-library-primary-tools">
+        <label className="project-library-search"><Search aria-hidden="true" /><Input aria-label="Search Project Library" value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Search names or tags" /></label>
+        <Button variant="outline" size="sm" onClick={onOpenLibrary}><FolderOpen />Workspace Files</Button>
+        <Button variant="outline" size="sm" onClick={onUpload}><Upload />Upload</Button>
+      </div>
       <div className="project-library-gallery-filters">
         <ToggleGroup type="single" variant="outline" size="sm" value={mediaFilter} onValueChange={(next) => { if (next) setMediaFilter(next as CreatorLibraryKind) }} aria-label="File type">
-          <ToggleGroupItem value="all">All</ToggleGroupItem>
-          <ToggleGroupItem value="image">Images</ToggleGroupItem>
-          <ToggleGroupItem value="video">Videos</ToggleGroupItem>
-          <ToggleGroupItem value="speech">Speech</ToggleGroupItem>
-          <ToggleGroupItem value="music">Music</ToggleGroupItem>
-          <ToggleGroupItem value="sfx">SFX</ToggleGroupItem>
-          <ToggleGroupItem value="subtitle">Subtitles</ToggleGroupItem>
+          <ToggleGroupItem value="all">All</ToggleGroupItem><ToggleGroupItem value="image">Images</ToggleGroupItem><ToggleGroupItem value="video">Videos</ToggleGroupItem><ToggleGroupItem value="speech">Speech</ToggleGroupItem><ToggleGroupItem value="music">Music</ToggleGroupItem><ToggleGroupItem value="sfx">SFX</ToggleGroupItem><ToggleGroupItem value="subtitle">Subtitles</ToggleGroupItem>
         </ToggleGroup>
-        <ToggleGroup type="single" variant="outline" size="sm" value={originFilter} onValueChange={(next) => { if (next === "all" || next in FILE_SOURCE_PRESENTATION) setOriginFilter(next as "all" | FileSource) }} aria-label="Media origin">
-          <ToggleGroupItem value="all">All sources</ToggleGroupItem>
-          {(Object.keys(FILE_SOURCE_PRESENTATION) as FileSource[]).map((source) => <ToggleGroupItem key={source} value={source}>{FILE_SOURCE_PRESENTATION[source].label}</ToggleGroupItem>)}
+        <ToggleGroup type="single" variant="outline" size="sm" value={originFilter} onValueChange={(next) => { if (next === "all" || next in FILE_SOURCE_PRESENTATION) setOriginFilter(next as "all" | FileSource) }} aria-label="File source">
+          <ToggleGroupItem value="all">All sources</ToggleGroupItem>{(Object.keys(FILE_SOURCE_PRESENTATION) as FileSource[]).map((source) => <ToggleGroupItem key={source} value={source}>{FILE_SOURCE_PRESENTATION[source].label}</ToggleGroupItem>)}
         </ToggleGroup>
+        {failedCount > 0 && <Button type="button" variant={showFailed ? "secondary" : "outline"} size="sm" aria-pressed={showFailed} onClick={() => setShowFailed((current) => !current)}>{showFailed ? <EyeOff /> : <AlertTriangle />}{showFailed ? "Hide failed" : "Show failed"} <span>{failedCount}</span></Button>}
       </div>
-      {failedCount > 0 && <Button type="button" variant={showFailed ? "secondary" : "outline"} size="sm" aria-pressed={showFailed} onClick={() => setShowFailed((current) => !current)}>{showFailed ? <EyeOff /> : <AlertTriangle />}{showFailed ? "Hide failed" : "Show failed"} <span>{failedCount}</span></Button>}
     </header>
-    {!items.length && <div className="project-library-filter-empty"><Images /><p>No media matches these filters.</p><Button variant="outline" size="sm" onClick={() => { setMediaFilter("all"); setOriginFilter("all"); setShowFailed(false) }}>Clear filters</Button></div>}
+    {!items.length && <div className="project-library-filter-empty"><Images /><p>No media matches this search or these filters.</p><Button variant="outline" size="sm" onClick={() => { setQuery(""); setMediaFilter("all"); setOriginFilter("all"); setShowFailed(false) }}>Clear filters</Button></div>}
     <div ref={galleryRef} className={`project-library-gallery-items${items.length <= columnCount ? " is-single-row" : ""}`} style={{ "--project-library-gallery-columns": columnCount } as CSSProperties}>
       {items.map(renderEntry)}
     </div>

@@ -553,7 +553,7 @@ export function MediaCreator({ context, createOpen, onCreateOpenChange, creatorN
     creatorOpen={panelOpen}
     onCreatorOpenChange={setPanelOpen}
     creatorNavigation={creatorNavigation}
-    creatorDetail={preferredOutputUnavailable ? `${preferredOutputType === "image" ? "Image" : "Video"} unavailable` : "Loading models…"}
+    creatorDetail={preferredOutputUnavailable ? `${preferredOutputType === "image" ? "Image" : "Video"} unavailable` : "Media"}
     libraryDetail={context.project_id ? "Files collected for this Project" : "Reusable Workspace Files"}
     creator={<div className="media-creator-loading">{preferredOutputUnavailable ? `Connect an ${preferredOutputType}-capable model to use this Creation Action.` : "Loading Media capabilities…"}{creatorError && <p className="media-creator-error" role="alert">{creatorError}</p>}</div>}
     library={renderLibrary?.(new Set(), [])}
@@ -572,8 +572,8 @@ export function MediaCreator({ context, createOpen, onCreateOpenChange, creatorN
       creatorOpen={panelOpen}
       onCreatorOpenChange={setPanelOpen}
       creatorNavigation={creatorNavigation}
-      creatorDetail={model.label}
-      libraryDetail={`${libraryFiles.length} Files · ${generations.length} requests${activeEstimate > 0 ? " · generation pending" : ""}`}
+      creatorDetail="Media"
+      libraryDetail={`${context.project_id ? recentFileIds.length : libraryFiles.length} Files · ${generations.length} request${generations.length === 1 ? "" : "s"}${activeEstimate > 0 ? " · generation pending" : ""}`}
       creator={<><MediaCreatorInput
       prompt={prompt} operations={catalog.operations.filter(({ id }) => modes.some((mode) => mode.operation === id))} operation={operation} capability={presentedCapability || capability}
       model={model} models={families} modelFamilyId={family?.id || ""} attachments={visibleAttachments} missingRoles={missing}

@@ -12,7 +12,7 @@ import { CreatorCapabilityPicker, type CreatorCapabilityId } from "@/features/cr
 import type { GeneratedKeepInput } from "@/features/workspace/library/audio-library"
 import { originsApi, type CreatorContext } from "@/lib/api"
 import type { AudioFileCategory, GeneratedKeepResult, WorkspaceFile } from "@/types/domain"
-import { isVisualFile, visualFileAccept, visualFileIssue } from "./visual-files"
+import { isVisualFile } from "./visual-files"
 import { MediaCreator } from "@/features/creator/media/media-creator"
 import { ProjectLibraryGallery } from "./project-library-gallery"
 import { ProjectLibraryDialog } from "./project-library-dialog"
@@ -21,14 +21,19 @@ import type { ProjectLibraryUploadItem } from "./project-library-upload-card"
 import "./project-library-stage.css"
 
 const SpeechCreator = lazy(() => import("@/features/creator/speech/speech-creator-page").then((module) => ({ default: module.SpeechCreatorPage })))
-const SubtitleCreator = lazy(() => import("@/features/creator/subtitles/subtitle-creator-page").then((module) => ({ default: module.SubtitleCreatorPage })))
+const projectFileAccept = "audio/*,image/*,video/*,.srt,.vtt,.txt,.md,.pdf,.json,.csv,.zip"
+const projectFileExtensions = /\.(?:mp3|wav|m4a|aac|ogg|flac|aif|aiff|jpe?g|png|webp|mp4|mov|webm|srt|vtt|txt|md|pdf|json|csv|zip)$/i
 
+function projectFileIssue(file: File) {
+  if (!projectFileExtensions.test(file.name)) return `${file.name} is not a supported Workspace File.`
+  if (file.size > 1_000_000_000) return `${file.name} is over the 1 GB File limit.`
+  return null
+}
 const creatorDetails: Record<CreatorCapabilityId, string> = {
   media: "Image and video",
   speech: "Speech",
   music: "Music",
   sfx: "Sound effects",
-  subtitle: "Subtitles",
 }
 
 function ProjectAudioCreator({ capability, projectId, workspaceId, onKeep, onKept }: {
@@ -68,7 +73,7 @@ export function ProjectLibraryStage({ centerPaneRef, projectId, workspaceId, cre
   onAddToTimeline?: (file: WorkspaceFile) => Promise<void>
   onConfirmAction?: (action: ConfirmAction) => void
 }) {
-  const [internalCreatorOpen, setInternalCreatorOpen] = useState(false)
+  const [internalCreatorOpen, setInternalCreatorOpen] = useState(true)
   const [creatorCapability, setCreatorCapability] = useState<CreatorCapabilityId>("media")
   const inputRef = useRef<HTMLInputElement>(null)
   const [libraryOpen, setLibraryOpen] = useState(false)
@@ -86,7 +91,6 @@ export function ProjectLibraryStage({ centerPaneRef, projectId, workspaceId, cre
     project_id: projectId,
     project_type: "audiovisual",
   }), [projectId, workspaceId])
-  const visualFiles = useMemo(() => files.filter(isVisualFile), [files])
   const collected = useMemo(() => {
     const byId = new Map(files.map((file) => [file.id, file]))
     return [...libraryFileIds].reverse().flatMap((id) => {
@@ -94,7 +98,7 @@ export function ProjectLibraryStage({ centerPaneRef, projectId, workspaceId, cre
       return file ? [file] : []
     })
   }, [files, libraryFileIds])
-  const available = useMemo(() => visualFiles.filter((file) => !selectedIds.has(file.id)), [selectedIds, visualFiles])
+  const available = useMemo(() => files.filter((file) => !selectedIds.has(file.id)), [files, selectedIds])
   const panelOpen = createOpen ?? internalCreatorOpen
   const setPanelOpen = onCreateOpenChange ?? setInternalCreatorOpen
 
@@ -105,7 +109,7 @@ export function ProjectLibraryStage({ centerPaneRef, projectId, workspaceId, cre
       await originsApi.attachProjectLibraryFile(projectId, file.id)
       await onRefresh()
     } catch (reason) {
-      setError(reason instanceof Error ? reason.message : "The visual could not be added to this Project.")
+      setError(reason instanceof Error ? reason.message : "The File could not be added to this Project.")
     } finally {
       setPendingId(null)
     }
@@ -161,13 +165,13 @@ export function ProjectLibraryStage({ centerPaneRef, projectId, workspaceId, cre
       updateUpload(item.id, { status: item.fileId ? "attaching" : "uploading", error: undefined })
       const file = item.fileId ? null : await onUpload(item.file)
       const fileId = item.fileId || file?.id
-      if (!fileId) throw new Error("The uploaded visual did not return a usable media ID.")
+      if (!fileId) throw new Error("The uploaded File did not return a usable ID.")
       updateUpload(item.id, { status: "attaching", fileId })
       await originsApi.attachProjectLibraryFile(projectId, fileId)
       await onRefresh()
       releaseUpload(item)
     } catch (reason) {
-      updateUpload(item.id, { status: "failed", error: reason instanceof Error ? reason.message : "The visual upload did not finish." })
+      updateUpload(item.id, { status: "failed", error: reason instanceof Error ? reason.message : "The File upload did not finish." })
     }
   }
 
@@ -184,7 +188,7 @@ export function ProjectLibraryStage({ centerPaneRef, projectId, workspaceId, cre
 
   function upload(files: File[]) {
     if (!files.length) return
-    const evaluated = files.map((file) => ({ file, issue: visualFileIssue(file) }))
+    const evaluated = files.map((file) => ({ file, issue: projectFileIssue(file) }))
     const issues = evaluated.flatMap(({ issue }) => issue ? [issue] : [])
     const accepted = evaluated.filter(({ issue }) => !issue).map(({ file }) => file)
     setError(issues.join(" "))
@@ -220,13 +224,13 @@ export function ProjectLibraryStage({ centerPaneRef, projectId, workspaceId, cre
   useEffect(() => () => uploadsRef.current.forEach((item) => { if (item.previewUrl) URL.revokeObjectURL(item.previewUrl) }), [])
 
   const activeUploads = uploads.filter((item) => item.status !== "failed")
-  const uploadLabel = activeUploads.length === 1 ? "Uploading visual…" : `Uploading ${activeUploads.length} visuals…`
+  const uploadLabel = activeUploads.length === 1 ? "Uploading File…" : `Uploading ${activeUploads.length} Files…`
   const capabilityPicker = <CreatorCapabilityPicker value={creatorCapability} onChange={setCreatorCapability} />
   const projectLibrary = (generatedOutputIds: Set<number> = new Set(), generationItems: Parameters<typeof ProjectLibraryGallery>[0]["creationItems"] = []) => <>
     {error && <div className="project-library-error" role="alert"><b>Library could not finish that action.</b><span>{error}</span></div>}
     <ProjectLibraryGallery files={collected.filter(({ id }) => !generatedOutputIds.has(id))} uploads={uploads} creationItems={generationItems} usageCounts={usageCounts} pendingId={pendingId} playingFileId={playingFileId} onPlayAudio={onPlayAudio} onPreview={setPreviewFile} onAddToTimeline={onAddToTimeline ? (file) => {
       setPendingId(file.id)
-      void onAddToTimeline(file).catch((reason) => setError(reason instanceof Error ? reason.message : "The media could not be added to Timeline.")).finally(() => setPendingId(null))
+      void onAddToTimeline(file).catch((reason) => setError(reason instanceof Error ? reason.message : "The File could not be added to Timeline.")).finally(() => setPendingId(null))
     } : undefined} onRemove={(file) => {
       const name = file.name || file.title || file.filename || "this File"
       if (!onConfirmAction) return
@@ -263,8 +267,8 @@ export function ProjectLibraryStage({ centerPaneRef, projectId, workspaceId, cre
       upload(Array.from(event.dataTransfer.files))
     }}
   >
-    {dragging && <div className="project-library-drop-overlay" aria-hidden="true"><ImagePlus /><strong>Drop media into the Project Library</strong><span>It becomes a reusable Workspace File and is collected in this Project.</span></div>}
-    <input ref={inputRef} hidden multiple type="file" accept={visualFileAccept} onChange={(event) => {
+    {dragging && <div className="project-library-drop-overlay" aria-hidden="true"><ImagePlus /><strong>Drop Files into the Project Library</strong><span>They become reusable Workspace Files and are collected in this Project.</span></div>}
+    <input ref={inputRef} hidden multiple type="file" accept={projectFileAccept} onChange={(event) => {
       if (event.target.files) void upload(Array.from(event.target.files))
       event.target.value = ""
     }} />
@@ -282,15 +286,13 @@ export function ProjectLibraryStage({ centerPaneRef, projectId, workspaceId, cre
       libraryDetail={`${collected.length} Project File${collected.length === 1 ? "" : "s"}`}
       creator={creatorCapability === "speech"
         ? <Suspense fallback={<PageLoading label="Opening speech controls" />}><SpeechCreator embedded panelOnly onCreatedFiles={attachCreatedFiles} /></Suspense>
-        : creatorCapability === "subtitle"
-          ? <Suspense fallback={<PageLoading label="Opening subtitle controls" />}><SubtitleCreator embedded panelOnly onCreatedFiles={attachCreatedFiles} /></Suspense>
-          : <ProjectAudioCreator key={creatorCapability} capability={creatorCapability} projectId={projectId} workspaceId={workspaceId} onKeep={keepGeneratedAudio} onKept={audioKept} />}
+        : <ProjectAudioCreator key={creatorCapability} capability={creatorCapability} projectId={projectId} workspaceId={workspaceId} onKeep={keepGeneratedAudio} onKept={audioKept} />}
       library={projectLibrary()}
     />}
     <ProjectLibraryDialog open={libraryOpen} files={available} usedFileIds={[...(usageCounts?.keys() || [])]} pendingId={pendingId} defaultSource="all" showProjectSource={false} onOpenChange={setLibraryOpen} onPreview={setPreviewFile} onAdd={(file) => void attach(file)} />
     <FilePreviewDialog file={previewFile} pending={Boolean(previewFile && pendingId === previewFile.id)} onAddToTimeline={onAddToTimeline ? (file) => {
       setPendingId(file.id)
-      void onAddToTimeline(file).then(() => setPreviewFile(null)).catch((reason) => setError(reason instanceof Error ? reason.message : "The visual could not be added to Timeline.")).finally(() => setPendingId(null))
+      void onAddToTimeline(file).then(() => setPreviewFile(null)).catch((reason) => setError(reason instanceof Error ? reason.message : "The File could not be added to Timeline.")).finally(() => setPendingId(null))
     } : undefined} onOpenChange={(open) => { if (!open) setPreviewFile(null) }} />
   </main>
 }

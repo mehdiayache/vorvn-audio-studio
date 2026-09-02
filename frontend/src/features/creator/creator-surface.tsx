@@ -9,7 +9,6 @@ import { CreatorDialogs } from "./creator-dialogs"
 import { CreatorOutput } from "./creator-output"
 import { CreatorPerformance } from "./creator-performance"
 import { CreatorProvider, type CreatorSurfaceProps, useCreatorController } from "./creator-controller"
-import { CreatorRecordingContext } from "./creator-recording-context"
 import { CreatorRoleEditor } from "./creator-role-editor"
 import { CreatorWho } from "./creator-who"
 import { CreatorWords } from "./creator-words"
@@ -32,9 +31,9 @@ export function ControlledCreatorSurface({ creator, presentation = "mega", onExp
     <div className={cn("speech-creator creator-surface", `is-${presentation}`)}>
       {!panel && <header className="creator-context-bar">
         <div className="creator-context-copy">
-          <span className="eyebrow">{standalone ? "Speak" : "Project recording"}</span>
-          <b>{standalone ? "Generate standalone audio" : creator.destination}</b>
-          <small>{standalone ? "Choose a voice, shape the delivery, then listen in this session" : "Voice, script, and performance in one workspace"}</small>
+          <span className="eyebrow">Creator</span>
+          <b>{standalone ? "Speech" : `Speech · ${creator.destination}`}</b>
+          <small>{standalone ? "Choose a voice, shape the delivery, then listen in this session" : "The same Speech Creator, working in the current Script context"}</small>
         </div>
         <div className="creator-context-actions">
           {!standalone && <CreatorRoleEditor creator={creator} />}
@@ -62,7 +61,7 @@ export function ControlledCreatorSurface({ creator, presentation = "mega", onExp
           </aside>
         </div>
       </div> : <div className="creator-stage">
-        <CreatorRecordingContext presentation={presentation} />
+        <CreatorWho />
         <div className="creator-stage-flow">
           <div className="creator-stage-script"><CreatorWords /></div>
           <div className="creator-stage-settings-grid" aria-label="Performance and output settings">

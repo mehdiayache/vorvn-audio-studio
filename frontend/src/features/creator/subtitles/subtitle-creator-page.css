@@ -45,3 +45,6 @@
 .subtitle-creator-page[data-embedded] .subtitles-layout.is-panel-only .subtitles-card { width: auto; max-width: 100%; min-width: 0; box-sizing: border-box; }
 .subtitle-creator-page[data-embedded] .subtitles-layout.is-panel-only .subtitles-form { grid-template-columns: minmax(0, 1fr); align-items: stretch; }
 .subtitle-creator-page[data-embedded] .subtitles-layout.is-panel-only .subtitles-form > button { width: 100%; }
+.subtitle-engine-field { display: grid; gap: .4rem; margin-bottom: .85rem; }
+.subtitle-engine-field > span { color: var(--foreground); font-size: var(--type-caption); font-weight: var(--weight-label); }
+.subtitle-engine-field > small { color: var(--muted-foreground); font-size: var(--type-caption); line-height: 1.4; }

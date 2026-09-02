@@ -1,17 +1,16 @@
-import { Captions, Images, Mic2, Music2, Waves } from "lucide-react"
+import { Images, Mic2, Music2, Waves } from "lucide-react"
 
 import { cn } from "@/lib/utils"
 
 import "./creator-capability-picker.css"
 
-export type CreatorCapabilityId = "media" | "speech" | "music" | "sfx" | "subtitle"
+export type CreatorCapabilityId = "media" | "speech" | "music" | "sfx"
 
 const capabilities = [
   { id: "media", label: "Media", icon: Images },
   { id: "speech", label: "Speech", icon: Mic2 },
   { id: "music", label: "Music", icon: Music2 },
   { id: "sfx", label: "SFX", icon: Waves },
-  { id: "subtitle", label: "Subtitles", icon: Captions },
 ] as const
 
 export function CreatorCapabilityPicker({ value, onChange, className }: {

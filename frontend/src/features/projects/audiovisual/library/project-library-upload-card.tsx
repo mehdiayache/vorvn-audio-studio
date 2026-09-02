@@ -1,7 +1,6 @@
-import { AlertCircle, Image, LoaderCircle, RotateCcw, Upload, Video, X } from "lucide-react"
+import { AlertCircle, FileArchive, FileAudio, FileText, Image, LoaderCircle, RotateCcw, Upload, Video, X } from "lucide-react"
 
 import { OperatorIconButton } from "@/components/operator-action"
-import { Skeleton } from "@/components/ui/skeleton"
 
 export type ProjectLibraryUploadItem = {
   id: string
@@ -19,6 +18,11 @@ export function ProjectLibraryUploadCard({ item, onRetry, onDismiss }: {
 }) {
   const failed = item.status === "failed"
   const video = item.file.type.startsWith("video/")
+  const image = item.file.type.startsWith("image/")
+  const audio = item.file.type.startsWith("audio/")
+  const archive = /\.(?:zip|json|csv)$/i.test(item.file.name)
+  const KindIcon = video ? Video : image ? Image : audio ? FileAudio : archive ? FileArchive : FileText
+  const kindLabel = video ? "Video" : image ? "Image" : audio ? "Audio" : archive ? "Data" : "File"
   const label = item.status === "queued"
     ? "Waiting to upload"
     : item.status === "attaching"
@@ -32,8 +36,8 @@ export function ProjectLibraryUploadCard({ item, onRetry, onDismiss }: {
         ? video
           ? <video src={item.previewUrl} muted preload="metadata" playsInline />
           : <img src={item.previewUrl} alt="" />
-        : <Skeleton className="project-library-upload-skeleton" />}
-      <span className="visual-file-kind">{video ? <Video /> : <Image />}{video ? "Video" : "Image"}</span>
+        : <div className="project-library-upload-file-icon"><KindIcon /></div>}
+      <span className="visual-file-kind"><KindIcon />{kindLabel}</span>
       <span className="visual-file-origin"><Upload />Upload</span>
       <span className="project-library-upload-state">{failed ? <AlertCircle /> : <LoaderCircle className="spin" />}{label}</span>
     </div>

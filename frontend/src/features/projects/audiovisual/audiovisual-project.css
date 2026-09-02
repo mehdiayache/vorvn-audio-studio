@@ -10,7 +10,7 @@
   background: var(--workspace-background);
 }
 .audiovisual-project[data-outline-open="false"] { --ws-left-current: 2.85rem; }
-.audiovisual-project[data-inspector-expanded="true"] { --ws-right: clamp(34rem, 43vw, 46rem); }
+.audiovisual-project[data-inspector-expanded="true"] { --ws-right: clamp(40rem, 50vw, 54rem); }
 .audiovisual-project[data-stage="sound"] { --ws-left: clamp(9.5rem, 10vw, 11rem); --ws-right: clamp(20rem, 23vw, 25rem); }
 .audiovisual-project[data-stage="library"] { --ws-left: clamp(20rem, 25vw, 25rem); }
 .ws-kicker { color: var(--muted-foreground); font-size: .675rem; font-weight: var(--weight-emphasis); letter-spacing: .105em; text-transform: uppercase; }
@@ -95,13 +95,14 @@
 .audiovisual-project .transport-strip.is-project { width: min(58rem, calc(100% - 2rem)); max-width: calc(100% - 2rem); }
 .ws-inspector-content .project-creator-stage { min-height: 100%; }
 .ws-inspector-content .speech-creator.is-stage { min-height: 100%; border: 0; border-radius: 0; box-shadow: none; }
-.ws-inspector-content .speech-creator.is-stage .creator-context-bar { display: none; }
+.ws-inspector-content .speech-creator.is-stage .creator-context-bar { min-height: 4.2rem; }
 .ws-inspector-content .speech-creator.is-stage .creator-stage { padding-top: 0; }
 .ws-inspector-content .speech-creator.is-stage .creator-actions { position: sticky; bottom: 0; }
 .ws-inspector-content .speech-creator.is-stage .creator-recording-summary { grid-template-columns: auto minmax(0, 1fr) auto; }
 .ws-inspector-content .speech-creator.is-stage .creator-recording-facts { display: none; }
 .ws-inspector-content .speech-creator.is-stage .creator-recording-trigger { max-width: 7rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.ws-inspector-content .speech-creator.is-stage .creator-recording-bar { grid-template-columns: minmax(0, 1fr); }
+.ws-inspector-content .speech-creator.is-stage .creator-recording-bar { grid-template-columns: minmax(0, .8fr) minmax(0, 1.2fr); }
+.ws-inspector-content .speech-creator.is-stage .creator-voice-field { grid-column: 1 / -1; }
 
 .ws-outline, .ws-track-list, .ws-mix-outline { height: 100%; display: grid; grid-template-rows: auto auto auto minmax(0, 1fr); }
 .ws-pane-header { min-height: 2.85rem; display: flex; align-items: center; justify-content: space-between; gap: .5rem; padding: .45rem .45rem .35rem .8rem; }

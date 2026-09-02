@@ -241,7 +241,7 @@ describe("shared Creator contract", () => {
     const onUpdateEditorial = vi.fn().mockResolvedValue(undefined)
     const part = { id: 7, kind: "speech", text: "Hello", text_raw: "Hello", authored_role: "narrator", revision: 3, cost: 0, created_at: "", position: 0, voice_identity_id: "identity-sarah", binding_id: "binding-sarah" } as ProjectPart
     render(<CreatorSurface {...common} presentation="dialog" projectId={3} part={part} onUpdateEditorial={onUpdateEditorial} />)
-    expect(await screen.findByText("Edit Narrator · Part 01")).toBeTruthy()
+    expect(await screen.findByText("Speech · Edit Narrator · Part 01")).toBeTruthy()
     fireEvent.click(screen.getByRole("button", { name: "Narrator" }))
     fireEvent.change(screen.getByLabelText("Story role"), { target: { value: "Esther" } })
     fireEvent.click(screen.getByRole("button", { name: "Save role" }))
