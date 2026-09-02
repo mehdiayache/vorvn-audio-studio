@@ -60,7 +60,7 @@ function PendingSpeechExecution({ execution, directory, onTerminal }: {
   }} directory={directory} />
 }
 
-export function SpeechCreatorPage({ embedded = false, panelOnly = false, onLibraryChange }: { embedded?: boolean; panelOnly?: boolean; onLibraryChange?: () => void | Promise<void> } = {}) {
+export function SpeechCreatorPage({ embedded = false, panelOnly = false, onLibraryChange, onCreatedFiles }: { embedded?: boolean; panelOnly?: boolean; onLibraryChange?: () => void | Promise<void>; onCreatedFiles?: (fileIds: number[]) => void | Promise<void> } = {}) {
   const voices = useVoiceDirectory()
   const workspaceHome = useWorkspaceExplorer()
   const player = useGlobalPlayer()
@@ -146,11 +146,18 @@ export function SpeechCreatorPage({ embedded = false, panelOnly = false, onLibra
         toast.error(job.error || "Generation failed.")
       }
       await refreshHistory()
+      const fileIds = job.output_file_ids || ((job.result as GenerateResult & { output_file_ids?: number[] }).output_file_ids ?? [])
+      try {
+        if ((job.status === "ok" || job.status === "warning") && fileIds.length) await onCreatedFiles?.(fileIds)
+        await onLibraryChange?.()
+      } catch (reason) {
+        toast.error("The speech is safe in Workspace Files, but the current Library did not refresh.", { description: reason instanceof Error ? reason.message : undefined })
+      }
     } finally {
       if (generationLock.current === execution.jobId) generationLock.current = null
       setExecutions((current) => current.filter((item) => item.jobId !== execution.jobId))
     }
-  }, [onLibraryChange, player, refreshHistory, voices.directory])
+  }, [onCreatedFiles, onLibraryChange, player, refreshHistory, voices.directory])
 
   function clipView(attempt: RecordingAttempt): RecordingClipView {
     const status = recordingAttemptStatus(attempt)

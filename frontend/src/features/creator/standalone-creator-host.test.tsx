@@ -39,7 +39,7 @@ describe("StandaloneCreatorHost", () => {
     viewport(false)
     render(<StandaloneCreatorHost {...props} />)
     expect(screen.getByRole("region", { name: "Script workspace" })).toBeTruthy()
-    expect(screen.getByText("Generate standalone audio")).toBeTruthy()
+    expect(screen.getByRole("button", { name: "Generate audio" })).toBeTruthy()
     expect(screen.queryByRole("dialog")).toBeNull()
   })
 

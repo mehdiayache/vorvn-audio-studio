@@ -57,7 +57,7 @@ describe("CreateCreatorPage", () => {
     render(<MemoryRouter initialEntries={["/origins/create/generate-music?folder_id=27"]}><Routes><Route path="/origins/create/:actionId" element={<CreateCreatorPage />} /></Routes></MemoryRouter>)
 
     expect(screen.getByRole("heading", { name: "Creator Library" })).toBeTruthy()
-    expect(screen.getAllByText(/Generate music/).length).toBeGreaterThan(0)
+    expect(screen.getAllByText(/Create music/).length).toBeGreaterThan(0)
     expect(screen.getByText("Sandbox")).toBeTruthy()
     const workspace = screen.getByRole("button", { name: "Keep generated file" })
     expect(workspace.getAttribute("data-workspace-id")).toBe("4")
@@ -72,7 +72,7 @@ describe("CreateCreatorPage", () => {
   })
 
   it.each([
-    ["generate-speech", "Generate speech", "speech-creator"],
+    ["generate-speech", "Create speech", "speech-creator"],
     ["create-subtitles", "Create subtitles", "subtitle-creator"],
   ])("keeps %s inside the canonical Creator route", async (actionId, title, testId) => {
     render(<MemoryRouter initialEntries={[`/origins/create/${actionId}`]}><Routes><Route path="/origins/create/:actionId" element={<CreateCreatorPage />} /></Routes></MemoryRouter>)

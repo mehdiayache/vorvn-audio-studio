@@ -33,25 +33,25 @@ const creatorActions: Record<string, CreateCreatorAction> = {
   "generate-speech": {
     capability: "speech",
     icon: Mic2,
-    title: "Generate speech",
+    title: "Create speech",
     description: "Create reusable speech audio with the voice, language and performance controls it needs.",
   },
   "generate-music": {
     capability: "music",
     icon: Music2,
-    title: "Generate music",
+    title: "Create music",
     description: "Create a reusable music File in this Workspace.",
   },
   "generate-sound-effect": {
     capability: "sfx",
     icon: Waves,
-    title: "Generate a sound effect",
+    title: "Create a sound effect",
     description: "Create Foley, ambience, impacts or transitions.",
   },
   "generate-media": {
     capability: "media",
     icon: WandSparkles,
-    title: "Generate media",
+    title: "Create media",
     description: "Create images or videos with one model-aware Creator.",
   },
   "create-subtitles": {

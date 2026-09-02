@@ -16,7 +16,7 @@ export function CreatorWho() {
       <CreatorLanguagePicker value={creator.language} options={creator.languageOptions} route={creator.currentRoute || undefined} customVoice={creator.selectedIdentity?.source === "owned"} onChange={creator.setLanguage} />
     </div>
     <div className="creator-context-field creator-method-field">
-      <span className="creator-field-label">Recording method</span>
+      <span className="creator-field-label">Model & recording method</span>
       <CreatorMethodPicker routes={creator.visibleRoutes} availableRoutes={creator.compatibleRoutes} selectedRouteId={routeSelectionId(creator.route)} selectedCapabilityId={creator.route?.capabilityId || null} language={creator.language} customVoice={creator.selectedIdentity?.source === "owned"} config={creator.config} onSelect={creator.applyRoute} />
     </div>
   </section>

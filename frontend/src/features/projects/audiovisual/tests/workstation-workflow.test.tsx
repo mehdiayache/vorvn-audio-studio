@@ -45,6 +45,8 @@ describe("Project workflow", () => {
     expect(screen.queryByRole("textbox", { name: "Media prompt" })).toBeNull()
     fireEvent.click(screen.getByRole("button", { name: "Show Creator" }))
     expect(await screen.findByRole("textbox", { name: "Media prompt" })).toBeTruthy()
+    expect(screen.getByRole("navigation", { name: "Creation capability" })).toBeTruthy()
+    expect(["Media", "Speech", "Music", "SFX", "Subtitles"].map((name) => screen.getByRole("button", { name }).getAttribute("aria-pressed"))).toEqual(["true", "false", "false", "false", "false"])
     expect(screen.getByRole("radio", { name: "Image: Create a still visual" })).toBeTruthy()
     expect(screen.getByRole("combobox", { name: "Choose generation model" }).textContent).toContain("Model A")
     expect(screen.getByRole("button", { name: "Choose image for Reference" })).toBeTruthy()

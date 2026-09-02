@@ -2,6 +2,12 @@ import { Separator } from "@/components/ui/separator"
 import { Textarea } from "@/components/ui/textarea"
 import type { CreatorContext } from "@/lib/api"
 import type { WorkspaceFile } from "@/types/domain"
+import {
+  CreatorCapabilityBody,
+  CreatorCapabilityFooter,
+  CreatorCapabilityPanel,
+  CreatorCapabilityRoute,
+} from "../panel/creator-capability-panel"
 import type { MediaAdvancedValues } from "./media-advanced-settings"
 import { MediaAdvancedSettings } from "./media-advanced-settings"
 import { MediaCapabilityControls } from "./media-capability-controls"
@@ -45,9 +51,9 @@ export function MediaCreatorInput({ context, prompt, operations, operation, capa
   onSaveReference?: () => void
   onSubmit: () => void
 }) {
-  return <div className="media-creator-form" data-operation={operation}>
-    <div className="media-creator-scroll">
-      <section className="media-form-section media-route-section" aria-label="Creation route">
+  return <CreatorCapabilityPanel className="media-creator-form" data-operation={operation}>
+    <CreatorCapabilityBody className="media-creator-scroll">
+      <CreatorCapabilityRoute className="media-form-section media-route-section">
       <label className="media-form-field">
         <span>Model</span>
         <MediaModelSelector models={models} value={modelFamilyId} onValueChange={onModelChange} />
@@ -56,7 +62,7 @@ export function MediaCreatorInput({ context, prompt, operations, operation, capa
         <span>Mode</span>
         <MediaOperationPicker operations={operations} value={operation} onValueChange={onOperationChange} />
       </div>
-      </section>
+      </CreatorCapabilityRoute>
 
       <Separator />
 
@@ -106,11 +112,11 @@ export function MediaCreatorInput({ context, prompt, operations, operation, capa
       <Separator />
 
       <MediaAdvancedSettings context={context} model={model} capability={capability} values={advanced} files={files} onChange={onAdvancedChange} />
-    </div>
-    <footer className="media-creator-actions">
+    </CreatorCapabilityBody>
+    <CreatorCapabilityFooter className="media-creator-actions">
       {uploadStatus && <div className="media-upload-status" role="status">{uploadStatus}</div>}
       {disabledReason && !busy && <div id="media-creator-readiness" className="media-creator-readiness" role="status">{disabledReason}</div>}
       <MediaSubmit disabled={Boolean(disabledReason)} busy={busy} reason={disabledReason} onClick={onSubmit} />
-    </footer>
-  </div>
+    </CreatorCapabilityFooter>
+  </CreatorCapabilityPanel>
 }

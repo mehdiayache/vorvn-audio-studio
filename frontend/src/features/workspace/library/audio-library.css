@@ -370,6 +370,72 @@
 .file-variation-workspace > header { display: grid; grid-template-columns: 48px minmax(0, 1fr) auto; align-items: center; gap: 16px; }
 .file-variation-workspace-icon { width: 48px; height: 48px; display: grid; place-items: center; border-radius: 15px; background: var(--primary-soft); color: var(--primary); }
 .file-variation-workspace-icon svg { width: 22px; }
+
+/* Music and SFX are Creator capabilities, not full-width pages when borrowed
+   by Creator Library. Preserve their workflow while adapting it to the same
+   narrow panel geometry as Media. */
+.creator-capability-panel.file-generation-view { grid-template-rows: minmax(0, 1fr) auto; }
+.creator-capability-panel.file-generation-view .file-generation-stage {
+  padding: 0;
+  overflow-x: hidden;
+}
+
+.creator-capability-panel.file-generation-view .file-generation-compose {
+  min-width: 0;
+  gap: .8rem;
+  padding: 0 .75rem 1.25rem;
+}
+
+.creator-capability-panel.file-generation-view .file-generation-context {
+  min-width: 0;
+  grid-template-columns: minmax(0, 1fr);
+  gap: .5rem;
+  margin-inline: -.75rem;
+  padding: .45rem .75rem;
+}
+
+.creator-capability-panel.file-generation-view .file-generation-context > div {
+  min-width: 0;
+  flex-wrap: wrap;
+}
+
+.creator-capability-panel.file-generation-view .file-generation-context > .file-history-trigger {
+  width: 100%;
+  max-width: 100%;
+  overflow: hidden;
+}
+
+.creator-capability-panel.file-generation-view .preset-simple,
+.creator-capability-panel.file-generation-view .preset-current-step,
+.creator-capability-panel.file-generation-view .file-resolved-prompt,
+.creator-capability-panel.file-generation-view .preset-conflicts {
+  width: 100%;
+  min-width: 0;
+  max-width: 100%;
+}
+
+.creator-capability-panel.file-generation-view .preset-simple {
+  gap: .8rem;
+  padding: .8rem 0 0;
+}
+
+.creator-capability-panel.file-generation-view .preset-simple > header { gap: .65rem; }
+.creator-capability-panel.file-generation-view .preset-simple > header > span { width: 2rem; height: 2rem; }
+.creator-capability-panel.file-generation-view .preset-simple h2 { font-size: var(--type-heading-sm); }
+.creator-capability-panel.file-generation-view .preset-simple > textarea { width: 100%; min-height: 8rem; padding: .8rem; }
+.creator-capability-panel.file-generation-view .preset-simple-actions { align-items: flex-start; flex-wrap: wrap; margin-top: 0; }
+.creator-capability-panel.file-generation-view .preset-simple-actions > span { min-width: 0; flex: 1 1 12rem; }
+.creator-capability-panel.file-generation-view .preset-simple-actions > button { flex: 0 0 auto; }
+.creator-capability-panel.file-generation-view .preset-generation-settings > div,
+.creator-capability-panel.file-generation-view .preset-two-up { grid-template-columns: minmax(0, 1fr); gap: .8rem; }
+.creator-capability-panel.file-generation-view .preset-current-step { gap: 1rem; padding: 1rem 0; }
+.creator-capability-panel.file-generation-view .preset-step-rail { margin-inline: -.75rem; padding-inline: .75rem; }
+.creator-capability-panel.file-generation-view .file-generation-actions { min-width: 0; display: grid; grid-template-columns: minmax(0, 1fr); align-items: stretch; }
+.creator-capability-panel.file-generation-view .file-generation-actions > div:first-child { min-width: 0; }
+.creator-capability-panel.file-generation-view .file-generation-actions > div:first-child b,
+.creator-capability-panel.file-generation-view .file-generation-actions > div:first-child span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.creator-capability-panel.file-generation-view .file-generation-footer-controls { min-width: 0; display: flex; justify-content: flex-end; flex-wrap: wrap; gap: .45rem; }
+.creator-capability-panel.file-generation-view .file-generation-footer-controls > p { width: 100%; max-width: none; margin: 0; }
 .is-spinning { animation: file-spin .9s linear infinite; }
 @keyframes file-spin { to { transform: rotate(360deg); } }
 .file-variation-workspace h2 { margin: 0; font-size: var(--type-heading-lg); }

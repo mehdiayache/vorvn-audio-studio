@@ -2,6 +2,7 @@ import { CircleDollarSign, Plus, WandSparkles } from "lucide-react"
 
 import { Button } from "@/components/ui/button"
 import { useCreator } from "./creator-controller"
+import { CreatorCapabilityFooter } from "./panel/creator-capability-panel"
 
 function primaryLabel(creator: ReturnType<typeof useCreator>) {
   if (creator.generationState === "recovering") return "Checking current session…"
@@ -12,13 +13,12 @@ function primaryLabel(creator: ReturnType<typeof useCreator>) {
   return `Generate and add Part ${creator.insertAt === null ? creator.nextPartNumber : creator.insertAt + 1}`
 }
 
-export function CreatorActions() {
+export function CreatorActions({ capabilityPanel = false }: { capabilityPanel?: boolean }) {
   const creator = useCreator()
   const textUnresolved = Boolean(creator.textSession.busy || creator.textSession.review || creator.textSession.pending)
   const ssmlInvalid = creator.enableSsml && !creator.ssmlValidation.valid
   const blocked = !creator.config?.has_key || !creator.textSession.text.trim() || !creator.currentRoute || !creator.outputFormatSupported || Boolean(creator.busy) || Boolean(creator.generationState) || textUnresolved || creator.taggedIncompatible || ssmlInvalid || creator.recovery.status === "loading" || creator.recovery.status === "conflict"
-  return <>
-    <footer className="creator-footer">
+  const content = <>
       <div className="creator-cost" role="status" aria-live="polite">
         <CircleDollarSign />
         <span>{creator.taggedIncompatible ? "Tagged version needs a compatible method" : ssmlInvalid ? "SSML needs attention" : `${creator.textSession.text.length.toLocaleString()} characters`}</span>
@@ -32,7 +32,11 @@ export function CreatorActions() {
         {!creator.part && creator.projectId && creator.onSave && <Button variant="outline" disabled={!creator.textSession.text.trim() || !creator.currentRoute || Boolean(creator.busy) || textUnresolved || creator.recovery.status === "loading" || creator.recovery.status === "conflict"} onClick={() => void creator.saveDraft().catch(() => undefined)}><Plus />{creator.busy === "draft" ? "Saving…" : "Save Draft"}</Button>}
         <Button disabled={blocked} onClick={() => void creator.generate()}><WandSparkles />{primaryLabel(creator)}</Button>
       </div>
-    </footer>
+  </>
+  return <>
+    {capabilityPanel
+      ? <CreatorCapabilityFooter className="creator-footer">{content}</CreatorCapabilityFooter>
+      : <footer className="creator-footer">{content}</footer>}
     {!creator.config?.has_key && <p className="creator-warning footer-warning">Add the provider API key in Settings before generating. Drafts still work.</p>}
   </>
 }

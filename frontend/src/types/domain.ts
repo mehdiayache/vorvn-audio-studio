@@ -510,6 +510,8 @@ export type DurableJob<T = Record<string, unknown>> = {
   finished_at?: string | null
   result: T
   part_id?: number | null
+  workspace_id?: number | null
+  output_file_ids?: number[]
   context?: {
     part_id?: number | null
     project_id?: number | null

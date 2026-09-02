@@ -12,7 +12,7 @@ export function StandaloneCreatorHost(props: CreatorSurfaceProps) {
   const mobile = useMediaQuery("(max-width: 48rem)")
   const [open, setOpen] = useState(false)
 
-  if (!mobile) return <CreatorSurface {...props} />
+  if (!mobile) return <CreatorSurface {...props} presentation="panel" />
 
   return <Sheet open={open} onOpenChange={setOpen}>
     <div className="creator-mobile-launcher">
@@ -24,7 +24,7 @@ export function StandaloneCreatorHost(props: CreatorSurfaceProps) {
         <SheetTitle>Generate standalone audio</SheetTitle>
         <SheetDescription>Standalone recording. Closing this sheet does not cancel a running Job.</SheetDescription>
       </SheetHeader>
-      <CreatorSurface {...props} />
+      <CreatorSurface {...props} presentation="panel" />
       <MobileCreatorTransport active={open} />
     </SheetContent>
   </Sheet>

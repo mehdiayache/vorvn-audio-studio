@@ -27,6 +27,7 @@ import type {
 
 import type { AudioLibraryMode, GeneratedKeepInput } from "@/features/workspace/library/audio-library"
 import { FileCategorySelect, FileTagEditor } from "@/features/workspace/library/file-library-controls"
+import { CreatorCapabilityBody, CreatorCapabilityFooter, CreatorCapabilityPanel } from "../panel/creator-capability-panel"
 import {
   PresetField, SemanticScale, SingleChoice, TaxonomyPicker,
 } from "@/features/creator/audio/sound-preset-controls"
@@ -419,8 +420,8 @@ export function AudioCreator({
     "",
   ][index]
 
-  return <section className="file-view file-generation-view" data-phase={phase}>
-    <main className="file-generation-stage">
+  return <CreatorCapabilityPanel className="file-view file-generation-view" data-phase={phase}>
+    <CreatorCapabilityBody className="file-generation-stage">
       {phase === "compose" && <div className="file-generation-compose" data-screen={composeScreen}>
         {composeScreen === "setup" && !fixedCapability ? <section className="file-generation-setup">
           <header>
@@ -497,24 +498,26 @@ export function AudioCreator({
         onRefine={() => refine(selected)}
         onBack={() => setPhase(sessionJobIds.length > 1 ? "compare" : "compose")}
       />}
-    </main>
+    </CreatorCapabilityBody>
 
-    <footer className="file-action-bar file-generation-actions">
+    <CreatorCapabilityFooter className="file-action-bar file-generation-actions">
       <div>
         <b>{phase === "compose" ? composeScreen === "setup" ? "Start a new generation" : promptMode === "expert" ? `${stages[activeStage]} · Step ${activeStage + 1} of ${stages.length}` : capability === "music" ? "Create music" : "Create a sound effect" : phase === "generating" ? "Creating variations" : phase === "compare" ? "Choose what works" : candidate ? candidateName(selected!) : "Variation unavailable"}</b>
         <span>{phase === "generating" ? generationStage === "understanding" ? "Understanding the creative direction…" : generationStage === "starting" ? `Starting ${generationProgress} of ${preset.variation_count}…` : `${sessionItems.filter((item) => item.candidate).length} of ${preset.variation_count} ready` : phase === "compare" ? "Audition freely. Nothing is kept until you choose it." : phase === "finalize" ? "Name and file the chosen audio before keeping it." : composeScreen === "setup" ? "Choose an audio type and creation mode together." : promptMode === "expert" && activeStage < stages.length - 1 ? "Complete this focused screen, then continue." : statusCopy}</span>
       </div>
-      {error && <p role="alert">{error}</p>}
-      {phase === "compose" && composeScreen === "setup" && !fixedCapability && <Button onClick={() => setComposeScreen("preset")}>Continue</Button>}
-      {phase === "compose" && composeScreen === "preset" && promptMode === "expert" && activeStage > 0 && <Button variant="ghost" onClick={() => setActiveStage((current) => Math.max(0, current - 1))}><ArrowLeft />Back</Button>}
-      {phase === "compose" && composeScreen === "preset" && promptMode === "expert" && activeStage < stages.length - 1 && <Button onClick={() => setActiveStage((current) => Math.min(stages.length - 1, current + 1))}>Continue</Button>}
-      {phase === "compose" && composeScreen === "preset" && (promptMode === "simple" || activeStage === stages.length - 1) && <ActionButton busy={generating} busyLabel={generationStage === "understanding" ? "Understanding…" : "Starting…"} disabled={status !== "ready" || !hasCreativeDirection || !generatedPrompt || compiling || Boolean(unresolvedConflicts.length)} onClick={() => void generate()}><Sparkles />Generate {preset.variation_count} variation{preset.variation_count === 1 ? "" : "s"}</ActionButton>}
-      {phase === "generating" && <div className="file-generation-footer-progress"><Progress value={Math.max(generationProgress / preset.variation_count, ...sessionItems.map((item) => item.progress)) * 100} /><span>{sessionItems.filter((item) => item.candidate).length}/{preset.variation_count}</span></div>}
-      {phase === "compare" && <><Button variant="outline" onClick={() => { setComposeScreen("preset"); setPhase("compose") }}><ArrowLeft />Back to preset</Button><Button variant="ghost" onClick={startFresh}>Start fresh</Button></>}
-      {phase === "finalize" && candidate && !selected?.kept_file && <><ActionButton variant="ghost" busy={discarding} busyLabel="Discarding…" disabled={Boolean(keeping)} onClick={() => void discard()}><Trash2 />Discard</ActionButton><ActionButton variant={allowPlacement ? "outline" : "default"} busy={keeping === "library"} busyLabel="Keeping…" disabled={Boolean(keeping) || discarding || !name.trim()} onClick={() => void keep(false)}><Check />Keep in Files</ActionButton>{allowPlacement && <ActionButton busy={keeping === "place"} busyLabel={mode === "sound" ? "Adding to track…" : "Inserting…"} disabled={Boolean(keeping) || discarding || !name.trim()} onClick={() => void keep(true)}><Check />{mode === "sound" ? "Keep & Add to Track" : "Keep & Insert"}</ActionButton>}</>}
-      {phase === "finalize" && selected?.kept_file && <Button onClick={startFresh}><Sparkles />Create another</Button>}
-    </footer>
-  </section>
+      <div className="file-generation-footer-controls">
+        {error && <p role="alert">{error}</p>}
+        {phase === "compose" && composeScreen === "setup" && !fixedCapability && <Button onClick={() => setComposeScreen("preset")}>Continue</Button>}
+        {phase === "compose" && composeScreen === "preset" && promptMode === "expert" && activeStage > 0 && <Button variant="ghost" onClick={() => setActiveStage((current) => Math.max(0, current - 1))}><ArrowLeft />Back</Button>}
+        {phase === "compose" && composeScreen === "preset" && promptMode === "expert" && activeStage < stages.length - 1 && <Button onClick={() => setActiveStage((current) => Math.min(stages.length - 1, current + 1))}>Continue</Button>}
+        {phase === "compose" && composeScreen === "preset" && (promptMode === "simple" || activeStage === stages.length - 1) && <ActionButton busy={generating} busyLabel={generationStage === "understanding" ? "Understanding…" : "Starting…"} disabled={status !== "ready" || !hasCreativeDirection || !generatedPrompt || compiling || Boolean(unresolvedConflicts.length)} onClick={() => void generate()}><Sparkles />Generate {preset.variation_count} variation{preset.variation_count === 1 ? "" : "s"}</ActionButton>}
+        {phase === "generating" && <div className="file-generation-footer-progress"><Progress value={Math.max(generationProgress / preset.variation_count, ...sessionItems.map((item) => item.progress)) * 100} /><span>{sessionItems.filter((item) => item.candidate).length}/{preset.variation_count}</span></div>}
+        {phase === "compare" && <><Button variant="outline" onClick={() => { setComposeScreen("preset"); setPhase("compose") }}><ArrowLeft />Back to preset</Button><Button variant="ghost" onClick={startFresh}>Start fresh</Button></>}
+        {phase === "finalize" && candidate && !selected?.kept_file && <><ActionButton variant="ghost" busy={discarding} busyLabel="Discarding…" disabled={Boolean(keeping)} onClick={() => void discard()}><Trash2 />Discard</ActionButton><ActionButton variant={allowPlacement ? "outline" : "default"} busy={keeping === "library"} busyLabel="Keeping…" disabled={Boolean(keeping) || discarding || !name.trim()} onClick={() => void keep(false)}><Check />Keep in Files</ActionButton>{allowPlacement && <ActionButton busy={keeping === "place"} busyLabel={mode === "sound" ? "Adding to track…" : "Inserting…"} disabled={Boolean(keeping) || discarding || !name.trim()} onClick={() => void keep(true)}><Check />{mode === "sound" ? "Keep & Add to Track" : "Keep & Insert"}</ActionButton>}</>}
+        {phase === "finalize" && selected?.kept_file && <Button onClick={startFresh}><Sparkles />Create another</Button>}
+      </div>
+    </CreatorCapabilityFooter>
+  </CreatorCapabilityPanel>
 }
 
 function ChoiceSwitch({ left, right, checked, onCheckedChange, label }: { left: string; right: string; checked: boolean; onCheckedChange: (checked: boolean) => void; label: string }) {

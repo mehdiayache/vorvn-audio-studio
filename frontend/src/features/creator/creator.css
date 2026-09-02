@@ -1063,6 +1063,99 @@
   min-height: 40rem;
 }
 
+/* Creator Library borrows the same Speech capability without borrowing the
+   large Script workstation geometry. The controller and field components stay
+   identical; only the host presentation changes. */
+.creator-surface.is-panel,
+.speech-creator-page .creator-surface.is-panel {
+  min-height: 0;
+  height: 100%;
+  display: block;
+  overflow: hidden;
+  border: 0;
+  border-radius: 0;
+  box-shadow: none;
+}
+
+.creator-surface.is-panel > .speech-capability-panel { min-height: 100%; }
+
+.speech-capability-body {
+  gap: 0;
+  padding: 0;
+}
+
+.creator-surface.is-panel .creator-recording-bar {
+  grid-template-columns: minmax(0, 1fr);
+  align-items: stretch;
+  gap: .7rem;
+  padding: .75rem;
+  border-bottom: 0;
+}
+
+.creator-surface.is-panel .script-section {
+  height: auto;
+  min-height: 0;
+  grid-template-rows: auto auto auto auto;
+  padding: .8rem .75rem;
+  border-top: 1px solid var(--border);
+}
+
+.creator-surface.is-panel .script-command-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  align-items: stretch;
+  gap: .5rem;
+  margin-bottom: .55rem;
+  padding-bottom: .55rem;
+}
+
+.creator-surface.is-panel .script-command-actions {
+  justify-content: space-between;
+  flex-wrap: wrap;
+}
+
+.creator-surface.is-panel .script-version-row,
+.creator-surface.is-panel .text-tools { flex-wrap: wrap; }
+.creator-surface.is-panel .script-utility-actions { margin-left: auto; }
+
+.creator-surface.is-panel .script-editor-shell,
+.creator-surface.is-panel .script-editor-shell textarea,
+.creator-surface.is-panel .tagged-script-editor {
+  height: 12rem;
+  min-height: 12rem;
+}
+.creator-surface.is-panel .script-editor-shell { flex: none; box-shadow: none; }
+.creator-surface.is-panel .script-section textarea { padding: 1rem; font-size: var(--type-body); line-height: 1.55; }
+
+.creator-surface.is-panel .creator-section:not(.script-section) {
+  display: grid;
+  gap: .65rem;
+  padding: .8rem .75rem;
+  border-top: 1px solid var(--border);
+}
+
+.creator-surface.is-panel .creator-section:not(.script-section) > header { margin: 0; }
+.creator-surface.is-panel .creator-section:not(.script-section) > header .eyebrow { display: none; }
+.creator-surface.is-panel .creator-section:not(.script-section) > header h3 { font-size: var(--type-small); }
+.creator-surface.is-panel .delivery-mode,
+.creator-surface.is-panel .performance-preset-select,
+.creator-surface.is-panel .performance-direction,
+.creator-surface.is-panel .creator-performance-controls { margin: 0; }
+.creator-surface.is-panel .creator-fine-grid { grid-template-columns: minmax(0, 1fr); }
+
+.creator-surface.is-panel .creator-footer {
+  min-height: 0;
+  display: grid;
+  gap: .55rem;
+  padding: .7rem .75rem;
+  box-shadow: 0 -.5rem 1.5rem rgb(var(--shadow-color) / 4%);
+}
+
+.creator-surface.is-panel .creator-cost { gap: .35rem .5rem; }
+.creator-surface.is-panel .creator-actions { width: 100%; }
+.creator-surface.is-panel .creator-actions > button:last-child { flex: 1; }
+.creator-surface.is-panel .creator-actions > button:only-child { width: 100%; }
+
 .creator-mobile-launcher {
   display: flex;
   align-items: center;

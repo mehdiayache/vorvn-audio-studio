@@ -13,10 +13,11 @@ import { CreatorRecordingContext } from "./creator-recording-context"
 import { CreatorRoleEditor } from "./creator-role-editor"
 import { CreatorWho } from "./creator-who"
 import { CreatorWords } from "./creator-words"
+import { CreatorCapabilityBody, CreatorCapabilityPanel } from "./panel/creator-capability-panel"
 
 import "./creator.css"
 
-export type CreatorPresentation = "inline" | "stage" | "mega" | "dialog"
+export type CreatorPresentation = "inline" | "stage" | "mega" | "dialog" | "panel"
 
 export function ControlledCreatorSurface({ creator, presentation = "mega", onExpand, onClose }: {
   creator: CreatorController
@@ -26,9 +27,10 @@ export function ControlledCreatorSurface({ creator, presentation = "mega", onExp
 }) {
   const standalone = presentation === "mega"
   const workstation = standalone || presentation === "dialog"
+  const panel = presentation === "panel"
   return <CreatorProvider value={creator}>
     <div className={cn("speech-creator creator-surface", `is-${presentation}`)}>
-      <header className="creator-context-bar">
+      {!panel && <header className="creator-context-bar">
         <div className="creator-context-copy">
           <span className="eyebrow">{standalone ? "Speak" : "Project recording"}</span>
           <b>{standalone ? "Generate standalone audio" : creator.destination}</b>
@@ -39,8 +41,16 @@ export function ControlledCreatorSurface({ creator, presentation = "mega", onExp
           {presentation === "inline" && onExpand && <Button variant="outline" size="sm" onClick={onExpand}><Expand /> Expand</Button>}
           {onClose && <OperatorIconButton label="Close Creator" detail="Keeps the saved preparation and returns to the Project." onClick={onClose}><X /></OperatorIconButton>}
         </div>
-      </header>
-      {workstation ? <div className="creator-workspace">
+      </header>}
+      {panel ? <CreatorCapabilityPanel className="speech-capability-panel">
+        <CreatorCapabilityBody className="speech-capability-body">
+          <CreatorWho />
+          <CreatorWords />
+          <CreatorPerformance />
+          <CreatorOutput />
+        </CreatorCapabilityBody>
+        <CreatorActions capabilityPanel />
+      </CreatorCapabilityPanel> : workstation ? <div className="creator-workspace">
         <CreatorWho />
         <div className="creator-creative-workspace">
           <main className="creator-script-canvas" aria-label="Script canvas">
@@ -61,7 +71,7 @@ export function ControlledCreatorSurface({ creator, presentation = "mega", onExp
           </div>
         </div>
       </div>}
-      <CreatorActions />
+      {!panel && <CreatorActions />}
       <CreatorDialogs />
     </div>
   </CreatorProvider>

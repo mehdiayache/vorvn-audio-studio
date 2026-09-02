@@ -1,0 +1,32 @@
+.creator-capability-picker {
+  min-width: 0;
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: .2rem;
+  padding: .4rem;
+  border-bottom: 1px solid var(--border);
+  background: var(--surface-raised);
+}
+
+.creator-capability-picker button {
+  min-width: 0;
+  min-height: 2.6rem;
+  display: grid;
+  place-items: center;
+  align-content: center;
+  gap: .15rem;
+  padding: .3rem .15rem;
+  border: 0;
+  border-radius: .42rem;
+  background: transparent;
+  color: var(--muted-foreground);
+  font: inherit;
+  font-size: var(--type-caption);
+  cursor: pointer;
+}
+
+.creator-capability-picker button svg { width: .95rem; height: .95rem; }
+.creator-capability-picker button span { max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.creator-capability-picker button:hover { background: var(--surface-subtle); color: var(--foreground); }
+.creator-capability-picker button[aria-pressed="true"] { background: var(--primary-soft); color: var(--primary); }
+.creator-capability-picker button:focus-visible { outline: 2px solid var(--ring); outline-offset: -2px; }

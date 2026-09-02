@@ -67,7 +67,7 @@ describe("shared Creator contract", () => {
   it("does not silently select the first identity or exact route in fresh Speak", async () => {
     render(<CreatorSurface {...common} />)
     await waitFor(() => expect(screen.getByRole("button", { name: "Choose a voice" })).toBeTruthy())
-    expect(screen.getByText("Recording method")).toBeTruthy()
+    expect(screen.getByText("Model & recording method")).toBeTruthy()
     expect(screen.getByRole("button", { name: "Recording method" }).hasAttribute("disabled")).toBe(true)
     expect(screen.getByRole("button", { name: "Generate audio" }).hasAttribute("disabled")).toBe(true)
   })

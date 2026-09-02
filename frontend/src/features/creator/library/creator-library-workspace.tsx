@@ -6,20 +6,26 @@ import { cn } from "@/lib/utils"
 
 import "./creator-library-workspace.css"
 
-export function CreatorLibraryWorkspace({ creator, library, creatorDetail, libraryDetail, className }: {
+export function CreatorLibraryWorkspace({ creator, library, creatorDetail, libraryDetail, creatorNavigation, className, creatorOpen, onCreatorOpenChange }: {
   creator: ReactNode
   library: ReactNode
   creatorDetail: string
   libraryDetail?: string
+  creatorNavigation?: ReactNode
   className?: string
+  creatorOpen?: boolean
+  onCreatorOpenChange?: (open: boolean) => void
 }) {
-  const [creatorOpen, setCreatorOpen] = useState(true)
-  return <section className={cn("creator-library-workspace", !creatorOpen && "is-creator-collapsed", className)} aria-label="Creator Library">
+  const [internalOpen, setInternalOpen] = useState(true)
+  const open = creatorOpen ?? internalOpen
+  const setOpen = onCreatorOpenChange ?? setInternalOpen
+  return <section className={cn("creator-library-workspace", !open && "is-creator-collapsed", className)} aria-label="Creator Library">
     <aside className="creator-library-creator" aria-label="Creator">
-      {creatorOpen ? <>
-        <header className="creator-library-pane-header"><span><b>Creator</b><small>{creatorDetail}</small></span><OperatorIconButton label="Hide Creator" detail="Give the Library more room while preserving this creation setup." onClick={() => setCreatorOpen(false)}><PanelLeftClose /></OperatorIconButton></header>
+      {open ? <>
+        <header className="creator-library-pane-header"><span><b>Creator</b><small>{creatorDetail}</small></span><OperatorIconButton label="Hide Creator" detail="Give the Library more room while preserving this creation setup." onClick={() => setOpen(false)}><PanelLeftClose /></OperatorIconButton></header>
+        {creatorNavigation}
         <div className="creator-library-creator-content">{creator}</div>
-      </> : <div className="creator-library-collapsed"><OperatorIconButton label="Show Creator" detail="Show creation controls for this capability." side="right" onClick={() => setCreatorOpen(true)}><PanelLeftOpen /></OperatorIconButton><Sparkles aria-hidden="true" /></div>}
+      </> : <div className="creator-library-collapsed"><OperatorIconButton label="Show Creator" detail="Show creation controls for this capability." side="right" onClick={() => setOpen(true)}><PanelLeftOpen /></OperatorIconButton><Sparkles aria-hidden="true" /></div>}
     </aside>
     <section className="creator-library-library" aria-label="Library">
       <header className="creator-library-pane-header"><span><b>Library</b><small>{libraryDetail || "Reusable Workspace Files"}</small></span></header>

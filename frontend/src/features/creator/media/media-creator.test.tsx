@@ -155,7 +155,7 @@ describe("Media creator", () => {
 
     expect(screen.getByRole("button", { name: "Show Creator" })).toBeTruthy()
     expect(screen.getByText("Creation wall")).toBeTruthy()
-    expect(document.querySelector(".media-creator-shell")?.classList.contains("is-create-collapsed")).toBe(true)
+    expect(document.querySelector(".creator-library-workspace")?.classList.contains("is-creator-collapsed")).toBe(true)
   })
 
   it("keeps failed requests out of the normal media wall until failed items are revealed", () => {
