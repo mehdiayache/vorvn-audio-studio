@@ -63,7 +63,7 @@ function initialHiddenRequests(context: CreatorContext) {
   }
 }
 
-export function MediaCreator({ context, createOpen, onCreateOpenChange, uploading, uploadLabel, libraryFiles, recentFileIds = [], usageCounts, onUploadReference, onGenerationOutputReady, onPreviewGenerated, onAddGeneratedToTimeline, renderCreations }: {
+export function MediaCreator({ context, createOpen, onCreateOpenChange, uploading, uploadLabel, libraryFiles, recentFileIds = [], usageCounts, onUploadReference, onGenerationOutputReady, onPreviewGenerated, onAddGeneratedToTimeline, renderLibrary }: {
   context: CreatorContext
   createOpen?: boolean
   onCreateOpenChange?: (open: boolean) => void
@@ -76,7 +76,7 @@ export function MediaCreator({ context, createOpen, onCreateOpenChange, uploadin
   onGenerationOutputReady?: () => Promise<void>
   onPreviewGenerated?: (file: WorkspaceFile) => void
   onAddGeneratedToTimeline?: (file: WorkspaceFile) => Promise<void>
-  renderCreations?: (generatedOutputIds: Set<number>, generationItems: ProjectLibraryCreationItem[]) => ReactNode
+  renderLibrary?: (generatedOutputIds: Set<number>, generationItems: ProjectLibraryCreationItem[]) => ReactNode
 }) {
   const workspaceId = context.workspace_id
   const preferredOutputType = context.selection?.output_media_type === "image" || context.selection?.output_media_type === "video"
@@ -549,15 +549,15 @@ export function MediaCreator({ context, createOpen, onCreateOpenChange, uploadin
     />
   }
 
-  if (preferredOutputUnavailable || !catalog || !model || !capability) return <section className={`media-creator-shell${panelOpen ? "" : " is-create-collapsed"}`} aria-label="Create visual material">
-    <aside className={`ws-left-pane media-create-panel${panelOpen ? "" : " is-collapsed"}`}>{panelOpen ? <><header className="ws-pane-header"><span><b>Create</b><small>{preferredOutputUnavailable ? `${preferredOutputType === "image" ? "Image" : "Video"} unavailable` : "Loading models…"}</small></span><OperatorTooltip label="Hide Create panel" detail="Give Creations more room while keeping Create one click away." side="bottom"><Button variant="ghost" size="icon-sm" aria-label="Hide Create panel" onClick={() => setPanelOpen(false)}><PanelLeftClose /></Button></OperatorTooltip></header><div className="media-creator-loading">{preferredOutputUnavailable ? `Connect an ${preferredOutputType}-capable model to use this Creation Action.` : "Loading Media capabilities…"}</div>{creatorError && <p className="media-creator-error" role="alert">{creatorError}</p>}</> : <div className="ws-collapsed-pane"><OperatorTooltip label="Show Create panel" detail="Show model, mode, inputs and generation controls." side="right"><Button className="ws-pane-expand" variant="ghost" size="icon-sm" aria-label="Show Create panel" onClick={() => setPanelOpen(true)}><PanelLeftOpen /></Button></OperatorTooltip><span className="ws-collapsed-context"><Sparkles aria-hidden="true" /></span></div>}</aside>
-    <section className="ws-center-pane media-creations-workspace" aria-labelledby="media-creations-title"><header className="ws-pane-header media-creations-heading"><span><b id="media-creations-title">Creations</b><small>{context.project_id ? "Media for this Project" : "Reusable Workspace Files"}</small></span></header>{renderCreations?.(new Set(), [])}</section>
+  if (preferredOutputUnavailable || !catalog || !model || !capability) return <section className={`media-creator-shell${panelOpen ? "" : " is-create-collapsed"}`} aria-label="Creator Library">
+    <aside className={`ws-left-pane media-create-panel${panelOpen ? "" : " is-collapsed"}`}>{panelOpen ? <><header className="ws-pane-header"><span><b>Creator</b><small>{preferredOutputUnavailable ? `${preferredOutputType === "image" ? "Image" : "Video"} unavailable` : "Loading models…"}</small></span><OperatorTooltip label="Hide Creator" detail="Give the Library more room while preserving this setup." side="bottom"><Button variant="ghost" size="icon-sm" aria-label="Hide Creator" onClick={() => setPanelOpen(false)}><PanelLeftClose /></Button></OperatorTooltip></header><div className="media-creator-loading">{preferredOutputUnavailable ? `Connect an ${preferredOutputType}-capable model to use this Creation Action.` : "Loading Media capabilities…"}</div>{creatorError && <p className="media-creator-error" role="alert">{creatorError}</p>}</> : <div className="ws-collapsed-pane"><OperatorTooltip label="Show Creator" detail="Show model, mode, inputs and generation controls." side="right"><Button className="ws-pane-expand" variant="ghost" size="icon-sm" aria-label="Show Creator" onClick={() => setPanelOpen(true)}><PanelLeftOpen /></Button></OperatorTooltip><span className="ws-collapsed-context"><Sparkles aria-hidden="true" /></span></div>}</aside>
+    <section className="ws-center-pane media-library-workspace" aria-labelledby="media-library-title"><header className="ws-pane-header media-library-heading"><span><b id="media-library-title">Library</b><small>{context.project_id ? "Files collected for this Project" : "Reusable Workspace Files"}</small></span></header>{renderLibrary?.(new Set(), [])}</section>
   </section>
 
-  return <section className={`media-creator-shell${panelOpen ? "" : " is-create-collapsed"}`} aria-label="Create visual material">
+  return <section className={`media-creator-shell${panelOpen ? "" : " is-create-collapsed"}`} aria-label="Creator Library">
     <aside className={`ws-left-pane media-create-panel${panelOpen ? "" : " is-collapsed"}`}>
-      {!panelOpen ? <div className="ws-collapsed-pane"><OperatorTooltip label="Show Create panel" detail="Show model, mode, inputs and generation controls." side="right"><Button className="ws-pane-expand" variant="ghost" size="icon-sm" aria-label="Show Create panel" onClick={() => setPanelOpen(true)}><PanelLeftOpen /></Button></OperatorTooltip><span className="ws-collapsed-context"><Sparkles aria-hidden="true" /></span></div> : <>
-      <header className="ws-pane-header media-create-heading"><span><b>Create</b><small>{model.label}</small></span><OperatorTooltip label="Hide Create panel" detail="Give Creations more room without losing this setup." side="bottom"><Button variant="ghost" size="icon-sm" aria-label="Hide Create panel" onClick={() => setPanelOpen(false)}><PanelLeftClose /></Button></OperatorTooltip></header>
+      {!panelOpen ? <div className="ws-collapsed-pane"><OperatorTooltip label="Show Creator" detail="Show model, mode, inputs and generation controls." side="right"><Button className="ws-pane-expand" variant="ghost" size="icon-sm" aria-label="Show Creator" onClick={() => setPanelOpen(true)}><PanelLeftOpen /></Button></OperatorTooltip><span className="ws-collapsed-context"><Sparkles aria-hidden="true" /></span></div> : <>
+      <header className="ws-pane-header media-create-heading"><span><b>Creator</b><small>{model.label}</small></span><OperatorTooltip label="Hide Creator" detail="Give the Library more room without losing this setup." side="bottom"><Button variant="ghost" size="icon-sm" aria-label="Hide Creator" onClick={() => setPanelOpen(false)}><PanelLeftClose /></Button></OperatorTooltip></header>
       <MediaCreatorInput
       prompt={prompt} operations={catalog.operations.filter(({ id }) => modes.some((mode) => mode.operation === id))} operation={operation} capability={presentedCapability || capability}
       model={model} models={families} modelFamilyId={family?.id || ""} attachments={visibleAttachments} missingRoles={missing}
@@ -580,9 +580,9 @@ export function MediaCreator({ context, createOpen, onCreateOpenChange, uploadin
       {creatorError && <p className="media-creator-error" role="alert">{creatorError}</p>}
       </>}
     </aside>
-    <section className="ws-center-pane media-creations-workspace" aria-labelledby="media-creations-title">
-      <header className="ws-pane-header media-creations-heading"><span><b id="media-creations-title">Creations</b><small>{generations.length} requests</small></span>{activeEstimate > 0 && <span className="media-active-estimate">Generation pending</span>}</header>
-    {renderCreations ? renderCreations(
+    <section className="ws-center-pane media-library-workspace" aria-labelledby="media-library-title">
+      <header className="ws-pane-header media-library-heading"><span><b id="media-library-title">Library</b><small>{libraryFiles.length} Files · {generations.length} requests</small></span>{activeEstimate > 0 && <span className="media-active-estimate">Generation pending</span>}</header>
+    {renderLibrary ? renderLibrary(
       generatedOutputIds,
       generations.filter(({ id }) => !hiddenRequestIds.has(id)).map((generation) => ({
         id: generation.id,

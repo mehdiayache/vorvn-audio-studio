@@ -428,6 +428,13 @@ export function AudiovisualProjectPage({ project, soundScene, visualScene, files
           files={files}
           libraryFileIds={libraryFileIds}
           usageCounts={visualUsageCounts}
+          playingFileId={player.state === "playing" && player.source?.key.startsWith("file:") ? Number(player.source.key.slice(5)) : null}
+          onPlayAudio={(file) => {
+            const url = file.url || (file.filename ? `/media/${encodeURIComponent(file.filename)}` : "")
+            if (!url) return
+            const key = `file:${file.id}`
+            void player.toggleSource({ key, url, title: file.name || file.title || "Audio", subtitle: "Project Library", kind: "file" })
+          }}
           onRefresh={refreshFiles}
           onConfirmAction={setConfirmAction}
           onAddToTimeline={async (file) => {

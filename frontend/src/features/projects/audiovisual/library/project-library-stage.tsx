@@ -14,7 +14,7 @@ import { FilePreviewDialog } from "./file-preview-dialog"
 import type { ProjectLibraryUploadItem } from "./project-library-upload-card"
 import "./project-library-stage.css"
 
-export function ProjectLibraryStage({ centerPaneRef, projectId, workspaceId, createOpen, onCreateOpenChange, files, libraryFileIds, usageCounts, onUpload, onRefresh, onAddToTimeline, onConfirmAction }: {
+export function ProjectLibraryStage({ centerPaneRef, projectId, workspaceId, createOpen, onCreateOpenChange, files, libraryFileIds, usageCounts, playingFileId, onPlayAudio, onUpload, onRefresh, onAddToTimeline, onConfirmAction }: {
   centerPaneRef?: RefObject<HTMLElement | null>
   projectId: number
   workspaceId: number
@@ -23,6 +23,8 @@ export function ProjectLibraryStage({ centerPaneRef, projectId, workspaceId, cre
   files: WorkspaceFile[]
   libraryFileIds: number[]
   usageCounts?: ReadonlyMap<number, number>
+  playingFileId?: number | null
+  onPlayAudio?: (file: WorkspaceFile) => void
   onUpload: (file: File) => Promise<WorkspaceFile>
   onRefresh: () => Promise<void>
   onAddToTimeline?: (file: WorkspaceFile) => Promise<void>
@@ -47,12 +49,12 @@ export function ProjectLibraryStage({ centerPaneRef, projectId, workspaceId, cre
   }), [projectId, workspaceId])
   const visualFiles = useMemo(() => files.filter(isVisualFile), [files])
   const collected = useMemo(() => {
-    const byId = new Map(visualFiles.map((file) => [file.id, file]))
+    const byId = new Map(files.map((file) => [file.id, file]))
     return [...libraryFileIds].reverse().flatMap((id) => {
       const file = byId.get(id)
       return file ? [file] : []
     })
-  }, [libraryFileIds, visualFiles])
+  }, [files, libraryFileIds])
   const available = useMemo(() => visualFiles.filter((file) => !selectedIds.has(file.id)), [selectedIds, visualFiles])
 
   async function attach(file: WorkspaceFile) {
@@ -196,9 +198,9 @@ export function ProjectLibraryStage({ centerPaneRef, projectId, workspaceId, cre
       libraryFiles={files} recentFileIds={[...libraryFileIds].reverse()} usageCounts={usageCounts} onUploadReference={uploadReference}
       onGenerationOutputReady={onRefresh} onPreviewGenerated={setPreviewFile}
       onAddGeneratedToTimeline={onAddToTimeline}
-      renderCreations={(generatedOutputIds, generationItems) => <>
+      renderLibrary={(generatedOutputIds, generationItems) => <>
         {error && <div className="project-library-error" role="alert"><b>Library could not finish that action.</b><span>{error}</span></div>}
-        <ProjectLibraryGallery files={collected.filter(({ id }) => !generatedOutputIds.has(id))} uploads={uploads} creationItems={generationItems} usageCounts={usageCounts} pendingId={pendingId} onPreview={setPreviewFile} onAddToTimeline={onAddToTimeline ? (file) => {
+        <ProjectLibraryGallery files={collected.filter(({ id }) => !generatedOutputIds.has(id))} uploads={uploads} creationItems={generationItems} usageCounts={usageCounts} pendingId={pendingId} playingFileId={playingFileId} onPlayAudio={onPlayAudio} onPreview={setPreviewFile} onAddToTimeline={onAddToTimeline ? (file) => {
           setPendingId(file.id)
           void onAddToTimeline(file).catch((reason) => setError(reason instanceof Error ? reason.message : "The media could not be added to Timeline.")).finally(() => setPendingId(null))
         } : undefined} onRemove={(file) => {

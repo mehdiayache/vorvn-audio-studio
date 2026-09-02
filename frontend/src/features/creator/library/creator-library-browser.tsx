@@ -1,0 +1,74 @@
+import { Captions, FileText, Image as ImageIcon, MicVocal, Music2, Search, Video, Waves } from "lucide-react"
+import { useMemo, useState } from "react"
+
+import { AudioFileCard } from "@/components/audio-file-card"
+import { Input } from "@/components/ui/input"
+import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group"
+import { audioFileCategory } from "@/features/sound-scene/audio-presentation"
+import { formatDuration } from "@/lib/format"
+import { cn } from "@/lib/utils"
+import type { PlayerSource, WorkspaceFile } from "@/types/domain"
+
+import "./creator-library-browser.css"
+
+export type CreatorLibraryKind = "all" | "image" | "video" | "speech" | "music" | "sfx" | "subtitle"
+
+const kinds: ReadonlyArray<{ id: CreatorLibraryKind; label: string }> = [
+  { id: "all", label: "All" }, { id: "image", label: "Images" }, { id: "video", label: "Videos" },
+  { id: "speech", label: "Speech" }, { id: "music", label: "Music" }, { id: "sfx", label: "SFX" }, { id: "subtitle", label: "Subtitles" },
+]
+
+export function creatorLibraryKind(file: WorkspaceFile): Exclude<CreatorLibraryKind, "all"> | "other" {
+  if (file.media_type === "image" || file.media_type === "video") return file.media_type
+  const explicit = String(file.category || file.file_category || "").toLowerCase()
+  const tags = new Set((file.tags || []).map((tag) => String(tag).toLowerCase()))
+  if (file.mime_type?.includes("subtitle") || /\.(srt|vtt)$/i.test(String(file.filename || "")) || tags.has("subtitle")) return "subtitle"
+  const audio = audioFileCategory(file)
+  if (audio === "music") return "music"
+  if (audio === "sfx" || audio === "ambience") return "sfx"
+  if (explicit === "speech" || tags.has("speech") || tags.has("voice") || file.media_type === "audio") return "speech"
+  return "other"
+}
+
+function FileCard({ file }: { file: WorkspaceFile }) {
+  const kind = creatorLibraryKind(file)
+  const Icon = kind === "image" ? ImageIcon : kind === "video" ? Video : kind === "subtitle" ? Captions : FileText
+  const name = file.name || file.title || file.filename || "Untitled File"
+  const url = file.url || (file.filename ? `/media/${encodeURIComponent(file.filename)}` : "")
+  return <article className={cn("creator-library-file-card", `is-${kind}`)}>
+    <div className="creator-library-file-preview">{kind === "image" && url ? <img src={url} alt="" loading="lazy" /> : kind === "video" && url ? <video src={url} muted preload="metadata" /> : <Icon />}</div>
+    <div><b title={name}>{name}</b><small>{kind === "subtitle" ? "Subtitle" : String(kind).replace(/^./, (value) => value.toUpperCase())}{file.duration_ms ? ` · ${formatDuration(file.duration_ms / 1000)}` : ""}</small></div>
+  </article>
+}
+
+export function CreatorLibraryBrowser({ files, initialKind = "all", playingKey, playerPlaying, onPlay }: {
+  files: WorkspaceFile[]
+  initialKind?: CreatorLibraryKind
+  playingKey?: string
+  playerPlaying?: boolean
+  onPlay?: (source: PlayerSource) => void
+}) {
+  const [kind, setKind] = useState<CreatorLibraryKind>(initialKind)
+  const [query, setQuery] = useState("")
+  const visible = useMemo(() => {
+    const normalized = query.trim().toLowerCase()
+    return files.filter((file) => (kind === "all" || creatorLibraryKind(file) === kind) && (!normalized || `${file.name || ""} ${file.title || ""} ${(file.tags || []).join(" ")}`.toLowerCase().includes(normalized)))
+  }, [files, kind, query])
+  return <section className="creator-library-browser">
+    <header className="creator-library-browser-tools">
+      <label><Search /><Input aria-label="Search Library" value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Search Files" /></label>
+      <ToggleGroup type="single" value={kind} onValueChange={(value) => value && setKind(value as CreatorLibraryKind)} aria-label="Library file type">
+        {kinds.map((item) => <ToggleGroupItem key={item.id} value={item.id}>{item.id === "image" ? <ImageIcon /> : item.id === "video" ? <Video /> : item.id === "speech" ? <MicVocal /> : item.id === "music" ? <Music2 /> : item.id === "sfx" ? <Waves /> : item.id === "subtitle" ? <Captions /> : null}{item.label}</ToggleGroupItem>)}
+      </ToggleGroup>
+    </header>
+    {!visible.length ? <div className="creator-library-browser-empty"><FileText /><b>No matching Files</b><span>Created and uploaded Files appear here as soon as they are available.</span></div> : <div className="creator-library-browser-grid">{visible.map((file) => {
+      const fileKind = creatorLibraryKind(file)
+      if (["speech", "music", "sfx"].includes(fileKind)) {
+        const key = `file:${file.id}`
+        const url = file.url || (file.filename ? `/media/${encodeURIComponent(file.filename)}` : "")
+        return <AudioFileCard key={file.id} file={file} playing={playingKey === key && playerPlaying} onPlay={url && onPlay ? () => onPlay({ key, url, title: file.name || file.title || "Audio", subtitle: fileKind === "speech" ? "Speech" : fileKind === "music" ? "Music" : "Sound effect", kind: "file" }) : undefined} />
+      }
+      return <FileCard key={file.id} file={file} />
+    })}</div>}
+  </section>
+}

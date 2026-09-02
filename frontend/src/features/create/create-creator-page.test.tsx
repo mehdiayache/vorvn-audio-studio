@@ -56,7 +56,8 @@ describe("CreateCreatorPage", () => {
   it("runs music creation directly in the current Workspace and keeps a File", async () => {
     render(<MemoryRouter initialEntries={["/origins/create/generate-music?folder_id=27"]}><Routes><Route path="/origins/create/:actionId" element={<CreateCreatorPage />} /></Routes></MemoryRouter>)
 
-    expect(screen.getByRole("heading", { name: "Generate music" })).toBeTruthy()
+    expect(screen.getByRole("heading", { name: "Creator Library" })).toBeTruthy()
+    expect(screen.getAllByText(/Generate music/).length).toBeGreaterThan(0)
     expect(screen.getByText("Sandbox")).toBeTruthy()
     const workspace = screen.getByRole("button", { name: "Keep generated file" })
     expect(workspace.getAttribute("data-workspace-id")).toBe("4")
@@ -76,7 +77,8 @@ describe("CreateCreatorPage", () => {
   ])("keeps %s inside the canonical Creator route", async (actionId, title, testId) => {
     render(<MemoryRouter initialEntries={[`/origins/create/${actionId}`]}><Routes><Route path="/origins/create/:actionId" element={<CreateCreatorPage />} /></Routes></MemoryRouter>)
 
-    expect(screen.getByRole("heading", { name: title })).toBeTruthy()
+    expect(screen.getByRole("heading", { name: "Creator Library" })).toBeTruthy()
+    expect(screen.getAllByText(new RegExp(title)).length).toBeGreaterThan(0)
     const panel = await screen.findByTestId(testId)
     expect(panel.getAttribute("data-embedded")).toBe("true")
   })

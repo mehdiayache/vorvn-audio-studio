@@ -1,7 +1,10 @@
-import { AlertTriangle, EyeOff, Images } from "lucide-react"
+import { AlertTriangle, Captions, EyeOff, FileText, Images, X } from "lucide-react"
 import { useEffect, useMemo, useRef, useState, type CSSProperties, type ReactNode } from "react"
 
 import { Button } from "@/components/ui/button"
+import { AudioFileCard } from "@/components/audio-file-card"
+import { OperatorIconButton } from "@/components/operator-action"
+import { creatorLibraryKind, type CreatorLibraryKind } from "@/features/creator/library/creator-library-browser"
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group"
 import { FILE_SOURCE_PRESENTATION, fileSource, type FileSource } from "@/lib/file-provenance"
 import type { WorkspaceFile } from "@/types/domain"
@@ -24,7 +27,7 @@ function galleryColumnCount(width: number) {
   return 5
 }
 
-export function ProjectLibraryGallery({ files, uploads, creationItems = [], usageCounts, pendingId, onPreview, onAddToTimeline, onRemove, onRetryUpload, onDismissUpload, onUpload, onOpenLibrary }: {
+export function ProjectLibraryGallery({ files, uploads, creationItems = [], usageCounts, pendingId, onPreview, onAddToTimeline, onRemove, onRetryUpload, onDismissUpload, onUpload, onOpenLibrary, playingFileId, onPlayAudio }: {
   files: WorkspaceFile[]
   uploads: ProjectLibraryUploadItem[]
   creationItems?: ProjectLibraryCreationItem[]
@@ -37,8 +40,10 @@ export function ProjectLibraryGallery({ files, uploads, creationItems = [], usag
   onDismissUpload: (item: ProjectLibraryUploadItem) => void
   onUpload: () => void
   onOpenLibrary: () => void
+  playingFileId?: number | null
+  onPlayAudio?: (file: WorkspaceFile) => void
 }) {
-  const [mediaFilter, setMediaFilter] = useState<"all" | "image" | "video">("all")
+  const [mediaFilter, setMediaFilter] = useState<CreatorLibraryKind>("all")
   const [originFilter, setOriginFilter] = useState<"all" | FileSource>("all")
   const [showFailed, setShowFailed] = useState(false)
   const [columnCount, setColumnCount] = useState(5)
@@ -48,7 +53,7 @@ export function ProjectLibraryGallery({ files, uploads, creationItems = [], usag
     const candidates = [
       ...creationItems.map(({ id, node, status, mediaType, createdAt }, order) => ({ kind: "generation" as const, origin: "generated" as const, id, node, status, mediaType, createdAt, order })),
       ...uploads.map((item, order) => ({ kind: "upload" as const, origin: "uploaded" as const, item, mediaType: item.file.type.startsWith("video/") ? "video" as const : "image" as const, createdAt: null, order: creationItems.length + order })),
-      ...files.map((file, order) => ({ kind: "file" as const, origin: fileSource(file), file, mediaType: file.media_type === "video" ? "video" as const : "image" as const, createdAt: file.created_at || file.updated_at || null, order: creationItems.length + uploads.length + order })),
+      ...files.map((file, order) => ({ kind: "file" as const, origin: fileSource(file), file, mediaType: creatorLibraryKind(file), createdAt: file.created_at || file.updated_at || null, order: creationItems.length + uploads.length + order })),
     ]
     return candidates
       .filter((entry) => entry.kind !== "generation" || showFailed || (entry.status !== "failed" && entry.status !== "canceled"))
@@ -88,16 +93,23 @@ export function ProjectLibraryGallery({ files, uploads, creationItems = [], usag
   function renderEntry(entry: (typeof items)[number]) {
     if (entry.kind === "generation") return <div className="project-library-generation-gallery-entry" key={`generation-${entry.id}`}>{entry.node}</div>
     if (entry.kind === "upload") return <ProjectLibraryUploadCard key={entry.item.id} item={entry.item} onRetry={onRetryUpload} onDismiss={onDismissUpload} />
-    return <VisualFileCard key={entry.file.id} file={entry.file} usedCount={usageCounts?.get(entry.file.id) || 0} pending={pendingId === entry.file.id} onPreview={onPreview} onAddToTimeline={onAddToTimeline} onRemove={onRemove} />
+    const fileKind = creatorLibraryKind(entry.file)
+    if (fileKind === "image" || fileKind === "video") return <VisualFileCard key={entry.file.id} file={entry.file} usedCount={usageCounts?.get(entry.file.id) || 0} pending={pendingId === entry.file.id} onPreview={onPreview} onAddToTimeline={onAddToTimeline} onRemove={onRemove} />
+    if (fileKind === "speech" || fileKind === "music" || fileKind === "sfx") return <div className="project-library-audio-entry" key={entry.file.id}><AudioFileCard file={entry.file} used={Boolean(usageCounts?.get(entry.file.id))} playing={playingFileId === entry.file.id} onPlay={onPlayAudio ? () => onPlayAudio(entry.file) : undefined} /><OperatorIconButton label={`Remove ${entry.file.name || "audio"} from Project`} detail="The File remains available in the Workspace Library." onClick={() => onRemove(entry.file)}><X /></OperatorIconButton></div>
+    return <article className="project-library-generic-file" key={entry.file.id}><span>{fileKind === "subtitle" ? <Captions /> : <FileText />}</span><div><b>{entry.file.name || entry.file.title || entry.file.filename || "Untitled File"}</b><small>{fileKind === "subtitle" ? "Subtitle" : "File"}</small></div><OperatorIconButton label={`Remove ${entry.file.name || "File"} from Project`} detail="The File remains available in the Workspace Library." onClick={() => onRemove(entry.file)}><X /></OperatorIconButton></article>
   }
 
   return <section className="project-library-gallery" aria-label="Project Library files">
     <header>
       <div className="project-library-gallery-filters">
-        <ToggleGroup type="single" variant="outline" size="sm" value={mediaFilter} onValueChange={(next) => { if (next === "all" || next === "image" || next === "video") setMediaFilter(next) }} aria-label="Media type">
-          <ToggleGroupItem value="all">All media</ToggleGroupItem>
+        <ToggleGroup type="single" variant="outline" size="sm" value={mediaFilter} onValueChange={(next) => { if (next) setMediaFilter(next as CreatorLibraryKind) }} aria-label="File type">
+          <ToggleGroupItem value="all">All</ToggleGroupItem>
           <ToggleGroupItem value="image">Images</ToggleGroupItem>
           <ToggleGroupItem value="video">Videos</ToggleGroupItem>
+          <ToggleGroupItem value="speech">Speech</ToggleGroupItem>
+          <ToggleGroupItem value="music">Music</ToggleGroupItem>
+          <ToggleGroupItem value="sfx">SFX</ToggleGroupItem>
+          <ToggleGroupItem value="subtitle">Subtitles</ToggleGroupItem>
         </ToggleGroup>
         <ToggleGroup type="single" variant="outline" size="sm" value={originFilter} onValueChange={(next) => { if (next === "all" || next in FILE_SOURCE_PRESENTATION) setOriginFilter(next as "all" | FileSource) }} aria-label="Media origin">
           <ToggleGroupItem value="all">All sources</ToggleGroupItem>

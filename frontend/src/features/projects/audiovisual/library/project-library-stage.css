@@ -61,6 +61,14 @@
 .project-library-gallery-items.is-single-row { display: grid; grid-template-columns: repeat(var(--project-library-gallery-columns, 5), minmax(0, 1fr)); align-items: start; gap: .65rem; }
 .project-library-gallery-items.is-single-row > * { display: block; margin: 0; }
 .project-library-generation-gallery-entry { min-width: 0; }
+.project-library-audio-entry { position: relative; }
+.project-library-audio-entry > [aria-label^="Remove"] { position: absolute; z-index: 2; top: .45rem; right: .45rem; }
+.project-library-generic-file { min-width: 0; display: grid; grid-template-columns: 2.5rem minmax(0, 1fr) auto; align-items: center; gap: .6rem; padding: .65rem; border: 1px solid var(--border); border-radius: .65rem; background: var(--surface-raised); }
+.project-library-generic-file > span { width: 2.5rem; height: 2.5rem; display: grid; place-items: center; border-radius: .55rem; color: var(--primary); background: var(--primary-soft); }
+.project-library-generic-file > span svg { width: 1rem; }
+.project-library-generic-file > div { min-width: 0; display: grid; gap: .1rem; }
+.project-library-generic-file b { overflow: hidden; font-size: var(--type-small); font-weight: var(--weight-label); text-overflow: ellipsis; white-space: nowrap; }
+.project-library-generic-file small { color: var(--muted-foreground); font-size: var(--type-caption); }
 .visual-file-card { width: 100%; overflow: hidden; border: 0; border-radius: .65rem; background: var(--surface-raised); }
 .visual-file-preview { position: relative; width: 100%; min-height: 8rem; display: block; overflow: hidden; background: var(--surface-subtle); }
 .visual-file-preview-target { width: 100%; height: 100%; display: block; border: 0; padding: 0; cursor: zoom-in; background: transparent; }

@@ -34,7 +34,7 @@ describe("Project workflow", () => {
     expect(WORKSTATION_STAGES.map(({ id, label, description }) => ({ id, label, description }))).toEqual([
       { id: "sequence", label: "Script", description: "Write and record the story" },
       { id: "sound", label: "Timeline", description: "Assemble audio and visuals" },
-      { id: "library", label: "Library", description: "Find and collect reusable Files" },
+      { id: "library", label: "Creator Library", description: "Create and collect reusable Files" },
     ])
   })
 
@@ -43,7 +43,7 @@ describe("Project workflow", () => {
 
     expect(screen.getByRole("heading", { name: "No media collected yet" })).toBeTruthy()
     expect(screen.queryByRole("textbox", { name: "Media prompt" })).toBeNull()
-    fireEvent.click(screen.getByRole("button", { name: "Show Create panel" }))
+    fireEvent.click(screen.getByRole("button", { name: "Show Creator" }))
     expect(await screen.findByRole("textbox", { name: "Media prompt" })).toBeTruthy()
     expect(screen.getByRole("radio", { name: "Image: Create a still visual" })).toBeTruthy()
     expect(screen.getByRole("combobox", { name: "Choose generation model" }).textContent).toContain("Model A")
@@ -220,7 +220,7 @@ describe("Project workflow", () => {
     expect(refresh).toHaveBeenCalledOnce()
   })
 
-  it("keeps Creations as a newest-first five-lane masonry without a parallel List mode", () => {
+  it("keeps Library as a newest-first five-lane masonry without a parallel List mode", () => {
     const files = Array.from({ length: 6 }, (_, index) => ({
       id: index + 1,
       media_type: "image" as const,

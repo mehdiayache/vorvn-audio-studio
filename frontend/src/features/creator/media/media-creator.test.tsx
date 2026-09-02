@@ -149,11 +149,11 @@ describe("Media creator", () => {
     expect(document.querySelector(".media-creator-scroll")?.contains(screen.getByRole("button", { name: "Generate" }))).toBe(false)
   })
 
-  it("collapses creation into a narrow rail without hiding Creations", async () => {
-    renderCreator({ renderCreations: () => <div>Creation wall</div> })
-    fireEvent.click(await screen.findByRole("button", { name: "Hide Create panel" }))
+  it("collapses creation into a narrow rail without hiding Library", async () => {
+    renderCreator({ renderLibrary: () => <div>Creation wall</div> })
+    fireEvent.click(await screen.findByRole("button", { name: "Hide Creator" }))
 
-    expect(screen.getByRole("button", { name: "Show Create panel" })).toBeTruthy()
+    expect(screen.getByRole("button", { name: "Show Creator" })).toBeTruthy()
     expect(screen.getByText("Creation wall")).toBeTruthy()
     expect(document.querySelector(".media-creator-shell")?.classList.contains("is-create-collapsed")).toBe(true)
   })
@@ -474,7 +474,7 @@ describe("Media creator", () => {
     vi.mocked(originsApi.mediaGenerations).mockResolvedValue(saved as never)
     let hiddenOutputIds = new Set<number>()
     let creationCount = 0
-    renderCreator({ renderCreations: (outputIds, items) => {
+    renderCreator({ renderLibrary: (outputIds, items) => {
       hiddenOutputIds = outputIds
       creationCount = items.length
       return <div>Unified creations</div>

@@ -8,6 +8,8 @@ import { useGlobalPlayer } from "@/components/global-player-provider"
 import { ErrorState, PageLoading } from "@/components/state-panel"
 import { Button } from "@/components/ui/button"
 import { AudioCreator } from "@/features/creator/audio/audio-creator"
+import { CreatorLibraryBrowser, type CreatorLibraryKind } from "@/features/creator/library/creator-library-browser"
+import { CreatorLibraryWorkspace } from "@/features/creator/library/creator-library-workspace"
 import { MediaCreator } from "@/features/creator/media/media-creator"
 import type { GeneratedKeepInput } from "@/features/workspace/library/audio-library"
 import "@/features/workspace/library/audio-library.css"
@@ -145,22 +147,11 @@ export function CreateCreatorPage() {
     <header className="create-creator-header">
       <Button asChild variant="ghost" size="sm"><Link to="/origins/"><ArrowLeft />Create</Link></Button>
       <span className={`create-creator-icon is-${action.capability}`}><Icon /></span>
-      <div><h1>{action.title}</h1><p>{action.description}</p></div>
+      <div><h1>Creator Library</h1><p>{action.title} · {action.description}</p></div>
       <span className="create-creator-destination"><small>Saving to</small><b>{workspaceName}</b></span>
     </header>
     <div className="create-creator-workspace">
-      {action.capability === "speech" ? <Suspense fallback={<PageLoading label="Opening speech controls" />}><SpeechCreator embedded /></Suspense> : action.capability === "subtitle" ? <Suspense fallback={<PageLoading label="Opening subtitle controls" />}><SubtitleCreator embedded /></Suspense> : audioCapability ? <AudioCreator
-        key={action.capability}
-        mode="sound"
-        workspaceId={selectedWorkspaceId}
-        fixedCapability={audioCapability}
-        allowPlacement={false}
-        playingKey={player.source?.key}
-        playerPlaying={player.state === "playing"}
-        onPlay={(source) => void player.toggleSource(source)}
-        onKeep={keepGeneratedFile}
-        onKept={fileKept}
-      /> : <MediaCreator
+      {action.capability === "media" ? <MediaCreator
         key={action.capability}
         context={context!}
         uploading={false}
@@ -168,6 +159,23 @@ export function CreateCreatorPage() {
         libraryFiles={libraryFiles}
         onUploadReference={uploadReference}
         onGenerationOutputReady={refresh}
+        renderLibrary={() => <CreatorLibraryBrowser files={libraryFiles} initialKind="all" playingKey={player.source?.key} playerPlaying={player.state === "playing"} onPlay={(source) => void player.toggleSource(source)} />}
+      /> : <CreatorLibraryWorkspace
+        creatorDetail={action.title}
+        libraryDetail={`${libraryFiles.length} reusable File${libraryFiles.length === 1 ? "" : "s"} · ${workspaceName}`}
+        creator={action.capability === "speech" ? <Suspense fallback={<PageLoading label="Opening speech controls" />}><SpeechCreator embedded panelOnly onLibraryChange={refresh} /></Suspense> : action.capability === "subtitle" ? <Suspense fallback={<PageLoading label="Opening subtitle controls" />}><SubtitleCreator embedded panelOnly onLibraryChange={refresh} /></Suspense> : <AudioCreator
+        key={action.capability}
+        mode="sound"
+        workspaceId={selectedWorkspaceId}
+        fixedCapability={audioCapability!}
+        allowPlacement={false}
+        playingKey={player.source?.key}
+        playerPlaying={player.state === "playing"}
+        onPlay={(source) => void player.toggleSource(source)}
+        onKeep={keepGeneratedFile}
+        onKept={fileKept}
+      />}
+        library={<CreatorLibraryBrowser files={libraryFiles} initialKind={action.capability as CreatorLibraryKind} playingKey={player.source?.key} playerPlaying={player.state === "playing"} onPlay={(source) => void player.toggleSource(source)} />}
       />}
     </div>
   </section>

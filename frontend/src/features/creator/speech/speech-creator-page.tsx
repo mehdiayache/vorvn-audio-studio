@@ -60,7 +60,7 @@ function PendingSpeechExecution({ execution, directory, onTerminal }: {
   }} directory={directory} />
 }
 
-export function SpeechCreatorPage({ embedded = false }: { embedded?: boolean } = {}) {
+export function SpeechCreatorPage({ embedded = false, panelOnly = false, onLibraryChange }: { embedded?: boolean; panelOnly?: boolean; onLibraryChange?: () => void | Promise<void> } = {}) {
   const voices = useVoiceDirectory()
   const workspaceHome = useWorkspaceExplorer()
   const player = useGlobalPlayer()
@@ -126,6 +126,7 @@ export function SpeechCreatorPage({ embedded = false }: { embedded?: boolean } =
         ? current
         : [...current, { jobId: job.id, payload: attempt.request }])
       await refreshHistory()
+      await onLibraryChange?.()
     } catch (reason) {
       toast.error(reason instanceof Error ? reason.message : "Cost confirmation failed.")
     }
@@ -149,7 +150,7 @@ export function SpeechCreatorPage({ embedded = false }: { embedded?: boolean } =
       if (generationLock.current === execution.jobId) generationLock.current = null
       setExecutions((current) => current.filter((item) => item.jobId !== execution.jobId))
     }
-  }, [player, refreshHistory, voices.directory])
+  }, [onLibraryChange, player, refreshHistory, voices.directory])
 
   function clipView(attempt: RecordingAttempt): RecordingClipView {
     const status = recordingAttemptStatus(attempt)
@@ -185,6 +186,11 @@ export function SpeechCreatorPage({ embedded = false }: { embedded?: boolean } =
   const visibleAttempts = history?.recordings.filter(
     (attempt) => !executions.some((execution) => execution.jobId === attempt.id),
   ) || []
+
+  if (panelOnly) return <div className="speech-creator-panel">
+    {voices.error && voices.config && <InlineResourceError message="Voice directory refresh failed. Existing voice data is preserved." retry={() => void voices.refresh()} />}
+    <StandaloneCreatorHost config={voices.config} directory={voices.directory} playingKey={player.source?.key} playerPlaying={player.state === "playing"} generationState={generationState} onGenerate={generate} onPlay={(source) => void player.toggleSource(source)} />
+  </div>
 
   const Root = embedded ? "div" : "main"
   return <Root className="speech-creator-page" data-embedded={embedded || undefined}>
