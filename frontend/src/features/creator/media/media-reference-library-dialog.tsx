@@ -7,7 +7,7 @@ import { Input } from "@/components/ui/input"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import type { SavedVisualReference, WorkspaceFile } from "@/types/domain"
-import { visualFileName, visualFilePosterUrl, visualFileUrl } from "@/features/projects/audiovisual/library/visual-files"
+import { visualFileName, visualFilePosterUrl, visualFileUrl } from "@/features/creator/library/visual-file-presentation"
 import type { MediaAttachmentKind } from "./media-creator-config"
 
 type SortMode = "used" | "added" | "name"

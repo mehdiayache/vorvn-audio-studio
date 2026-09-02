@@ -1,5 +1,5 @@
 import { AlertTriangle, Captions, EyeOff, FileText, FolderOpen, Images, Search, Upload, X } from "lucide-react"
-import { useEffect, useMemo, useRef, useState, type CSSProperties, type ReactNode } from "react"
+import { useEffect, useMemo, useRef, useState, type CSSProperties } from "react"
 
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -10,16 +10,9 @@ import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { FILE_SOURCE_PRESENTATION, fileSource, type FileSource } from "@/lib/file-provenance"
 import type { WorkspaceFile, WorkspaceFolder } from "@/types/domain"
+import type { CreatorLibraryCreationItem } from "@/features/creator/library/creator-library-creation-item"
 import { ProjectLibraryUploadCard, type ProjectLibraryUploadItem } from "./project-library-upload-card"
 import { VisualFileCard } from "./visual-file-card"
-
-export type ProjectLibraryCreationItem = {
-  id: string
-  node: ReactNode
-  status?: "queued" | "generating" | "ready" | "canceled" | "failed"
-  mediaType?: "image" | "video"
-  createdAt?: string | null
-}
 
 function galleryColumnCount(width: number) {
   if (width < 400) return 1
@@ -33,7 +26,7 @@ export function ProjectLibraryGallery({ folders = [], files, uploads, creationIt
   folders?: WorkspaceFolder[]
   files: WorkspaceFile[]
   uploads: ProjectLibraryUploadItem[]
-  creationItems?: ProjectLibraryCreationItem[]
+  creationItems?: CreatorLibraryCreationItem[]
   usageCounts?: ReadonlyMap<number, number>
   pendingId: number | null
   onPreview: (file: WorkspaceFile) => void

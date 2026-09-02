@@ -8,21 +8,26 @@ afterEach(cleanup)
 
 describe("CreatorHost", () => {
   it("switches Image and Speech through the same capability-neutral host", () => {
-    render(<CreatorHost context={{ workspace_id: 4 }} initialCapability="speech">
+    render(<CreatorHost context={{ workspace_id: 4, selection: { output_media_type: "video", reference_id: 19 } }} initialCapability="speech">
       {({ capability, context, renderWorkspace }) => renderWorkspace({
         creatorDetail: capability,
-        creator: <div data-testid="active-capability" data-output={String(context.selection?.output_media_type || "")}>{capability}</div>,
+        creator: <div data-testid="active-capability" data-output={String(context.selection?.output_media_type || "")} data-reference={String(context.selection?.reference_id || "")}>{capability}</div>,
         library: <div>Shared Library</div>,
       })}
     </CreatorHost>)
 
     expect(screen.getByTestId("active-capability").textContent).toBe("speech")
+    expect(screen.getByTestId("active-capability").getAttribute("data-output")).toBe("")
+    expect(screen.getByTestId("active-capability").getAttribute("data-reference")).toBe("19")
     expect(screen.getByText("Shared Library")).toBeTruthy()
 
     fireEvent.click(screen.getByRole("button", { name: "Image" }))
 
     expect(screen.getByTestId("active-capability").textContent).toBe("image")
     expect(screen.getByTestId("active-capability").getAttribute("data-output")).toBe("image")
+
+    fireEvent.click(screen.getByRole("button", { name: "Speech" }))
+    expect(screen.getByTestId("active-capability").getAttribute("data-output")).toBe("")
   })
 
   it("resets to the requested capability when a launcher changes route", () => {

@@ -1,5 +1,5 @@
 import type { WorkspaceFile } from "@/types/domain"
-import { visualFileName, visualFilePosterUrl, visualFileUrl } from "@/features/projects/audiovisual/library/visual-files"
+import { visualFileName, visualFilePosterUrl, visualFileUrl } from "@/features/creator/library/visual-file-presentation"
 import type { MediaAdvancedValues } from "./media-advanced-settings"
 import type { MediaCreatorAttachment } from "./media-creator-attachments"
 import { inputMode, ratioChoices, type MediaAttachmentKind, type MediaOperationCapability, type MediaParameterValues } from "./media-creator-config"

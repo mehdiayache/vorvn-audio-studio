@@ -6,7 +6,7 @@ import { OperatorTooltip } from "@/components/operator-tooltip"
 import { Button } from "@/components/ui/button"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuGroup, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
 import type { WorkspaceFile } from "@/types/domain"
-import { visualFileFacts, visualFileName, visualFilePlaybackUrl, visualFilePosterUrl, visualFileUrl } from "./visual-files"
+import { visualFileFacts, visualFileName, visualFilePlaybackUrl, visualFilePosterUrl, visualFileUrl } from "@/features/creator/library/visual-file-presentation"
 
 export function VisualFileCard({ file, mode = "project-library", pending = false, addLabel = "Add", usedCount = 0, onPreview, onAdd, onAddToTimeline, onRemove }: {
   file: WorkspaceFile

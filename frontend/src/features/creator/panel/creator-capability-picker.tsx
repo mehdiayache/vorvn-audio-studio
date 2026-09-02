@@ -10,7 +10,7 @@ const capabilities = [
   { id: "video", label: "Video", icon: Video },
   { id: "speech", label: "Speech", icon: Mic2 },
   { id: "music", label: "Music", icon: Music2 },
-  { id: "sfx", label: "SFX", icon: Waves },
+  { id: "sfx", label: "Sound Effect", icon: Waves },
 ] as const
 
 export function CreatorCapabilityPicker({ value, capabilities: available, onChange, className }: {

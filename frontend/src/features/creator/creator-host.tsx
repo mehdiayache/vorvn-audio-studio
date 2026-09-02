@@ -64,7 +64,9 @@ export function CreatorHost({
   const capabilityContext = useMemo<CreatorContext>(() => ({
     ...context,
     selection: {
-      ...(context.selection || {}),
+      ...Object.fromEntries(Object.entries(context.selection || {}).filter(([key]) => (
+        key !== "capability" && key !== "output_media_type"
+      ))),
       capability,
       ...((capability === "image" || capability === "video")
         ? { output_media_type: capability }

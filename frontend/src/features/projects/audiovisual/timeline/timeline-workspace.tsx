@@ -9,7 +9,7 @@ import { VisualSceneSession, useVisualSceneSession, type VisualClipRef } from "@
 import { formatDuration } from "@/lib/format"
 import { cn } from "@/lib/utils"
 import type { SoundSceneTrack, WorkspaceFile, VisualSceneTrack } from "@/types/domain"
-import { visualFileName } from "../library/visual-files"
+import { visualFileName } from "@/features/creator/library/visual-file-presentation"
 import { AudioTimelineSection } from "./audio-timeline-section"
 import { projectTimelineDurationMs } from "./timeline-duration"
 import { TimelineRuler } from "./timeline-ruler"

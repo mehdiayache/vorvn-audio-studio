@@ -16,6 +16,9 @@ const api = vi.hoisted(() => ({
   confirmJob: vi.fn(), retryMediaGenerationIngestion: vi.fn(),
 }))
 vi.mock("@/lib/api", () => ({ originsApi: api }))
+vi.mock("@/components/global-player-provider", () => ({ useGlobalPlayer: () => ({
+  source: null, state: "idle", toggleSource: vi.fn(),
+}) }))
 
 afterEach(() => {
   cleanup()
@@ -25,7 +28,7 @@ afterEach(() => {
 
 import { ProjectLibraryStage } from "../library/project-library-stage"
 import { FilePreviewDialog } from "@/features/creator/library/file-preview-dialog"
-import { visualFileDetails, visualFilePlaybackUrl, visualFilePosterUrl, visualFileIssue } from "../library/visual-files"
+import { visualFileDetails, visualFilePlaybackUrl, visualFilePosterUrl, visualFileIssue } from "@/features/creator/library/visual-file-presentation"
 import { VisualFileCard } from "../library/visual-file-card"
 import { WORKSTATION_STAGES } from "../workstation-workflow"
 
@@ -38,7 +41,7 @@ describe("Project workflow", () => {
     ])
   })
 
-  it("starts the Project Library with Creator open and the four creation capabilities", async () => {
+  it("starts the Project Library with Creator open and the five creation capabilities", async () => {
     render(<ProjectLibraryStage projectId={7} workspaceId={1} files={[]} libraryFileIds={[]} onUpload={vi.fn()} onRefresh={vi.fn()} />)
 
     expect(screen.getByRole("complementary", { name: "Creator" }).classList.contains("ws-left-pane")).toBe(true)
@@ -46,7 +49,7 @@ describe("Project workflow", () => {
     expect(screen.getByRole("heading", { name: "No media collected yet" })).toBeTruthy()
     expect(await screen.findByRole("textbox", { name: "Media prompt" })).toBeTruthy()
     expect(screen.getByRole("navigation", { name: "Creation capability" })).toBeTruthy()
-    expect(["Image", "Video", "Speech", "Music", "SFX"].map((name) => screen.getByRole("button", { name }).getAttribute("aria-pressed"))).toEqual(["false", "true", "false", "false", "false"])
+    expect(["Image", "Video", "Speech", "Music", "Sound Effect"].map((name) => screen.getByRole("button", { name }).getAttribute("aria-pressed"))).toEqual(["false", "true", "false", "false", "false"])
     expect(screen.queryByRole("button", { name: "Subtitles" })).toBeNull()
     expect(screen.getByRole("radio", { name: "Text: Create a video from a written direction" })).toBeTruthy()
     expect(screen.getByRole("combobox", { name: "Choose generation model" }).textContent).toContain("Model A")

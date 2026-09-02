@@ -12,7 +12,7 @@ import { Skeleton } from "@/components/ui/skeleton"
 import { formatMoney } from "@/lib/format"
 import { displayedGenerationCost, type MediaGeneration } from "./media-generation-types"
 import type { WorkspaceFile } from "@/types/domain"
-import { visualFilePlaybackUrl, visualFilePosterUrl, visualFileUrl } from "@/features/projects/audiovisual/library/visual-files"
+import { visualFilePlaybackUrl, visualFilePosterUrl, visualFileUrl } from "@/features/creator/library/visual-file-presentation"
 import { operationLabel, type MediaOperationInfo } from "./media-creator-config"
 
 function operatorMessage(message: string | null | undefined) {

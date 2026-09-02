@@ -8,7 +8,7 @@ import { AudioFileCard } from "@/components/audio-file-card"
 import { creatorLibraryKind, type CreatorLibraryKind } from "@/features/creator/library/creator-library-browser"
 import { Select, SelectContent, SelectGroup, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import type { WorkspaceFile, WorkspaceFolder } from "@/types/domain"
-import { isVisualFile, visualFileName } from "./visual-files"
+import { isVisualFile, visualFileName } from "@/features/creator/library/visual-file-presentation"
 import { VisualFileCard } from "./visual-file-card"
 
 type FileSourceFilter = "all" | "project"

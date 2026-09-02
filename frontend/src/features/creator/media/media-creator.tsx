@@ -3,7 +3,7 @@ import { useEffect, useMemo, useRef, useState, type ReactNode } from "react"
 import type { CreatorHostWorkspace } from "../creator-host"
 import { originsApi, type CreatorContext } from "@/lib/api"
 import type { SavedVisualReference, WorkspaceFile } from "@/types/domain"
-import { visualFileName, visualFilePosterUrl } from "@/features/projects/audiovisual/library/visual-files"
+import { visualFileName, visualFilePosterUrl } from "@/features/creator/library/visual-file-presentation"
 import type { MediaAdvancedValues } from "./media-advanced-settings"
 import type { MediaCreatorAttachment } from "./media-creator-attachments"
 import { MediaCreatorInput } from "./media-creator-input"
@@ -33,7 +33,7 @@ import type { MediaGeneration, MediaGenerationPreset } from "./media-generation-
 import { MediaReferenceLibraryDialog } from "./media-reference-library-dialog"
 import { useMediaGenerations } from "./use-media-generations"
 import { SavedReferenceCreateDialog } from "./saved-reference-create-dialog"
-import type { ProjectLibraryCreationItem } from "@/features/projects/audiovisual/library/project-library-gallery"
+import type { CreatorLibraryCreationItem } from "@/features/creator/library/creator-library-creation-item"
 import "./media-creator.css"
 
 function operatorMessage(message: string) {
@@ -61,7 +61,7 @@ function initialHiddenRequests(context: CreatorContext) {
   }
 }
 
-export function MediaCreator({ context, uploading, uploadLabel, libraryFiles, recentFileIds = [], usageCounts, onUploadReference, onGenerationOutputReady, onPreviewGenerated, onAddGeneratedToTimeline, renderLibrary, renderWorkspace }: {
+export function MediaCreator({ context, uploading, uploadLabel, libraryFiles, recentFileIds = [], usageCounts, onUploadReference, onGenerationOutputReady, onPreviewGenerated, onAddGeneratedToTimeline, libraryDetail, renderLibrary, renderWorkspace }: {
   context: CreatorContext
   uploading: boolean
   uploadLabel: string
@@ -72,7 +72,8 @@ export function MediaCreator({ context, uploading, uploadLabel, libraryFiles, re
   onGenerationOutputReady?: () => Promise<void>
   onPreviewGenerated?: (file: WorkspaceFile) => void
   onAddGeneratedToTimeline?: (file: WorkspaceFile) => Promise<void>
-  renderLibrary?: (generatedOutputIds: Set<number>, generationItems: ProjectLibraryCreationItem[]) => ReactNode
+  libraryDetail?: string
+  renderLibrary?: (generatedOutputIds: Set<number>, generationItems: CreatorLibraryCreationItem[]) => ReactNode
   renderWorkspace: (workspace: CreatorHostWorkspace) => ReactNode
 }) {
   const workspaceId = context.workspace_id
@@ -548,7 +549,7 @@ export function MediaCreator({ context, uploading, uploadLabel, libraryFiles, re
   if (preferredOutputUnavailable || !catalog || !model || !capability) return renderWorkspace({
     className: "media-creator-workspace",
     creatorDetail: preferredOutputUnavailable ? `${preferredOutputType === "image" ? "Image" : "Video"} unavailable` : preferredOutputType === "image" ? "Image" : "Video",
-    libraryDetail: context.project_id ? "Files collected for this Project" : "Reusable Workspace Files",
+    libraryDetail: libraryDetail || (context.project_id ? "Files collected for this Project" : "Reusable Workspace Files"),
     creator: <div className="media-creator-loading">{preferredOutputUnavailable ? `Connect an ${preferredOutputType}-capable model to use this Creation Action.` : "Loading Media capabilities…"}{creatorError && <p className="media-creator-error" role="alert">{creatorError}</p>}</div>,
     library: renderLibrary?.(new Set(), []) || null,
   })
@@ -564,7 +565,7 @@ export function MediaCreator({ context, uploading, uploadLabel, libraryFiles, re
     {renderWorkspace({
       className: "media-creator-workspace",
       creatorDetail: preferredOutputType === "image" ? "Image" : "Video",
-      libraryDetail: `${context.project_id ? recentFileIds.length : libraryFiles.length} Files · ${generations.length} request${generations.length === 1 ? "" : "s"}${activeEstimate > 0 ? " · generation pending" : ""}`,
+      libraryDetail: libraryDetail || `${context.project_id ? recentFileIds.length : libraryFiles.length} Files · ${generations.length} request${generations.length === 1 ? "" : "s"}${activeEstimate > 0 ? " · generation pending" : ""}`,
       creator: <><MediaCreatorInput
       prompt={prompt} operations={catalog.operations.filter(({ id }) => modes.some((mode) => mode.operation === id))} operation={operation} capability={presentedCapability || capability}
       model={model} models={families} modelFamilyId={family?.id || ""} attachments={visibleAttachments} missingRoles={missing}

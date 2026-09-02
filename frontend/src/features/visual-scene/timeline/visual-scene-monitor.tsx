@@ -2,7 +2,7 @@ import { Image as ImageIcon } from "lucide-react"
 import { useEffect, useRef, type CSSProperties, type PointerEvent as ReactPointerEvent } from "react"
 
 import type { WorkspaceFile, VisualSceneDocument } from "@/types/domain"
-import { visualFileName, visualFilePlaybackUrl, visualFilePosterUrl, visualFileUrl } from "@/features/projects/audiovisual/library/visual-files"
+import { visualFileName, visualFilePlaybackUrl, visualFilePosterUrl, visualFileUrl } from "@/features/creator/library/visual-file-presentation"
 import type { VisualSceneClip } from "@/types/domain"
 import type { VisualClipRef, VisualSceneSession } from "@/features/visual-scene/engine/visual-scene-session"
 

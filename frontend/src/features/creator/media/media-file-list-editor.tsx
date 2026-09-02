@@ -7,7 +7,7 @@ import { Input } from "@/components/ui/input"
 import { Select, SelectContent, SelectGroup, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { originsApi, type CreatorContext, type MediaCompatibilityResult } from "@/lib/api"
 import type { WorkspaceFile } from "@/types/domain"
-import { visualFileName } from "@/features/projects/audiovisual/library/visual-files"
+import { visualFileName } from "@/features/creator/library/visual-file-presentation"
 import type { MediaParameterCapability } from "./media-creator-config"
 
 type FileListItem = {
