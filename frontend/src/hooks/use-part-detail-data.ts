@@ -1,13 +1,13 @@
 import { useCallback, useEffect, useRef, useState } from "react"
 
-import { studioApi } from "@/lib/api"
+import { originsApi } from "@/lib/api"
 import { useJobExecution } from "@/hooks/use-job-execution"
 import { useJobQuery } from "@/hooks/use-job-query"
-import type { CaptionMutationResult, ProductionPart, Transcript, TranscriptSummary } from "@/types/domain"
+import type { CaptionMutationResult, ProjectPart, Transcript, TranscriptSummary } from "@/types/domain"
 
 export type CaptionConfirmation = { kind: "transcribe" | "translate"; estimate: number; target?: string }
 
-export function usePartDetailData(productionId: number, part: ProductionPart | null, onChanged: () => Promise<void>) {
+export function usePartDetailData(projectId: number, part: ProjectPart | null, onChanged: () => Promise<void>) {
   const [captions, setCaptions] = useState<TranscriptSummary[]>([])
   const [transcript, setTranscript] = useState<Transcript | null>(null)
   const [loading, setLoading] = useState(false)
@@ -25,9 +25,9 @@ export function usePartDetailData(productionId: number, part: ProductionPart | n
     || (captionJob.type === "translate" && captions.some((item) => item.id === Number(captionJob.context?.transcript_id || 0)))
   ) ? captionJob : null
 
-  const reload = useCallback(async (activePart: ProductionPart, preferId?: number) => {
+  const reload = useCallback(async (activePart: ProjectPart, preferId?: number) => {
     const request = ++requestRef.current
-    const captionResult = await studioApi.captions(productionId, activePart.id)
+    const captionResult = await originsApi.captions(projectId, activePart.id)
     if (request !== requestRef.current) return
     const nextCaptions = captionResult.transcripts || []
     setCaptions(nextCaptions)
@@ -36,10 +36,10 @@ export function usePartDetailData(productionId: number, part: ProductionPart | n
       || nextCaptions.find((item) => !item.is_translation)
       || nextCaptions[0]
     if (preferred) {
-      const nextTranscript = await studioApi.transcript(preferred.id)
+      const nextTranscript = await originsApi.transcript(preferred.id)
       if (request === requestRef.current) setTranscript(nextTranscript)
     } else if (request === requestRef.current) setTranscript(null)
-  }, [productionId])
+  }, [projectId])
 
   useEffect(() => {
     requestRef.current += 1
@@ -54,7 +54,7 @@ export function usePartDetailData(productionId: number, part: ProductionPart | n
   const selectTranscript = useCallback(async (item: TranscriptSummary) => {
     const request = ++transcriptRequestRef.current
     setMessage("Opening captions…")
-    try { const next = await studioApi.transcript(item.id); if (request === transcriptRequestRef.current) { setTranscript(next); setMessage("") } }
+    try { const next = await originsApi.transcript(item.id); if (request === transcriptRequestRef.current) { setTranscript(next); setMessage("") } }
     catch (error) { if (request === transcriptRequestRef.current) setMessage(error instanceof Error ? error.message : "Captions could not be opened.") }
   }, [])
 
@@ -62,11 +62,11 @@ export function usePartDetailData(productionId: number, part: ProductionPart | n
     if (!part) return
     setCaptionBusy("transcribe"); setMessage("Listening to the current clip…")
     try {
-      const job = await studioApi.enqueueTranscribePart(productionId, part, false, language)
+      const job = await originsApi.enqueueTranscribePart(projectId, part, false, language)
       handledJobRef.current = null
       setCaptionJobId(job.id)
     } catch (error) { setMessage(error instanceof Error ? error.message : "Subtitles could not be created.") }
-  }, [part, productionId, setCaptionJobId])
+  }, [part, projectId, setCaptionJobId])
 
   const translate = useCallback(async (target: string) => {
     if (!part || !target) return
@@ -74,7 +74,7 @@ export function usePartDetailData(productionId: number, part: ProductionPart | n
     if (!original) { setMessage("Create the original subtitles first."); return }
     setCaptionBusy("translate"); setMessage(`Translating into ${target}…`)
     try {
-      const job = await studioApi.enqueueTranscriptTranslation(original.id, target)
+      const job = await originsApi.enqueueTranscriptTranslation(original.id, target)
       handledJobRef.current = null
       setCaptionJobId(job.id)
     } catch (error) { setMessage(error instanceof Error ? error.message : "The translation failed.") }
@@ -84,7 +84,7 @@ export function usePartDetailData(productionId: number, part: ProductionPart | n
   const confirmCaptionAction = useCallback(async () => {
     setCaptionConfirmation(null)
     if (!captionJobForPart) return
-    const continued = await studioApi.confirmJob<CaptionMutationResult>(captionJobForPart.id)
+    const continued = await originsApi.confirmJob<CaptionMutationResult>(captionJobForPart.id)
     handledJobRef.current = null
     setCaptionJobId(continued.id)
   }, [captionJobForPart, setCaptionJobId])
@@ -123,7 +123,7 @@ export function usePartDetailData(productionId: number, part: ProductionPart | n
     setRoleBusy(true)
     setMessage("Saving story role…")
     try {
-      await studioApi.savePartEditorial(productionId, part.id, {
+      await originsApi.savePartEditorial(projectId, part.id, {
         expected_revision: part.revision || 1,
         authored_role: authoredRole || null,
       })
@@ -135,7 +135,7 @@ export function usePartDetailData(productionId: number, part: ProductionPart | n
     } finally {
       setRoleBusy(false)
     }
-  }, [onChanged, part, productionId])
+  }, [onChanged, part, projectId])
 
   return { captions, transcript, loading, captionBusy, roleBusy, captionConfirmation, captionJob: captionJobForPart, message, selectTranscript, makeCaptions, translate, saveRole, confirmCaptionAction, cancelCaptionAction: () => setCaptionConfirmation(null), retryCaptionJob, dismissCaptionJob: () => setCaptionJobId(null) }
 }

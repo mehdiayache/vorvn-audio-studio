@@ -2,7 +2,7 @@
 
 import unittest
 
-from audio_studio.domain import captions
+from origins.domain import captions
 
 
 WORDS = [

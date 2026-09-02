@@ -1,6 +1,6 @@
 import { useSyncExternalStore } from "react"
 
-import type { SequenceMixOverride, SoundScene, SoundSceneClip, SoundSceneDocument, SoundSceneTrack, VentureAsset, VisualSceneDocument } from "@/types/domain"
+import type { SequenceMixOverride, SoundScene, SoundSceneClip, SoundSceneDocument, SoundSceneTrack, WorkspaceFile, VisualSceneDocument } from "@/types/domain"
 import { dbToGain, gainToDb } from "../sound-scene-gain"
 import { SoundSceneEngine, type SoundSceneEngineState } from "./sound-scene-engine"
 import { SoundScenePlayout } from "./sound-scene-playout"
@@ -74,8 +74,8 @@ function playoutStructure(document: SoundSceneDocument) {
       clips: track.clips.map((clip) => ({
         id: clip.id,
         linked_visual_clip_id: clip.linked_visual_clip_id,
-        asset_id: clip.asset_id,
-        asset_version_id: clip.asset_version_id,
+        file_id: clip.file_id,
+        file_version_id: clip.file_version_id,
         duration_ms: clip.duration_ms,
         source_offset_ms: clip.source_offset_ms,
         loop: clip.loop,
@@ -272,23 +272,23 @@ export class SoundSceneSession {
 
   async commitClip() { await this.persist(this.editor.document()) }
 
-  async syncVisualAudio(visual: VisualSceneDocument, assets: VentureAsset[]) {
-    const videoAssetIds = new Set(visual.tracks.flatMap((track) =>
-      track.media_type === "video" ? track.clips.map((clip) => clip.asset_id) : []))
+  async syncVisualAudio(visual: VisualSceneDocument, files: WorkspaceFile[]) {
+    const videoFileIds = new Set(visual.tracks.flatMap((track) =>
+      track.media_type === "video" ? track.clips.map((clip) => clip.file_id) : []))
     const signature = JSON.stringify({
       clips: visual.tracks.flatMap((track) => track.media_type === "video"
-        ? track.clips.map(({ id, asset_id, start_ms, duration_ms, source_offset_ms }) =>
-          [id, asset_id, start_ms, duration_ms, source_offset_ms])
+        ? track.clips.map(({ id, file_id, start_ms, duration_ms, source_offset_ms }) =>
+          [id, file_id, start_ms, duration_ms, source_offset_ms])
         : []),
-      assets: assets.filter(({ id }) => videoAssetIds.has(id)).map((asset) => [
-        asset.id, asset.version_id, asset.sample_rate, asset.channels,
-        asset.metadata?.audio_codec, asset.version_metadata?.audio_codec,
+      files: files.filter(({ id }) => videoFileIds.has(id)).map((file) => [
+        file.id, file.version_id, file.sample_rate, file.channels,
+        file.metadata?.audio_codec, file.version_metadata?.audio_codec,
       ]),
     })
     if (signature === this.visualAudioSignature) return false
     this.visualAudioSignature = signature
     const synchronized = synchronizeVideoAudio(
-      this.editor.document(), visual, assets,
+      this.editor.document(), visual, files,
     )
     if (!synchronized.changed) return false
     try {
@@ -306,11 +306,11 @@ export class SoundSceneSession {
     return document
   }
 
-  private audioClip(asset: VentureAsset, positionMs: number): SoundSceneClip {
-    const sourceDuration = Math.max(100, Number(asset.duration_ms || 30_000))
+  private audioClip(file: WorkspaceFile, positionMs: number): SoundSceneClip {
+    const sourceDuration = Math.max(100, Number(file.duration_ms || 30_000))
     return {
-      id: crypto.randomUUID(), asset_id: asset.id,
-      asset_version_id: Number(asset.version_id) || null,
+      id: crypto.randomUUID(), file_id: file.id,
+      file_version_id: Number(file.version_id) || null,
       duration_ms: sourceDuration,
       source_offset_ms: 0, gain: 1,
       fade_in_ms: 0, fade_out_ms: 0,
@@ -320,10 +320,10 @@ export class SoundSceneSession {
     }
   }
 
-  async addTrack(asset?: VentureAsset, timelinePosition = 0, requestedRole?: SoundTrackRole) {
+  async addTrack(file?: WorkspaceFile, timelinePosition = 0, requestedRole?: SoundTrackRole) {
     const id = `audio-${crypto.randomUUID()}`
     const role = requestedRole || "audio"
-    const clip = asset ? this.audioClip(asset, Math.max(0, Math.round(timelinePosition * 1000))) : null
+    const clip = file ? this.audioClip(file, Math.max(0, Math.round(timelinePosition * 1000))) : null
     const stem = TRACK_ROLE_LABELS[role]
     const used = new Set(this.editor.document().tracks.map((track) => track.name.trim().toLowerCase()))
     let number = 1
@@ -343,8 +343,8 @@ export class SoundSceneSession {
     this.select(null)
   }
 
-  async addClip(trackId: string, asset: VentureAsset, timelinePosition = 0) {
-    const clip = this.audioClip(asset, Math.max(0, Math.round(timelinePosition * 1000)))
+  async addClip(trackId: string, file: WorkspaceFile, timelinePosition = 0) {
+    const clip = this.audioClip(file, Math.max(0, Math.round(timelinePosition * 1000)))
     await this.persist(this.nextDocument((document) => {
       const track = document.tracks.find((item) => item.id === trackId)
       if (!track) throw new Error("That Audio Track is no longer available.")
@@ -367,7 +367,7 @@ export class SoundSceneSession {
     await this.persist(this.nextDocument((document) => {
       const track = document.tracks.find((item) => item.id === trackId)
       if (!track) throw new Error("That Audio Track is no longer available.")
-      const previousRole = track.role || "audio"
+      const previousRole = track.role
       const previousStem = TRACK_ROLE_LABELS[previousRole]
       const automaticName = new RegExp(`^${previousStem}(?: \\d+)?$`, "i").test(track.name)
       track.role = role
@@ -381,15 +381,15 @@ export class SoundSceneSession {
     }))
   }
 
-  async replaceClipSource(trackId: string, clipId: string, asset: VentureAsset) {
+  async replaceClipSource(trackId: string, clipId: string, file: WorkspaceFile) {
     await this.persist(this.nextDocument((document) => {
       const clip = document.tracks.find((track) => track.id === trackId)?.clips.find((item) => item.id === clipId)
       if (!clip) throw new Error("That audio clip is no longer available.")
       if (clip.locked) throw new Error("Unlock this clip before replacing its source.")
-      clip.asset_id = asset.id
-      clip.asset_version_id = Number(asset.version_id) || null
+      clip.file_id = file.id
+      clip.file_version_id = Number(file.version_id) || null
       clip.source_offset_ms = 0
-      if (!clip.loop) clip.duration_ms = Math.max(100, Number(asset.duration_ms || clip.duration_ms || 30_000))
+      if (!clip.loop) clip.duration_ms = Math.max(100, Number(file.duration_ms || clip.duration_ms || 30_000))
     }))
   }
 

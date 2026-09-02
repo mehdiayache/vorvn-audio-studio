@@ -8,7 +8,7 @@ const sourceUrl = query.get("fixture") === "flac"
   ? "./qa-60.flac"
   : query.get("fixture") === "mp3" ? "./qa-60.mp3" : "./qa-60.wav"
 const longClip = (id: string): SoundSceneClip => ({
-  id, asset_id: 1, duration_ms: durationMs, source_offset_ms: 0,
+  id, file_id: 1, duration_ms: durationMs, source_offset_ms: 0,
   gain: .25, fade_in_ms: 0, fade_out_ms: 0, loop: false,
   ducking: false, muted: false, locked: false, effects: [],
   anchor: { kind: "absolute", position_ms: 0 }, filename: sourceUrl,
@@ -16,7 +16,7 @@ const longClip = (id: string): SoundSceneClip => ({
   resolved_duration_ms: durationMs,
 })
 const cueClip = (id: string, positionMs: number): SoundSceneClip => ({
-  id, asset_id: positionMs, duration_ms: 120, source_offset_ms: 0,
+  id, file_id: positionMs, duration_ms: 120, source_offset_ms: 0,
   gain: 1, fade_in_ms: 0, fade_out_ms: 0, loop: false,
   ducking: false, muted: false, locked: false, effects: [],
   anchor: { kind: "absolute", position_ms: positionMs }, filename: "./qa-cue.wav",
@@ -35,7 +35,7 @@ const tracks: SoundSceneTrack[] = [
   }]),
 ]
 const scene: SoundScene = {
-  production_id: 1, revision: 1,
+  project_id: 1, revision: 1,
   document: { version: 1, sequence_overrides: {}, tracks },
   can_undo: false, can_redo: false, updated_at: new Date().toISOString(),
   resolved: {

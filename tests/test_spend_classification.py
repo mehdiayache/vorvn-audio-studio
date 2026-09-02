@@ -5,10 +5,11 @@ from uuid import uuid4
 
 import psycopg
 
-from audio_studio.config import settings
-from audio_studio.domain.spend_classification import spend_category
-from audio_studio.infrastructure.postgres.accounting import ProductionAccountingRepository
-from audio_studio.infrastructure.postgres.activity import ActivityRepository
+from origins.config import settings
+from origins.domain.spend_classification import spend_category
+from origins.infrastructure.postgres.accounting import ProjectAccountingRepository
+from origins.infrastructure.postgres.activity import ActivityRepository
+from origins.infrastructure.postgres.workspaces import WorkspaceRepository
 
 
 class _AccountingCursor:
@@ -16,7 +17,7 @@ class _AccountingCursor:
         pass
 
     def fetchall(self):
-        # production, all, speech, audio, video, retained, current
+        # project, all, speech, audio, video, retained, current
         return [(7, 6, 1, 1, 2, 1, 0)]
 
 
@@ -49,16 +50,16 @@ class SpendClassificationTest(unittest.TestCase):
         self.assertEqual(spend_category("speech"), "audio")
         self.assertEqual(spend_category("audio_generate"), "audio")
         self.assertEqual(spend_category("clone"), "audio")
-        self.assertEqual(spend_category("director_generate"), "video")
+        self.assertEqual(spend_category("media_generate"), "video")
         for kind in ("translate", "transcribe", "rewrite", "render"):
             self.assertEqual(spend_category(kind), "other")
 
-    def test_production_regression_sums_audio_video_other_and_historical(self):
+    def test_project_regression_sums_audio_video_other_and_historical(self):
         with patch(
-            "audio_studio.infrastructure.postgres.accounting.read_only",
+            "origins.infrastructure.postgres.accounting.read_only",
             return_value=_cursor(_AccountingCursor()),
         ):
-            result = ProductionAccountingRepository().one(7)
+            result = ProjectAccountingRepository().one(7)
         self.assertEqual(result["audio_spend"], 1)
         self.assertEqual(result["video_spend"], 2)
         self.assertEqual(result["other_spend"], 3)
@@ -66,7 +67,7 @@ class SpendClassificationTest(unittest.TestCase):
 
     def test_activity_uses_the_same_three_way_totals_for_every_period(self):
         with patch(
-            "audio_studio.infrastructure.postgres.activity.read_only",
+            "origins.infrastructure.postgres.activity.read_only",
             return_value=_cursor(_ActivityCursor()),
         ):
             result = ActivityRepository().snapshot()
@@ -76,42 +77,39 @@ class SpendClassificationTest(unittest.TestCase):
         self.assertEqual(result["total_media"], expected)
         self.assertEqual(result["total"], 6)
 
-    def test_real_postgres_aggregates_speech_director_and_translation_jobs(self):
+    def test_real_postgres_aggregates_speech_media_and_translation_jobs(self):
         try:
             database = psycopg.connect(settings.database_url)
         except psycopg.OperationalError as error:
             self.skipTest(str(error))
         marker = f"accounting-regression-{uuid4().hex}"
+        workspace = WorkspaceRepository().create_workspace(
+            "Accounting Workspace", "Disposable accounting regression fixture")
+        project = WorkspaceRepository().create_audiovisual_project(
+            workspace["id"], "Accounting Project", "", None)
+        if project is None:
+            self.fail("Could not create the canonical Project fixture")
+        project_id = int(project["id"])
         job_ids: list[int] = []
         try:
-            with database.cursor() as cursor:
-                cursor.execute(
-                    "SELECT id FROM productions WHERE archived_at IS NULL "
-                    "ORDER BY id LIMIT 1")
-                row = cursor.fetchone()
-                if not row:
-                    self.skipTest(
-                        "A real Production is required for the SQL accounting "
-                        "regression.")
-                production_id = int(row[0])
-            before = ProductionAccountingRepository().one(production_id)
+            before = ProjectAccountingRepository().one(project_id)
             with database.cursor() as cursor:
                 cursor.execute("""
                     INSERT INTO jobs
-                        (kind, status, cost, production_id, detail)
+                        (kind, status, cost, project_id, detail)
                     VALUES
                         ('speech', 'ok', 1, %s, %s),
-                        ('director_generate', 'ok', 2, %s, %s),
+                        ('media_generate', 'ok', 2, %s, %s),
                         ('translate', 'ok', 3, %s, %s)
                     RETURNING id
                 """, (
-                    production_id, marker,
-                    production_id, marker,
-                    production_id, marker,
+                    project_id, marker,
+                    project_id, marker,
+                    project_id, marker,
                 ))
                 job_ids = [int(row[0]) for row in cursor.fetchall()]
             database.commit()
-            after = ProductionAccountingRepository().one(production_id)
+            after = ProjectAccountingRepository().one(project_id)
             self.assertAlmostEqual(
                 after["audio_spend"] - before["audio_spend"], 1, places=6)
             self.assertAlmostEqual(
@@ -128,6 +126,9 @@ class SpendClassificationTest(unittest.TestCase):
                         "DELETE FROM jobs WHERE id = ANY(%s)", (job_ids,))
                 database.commit()
             database.close()
+            with psycopg.connect(settings.database_url) as cleanup:
+                cleanup.execute(
+                    "DELETE FROM workspaces WHERE id=%s", (workspace["id"],))
 
 
 if __name__ == "__main__":

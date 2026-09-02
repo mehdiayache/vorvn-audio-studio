@@ -30,14 +30,14 @@ export function ControlledComposerSurface({ composer, presentation = "mega", onE
     <div className={cn("speech-composer composer-surface", `is-${presentation}`)}>
       <header className="composer-context-bar">
         <div className="composer-context-copy">
-          <span className="eyebrow">{standalone ? "Speak" : "Production recording"}</span>
+          <span className="eyebrow">{standalone ? "Speak" : "Project recording"}</span>
           <b>{standalone ? "Generate standalone audio" : composer.destination}</b>
           <small>{standalone ? "Choose a voice, shape the delivery, then listen in this session" : "Voice, script, and performance in one workspace"}</small>
         </div>
         <div className="composer-context-actions">
           {!standalone && <ComposerRoleEditor composer={composer} />}
           {presentation === "inline" && onExpand && <Button variant="outline" size="sm" onClick={onExpand}><Expand /> Expand</Button>}
-          {onClose && <OperatorIconButton label="Close Composer" detail="Keeps the saved preparation and returns to the Production." onClick={onClose}><X /></OperatorIconButton>}
+          {onClose && <OperatorIconButton label="Close Composer" detail="Keeps the saved preparation and returns to the Project." onClick={onClose}><X /></OperatorIconButton>}
         </div>
       </header>
       {workstation ? <div className="composer-workspace">

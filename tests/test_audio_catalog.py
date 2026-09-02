@@ -9,15 +9,15 @@ import unittest
 from unittest.mock import Mock, patch
 import urllib.parse
 
-from audio_studio.application.audio_catalog import AudioCatalogService
-from audio_studio.application.uploads import UploadService
-from audio_studio.domain.audio_catalog import (
+from origins.application.audio_catalog import AudioCatalogService
+from origins.application.uploads import UploadService
+from origins.domain.audio_catalog import (
     AudioCatalogError,
     CatalogDownload,
     CatalogSound,
 )
-from audio_studio.domain.files import StoredFileVersion
-from audio_studio.providers.freesound import (
+from origins.domain.files import StoredFileVersion
+from origins.providers.freesound import (
     FreesoundCatalog,
     FreesoundOAuthTokens,
     freesound_status,
@@ -166,7 +166,10 @@ class FreesoundProviderTests(unittest.TestCase):
             "Content-Length": "13"}))
         sound = FakeCatalog.sound_record
         with TemporaryDirectory() as directory, patch.dict(
-                "os.environ", {"FREESOUND_OAUTH_ACCESS_TOKEN": "oauth"}):
+                "os.environ", {
+                    "FREESOUND_OAUTH_ACCESS_TOKEN": "oauth",
+                    "FREESOUND_OAUTH_EXPIRES_AT": "4102444800",
+                }):
             target = Path(directory) / "source.download"
             downloaded = FreesoundCatalog(opener=opener).download(
                 sound, target)
@@ -214,7 +217,7 @@ class FakeWorkspace:
         self.stored = []
         self.discarded = []
 
-    def store_asset(self, source, *, original_name, size_bytes):
+    def store_file(self, source, *, original_name, size_bytes):
         self.stored.append((Path(source), original_name, size_bytes))
         return StoredFileVersion(
             filename="kept.wav", path="/media/kept.wav",
@@ -233,21 +236,21 @@ class FakeRecords:
         self.competing_existing = None
         self.fail_create = False
 
-    def asset_collection(self, collection_id):
-        return {"id": collection_id} if collection_id == 41 else None
+    def workspace(self, workspace_id):
+        return {"id": workspace_id} if workspace_id == 4 else None
 
-    def catalog_asset(self, collection_id, *, origin, external_id, scope):
+    def catalog_file(self, *, workspace_id, origin, external_id):
         return self.existing
 
-    def create_uploaded_asset(self, collection_id, **values):
+    def create_workspace_file(self, workspace_id, **values):
         if self.fail_create:
             raise RuntimeError("database unavailable")
-        self.created.append({"collection_id": collection_id, **values})
+        self.created.append({"workspace_id": workspace_id, **values})
         stored = values["stored"]
         return {
             "id": 7, "version_id": 8, "name": values["name"],
             "filename": stored.filename, "duration_ms": stored.duration_ms,
-            "category": values["category"], "scope": values["scope"],
+            "category": values["category"],
             "tags": list(values["tags"]), "metadata": values["metadata"],
             "audio_format": stored.audio_format,
             "sample_rate": stored.sample_rate, "channels": stored.channels,
@@ -256,13 +259,13 @@ class FakeRecords:
             "version_metadata": stored.metadata,
         }
 
-    def create_catalog_asset(
-            self, collection_id, *, origin, external_id, **values):
+    def create_workspace_catalog_file(
+            self, workspace_id, *, origin, external_id, **values):
         if self.fail_create:
             raise RuntimeError("database unavailable")
         if self.competing_existing:
             return self.competing_existing, True
-        return self.create_uploaded_asset(collection_id, **values), False
+        return self.create_workspace_file(workspace_id, **values), False
 
 
 class FakeCatalog:
@@ -310,7 +313,7 @@ class AudioCatalogApplicationTests(unittest.TestCase):
             scratch_root=root / "incoming")
         return service, catalog, workspace, records
 
-    def test_preview_search_never_creates_an_asset(self):
+    def test_preview_search_never_creates_a_file(self):
         with TemporaryDirectory() as directory:
             service, _, workspace, records = self.service(Path(directory))
             results = service.search("wooden door closing")
@@ -319,48 +322,48 @@ class AudioCatalogApplicationTests(unittest.TestCase):
         self.assertFalse(workspace.stored)
         self.assertFalse(records.created)
 
-    def test_keep_reuses_ingestion_and_persists_provenance_category_scope(self):
+    def test_keep_reuses_ingestion_and_persists_provenance_and_category(self):
         with TemporaryDirectory() as directory:
             service, catalog, workspace, records = self.service(Path(directory))
             result = service.keep(
-                collection_id=41, external_id="931",
+                workspace_id=4, external_id="931",
                 name="Heavy wooden door", category="ambience",
-                scope="studio", tags=("door", "interior"))
+                tags=("door", "interior"), folder_id=12)
 
         self.assertFalse(result["duplicate"])
         self.assertEqual(catalog.downloads, 1)
         self.assertEqual(len(workspace.stored), 1)
         created = records.created[0]
-        self.assertEqual((created["category"], created["scope"]),
-                         ("ambience", "studio"))
+        self.assertEqual(created["category"], "ambience")
         self.assertEqual(created["tags"], ("door", "interior"))
+        self.assertEqual(created["folder_id"], 12)
         self.assertEqual(created["metadata"]["origin"], "freesound")
         self.assertEqual(created["metadata"]["external_id"], "931")
         self.assertEqual(created["metadata"]["license"], "cc-by-nc")
         self.assertTrue(created["metadata"]["attribution_required"])
-        self.assertEqual(result["asset"]["version_id"], 8)
+        self.assertEqual(result["file"]["version_id"], 8)
 
     def test_keep_without_classification_keeps_source_tags_as_provenance_only(self):
         with TemporaryDirectory() as directory:
             service, _, _, records = self.service(Path(directory))
             service.keep(
-                collection_id=41, external_id="931", name="Wooden door",
-                category=None, scope="space", tags=())
+                workspace_id=4, external_id="931", name="Wooden door",
+                category=None, tags=())
         created = records.created[0]
         self.assertIsNone(created["category"])
         self.assertEqual(created["tags"], ())
         self.assertEqual(created["metadata"]["source_tags"],
                          ["door", "wood", "close"])
 
-    def test_duplicate_keep_returns_the_existing_asset_without_download(self):
+    def test_duplicate_keep_returns_the_existing_file_without_download(self):
         with TemporaryDirectory() as directory:
             service, catalog, workspace, records = self.service(Path(directory))
             records.existing = {"id": 17, "version_id": 22}
             result = service.keep(
-                collection_id=41, external_id="931", name="Door",
-                category="sfx", scope="studio", tags=())
+                workspace_id=4, external_id="931", name="Door",
+                category="sfx", tags=())
         self.assertTrue(result["duplicate"])
-        self.assertEqual(result["asset"]["id"], 17)
+        self.assertEqual(result["file"]["id"], 17)
         self.assertEqual(catalog.downloads, 0)
         self.assertFalse(workspace.stored)
 
@@ -372,37 +375,37 @@ class AudioCatalogApplicationTests(unittest.TestCase):
                 "url": "/audio/winner.wav",
             }
             result = service.keep(
-                collection_id=41, external_id="931", name="Door",
-                category="sfx", scope="studio", tags=())
+                workspace_id=4, external_id="931", name="Door",
+                category="sfx", tags=())
         self.assertTrue(result["duplicate"])
-        self.assertEqual(result["asset"]["id"], 17)
+        self.assertEqual(result["file"]["id"], 17)
         self.assertEqual(catalog.downloads, 1)
         self.assertFalse(records.created)
         self.assertEqual(workspace.discarded, ["kept.wav"])
 
-    def test_download_failure_leaves_no_asset_or_scratch_file(self):
+    def test_download_failure_leaves_no_file_or_scratch_file(self):
         with TemporaryDirectory() as directory:
             root = Path(directory)
             service, _, workspace, records = self.service(
                 root, fail_download=True)
             with self.assertRaisesRegex(AudioCatalogError, "download failed"):
                 service.keep(
-                    collection_id=41, external_id="931", name="Door",
-                    category="sfx", scope="space", tags=())
+                    workspace_id=4, external_id="931", name="Door",
+                    category="sfx", tags=())
             remaining = list((root / "incoming").rglob("*"))
         self.assertFalse(workspace.stored)
         self.assertFalse(records.created)
         self.assertFalse(remaining)
 
-    def test_asset_write_failure_discards_the_stored_original(self):
+    def test_file_write_failure_discards_the_stored_original(self):
         with TemporaryDirectory() as directory:
             root = Path(directory)
             service, _, workspace, records = self.service(root)
             records.fail_create = True
             with self.assertRaisesRegex(RuntimeError, "database unavailable"):
                 service.keep(
-                    collection_id=41, external_id="931", name="Door",
-                    category=None, scope="studio", tags=())
+                    workspace_id=4, external_id="931", name="Door",
+                    category=None, tags=())
             remaining = list((root / "incoming").rglob("*"))
         self.assertEqual(workspace.discarded, ["kept.wav"])
         self.assertFalse(records.created)

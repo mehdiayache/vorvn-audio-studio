@@ -24,14 +24,14 @@ import { formatAuthoredRole, formatPartNumber } from "@/lib/format"
 import { outputLanguageOptions } from "@/lib/voice-capabilities"
 import { getVoiceIdentities, routesForIdentity, type VoiceChoice, type VoiceIdentityChoice } from "@/lib/voice-options"
 import { ssmlToPlainText, validateSsmlDocument, wrapPlainTextAsSsml } from "@/lib/ssml"
-import type { DurableJob, GeneratePayload, GenerateResult, PartEditorialUpdate, PlayerSource, ProductionPart, StudioConfig, VoiceDirectory } from "@/types/domain"
+import type { DurableJob, GeneratePayload, GenerateResult, PartEditorialUpdate, PlayerSource, ProjectPart, StudioConfig, VoiceDirectory } from "@/types/domain"
 
 export type ComposerSurfaceProps = {
-  productionId?: number
+  projectId?: number
   nextPartNumber?: number
   insertAt?: number | null
   insertBeforePartId?: string | null
-  part?: ProductionPart | null
+  part?: ProjectPart | null
   config: StudioConfig | null
   directory: VoiceDirectory
   playingKey?: string
@@ -51,7 +51,7 @@ type PendingGeneration = {
   updateEditorial: boolean
 }
 
-export function useComposerController({ productionId, nextPartNumber = 1, insertAt = null, insertBeforePartId = null, part = null, config, directory, playingKey, playerPlaying, onSave, onUpdateEditorial, onGenerate, onPlay, generationState = null, visible = true }: ComposerSurfaceProps) {
+export function useComposerController({ projectId, nextPartNumber = 1, insertAt = null, insertBeforePartId = null, part = null, config, directory, playingKey, playerPlaying, onSave, onUpdateEditorial, onGenerate, onPlay, generationState = null, visible = true }: ComposerSurfaceProps) {
   const [route, setRoute] = useState(routeSelectionFromPart(part))
   const [identityId, setIdentityId] = useState(part?.voice_identity_id || "")
   const [language, setLanguage] = useState(part?.language || "Auto")
@@ -109,7 +109,7 @@ export function useComposerController({ productionId, nextPartNumber = 1, insert
   const selectedCapability = selectedRouteCapability(currentRoute, route?.capabilityId)
   const capabilityControls = composerCapabilityControls(selectedCapability)
   const deliveryMode = resolvedDeliveryMode(capabilityControls, deliveryModeRequest)
-  const textSession = useComposerText(part, productionId, selectedCapability?.id || null, {
+  const textSession = useComposerText(part, projectId, selectedCapability?.id || null, {
     reviewReference: textReviewReference,
     onReviewReferenceChange: async (reference, nextText) => {
       setTextReviewReference(reference)
@@ -169,12 +169,12 @@ export function useComposerController({ productionId, nextPartNumber = 1, insert
   }
   const estimate = textSession.text.length * Number(currentRoute?.estimateRatePerMillionCharacters || 0) / 1_000_000
   const textPassEstimate = textSession.text.length * Number(config?.text_preparation?.estimated_price_per_million_characters || 0) / 1_000_000
-  const destination = !productionId
+  const destination = !projectId
     ? "Reusable recording"
     : part
       ? `Edit ${formatAuthoredRole(authoredRole) || "speech"} · Part ${formatPartNumber(part.position ?? 0)}`
       : insertAt === null ? `New speech · Part ${nextPartNumber}` : `New speech · before Part ${insertAt + 1}`
-  const context = useMemo(() => compositionContext({ productionId, part, insertBeforePartId }), [insertBeforePartId, part, productionId])
+  const context = useMemo(() => compositionContext({ projectId, part, insertBeforePartId }), [insertBeforePartId, part, projectId])
   const baseline = useMemo(() => editorialBaseline(part), [part])
   const draft: CompositionDraft = {
     authoredRole,
@@ -314,7 +314,7 @@ export function useComposerController({ productionId, nextPartNumber = 1, insert
   const methodLabel = selectedCapability?.name || "Choose a route first"
 
   return {
-    productionId, nextPartNumber, insertAt, insertBeforePartId, part, config, directory, playingKey, playerPlaying, onSave, onPlay, generationState,
+    projectId, nextPartNumber, insertAt, insertBeforePartId, part, config, directory, playingKey, playerPlaying, onSave, onPlay, generationState,
     route, identityId, language, format, deliveryModeRequest, instruction, rate, pitch, volume, seed, enableSsml,
     busy, roleBusy, authoredRole, confirmationEstimate, pendingCommand, editorialCommand, textReviewReference,
     identities, selectedIdentity, compatibleRoutes, visibleRoutes, currentRoute, selectedCapability, capabilityControls, deliveryMode,

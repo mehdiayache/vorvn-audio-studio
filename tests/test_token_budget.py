@@ -1,6 +1,6 @@
 import unittest
 
-from audio_studio.domain import token_budget
+from origins.domain import token_budget
 
 
 class TokenBudgetTests(unittest.TestCase):

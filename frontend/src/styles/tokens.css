@@ -57,7 +57,7 @@
   --ring: oklch(0.58 0.22 292.8);
   --radius: 0.625rem;
 
-  /* Auvi Studio semantic extensions. */
+  /* Origins semantic extensions. */
   --surface-subtle: oklch(0.985 0 0);
   --workspace-background: oklch(0.972 0 0);
   --surface-raised: oklch(1 0 0);
@@ -76,16 +76,12 @@
   --warning-border: rgb(242 113 28 / 36%);
   --danger-soft: oklch(0.97 0.025 27.3);
   --danger-border: oklch(0.84 0.08 27.3);
-  --asset: oklch(0.63 0.15 56);
-  --asset-soft: oklch(0.97 0.025 56);
-  --venture: var(--foreground);
-  --venture-soft: var(--muted);
+  --file: oklch(0.63 0.15 56);
+  --file-soft: oklch(0.97 0.025 56);
   --project: var(--muted-foreground);
   --project-soft: var(--surface-subtle);
   --series: oklch(0.56 0.14 245);
   --series-soft: oklch(0.97 0.02 245);
-  --production: var(--primary);
-  --production-soft: var(--primary-soft);
   --info: oklch(0.56 0.14 245);
   --info-soft: oklch(0.97 0.02 245);
   --info-border: oklch(0.84 0.06 245);

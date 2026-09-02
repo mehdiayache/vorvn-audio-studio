@@ -39,7 +39,7 @@ describe("AudioVolumeControl", () => {
     expect(onCommit).toHaveBeenCalledWith({ gain: .65, muted: false })
   })
 
-  it("repairs a legacy zero-gain state to 100% when unmuted", () => {
+  it("restores canonical unity volume when an effective zero is unmuted", () => {
     const onCommit = vi.fn()
     render(<AudioVolumeControl label="Video volume" gain={0} muted={false} onCommit={onCommit} />)
 

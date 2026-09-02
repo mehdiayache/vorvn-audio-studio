@@ -4,7 +4,7 @@ import { toast } from "sonner"
 
 import { Button } from "@/components/ui/button"
 import { Checkbox } from "@/components/ui/checkbox"
-import { studioApi } from "@/lib/api"
+import { originsApi } from "@/lib/api"
 import type { SettingsSnapshot } from "@/types/domain"
 
 export function SpeechSettingsCard({ settings, onUpdated }: { settings: SettingsSnapshot; onUpdated: (settings: SettingsSnapshot) => void }) {
@@ -16,7 +16,7 @@ export function SpeechSettingsCard({ settings, onUpdated }: { settings: Settings
   async function save() {
     setSaving(true)
     try {
-      onUpdated(await studioApi.updateSettings({ fix_dates_phones: fixDates, day_first: dayFirst }))
+      onUpdated(await originsApi.updateSettings({ fix_dates_phones: fixDates, day_first: dayFirst }))
       toast.success("Speech interpretation saved.")
     } catch (reason) { toast.error(reason instanceof Error ? reason.message : "Speech interpretation could not be saved.") }
     finally { setSaving(false) }

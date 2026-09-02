@@ -2,12 +2,10 @@ import type {
   SoundScene,
   SoundSceneDocument,
   PreviewResult,
-  Production,
-  ProductionPart,
+  Project,
+  ProjectPart,
   PartEditorialUpdate,
-  HierarchyNode,
-  ProductionSummary,
-  VentureAsset,
+  WorkspaceFile,
   StudioConfig,
   GeneratePayload,
   GenerateResult,
@@ -16,21 +14,19 @@ import type {
   TranscriptSummary,
   TextPassResult,
   CaptionMutationResult,
-  AssetCollection,
   ActivitySnapshot,
   ExternalAudioUpload,
   CaptionProfile,
   DurableJob,
-  VentureAssetLibrary,
   VisualScene,
   VisualSceneDocument,
-  SpaceSummary,
-  SpaceOverview,
-  SpaceFolder,
-  SpaceProject,
+  WorkspaceSummary,
+  WorkspaceOverview,
+  WorkspaceFolder,
+  WorkspaceProject,
   CreationActionSummary,
 } from "@/types/domain"
-import type { paths } from "@/types/api.generated"
+import type { components, paths } from "@/types/api.generated"
 import { ApiError } from "@/lib/api-error"
 import { jobObserver, observeJob } from "@/lib/job-observer"
 import { contextWire, draftFromWire, draftWire, type ComposerDraftRecord, type ComposerDraftWireRecord } from "@/lib/composer-draft-persistence"
@@ -39,21 +35,20 @@ import type { CompositionContext, RecoverableCompositionDraft } from "@/lib/comp
 type GeneratedJob = paths["/api/v1/jobs/{job_id}"]["get"]["responses"][200]["content"]["application/json"]["data"]
 type UploadedImage = paths["/api/v1/project-covers/upload"]["post"]["responses"][200]["content"]["application/json"]["data"]
 type UploadedVoiceReference = paths["/api/v1/voice-references/upload"]["post"]["responses"][200]["content"]["application/json"]["data"]
-type UploadedAsset = paths["/api/v1/asset-collections/{collection_id}/assets/upload"]["post"]["responses"][201]["content"]["application/json"]["data"]
-type UploadedFile = paths["/api/v1/spaces/{space_id}/files/upload"]["post"]["responses"][201]["content"]["application/json"]["data"]
+type UploadedFile = paths["/api/v1/workspaces/{workspace_id}/files/upload"]["post"]["responses"][201]["content"]["application/json"]["data"]
 type FreesoundSearchEnvelope = paths["/api/v1/audio-catalogs/freesound/search"]["get"]["responses"][200]["content"]["application/json"]
-type FreesoundKeepEnvelope = paths["/api/v1/audio-catalogs/freesound/keep"]["post"]["responses"][201]["content"]["application/json"]
-type FreesoundKeepBody = paths["/api/v1/audio-catalogs/freesound/keep"]["post"]["requestBody"]["content"]["application/json"]
+type FreesoundKeepEnvelope = paths["/api/v1/audio-catalogs/freesound/workspaces/{workspace_id}/keep"]["post"]["responses"][201]["content"]["application/json"]
+type FreesoundKeepBody = paths["/api/v1/audio-catalogs/freesound/workspaces/{workspace_id}/keep"]["post"]["requestBody"]["content"]["application/json"]
 type AudioGenerationStatusEnvelope = paths["/api/v1/audio-generations/status"]["get"]["responses"][200]["content"]["application/json"]
 type AudioGenerationHistoryEnvelope = paths["/api/v1/audio-generations/recent"]["get"]["responses"][200]["content"]["application/json"]
 type AudioGenerationCandidateEnvelope = paths["/api/v1/audio-generations/{candidate_id}"]["get"]["responses"][200]["content"]["application/json"]
-type SoundRecipeCompileBody = paths["/api/v1/audio-generations/recipe/compile"]["post"]["requestBody"]["content"]["application/json"]
-type SoundRecipeCompileEnvelope = paths["/api/v1/audio-generations/recipe/compile"]["post"]["responses"][200]["content"]["application/json"]
-type SoundRecipeTaxonomyEnvelope = paths["/api/v1/audio-generations/recipe/taxonomy"]["get"]["responses"][200]["content"]["application/json"]
+type SoundPresetCompileBody = paths["/api/v1/audio-generations/preset/compile"]["post"]["requestBody"]["content"]["application/json"]
+type SoundPresetCompileEnvelope = paths["/api/v1/audio-generations/preset/compile"]["post"]["responses"][200]["content"]["application/json"]
+type SoundPresetTaxonomyEnvelope = paths["/api/v1/audio-generations/preset/taxonomy"]["get"]["responses"][200]["content"]["application/json"]
 type AudioGenerationJobBody = paths["/api/v1/jobs/audio-generation"]["post"]["requestBody"]["content"]["application/json"]
-type SoundRecipeNormalizationJobBody = paths["/api/v1/jobs/sound-recipe-normalization"]["post"]["requestBody"]["content"]["application/json"]
-type GeneratedKeepBody = paths["/api/v1/audio-generations/{candidate_id}/keep"]["post"]["requestBody"]["content"]["application/json"]
-type GeneratedKeepEnvelope = paths["/api/v1/audio-generations/{candidate_id}/keep"]["post"]["responses"][201]["content"]["application/json"]
+type SoundPresetNormalizationJobBody = paths["/api/v1/jobs/sound-preset-normalization"]["post"]["requestBody"]["content"]["application/json"]
+type GeneratedKeepBody = paths["/api/v1/audio-generations/{candidate_id}/workspaces/{workspace_id}/keep"]["post"]["requestBody"]["content"]["application/json"]
+type GeneratedKeepEnvelope = paths["/api/v1/audio-generations/{candidate_id}/workspaces/{workspace_id}/keep"]["post"]["responses"][201]["content"]["application/json"]
 type GeneratedDiscardEnvelope = paths["/api/v1/audio-generations/{candidate_id}/candidate"]["delete"]["responses"][200]["content"]["application/json"]
 type SubtitleListEnvelope = paths["/api/v1/subtitles"]["get"]["responses"][200]["content"]["application/json"]
 type SubtitleEnvelope = paths["/api/v1/subtitles/{transcript_id}"]["get"]["responses"][200]["content"]["application/json"]
@@ -98,38 +93,34 @@ type PronunciationSaveEnvelope = paths["/api/v1/settings/pronunciations"]["post"
 type PronunciationSaveBody = paths["/api/v1/settings/pronunciations"]["post"]["requestBody"]["content"]["application/json"]
 type PronunciationDeleteEnvelope = paths["/api/v1/settings/pronunciations/{item_id}"]["delete"]["responses"][200]["content"]["application/json"]
 type PronunciationPreviewEnvelope = paths["/api/v1/settings/pronunciations/preview"]["get"]["responses"][200]["content"]["application/json"]
-type HierarchyPageEnvelope = paths["/api/v1/hierarchy"]["get"]["responses"][200]["content"]["application/json"]
-type VentureOverviewEnvelope = paths["/api/v1/ventures/{resource_id}/overview"]["get"]["responses"][200]["content"]["application/json"]
-type VentureAssetsEnvelope = paths["/api/v1/ventures/{resource_id}/assets"]["get"]["responses"][200]["content"]["application/json"]
-type DirectorAssetBody = paths["/api/v1/productions/{production_id}/director-assets"]["post"]["requestBody"]["content"]["application/json"]
-type DirectorAssetEnvelope = paths["/api/v1/productions/{production_id}/director-assets"]["post"]["responses"][200]["content"]["application/json"]
-type DirectorAssetDeleteEnvelope = paths["/api/v1/productions/{production_id}/director-assets/{asset_id}"]["delete"]["responses"][200]["content"]["application/json"]
-type DirectorGenerationCapabilitiesEnvelope = paths["/api/v1/director-generation-capabilities"]["get"]["responses"][200]["content"]["application/json"]
-type DirectorModelsEnvelope = paths["/api/v1/director/models"]["get"]["responses"][200]["content"]["application/json"]
-type DirectorGenerationListEnvelope = paths["/api/v1/productions/{production_id}/director-generations"]["get"]["responses"][200]["content"]["application/json"]
-type DirectorGenerationEnvelope = paths["/api/v1/productions/{production_id}/director-generations"]["post"]["responses"][202]["content"]["application/json"]
-type DirectorGenerationBody = paths["/api/v1/productions/{production_id}/director-generations"]["post"]["requestBody"]["content"]["application/json"]
-type ProjectOverviewEnvelope = paths["/api/v1/projects/{resource_id}/overview"]["get"]["responses"][200]["content"]["application/json"]
-type SeriesOverviewEnvelope = paths["/api/v1/series/{resource_id}/overview"]["get"]["responses"][200]["content"]["application/json"]
-type TimelineReorderEnvelope = paths["/api/v1/productions/{production_id}/parts/reorder"]["post"]["responses"][200]["content"]["application/json"]
-type TimelinePartEnvelope = paths["/api/v1/productions/{production_id}/parts/silence"]["post"]["responses"][200]["content"]["application/json"]
-type TimelineDeleteEnvelope = paths["/api/v1/productions/{production_id}/parts"]["delete"]["responses"][200]["content"]["application/json"]
-type TimelineMoveEnvelope = paths["/api/v1/productions/{production_id}/parts/move"]["post"]["responses"][200]["content"]["application/json"]
-type TimelineOkEnvelope = paths["/api/v1/productions/{production_id}/parts/{part_id}/draft"]["patch"]["responses"][200]["content"]["application/json"]
-type ProductionImportBody = paths["/api/v1/productions/{production_id}/import"]["post"]["requestBody"]["content"]["application/json"]
-type ProductionImportEnvelope = paths["/api/v1/productions/{production_id}/import"]["post"]["responses"][200]["content"]["application/json"]
-type ProductionImportValidationEnvelope = paths["/api/v1/production-imports/validate"]["post"]["responses"][200]["content"]["application/json"]
-type ProductionImportExecuteBody = paths["/api/v1/production-imports"]["post"]["requestBody"]["content"]["application/json"]
+type VisualFileBody = paths["/api/v1/projects/{project_id}/visual-files"]["post"]["requestBody"]["content"]["application/json"]
+type VisualFileEnvelope = paths["/api/v1/projects/{project_id}/visual-files"]["post"]["responses"][200]["content"]["application/json"]
+type VisualFileDeleteEnvelope = paths["/api/v1/projects/{project_id}/visual-files/{file_id}"]["delete"]["responses"][200]["content"]["application/json"]
+type ComposerCapabilitiesEnvelope = paths["/api/v1/composer/capabilities"]["get"]["responses"][200]["content"]["application/json"]
+type MediaModelsEnvelope = paths["/api/v1/composer/models"]["get"]["responses"][200]["content"]["application/json"]
+type MediaGenerationListEnvelope = paths["/api/v1/composer/generations"]["get"]["responses"][200]["content"]["application/json"]
+type MediaGenerationEnvelope = paths["/api/v1/composer/generations"]["post"]["responses"][202]["content"]["application/json"]
+type MediaGenerationBody = paths["/api/v1/composer/generations"]["post"]["requestBody"]["content"]["application/json"]
+export type ComposerContext = components["schemas"]["ComposerContext"]
+type TimelineReorderEnvelope = paths["/api/v1/projects/{project_id}/parts/reorder"]["post"]["responses"][200]["content"]["application/json"]
+type TimelinePartEnvelope = paths["/api/v1/projects/{project_id}/parts/silence"]["post"]["responses"][200]["content"]["application/json"]
+type TimelineDeleteEnvelope = paths["/api/v1/projects/{project_id}/parts"]["delete"]["responses"][200]["content"]["application/json"]
+type TimelineMoveEnvelope = paths["/api/v1/projects/{project_id}/parts/move"]["post"]["responses"][200]["content"]["application/json"]
+type TimelineOkEnvelope = paths["/api/v1/projects/{project_id}/parts/{part_id}/draft"]["patch"]["responses"][200]["content"]["application/json"]
+type ProjectImportBody = paths["/api/v1/projects/{project_id}/import"]["post"]["requestBody"]["content"]["application/json"]
+type ProjectImportEnvelope = paths["/api/v1/projects/{project_id}/import"]["post"]["responses"][200]["content"]["application/json"]
+type ProjectImportValidationEnvelope = paths["/api/v1/project-imports/validate"]["post"]["responses"][200]["content"]["application/json"]
+type ProjectImportExecuteBody = paths["/api/v1/project-imports"]["post"]["requestBody"]["content"]["application/json"]
 
 export { ApiError } from "@/lib/api-error"
 
-export type DirectorCompatibilityTarget =
+export type MediaCompatibilityTarget =
   | { role: string }
   | { parameter_key: string; variant_id: string; audio?: never }
   | { parameter_key: string; audio: true; variant_id?: never }
 
-export type DirectorCompatibilityResult = {
-  asset_id: number
+export type MediaCompatibilityResult = {
+  file_id: number
   state: "compatible" | "incompatible" | "unknown"
   reasons: string[]
 }
@@ -193,15 +184,15 @@ async function enqueueSpeech(payload: GeneratePayload, partId?: number) {
   return registerJob(response.data)
 }
 
-export const studioApi = {
+export const originsApi = {
   config: () => v1<StudioConfig>("/api/v1/config"),
-  spaces: () => v1<SpaceSummary[]>("/api/v1/spaces"),
-  space: (spaceId: number) => v1<SpaceOverview>(`/api/v1/spaces/${spaceId}`),
-  creationActions: () => v1<CreationActionSummary[]>("/api/v1/creation-actions?context=space"),
-  createSpace: (name: string, description = "") => postV1<SpaceSummary>("/api/v1/spaces", { name, description }),
-  createFolder: (spaceId: number, name: string, parentId: number | null = null) => postV1<SpaceFolder>(`/api/v1/spaces/${spaceId}/folders`, { name, parent_id: parentId }),
-  createAudiovisualProject: (spaceId: number, name: string, description = "", folderId: number | null = null) => postV1<SpaceProject>(`/api/v1/spaces/${spaceId}/projects/audiovisual`, { name, description, folder_id: folderId }),
-  audiovisualProject: (identifier: string) => v1<SpaceProject>(`/api/v1/audiovisual-projects/${identifier}`),
+  workspaces: () => v1<WorkspaceSummary[]>("/api/v1/workspaces"),
+  workspace: (workspaceId: number) => v1<WorkspaceOverview>(`/api/v1/workspaces/${workspaceId}`),
+  creationActions: () => v1<CreationActionSummary[]>("/api/v1/creation-actions?context=workspace"),
+  createWorkspace: (name: string, description = "") => postV1<WorkspaceSummary>("/api/v1/workspaces", { name, description }),
+  createFolder: (workspaceId: number, name: string, parentId: number | null = null) => postV1<WorkspaceFolder>(`/api/v1/workspaces/${workspaceId}/folders`, { name, parent_id: parentId }),
+  createAudiovisualProject: (workspaceId: number, name: string, description = "", folderId: number | null = null) => postV1<WorkspaceProject>(`/api/v1/workspaces/${workspaceId}/projects/audiovisual`, { name, description, folder_id: folderId }),
+  project: (identifier: string) => v1<WorkspaceProject>(`/api/v1/projects/${identifier}`),
   activity: (filters: { kind?: string; failed?: boolean; limit?: number } = {}) => {
     const query = new URLSearchParams()
     if (filters.kind) query.set("kind", filters.kind)
@@ -229,17 +220,17 @@ export const studioApi = {
   savePronunciation: (rule: PronunciationSaveBody) => request<PronunciationSaveEnvelope>("/api/v1/settings/pronunciations", { method: "POST", body: JSON.stringify(rule) }).then((response) => response.data),
   deletePronunciation: (id: number) => request<PronunciationDeleteEnvelope>(`/api/v1/settings/pronunciations/${id}`, { method: "DELETE" }).then((response) => response.data),
   previewPronunciation: (text: string) => request<PronunciationPreviewEnvelope>(`/api/v1/settings/pronunciations/preview?text=${encodeURIComponent(text)}`).then((response) => response.data),
-  externalTranscripts: (spaceId: number) => request<SubtitleListEnvelope>(`/api/v1/subtitles?space_id=${spaceId}`).then((response) => response.data),
+  externalTranscripts: (workspaceId: number) => request<SubtitleListEnvelope>(`/api/v1/subtitles?workspace_id=${workspaceId}`).then((response) => response.data),
   externalTranscript: (id: number) => request<SubtitleEnvelope>(`/api/v1/subtitles/${id}`).then((response) => response.data),
   subtitleLayout: (id: number, profile: CaptionProfile) => request<CaptionLayoutEnvelope>(`/api/v1/subtitles/${id}/layouts/${profile}`).then((response) => response.data),
   deleteExternalTranscript: (id: number) => request<SubtitleDeletedEnvelope>(`/api/v1/subtitles/${id}`, { method: "DELETE" }),
   uploadExternalAudio: (file: File) => uploadFile<{ data: ExternalAudioUpload }>("/api/v1/subtitles/uploads", file).then((response) => response.data),
-  enqueueExternalTranscription: async (payload: { space_id: number; url: string; name: string; playable: string; size_bytes: number; duration_ms: number; language?: string; enable_itn?: boolean; confirmed?: boolean }) => {
+  enqueueExternalTranscription: async (payload: { workspace_id: number; url: string; name: string; playable: string; size_bytes: number; duration_ms: number; language?: string; enable_itn?: boolean; confirmed?: boolean }) => {
     const response = await request<{ data: DurableJob<CaptionMutationResult> }>("/api/v1/jobs/transcription", { method: "POST", headers: { "Idempotency-Key": `transcribe-${crypto.randomUUID()}` }, body: JSON.stringify(payload) })
     return registerJob(response.data)
   },
-  transcribeExternal: async (payload: { space_id: number; url: string; name: string; playable: string; size_bytes: number; duration_ms: number; language?: string; enable_itn?: boolean; confirmed?: boolean }) => {
-    const job = await studioApi.enqueueExternalTranscription(payload)
+  transcribeExternal: async (payload: { workspace_id: number; url: string; name: string; playable: string; size_bytes: number; duration_ms: number; language?: string; enable_itn?: boolean; confirmed?: boolean }) => {
+    const job = await originsApi.enqueueExternalTranscription(payload)
     return jobObserver.completion<CaptionMutationResult>(job.id)
   },
   voiceRegistry: () => request<VoiceRegistryEnvelope>("/api/v1/voice-registry").then((response) => response.data),
@@ -283,122 +274,96 @@ export const studioApi = {
   },
   retryVoiceBinding: (enrollmentJobId: string) => request<VoicePackageRetryEnvelope>("/api/v1/voice-packages/retry", { method: "POST", body: JSON.stringify({ enrollment_job_id: enrollmentJobId } satisfies VoicePackageRetryBody) }).then((response) => response.data),
   uploadVoiceReference: (file: File) => uploadFile<{ data: UploadedVoiceReference }>("/api/v1/voice-references/upload", file).then((response) => response.data),
-  projects: async () => {
-    const items: HierarchyNode[] = []
-    let after: string | null = null
-    do {
-      const response: HierarchyPageEnvelope = await request<HierarchyPageEnvelope>(`/api/v1/hierarchy?limit=100${after ? `&after=${encodeURIComponent(after)}` : ""}`)
-      items.push(...response.data)
-      after = response.meta.next_cursor
-    } while (after)
-    return items
-  },
-  ventureOverview: (id: number) => request<VentureOverviewEnvelope>(`/api/v1/ventures/${id}/overview`).then((response) => response.data),
-  ventureAssets: (id: number) => request<VentureAssetsEnvelope>(`/api/v1/ventures/${id}/assets`).then((response) => response.data as VentureAssetLibrary),
-  savedVisualReferences: (ventureId: number) => request<{ data: import("@/types/domain").SavedVisualReference[] }>(`/api/v1/ventures/${ventureId}/saved-references`).then((response) => response.data),
-  createSavedVisualReference: (ventureId: number, payload: { name: string; type: import("@/types/domain").SavedVisualReference["type"]; asset_ids: number[] }) => request<{ data: import("@/types/domain").SavedVisualReference }>(`/api/v1/ventures/${ventureId}/saved-references`, { method: "POST", body: JSON.stringify(payload) }).then((response) => response.data),
-  deleteSavedVisualReference: (ventureId: number, referenceId: string) => request<void>(`/api/v1/ventures/${ventureId}/saved-references/${encodeURIComponent(referenceId)}`, { method: "DELETE" }),
-  spaceSavedVisualReferences: (spaceId: number) => request<{ data: import("@/types/domain").SavedVisualReference[] }>(`/api/v1/spaces/${spaceId}/saved-references`).then((response) => response.data),
-  createSpaceSavedVisualReference: (spaceId: number, payload: { name: string; type: import("@/types/domain").SavedVisualReference["type"]; asset_ids: number[] }) => request<{ data: import("@/types/domain").SavedVisualReference }>(`/api/v1/spaces/${spaceId}/saved-references`, { method: "POST", body: JSON.stringify(payload) }).then((response) => response.data),
-  deleteSpaceSavedVisualReference: (spaceId: number, referenceId: string) => request<void>(`/api/v1/spaces/${spaceId}/saved-references/${encodeURIComponent(referenceId)}`, { method: "DELETE" }),
-  projectOverview: (id: number) => request<ProjectOverviewEnvelope>(`/api/v1/projects/${id}/overview`).then((response) => response.data),
-  seriesOverview: (id: number) => request<SeriesOverviewEnvelope>(`/api/v1/series/${id}/overview`).then((response) => response.data),
-  production: (id: number) => v1<Production>(`/api/v1/productions/${id}/editor`),
-  createVenture: (name: string, description = "") => postV1<HierarchyNode>("/api/v1/ventures", { name, description }),
-  createProject: (ventureId: number, name: string, description = "") => postV1<HierarchyNode>(`/api/v1/ventures/${ventureId}/projects`, { name, description }),
-  createSeries: (projectId: number, name: string, description = "") => postV1<HierarchyNode>(`/api/v1/projects/${projectId}/series`, { name, description }),
-  createProduction: (parentType: "projects" | "series", parentId: number, name: string, description = "") => postV1<Production>(`/api/v1/${parentType}/${parentId}/productions`, { name, description }),
-  moveProduction: (productionId: number, seriesId: number | null) =>
-    request<{ data: ProductionSummary }>(`/api/v1/productions/${productionId}`, { method: "PATCH", body: JSON.stringify({ series_id: seriesId }) }).then((response) => response.data),
-  updateResource: <T>(type: "ventures" | "projects" | "series" | "productions", id: number, changes: Record<string, unknown>) =>
-    request<{ data: T }>(`/api/v1/${type}/${id}`, { method: "PATCH", body: JSON.stringify(changes) }).then((response) => response.data),
+  workspaceSavedVisualReferences: (workspaceId: number) => request<{ data: import("@/types/domain").SavedVisualReference[] }>(`/api/v1/workspaces/${workspaceId}/saved-references`).then((response) => response.data),
+  createWorkspaceSavedVisualReference: (workspaceId: number, payload: { name: string; type: import("@/types/domain").SavedVisualReference["type"]; file_ids: number[] }) => request<{ data: import("@/types/domain").SavedVisualReference }>(`/api/v1/workspaces/${workspaceId}/saved-references`, { method: "POST", body: JSON.stringify(payload) }).then((response) => response.data),
+  deleteWorkspaceSavedVisualReference: (workspaceId: number, referenceId: string) => request<void>(`/api/v1/workspaces/${workspaceId}/saved-references/${encodeURIComponent(referenceId)}`, { method: "DELETE" }),
+  projectEditor: (id: number) => v1<Project>(`/api/v1/projects/${id}/editor`),
+  updateProject: (id: number, changes: { name?: string; description?: string; status?: string; folder_id?: number | null }) =>
+    request<{ data: Project }>(`/api/v1/projects/${id}`, { method: "PATCH", body: JSON.stringify(changes) }).then((response) => response.data),
   uploadProjectCover: (file: File) => uploadFile<{ data: UploadedImage }>("/api/v1/project-covers/upload", file).then((response) => response.data),
-  uploadVentureLogo: (file: File) => uploadFile<{ data: UploadedImage }>("/api/v1/venture-logos/upload", file).then((response) => response.data),
-  archiveResource: (type: "ventures" | "projects" | "series", id: number) =>
-    request<{ data: unknown }>(`/api/v1/${type}/${id}${type === "series" ? "?strategy=make_standalone" : ""}`, { method: "DELETE" }),
-  deleteProduction: (id: number) =>
-    request<{ data: { id: number; type: "production"; deleted: boolean } }>(`/api/v1/productions/${id}`, { method: "DELETE" }).then((response) => response.data),
-  soundScene: (id: number) => v1<SoundScene>(`/api/v1/productions/${id}/sound-scene`),
-  visualScene: (id: number) => v1<VisualScene>(`/api/v1/productions/${id}/visual-scene`),
-  assets: (id: number) => v1<{ assets?: VentureAsset[]; collections?: AssetCollection[]; project_file_ids?: number[]; director_asset_ids?: number[] }>(`/api/v1/productions/${id}/assets`),
-  attachDirectorAsset: (productionId: number, assetId: number) => request<DirectorAssetEnvelope>(
-    `/api/v1/productions/${productionId}/director-assets`, {
+  deleteProject: (id: number) =>
+    request<{ data: { id: number; type: "project"; deleted: boolean } }>(`/api/v1/projects/${id}`, { method: "DELETE" }).then((response) => response.data),
+  soundScene: (id: number) => v1<SoundScene>(`/api/v1/projects/${id}/sound-scene`),
+  visualScene: (id: number) => v1<VisualScene>(`/api/v1/projects/${id}/visual-scene`),
+  files: (id: number) => v1<{ files?: WorkspaceFile[]; project_file_ids?: number[]; visual_file_ids?: number[] }>(`/api/v1/projects/${id}/files`),
+  attachVisualFile: (projectId: number, fileId: number) => request<VisualFileEnvelope>(
+    `/api/v1/projects/${projectId}/visual-files`, {
       method: "POST",
-      body: JSON.stringify({ asset_id: assetId } satisfies DirectorAssetBody),
+      body: JSON.stringify({ file_id: fileId } satisfies VisualFileBody),
     },
   ).then((response) => response.data),
-  detachDirectorAsset: (productionId: number, assetId: number) => request<DirectorAssetDeleteEnvelope>(
-    `/api/v1/productions/${productionId}/director-assets/${assetId}`, { method: "DELETE" },
+  detachVisualFile: (projectId: number, fileId: number) => request<VisualFileDeleteEnvelope>(
+    `/api/v1/projects/${projectId}/visual-files/${fileId}`, { method: "DELETE" },
   ).then((response) => response.data),
   preview: async (id: number) => {
-    const response = await request<{ data: DurableJob<PreviewResult> }>("/api/v1/jobs/render", { method: "POST", headers: { "Idempotency-Key": `preview-${id}-${crypto.randomUUID()}` }, body: JSON.stringify({ production_id: id, operation: "preview" }) })
+    const response = await request<{ data: DurableJob<PreviewResult> }>("/api/v1/jobs/render", { method: "POST", headers: { "Idempotency-Key": `preview-${id}-${crypto.randomUUID()}` }, body: JSON.stringify({ project_id: id, operation: "preview" }) })
     return waitForJob<PreviewResult>(response.data.id)
   },
   stitch: async (id: number) => {
-    const job = await studioApi.enqueueRender(id, "export")
+    const job = await originsApi.enqueueRender(id, "export")
     return waitForJob<{ url: string; name: string; error?: string }>(job.id)
   },
   enqueueRender: async (id: number, operation: "preview" | "export", allowIncomplete = false, format: "mp3" | "mp4" = "mp3") => {
-    const response = await request<{ data: DurableJob<{ url?: string; name?: string; error?: string }> }>("/api/v1/jobs/render", { method: "POST", headers: { "Idempotency-Key": `${operation}-${format}-${id}-${crypto.randomUUID()}` }, body: JSON.stringify({ production_id: id, operation, format, allow_incomplete: operation === "export" && allowIncomplete }) })
+    const response = await request<{ data: DurableJob<{ url?: string; name?: string; error?: string }> }>("/api/v1/jobs/render", { method: "POST", headers: { "Idempotency-Key": `${operation}-${format}-${id}-${crypto.randomUUID()}` }, body: JSON.stringify({ project_id: id, operation, format, allow_incomplete: operation === "export" && allowIncomplete }) })
     return registerJob(response.data)
   },
-  reorder: (id: number, order: number[]) => request<TimelineReorderEnvelope>(`/api/v1/productions/${id}/parts/reorder`, { method: "POST", body: JSON.stringify({ order }) }).then((response) => response.data),
-  addSilence: (productionId: number, seconds: number, beforePartId: string | null) =>
-    request<TimelinePartEnvelope>(`/api/v1/productions/${productionId}/parts/silence`, { method: "POST", body: JSON.stringify({
+  reorder: (id: number, order: number[]) => request<TimelineReorderEnvelope>(`/api/v1/projects/${id}/parts/reorder`, { method: "POST", body: JSON.stringify({ order }) }).then((response) => response.data),
+  addSilence: (projectId: number, seconds: number, beforePartId: string | null) =>
+    request<TimelinePartEnvelope>(`/api/v1/projects/${projectId}/parts/silence`, { method: "POST", body: JSON.stringify({
       seconds,
       insert_before_part_id: beforePartId,
     }) }).then((response) => response.data),
-  editSilence: (productionId: number, id: number, seconds: number) =>
-    request<TimelinePartEnvelope>(`/api/v1/productions/${productionId}/parts/${id}/silence`, { method: "PATCH", body: JSON.stringify({ seconds }) }).then((response) => response.data),
-  setPartEnabled: (productionId: number, id: number, enabled: boolean) =>
-    request<{ data: { ok: boolean } }>(`/api/v1/productions/${productionId}/parts/${id}/enabled`, { method: "PATCH", body: JSON.stringify({ enabled }) }).then((response) => response.data),
-  duplicatePart: (productionId: number, id: number) => request<TimelinePartEnvelope>(`/api/v1/productions/${productionId}/parts/${id}/duplicate`, { method: "POST", body: JSON.stringify({}) }).then((response) => response.data),
-  deletePart: (productionId: number, id: number) =>
-    request<TimelineDeleteEnvelope>(`/api/v1/productions/${productionId}/parts`, { method: "DELETE", body: JSON.stringify({ ids: [id] }) }).then((response) => response.data),
-  deleteParts: (productionId: number, ids: number[]) => request<TimelineDeleteEnvelope>(`/api/v1/productions/${productionId}/parts`, { method: "DELETE", body: JSON.stringify({ ids }) }).then((response) => response.data),
-  moveParts: (sourceProductionId: number, ids: number[], destinationProductionId: number) => request<TimelineMoveEnvelope>(`/api/v1/productions/${sourceProductionId}/parts/move`, { method: "POST", body: JSON.stringify({ ids, destination_production_id: destinationProductionId }) }).then((response) => response.data),
+  editSilence: (projectId: number, id: number, seconds: number) =>
+    request<TimelinePartEnvelope>(`/api/v1/projects/${projectId}/parts/${id}/silence`, { method: "PATCH", body: JSON.stringify({ seconds }) }).then((response) => response.data),
+  setPartEnabled: (projectId: number, id: number, enabled: boolean) =>
+    request<{ data: { ok: boolean } }>(`/api/v1/projects/${projectId}/parts/${id}/enabled`, { method: "PATCH", body: JSON.stringify({ enabled }) }).then((response) => response.data),
+  duplicatePart: (projectId: number, id: number) => request<TimelinePartEnvelope>(`/api/v1/projects/${projectId}/parts/${id}/duplicate`, { method: "POST", body: JSON.stringify({}) }).then((response) => response.data),
+  deletePart: (projectId: number, id: number) =>
+    request<TimelineDeleteEnvelope>(`/api/v1/projects/${projectId}/parts`, { method: "DELETE", body: JSON.stringify({ ids: [id] }) }).then((response) => response.data),
+  deleteParts: (projectId: number, ids: number[]) => request<TimelineDeleteEnvelope>(`/api/v1/projects/${projectId}/parts`, { method: "DELETE", body: JSON.stringify({ ids }) }).then((response) => response.data),
+  moveParts: (sourceProjectId: number, ids: number[], destinationProjectId: number) => request<TimelineMoveEnvelope>(`/api/v1/projects/${sourceProjectId}/parts/move`, { method: "POST", body: JSON.stringify({ ids, destination_project_id: destinationProjectId }) }).then((response) => response.data),
   updateSoundScene: (id: number, expectedRevision: number, document: SoundSceneDocument, mutationKind: "operator" | "derived_visual_audio" = "operator") =>
-    request<{ data: SoundScene }>(`/api/v1/productions/${id}/sound-scene`, { method: "PATCH", body: JSON.stringify({ expected_revision: expectedRevision, document, mutation_kind: mutationKind }) }).then((response) => response.data),
+    request<{ data: SoundScene }>(`/api/v1/projects/${id}/sound-scene`, { method: "PATCH", body: JSON.stringify({ expected_revision: expectedRevision, document, mutation_kind: mutationKind }) }).then((response) => response.data),
   updateVisualScene: (id: number, expectedRevision: number, document: VisualSceneDocument) =>
-    request<{ data: VisualScene }>(`/api/v1/productions/${id}/visual-scene`, { method: "PATCH", body: JSON.stringify({ expected_revision: expectedRevision, document }) }).then((response) => response.data),
+    request<{ data: VisualScene }>(`/api/v1/projects/${id}/visual-scene`, { method: "PATCH", body: JSON.stringify({ expected_revision: expectedRevision, document }) }).then((response) => response.data),
   undoSoundScene: (id: number) =>
-    request<{ data: SoundScene }>(`/api/v1/productions/${id}/sound-scene/undo`, { method: "POST" }).then((response) => response.data),
+    request<{ data: SoundScene }>(`/api/v1/projects/${id}/sound-scene/undo`, { method: "POST" }).then((response) => response.data),
   redoSoundScene: (id: number) =>
-    request<{ data: SoundScene }>(`/api/v1/productions/${id}/sound-scene/redo`, { method: "POST" }).then((response) => response.data),
-  insertAsset: (productionId: number, assetId: number, beforePartId: string | null) =>
-    postV1<{ ok?: boolean; id?: number }>(`/api/v1/productions/${productionId}/parts/assets`, {
-      asset_id: assetId,
+    request<{ data: SoundScene }>(`/api/v1/projects/${id}/sound-scene/redo`, { method: "POST" }).then((response) => response.data),
+  insertFile: (projectId: number, fileId: number, beforePartId: string | null) =>
+    postV1<{ ok?: boolean; id?: number }>(`/api/v1/projects/${projectId}/parts/files`, {
+      file_id: fileId,
       insert_before_part_id: beforePartId,
     }),
-  replaceAsset: (productionId: number, partId: number, assetId: number) =>
-    request<TimelinePartEnvelope>(`/api/v1/productions/${productionId}/parts/${partId}/asset`, { method: "PATCH", body: JSON.stringify({ asset_id: assetId }) }).then((response) => response.data),
+  replaceFile: (projectId: number, partId: number, fileId: number) =>
+    request<TimelinePartEnvelope>(`/api/v1/projects/${projectId}/parts/${partId}/file`, { method: "PATCH", body: JSON.stringify({ file_id: fileId }) }).then((response) => response.data),
   saveDraft: (payload: Omit<GeneratePayload, "confirmed">) => {
-    if (!payload.production_id) return Promise.reject(new ApiError("Choose a Production before saving a Draft.", 400))
-    const { production_id, ...draft } = payload
-    return postV1<{ id: number }>(`/api/v1/productions/${production_id}/parts/drafts`, draft)
+    if (!payload.project_id) return Promise.reject(new ApiError("Choose a Project before saving a Draft.", 400))
+    const { project_id, ...draft } = payload
+    return postV1<{ id: number }>(`/api/v1/projects/${project_id}/parts/drafts`, draft)
   },
-  importProduction: (
-    productionId: number,
-    document: ProductionImportBody["document"],
-    roleVoices: ProductionImportBody["role_voices"],
-  ) => request<ProductionImportEnvelope>(`/api/v1/productions/${productionId}/import`, {
+  importProject: (
+    projectId: number,
+    document: ProjectImportBody["document"],
+    roleVoices: ProjectImportBody["role_voices"],
+  ) => request<ProjectImportEnvelope>(`/api/v1/projects/${projectId}/import`, {
     method: "POST",
-    body: JSON.stringify({ document, role_voices: roleVoices } satisfies ProductionImportBody),
+    body: JSON.stringify({ document, role_voices: roleVoices } satisfies ProjectImportBody),
   }).then((response) => response.data),
-  validateProductionImport: (document: unknown) =>
-    request<ProductionImportValidationEnvelope>("/api/v1/production-imports/validate", {
+  validateProjectImport: (document: unknown) =>
+    request<ProjectImportValidationEnvelope>("/api/v1/project-imports/validate", {
       method: "POST",
       body: JSON.stringify({ document }),
     }).then((response) => response.data),
-  enqueueProductionImport: async <T>(plan: ProductionImportExecuteBody) => {
-    const response = await request<{ data: DurableJob<T> }>("/api/v1/production-imports", {
+  enqueueProjectImport: async <T>(plan: ProjectImportExecuteBody) => {
+    const response = await request<{ data: DurableJob<T> }>("/api/v1/project-imports", {
       method: "POST",
-      headers: { "Idempotency-Key": `production-import-${crypto.randomUUID()}` },
+      headers: { "Idempotency-Key": `project-import-${crypto.randomUUID()}` },
       body: JSON.stringify(plan),
     })
     return registerJob(response.data)
   },
-  productionImportResult: <T>(jobId: string) => jobObserver.completion<T>(jobId),
+  projectImportResult: <T>(jobId: string) => jobObserver.completion<T>(jobId),
   job: <T>(id: string) => v1<DurableJob<T>>(`/api/v1/jobs/${encodeURIComponent(id)}`),
   confirmJob: async <T>(id: string) => {
     const response = await request<{ data: DurableJob<T> }>(`/api/v1/jobs/${encodeURIComponent(id)}/confirm`, {
@@ -415,35 +380,35 @@ export const studioApi = {
     const result = await jobObserver.completion<GenerateResult>(job.id)
     return { ...result, job_id: job.id }
   },
-  recordingHistory: (spaceId: number) => v1<RecordingHistory>(`/api/v1/speak/recordings?space_id=${spaceId}`),
+  recordingHistory: (workspaceId: number) => v1<RecordingHistory>(`/api/v1/speak/recordings?workspace_id=${workspaceId}`),
   composerDraft: (context: CompositionContext) => postV1<ComposerDraftWireRecord | null>("/api/v1/composer-drafts/resolve", { context: contextWire(context) }).then((record) => record ? draftFromWire(record) : null),
   saveComposerDraft: (context: CompositionContext, state: RecoverableCompositionDraft, expectedVersion: number | null) =>
     request<{ data: ComposerDraftWireRecord }>("/api/v1/composer-drafts", { method: "PUT", body: JSON.stringify({ context: contextWire(context), state: draftWire(state), expected_version: expectedVersion }) }).then((response) => draftFromWire(response.data) as ComposerDraftRecord),
   deleteComposerDraft: (context: CompositionContext, expectedVersion: number | null) =>
     request<{ data: { deleted: boolean } }>("/api/v1/composer-drafts", { method: "DELETE", body: JSON.stringify({ context: contextWire(context), expected_version: expectedVersion }) }).then((response) => response.data),
-  enqueueTextPass: async (kind: "shape" | "tag", payload: { text: string; production_id?: number; part_id?: number; density?: "none" | "light" | "normal" | "heavy"; spoken_profile?: "spoken_1" | "spoken_2"; capability_id: string; confirmed?: boolean }) => {
+  enqueueTextPass: async (kind: "shape" | "tag", payload: { text: string; project_id?: number; part_id?: number; density?: "none" | "light" | "normal" | "heavy"; spoken_profile?: "spoken_1" | "spoken_2"; capability_id: string; confirmed?: boolean }) => {
     const response = await request<{ data: DurableJob<TextPassResult> }>("/api/v1/jobs/text", { method: "POST", headers: { "Idempotency-Key": `rewrite-${kind}-${crypto.randomUUID()}` }, body: JSON.stringify({ ...payload, operation: kind }) })
     return registerJob(response.data)
   },
   textPassResult: (jobId: string) => waitForJob<TextPassResult>(jobId),
-  saveTextStates: (productionId: number, id: number, states: { text: string; text_raw: string | null; text_shaped: string | null; text_tagged: string | null; text_state: string }) =>
-    request<TimelineOkEnvelope>(`/api/v1/productions/${productionId}/parts/${id}/draft`, { method: "PATCH", body: JSON.stringify(states) }).then((response) => response.data),
-  savePartEditorial: (productionId: number, id: number, values: PartEditorialUpdate) =>
-    request<TimelineOkEnvelope>(`/api/v1/productions/${productionId}/parts/${id}/editorial`, { method: "PATCH", body: JSON.stringify(values) }).then((response) => response.data),
-  captions: (productionId: number, id: number) => v1<TranscriptSummary[]>(`/api/v1/productions/${productionId}/parts/${id}/captions`).then((transcripts) => ({ transcripts })),
+  saveTextStates: (projectId: number, id: number, states: { text: string; text_raw: string | null; text_shaped: string | null; text_tagged: string | null; text_state: string }) =>
+    request<TimelineOkEnvelope>(`/api/v1/projects/${projectId}/parts/${id}/draft`, { method: "PATCH", body: JSON.stringify(states) }).then((response) => response.data),
+  savePartEditorial: (projectId: number, id: number, values: PartEditorialUpdate) =>
+    request<TimelineOkEnvelope>(`/api/v1/projects/${projectId}/parts/${id}/editorial`, { method: "PATCH", body: JSON.stringify(values) }).then((response) => response.data),
+  captions: (projectId: number, id: number) => v1<TranscriptSummary[]>(`/api/v1/projects/${projectId}/parts/${id}/captions`).then((transcripts) => ({ transcripts })),
   transcript: (id: number) => v1<Transcript>(`/api/v1/subtitles/${id}`),
-  enqueueTranscribePart: async (productionId: number, part: ProductionPart, confirmed = false, language?: string) => {
+  enqueueTranscribePart: async (projectId: number, part: ProjectPart, confirmed = false, language?: string) => {
     const requestedLanguage = String(language || part.language || "").trim()
     const languageHint = requestedLanguage && requestedLanguage.toLowerCase() !== "auto" ? requestedLanguage : undefined
     const response = await request<{ data: DurableJob<CaptionMutationResult> }>("/api/v1/jobs/transcription", {
       method: "POST",
       headers: { "Idempotency-Key": `transcribe-part-${part.id}-${crypto.randomUUID()}` },
-      body: JSON.stringify({ file: part.filename, part_id: part.id, production_id: productionId, language: languageHint, confirmed }),
+      body: JSON.stringify({ file: part.filename, part_id: part.id, project_id: projectId, language: languageHint, confirmed }),
     })
     return registerJob(response.data)
   },
-  transcribePart: async (productionId: number, part: ProductionPart, confirmed = false, language?: string) => {
-    const job = await studioApi.enqueueTranscribePart(productionId, part, confirmed, language)
+  transcribePart: async (projectId: number, part: ProjectPart, confirmed = false, language?: string) => {
+    const job = await originsApi.enqueueTranscribePart(projectId, part, confirmed, language)
     return jobObserver.completion<CaptionMutationResult>(job.id)
   },
   enqueueTranscriptTranslation: async (id: number, target: string, confirmed = false) => {
@@ -455,37 +420,22 @@ export const studioApi = {
     return registerJob(response.data)
   },
   translateTranscript: async (id: number, target: string, confirmed = false) => {
-    const job = await studioApi.enqueueTranscriptTranslation(id, target, confirmed)
+    const job = await originsApi.enqueueTranscriptTranslation(id, target, confirmed)
     return jobObserver.completion<CaptionMutationResult>(job.id)
   },
-  uploadAsset: async (collectionId: number, file: File, details?: {
-    name?: string
-    category?: string | null
-    scope?: "space" | "studio"
-    tags?: string[]
-  }) => {
-    const headers: Record<string, string> = {}
-    if (details?.name) headers["X-Asset-Name"] = encodeURIComponent(details.name)
-    if (details?.category) headers["X-Asset-Category"] = details.category
-    if (details?.scope) headers["X-Asset-Scope"] = details.scope
-    if (details?.tags) headers["X-Asset-Tags"] = encodeURIComponent(JSON.stringify(details.tags))
-    const response = await uploadFile<{ data: UploadedAsset }>(
-      `/api/v1/asset-collections/${collectionId}/assets/upload`, file,
-      headers,
-    )
-    return response.data
-  },
-  uploadSpaceFile: async (spaceId: number, file: File, details?: {
+  uploadFileSummary: async (workspaceId: number, file: File, details?: {
     name?: string
     category?: string | null
     tags?: string[]
+    folderId?: number | null
   }) => {
     const headers: Record<string, string> = {}
     if (details?.name) headers["X-File-Name"] = encodeURIComponent(details.name)
     if (details?.category) headers["X-File-Category"] = details.category
     if (details?.tags) headers["X-File-Tags"] = encodeURIComponent(JSON.stringify(details.tags))
+    if (details?.folderId) headers["X-Folder-Id"] = String(details.folderId)
     const response = await uploadFile<{ data: UploadedFile }>(
-      `/api/v1/spaces/${spaceId}/files/upload`, file, headers,
+      `/api/v1/workspaces/${workspaceId}/files/upload`, file, headers,
     )
     return response.data
   },
@@ -495,51 +445,56 @@ export const studioApi = {
     tags?: string[]
   }) => {
     const headers: Record<string, string> = {}
-    if (details?.name) headers["X-Asset-Name"] = encodeURIComponent(details.name)
-    if (details?.category) headers["X-Asset-Category"] = details.category
-    if (details?.tags) headers["X-Asset-Tags"] = encodeURIComponent(JSON.stringify(details.tags))
-    const response = await uploadFile<{ data: UploadedAsset }>(
-      `/api/v1/audiovisual-projects/${projectId}/files/upload`, file, headers,
+    if (details?.name) headers["X-File-Name"] = encodeURIComponent(details.name)
+    if (details?.category) headers["X-File-Category"] = details.category
+    if (details?.tags) headers["X-File-Tags"] = encodeURIComponent(JSON.stringify(details.tags))
+    const response = await uploadFile<{ data: UploadedFile }>(
+      `/api/v1/projects/${projectId}/files/upload`, file, headers,
     )
     return response.data
   },
-  updateAsset: (assetId: number, details: {
+  updateFile: (fileId: number, details: {
     name: string
-    category: import("@/types/domain").AudioAssetCategory | null
-    scope: import("@/types/domain").AudioAssetScope
+    category: import("@/types/domain").AudioFileCategory | null
     tags: string[]
-  }) => request<{ data: VentureAsset }>(`/api/v1/assets/${assetId}`, {
+  }) => request<{ data: WorkspaceFile }>(`/api/v1/files/${fileId}`, {
     method: "PATCH", body: JSON.stringify(details),
   }).then((response) => response.data),
-  directorGenerationCapabilities: () => request<DirectorGenerationCapabilitiesEnvelope>("/api/v1/director-generation-capabilities").then((response) => response.data),
-  directorModels: () => request<DirectorModelsEnvelope>("/api/v1/director/models").then((response) => response.data),
-  directorInputCompatibility: async (
-    productionId: number,
-    payload: { model_id: string; operation: string; asset_ids: number[] } & DirectorCompatibilityTarget,
+  mediaGenerationCapabilities: () => request<ComposerCapabilitiesEnvelope>("/api/v1/composer/capabilities").then((response) => response.data),
+  mediaModels: () => request<MediaModelsEnvelope>("/api/v1/composer/models").then((response) => response.data),
+  mediaInputCompatibility: async (
+    context: ComposerContext,
+    payload: { model_id: string; operation: string; file_ids: number[] } & MediaCompatibilityTarget,
     signal?: AbortSignal,
-  ): Promise<DirectorCompatibilityResult[]> => {
-    if (!payload.asset_ids.length) return []
+  ): Promise<MediaCompatibilityResult[]> => {
+    if (!payload.file_ids.length) return []
     const batches = Array.from(
-      { length: Math.ceil(payload.asset_ids.length / 500) },
-      (_, index) => payload.asset_ids.slice(index * 500, (index + 1) * 500),
+      { length: Math.ceil(payload.file_ids.length / 500) },
+      (_, index) => payload.file_ids.slice(index * 500, (index + 1) * 500),
     )
-    const results = await Promise.all(batches.map((asset_ids) => request<{ data: DirectorCompatibilityResult[] }>(
-      `/api/v1/productions/${productionId}/director-input-compatibility`,
-      { method: "POST", signal, body: JSON.stringify({ ...payload, asset_ids }) },
+    const results = await Promise.all(batches.map((file_ids) => request<{ data: MediaCompatibilityResult[] }>(
+      "/api/v1/composer/input-compatibility",
+      { method: "POST", signal, body: JSON.stringify({ ...payload, context, file_ids }) },
     ).then((response) => response.data)))
     return results.flat()
   },
-  directorGenerations: (productionId: number) => request<DirectorGenerationListEnvelope>(`/api/v1/productions/${productionId}/director-generations`).then((response) => response.data),
-  createDirectorGeneration: (productionId: number, payload: DirectorGenerationBody) => request<DirectorGenerationEnvelope>(`/api/v1/productions/${productionId}/director-generations`, {
+  mediaGenerations: (context: ComposerContext) => {
+    const query = new URLSearchParams({ workspace_id: String(context.workspace_id) })
+    if (context.project_id) query.set("project_id", String(context.project_id))
+    return request<MediaGenerationListEnvelope>(`/api/v1/composer/generations?${query}`).then((response) => response.data)
+  },
+  createMediaGeneration: (payload: MediaGenerationBody) => request<MediaGenerationEnvelope>("/api/v1/composer/generations", {
     method: "POST",
-    headers: { "Idempotency-Key": `director-generation-${crypto.randomUUID()}` },
+    headers: { "Idempotency-Key": `media-generation-${crypto.randomUUID()}` },
     body: JSON.stringify(payload),
   }).then((response) => response.data),
-  cancelDirectorGeneration: (productionId: number, jobId: string) => request<DirectorGenerationEnvelope>(`/api/v1/productions/${productionId}/director-generations/${jobId}/cancel`, {
+  cancelMediaGeneration: (context: ComposerContext, jobId: string) => request<MediaGenerationEnvelope>(`/api/v1/composer/generations/${jobId}/cancel`, {
     method: "POST",
+    body: JSON.stringify(context),
   }).then((response) => response.data),
-  retryDirectorGenerationIngestion: (productionId: number, jobId: string) => request<DirectorGenerationEnvelope>(`/api/v1/productions/${productionId}/director-generations/${jobId}/retry-ingestion`, {
+  retryMediaGenerationIngestion: (context: ComposerContext, jobId: string) => request<MediaGenerationEnvelope>(`/api/v1/composer/generations/${jobId}/retry-ingestion`, {
     method: "POST",
+    body: JSON.stringify(context),
   }).then((response) => response.data),
   searchFreesound: (filters: {
     query: string
@@ -553,31 +508,28 @@ export const studioApi = {
     if (filters.durationMax) query.set("duration_max", String(filters.durationMax))
     return request<FreesoundSearchEnvelope>(`/api/v1/audio-catalogs/freesound/search?${query}`, { signal }).then((response) => response.data)
   },
-  keepFreesound: (payload: FreesoundKeepBody) => request<FreesoundKeepEnvelope>("/api/v1/audio-catalogs/freesound/keep", {
+  keepFreesoundInWorkspace: (workspaceId: number, payload: FreesoundKeepBody) => request<FreesoundKeepEnvelope>(`/api/v1/audio-catalogs/freesound/workspaces/${workspaceId}/keep`, {
     method: "POST", body: JSON.stringify(payload),
   }).then((response) => response.data),
-  keepFreesoundInSpace: (spaceId: number, payload: Omit<FreesoundKeepBody, "collection_id" | "scope">) => request<FreesoundKeepEnvelope>(`/api/v1/audio-catalogs/freesound/spaces/${spaceId}/keep`, {
-    method: "POST", body: JSON.stringify(payload),
-  }).then((response) => response.data),
-  keepFreesoundInAudiovisualProject: (projectId: number, payload: Omit<FreesoundKeepBody, "collection_id" | "scope">) => request<FreesoundKeepEnvelope>(`/api/v1/audio-catalogs/freesound/audiovisual-projects/${projectId}/keep`, {
+  keepFreesoundInProject: (projectId: number, payload: FreesoundKeepBody) => request<FreesoundKeepEnvelope>(`/api/v1/audio-catalogs/freesound/projects/${projectId}/keep`, {
     method: "POST", body: JSON.stringify(payload),
   }).then((response) => response.data),
   audioGenerationStatus: () => request<AudioGenerationStatusEnvelope>("/api/v1/audio-generations/status").then((response) => response.data),
-  soundRecipeTaxonomy: () => request<SoundRecipeTaxonomyEnvelope>("/api/v1/audio-generations/recipe/taxonomy").then((response) => response.data),
-  compileSoundRecipe: (payload: SoundRecipeCompileBody, signal?: AbortSignal) => request<SoundRecipeCompileEnvelope>("/api/v1/audio-generations/recipe/compile", {
+  soundPresetTaxonomy: () => request<SoundPresetTaxonomyEnvelope>("/api/v1/audio-generations/preset/taxonomy").then((response) => response.data),
+  compileSoundPreset: (payload: SoundPresetCompileBody, signal?: AbortSignal) => request<SoundPresetCompileEnvelope>("/api/v1/audio-generations/preset/compile", {
     method: "POST", body: JSON.stringify(payload), signal,
   }).then((response) => response.data),
-  normalizeSoundRecipe: async (payload: SoundRecipeNormalizationJobBody) => {
-    const response = await request<{ data: DurableJob<import("@/types/domain").SoundRecipeNormalizationResult> }>("/api/v1/jobs/sound-recipe-normalization", {
+  normalizeSoundPreset: async (payload: SoundPresetNormalizationJobBody) => {
+    const response = await request<{ data: DurableJob<import("@/types/domain").SoundPresetNormalizationResult> }>("/api/v1/jobs/sound-preset-normalization", {
       method: "POST",
-      headers: { "Idempotency-Key": `sound-recipe-normalization-${crypto.randomUUID()}` },
+      headers: { "Idempotency-Key": `sound-preset-normalization-${crypto.randomUUID()}` },
       body: JSON.stringify(payload),
     })
     const job = registerJob(response.data)
-    return jobObserver.completion<import("@/types/domain").SoundRecipeNormalizationResult>(job.id)
+    return jobObserver.completion<import("@/types/domain").SoundPresetNormalizationResult>(job.id)
   },
-  recentAudioGenerations: (productionId: number) => request<AudioGenerationHistoryEnvelope>(`/api/v1/audio-generations/recent?production_id=${productionId}`).then((response) => response.data),
-  recentAudioGenerationsForSpace: (spaceId: number) => request<AudioGenerationHistoryEnvelope>(`/api/v1/audio-generations/recent?space_id=${spaceId}`).then((response) => response.data),
+  recentAudioGenerations: (projectId: number) => request<AudioGenerationHistoryEnvelope>(`/api/v1/audio-generations/recent?project_id=${projectId}`).then((response) => response.data),
+  recentAudioGenerationsForWorkspace: (workspaceId: number) => request<AudioGenerationHistoryEnvelope>(`/api/v1/audio-generations/recent?workspace_id=${workspaceId}`).then((response) => response.data),
   enqueueAudioGeneration: async (payload: AudioGenerationJobBody) => {
     const response = await request<{ data: DurableJob<import("@/types/domain").AudioGenerationCandidate> }>("/api/v1/jobs/audio-generation", {
       method: "POST",
@@ -587,13 +539,10 @@ export const studioApi = {
     return registerJob(response.data)
   },
   audioGenerationCandidate: (candidateId: string) => request<AudioGenerationCandidateEnvelope>(`/api/v1/audio-generations/${encodeURIComponent(candidateId)}`).then((response) => response.data),
-  keepGeneratedAudio: (candidateId: string, payload: GeneratedKeepBody) => request<GeneratedKeepEnvelope>(`/api/v1/audio-generations/${encodeURIComponent(candidateId)}/keep`, {
+  keepGeneratedAudioInWorkspace: (candidateId: string, workspaceId: number, payload: GeneratedKeepBody) => request<GeneratedKeepEnvelope>(`/api/v1/audio-generations/${encodeURIComponent(candidateId)}/workspaces/${workspaceId}/keep`, {
     method: "POST", body: JSON.stringify(payload),
   }).then((response) => response.data),
-  keepGeneratedAudioInSpace: (candidateId: string, spaceId: number, payload: Omit<GeneratedKeepBody, "collection_id" | "scope">) => request<GeneratedKeepEnvelope>(`/api/v1/audio-generations/${encodeURIComponent(candidateId)}/spaces/${spaceId}/keep`, {
-    method: "POST", body: JSON.stringify(payload),
-  }).then((response) => response.data),
-  keepGeneratedAudioInAudiovisualProject: (candidateId: string, projectId: number, payload: Omit<GeneratedKeepBody, "collection_id" | "scope">) => request<GeneratedKeepEnvelope>(`/api/v1/audio-generations/${encodeURIComponent(candidateId)}/audiovisual-projects/${projectId}/keep`, {
+  keepGeneratedAudioInProject: (candidateId: string, projectId: number, payload: GeneratedKeepBody) => request<GeneratedKeepEnvelope>(`/api/v1/audio-generations/${encodeURIComponent(candidateId)}/projects/${projectId}/keep`, {
     method: "POST", body: JSON.stringify(payload),
   }).then((response) => response.data),
   discardGeneratedAudio: (candidateId: string) => request<GeneratedDiscardEnvelope>(`/api/v1/audio-generations/${encodeURIComponent(candidateId)}/candidate`, { method: "DELETE" }).then((response) => response.data),

@@ -5,7 +5,7 @@ from tempfile import TemporaryDirectory
 import unittest
 from unittest.mock import patch
 
-from audio_studio.infrastructure.audio_metadata import write_tags
+from origins.infrastructure.audio_metadata import write_tags
 
 
 class AudioMetadataTests(unittest.TestCase):
@@ -22,7 +22,7 @@ class AudioMetadataTests(unittest.TestCase):
                 target.write_bytes(b"tagged")
                 return type("Done", (), {"returncode": 0})()
 
-            with patch("audio_studio.infrastructure.audio_metadata.subprocess.run",
+            with patch("origins.infrastructure.audio_metadata.subprocess.run",
                        side_effect=finish) as run:
                 self.assertTrue(write_tags(
                     source, target, {"artist": "Heartsnotes"}, cover))
@@ -35,7 +35,7 @@ class AudioMetadataTests(unittest.TestCase):
     def test_writer_fails_safely_when_ffmpeg_is_unavailable(self):
         with TemporaryDirectory() as directory:
             root = Path(directory)
-            with patch("audio_studio.infrastructure.audio_metadata.subprocess.run",
+            with patch("origins.infrastructure.audio_metadata.subprocess.run",
                        side_effect=FileNotFoundError):
                 self.assertFalse(write_tags(root / "source.mp3", root / "target.mp3", {}))
 

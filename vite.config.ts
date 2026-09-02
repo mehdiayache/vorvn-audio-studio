@@ -5,7 +5,7 @@ import { defineConfig } from "vite"
 
 export default defineConfig({
   root: "frontend",
-  base: "/audio-studio/",
+  base: "/origins/",
   plugins: [react(), tailwindcss()],
   resolve: {
     alias: { "@": path.resolve(import.meta.dirname, "./frontend/src") },

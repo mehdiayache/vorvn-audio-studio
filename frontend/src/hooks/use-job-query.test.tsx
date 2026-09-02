@@ -8,7 +8,7 @@ import { describe, expect, it } from "vitest"
 import { useJobQuery } from "./use-job-query"
 
 function wrapper({ children }: { children: ReactNode }) {
-  return <MemoryRouter initialEntries={["/audio-studio/subtitles?keep=yes"]}>{children}</MemoryRouter>
+  return <MemoryRouter initialEntries={["/origins/subtitles?keep=yes"]}>{children}</MemoryRouter>
 }
 
 describe("useJobQuery", () => {

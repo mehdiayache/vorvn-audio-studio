@@ -5,7 +5,7 @@ import struct
 import subprocess
 import unittest
 
-from audio_studio.infrastructure import audio_codec
+from origins.infrastructure import audio_codec
 
 
 def tone_pcm(*, sample_rate: int, seconds: float, frequency: float) -> bytes:

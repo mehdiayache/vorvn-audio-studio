@@ -1,0 +1,167 @@
+"""Native browser media delivery with seek/range support from Starlette."""
+
+from __future__ import annotations
+
+from fastapi import APIRouter, HTTPException, Query
+from fastapi.responses import FileResponse
+from pydantic import BaseModel
+
+from origins.composition.media import (
+    media_service,
+    voice_reference_media_service,
+)
+from origins.composition.waveforms import waveform_peaks
+from origins.domain.media import MediaFile
+
+
+router = APIRouter(tags=["media"])
+
+
+class AudioPeaksResponse(BaseModel):
+    filename: str
+    bars: int
+    peaks: list[float]
+
+
+class AudioPeaksEnvelope(BaseModel):
+    data: AudioPeaksResponse
+
+
+def _response(item: MediaFile | None) -> FileResponse:
+    if item is None:
+        raise HTTPException(status_code=404, detail="Media file not found")
+    return FileResponse(item.path, filename=item.download_name)
+
+
+@router.api_route("/audio/{name}", methods=["GET", "HEAD"], include_in_schema=False)
+def get_audio(name: str) -> FileResponse:
+    return _response(media_service.resolve("audio", name))
+
+
+@router.api_route("/media/{name}", methods=["GET", "HEAD"], include_in_schema=False)
+def get_media(name: str) -> FileResponse:
+    """Serve canonical visual Files without exposing filesystem paths."""
+    return _response(media_service.resolve("media", name))
+
+
+@router.api_route(
+    "/api/v1/media/video-poster/{name}", methods=["GET", "HEAD"],
+    include_in_schema=False,
+)
+def get_video_poster(name: str) -> FileResponse:
+    try:
+        return _response(media_service.video_poster(name))
+    except RuntimeError as exc:
+        raise HTTPException(status_code=422, detail=str(exc)) from exc
+
+
+@router.api_route(
+    "/api/v1/media/video-proxy/{name}", methods=["GET", "HEAD"],
+    include_in_schema=False,
+)
+def get_video_proxy(name: str) -> FileResponse:
+    try:
+        return _response(media_service.video_proxy(name))
+    except RuntimeError as exc:
+        raise HTTPException(status_code=422, detail=str(exc)) from exc
+
+
+@router.api_route(
+    "/api/v1/media/audio-proxy/{name}", methods=["GET", "HEAD"],
+    include_in_schema=False,
+)
+def get_media_audio_proxy(name: str) -> FileResponse:
+    try:
+        return _response(media_service.audio_proxy(name))
+    except RuntimeError as exc:
+        raise HTTPException(status_code=422, detail=str(exc)) from exc
+
+
+@router.api_route(
+    "/api/v1/media/segments/{name}", methods=["GET", "HEAD"],
+    include_in_schema=False,
+)
+def get_audio_segment(
+    name: str,
+    offset_ms: int = Query(0, ge=0, le=86_400_000),
+    duration_ms: int = Query(..., ge=100, le=120_000),
+) -> FileResponse:
+    try:
+        item = media_service.audio_segment(
+            name, offset_ms=offset_ms, duration_ms=duration_ms)
+    except RuntimeError as exc:
+        raise HTTPException(status_code=422, detail=str(exc)) from exc
+    return _response(item)
+
+
+@router.get("/api/v1/media/peaks/{name}", operation_id="getAudioPeaks",
+            response_model=AudioPeaksEnvelope)
+def get_audio_peaks(name: str, bars: int = Query(48, ge=8, le=4096)) -> dict:
+    try:
+        values = waveform_peaks(name, bars)
+    except LookupError as exc:
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
+    except RuntimeError as exc:
+        raise HTTPException(status_code=422, detail=str(exc)) from exc
+    return {"data": {"filename": name, "bars": len(values), "peaks": values}}
+
+
+@router.api_route(
+    "/api/v1/voice-references/{reference_id}/audio",
+    methods=["GET", "HEAD"], include_in_schema=False,
+)
+def get_voice_reference_audio(reference_id: str) -> FileResponse:
+    try:
+        return _response(voice_reference_media_service.source(reference_id))
+    except RuntimeError as exc:
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
+
+
+@router.get(
+    "/api/v1/voice-references/{reference_id}/peaks",
+    operation_id="getVoiceReferencePeaks",
+    response_model=AudioPeaksEnvelope,
+)
+def get_voice_reference_peaks(
+    reference_id: str, bars: int = Query(1024, ge=8, le=4096),
+) -> dict:
+    try:
+        values = voice_reference_media_service.peaks(reference_id, bars)
+    except LookupError as exc:
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
+    except RuntimeError as exc:
+        raise HTTPException(status_code=422, detail=str(exc)) from exc
+    return {"data": {"filename": reference_id,
+                     "bars": len(values), "peaks": values}}
+
+
+@router.api_route("/icon/{name}", methods=["GET", "HEAD"], include_in_schema=False)
+def get_icon(name: str) -> FileResponse:
+    return _response(media_service.resolve("icon", name))
+
+
+@router.api_route("/inbox/{name}", methods=["GET", "HEAD"], include_in_schema=False)
+def get_inbox_file(name: str) -> FileResponse:
+    return _response(media_service.resolve("inbox", name))
+
+
+@router.api_route("/block-audio/{name}", methods=["GET", "HEAD"], include_in_schema=False)
+def get_block_audio(name: str) -> FileResponse:
+    return _response(media_service.resolve("block-audio", name))
+
+
+@router.api_route("/samples/{name}", methods=["GET", "HEAD"], include_in_schema=False)
+def get_sample(name: str) -> FileResponse:
+    return _response(media_service.resolve("samples", name))
+
+
+@router.get("/api/v1/exports/{export_id}/download", operation_id="downloadExport",
+            response_class=FileResponse)
+def download_export(export_id: int) -> FileResponse:
+    return _response(media_service.export_file(export_id))
+
+
+@router.get("/api/v1/recordings/{recording_id}/download",
+            operation_id="downloadRecording", response_class=FileResponse)
+def download_recording(recording_id: int) -> FileResponse:
+    return _response(media_service.recording_file(recording_id))

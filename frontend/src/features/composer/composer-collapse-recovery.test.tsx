@@ -5,16 +5,16 @@ import { afterEach, describe, expect, it, vi } from "vitest"
 const api = vi.hoisted(() => ({
   composerDraft: vi.fn(), saveComposerDraft: vi.fn(), deleteComposerDraft: vi.fn(),
 }))
-vi.mock("@/lib/api", () => ({ studioApi: api }))
+vi.mock("@/lib/api", () => ({ originsApi: api }))
 vi.mock("@/components/global-player-provider", () => ({
   useGlobalPlayer: () => ({ transportHost: "shell", claimTransport: vi.fn(() => vi.fn()) }),
 }))
 
-import { ProductionComposerStage } from "./production-composer-host"
+import { ProjectComposerStage } from "./project-composer-host"
 
 afterEach(() => { cleanup(); vi.clearAllMocks(); vi.useRealTimers(); vi.unstubAllGlobals() })
 
-describe("Production Composer recovery", () => {
+describe("Project Composer recovery", () => {
   it("flushes a quick edit when the Stage closes and restores it when reopened", async () => {
     let stored: unknown = null
     api.composerDraft.mockImplementation(async () => stored ? { id: "draft-1", state: stored, version: 1, updatedAt: "now" } : null)
@@ -22,14 +22,14 @@ describe("Production Composer recovery", () => {
       stored = draft
       return { id: "draft-1", state: draft, version: 1, updatedAt: "now" }
     })
-    const props = { productionId: 7, config: null, directory: { config: null, cloned: [], meta: {}, catalog: [], identities: [], registry: null }, playerPlaying: false, onGenerate: vi.fn(), onPlay: vi.fn() }
-    const view = render(<ProductionComposerStage {...props} />)
+    const props = { projectId: 7, config: null, directory: { config: null, cloned: [], meta: {}, catalog: [], identities: [], registry: null }, playerPlaying: false, onGenerate: vi.fn(), onPlay: vi.fn() }
+    const view = render(<ProjectComposerStage {...props} />)
     await act(async () => { await Promise.resolve(); await Promise.resolve() })
     fireEvent.change(screen.getByPlaceholderText("Type or paste what should be said…"), { target: { value: "Fast collapse edit" } })
     view.unmount()
     await waitFor(() => expect(api.saveComposerDraft).toHaveBeenCalled())
     expect(stored).toMatchObject({ text: { raw: "Fast collapse edit" } })
-    render(<ProductionComposerStage {...props} />)
+    render(<ProjectComposerStage {...props} />)
     await waitFor(() => expect((screen.getByPlaceholderText("Type or paste what should be said…") as HTMLTextAreaElement).value).toBe("Fast collapse edit"))
     expect((screen.getByPlaceholderText("Type or paste what should be said…") as HTMLTextAreaElement).value).toBe("Fast collapse edit")
   })

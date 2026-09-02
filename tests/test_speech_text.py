@@ -2,7 +2,7 @@
 
 import unittest
 
-from audio_studio.domain import speech_text
+from origins.domain import speech_text
 
 
 class SpeechTextPolicyTests(unittest.TestCase):

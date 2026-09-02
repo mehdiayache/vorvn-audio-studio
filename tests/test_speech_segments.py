@@ -2,7 +2,7 @@
 
 import unittest
 
-from audio_studio.domain import speech_segments
+from origins.domain import speech_segments
 
 
 class SpeechSegmentTests(unittest.TestCase):
@@ -25,7 +25,7 @@ class SpeechSegmentTests(unittest.TestCase):
         self.assertEqual(clause_parts[0], "هذه مقدمة طويلة،")
 
     def test_no_non_whitespace_content_is_lost(self):
-        text = "مرحبا\n\nبالعالم؟  This-is-a-very-long-token-without-spaces"
+        text = "مرحبا\n\nبالعالم؟  This-is-a-very-long-token-without-workspaces"
         parts = speech_segments.split_text(text, limit=14)
         self.assertTrue(all(len(part) <= 14 for part in parts))
         self.assertEqual("".join("".join(part.split()) for part in parts),

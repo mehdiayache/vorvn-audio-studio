@@ -4,8 +4,8 @@ from types import SimpleNamespace
 import unittest
 from unittest.mock import patch
 
-from audio_studio.application.catalog import CatalogService
-from audio_studio.infrastructure.catalog_environment import CatalogEnvironment
+from origins.application.catalog import CatalogService
+from origins.infrastructure.catalog_environment import CatalogEnvironment
 
 
 class FakeVoices:
@@ -26,7 +26,7 @@ class FakeVoices:
         return {}
 
     def catalogue_bindings(self):
-        from audio_studio.domain.voice_registry import system_bindings
+        from origins.domain.voice_registry import system_bindings
         return system_bindings()
 
     def catalog_usage(self):
@@ -67,19 +67,19 @@ class CatalogServiceTests(unittest.TestCase):
 
     def test_configuration_preserves_dynamic_runtime_facts(self):
         runtime = SimpleNamespace(
-            workspace_id="workspace", region="intl",
+            provider_workspace_id="workspace", region="intl",
             region_label="Singapore", native_http_base="https://api.example",
             api_key_configured=True,
         )
         with patch(
-                "audio_studio.application.catalog.alibaba_environment",
+                "origins.application.catalog.alibaba_environment",
                 return_value=runtime):
             result = self.service.configuration()
 
         self.assertEqual(result["chosen_default_voice"], "Tina")
         self.assertEqual(result["voice_images"], {"Tina": "tina.png"})
         self.assertEqual(result["voice_favourites"], ["Tina"])
-        self.assertEqual(result["workspace"]["region"], "intl")
+        self.assertEqual(result["provider_workspace"]["region"], "intl")
         self.assertTrue(result["has_key"])
         self.assertEqual(result["out_dir"], "/durable/media")
         self.assertEqual(result["prefs"]["out_dir"], "/durable/media")
@@ -150,7 +150,7 @@ class CatalogServiceTests(unittest.TestCase):
             "prefix": "studio", "region": "us-east-1",
         }
         with patch(
-                "audio_studio.infrastructure.catalog_environment.object_storage.settings",
+                "origins.infrastructure.catalog_environment.object_storage.settings",
                 return_value=values):
             public = CatalogEnvironment().storage_settings()
         self.assertEqual(public["bucket"], "audio")

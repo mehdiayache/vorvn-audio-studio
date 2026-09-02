@@ -3,7 +3,7 @@
 from copy import deepcopy
 import unittest
 
-from audio_studio.application.voices import VoiceService
+from origins.application.voices import VoiceService
 
 
 PROFILE = {
@@ -35,7 +35,7 @@ class FakeProfilesStore:
 
     def profile_usage(self):
         return {"voice_fixture": {
-            "uses": 4, "productions": 2, "spend": .2,
+            "uses": 4, "projects": 2, "spend": .2,
             "last_used": "2026-08-09T01:00:00+00:00",
             "preview_filename": "preview.mp3",
         }}
@@ -135,7 +135,8 @@ class VoiceServiceTests(unittest.TestCase):
     def test_profiles_derive_language_routes_and_usage(self):
         service, _, _ = self.service()
         profile = service.profile("voice_fixture")
-        self.assertEqual(profile["metadata"]["language"], "en")
+        self.assertEqual(profile["metadata"]["recording_language"], "en")
+        self.assertNotIn("language", profile["metadata"])
         self.assertEqual(len(profile["available_routes"]), 3)
         self.assertIn("cosy", {
             route["provider"] for route in profile["available_routes"]})

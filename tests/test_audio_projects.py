@@ -10,15 +10,15 @@ from concurrent.futures import ThreadPoolExecutor
 import unittest
 from unittest.mock import patch
 
-from audio_studio.application.audio_projects import production_scene
-from audio_studio.http.app import app
-from audio_studio.infrastructure.audio_codec import pcm_wav
-from audio_studio.infrastructure.audio_peaks import (
+from origins.application.audio_projects import project_scene
+from origins.http.app import app
+from origins.infrastructure.audio_codec import pcm_wav
+from origins.infrastructure.audio_peaks import (
     _write_cache,
     peaks,
     peaks_for_path,
 )
-from audio_studio.infrastructure.render_workspace import FFmpegRenderWorkspace
+from origins.infrastructure.render_workspace import FFmpegRenderWorkspace
 
 
 def _tone(seconds: float = .2, *, rate: int = 24_000) -> bytes:
@@ -31,10 +31,10 @@ def _tone(seconds: float = .2, *, rate: int = 24_000) -> bytes:
 
 
 class AudioProjectTests(unittest.TestCase):
-    def test_production_serializes_to_tracks_and_simple_clips(self):
-        scene = production_scene({
+    def test_project_serializes_to_tracks_and_simple_clips(self):
+        scene = project_scene({
             "id": 6,
-            "public_id": "production-6",
+            "public_id": "project-6",
             "name": "Conversation",
             "parts": [
                 {"id": 1, "public_id": "part-1", "kind": "speech",
@@ -63,7 +63,7 @@ class AudioProjectTests(unittest.TestCase):
         ])
 
     def test_legacy_silence_uses_title_only_without_duration_ms(self):
-        scene = production_scene({
+        scene = project_scene({
             "id": 6,
             "parts": [{
                 "id": 2, "kind": "silence", "enabled": True,
@@ -90,7 +90,7 @@ class AudioProjectTests(unittest.TestCase):
                     ],
                 }],
             }
-            with patch("audio_studio.infrastructure.render_workspace._output",
+            with patch("origins.infrastructure.render_workspace._output",
                        return_value=root):
                 first = FFmpegRenderWorkspace().render_project(project)
                 second = FFmpegRenderWorkspace().render_project(project)
@@ -105,7 +105,7 @@ class AudioProjectTests(unittest.TestCase):
         with TemporaryDirectory() as folder:
             root = Path(folder).resolve()
             (root / "voice.wav").write_bytes(_tone())
-            with patch("audio_studio.infrastructure.audio_peaks.media_root",
+            with patch("origins.infrastructure.audio_peaks.media_root",
                        return_value=root):
                 first = peaks("voice.wav", 24)
                 second = peaks("voice.wav", 24)
@@ -119,9 +119,9 @@ class AudioProjectTests(unittest.TestCase):
         with TemporaryDirectory() as folder:
             root = Path(folder).resolve()
             (root / "voice.wav").write_bytes(_tone())
-            with patch("audio_studio.infrastructure.audio_peaks.media_root",
+            with patch("origins.infrastructure.audio_peaks.media_root",
                        return_value=root), patch(
-                           "audio_studio.infrastructure.audio_peaks.subprocess.run",
+                           "origins.infrastructure.audio_peaks.subprocess.run",
                            wraps=__import__("subprocess").run) as decode:
                 peaks("voice.wav", 128)
                 peaks("voice.wav", 2048)
@@ -131,7 +131,7 @@ class AudioProjectTests(unittest.TestCase):
         with TemporaryDirectory() as folder:
             root = Path(folder).resolve()
             (root / "voice.wav").write_bytes(_tone())
-            with patch("audio_studio.infrastructure.audio_peaks.media_root",
+            with patch("origins.infrastructure.audio_peaks.media_root",
                        return_value=root):
                 values = peaks("voice.wav", 4096)
             self.assertEqual(len(values), 4096)
@@ -161,7 +161,7 @@ class AudioProjectTests(unittest.TestCase):
     def test_openapi_exposes_headless_render_and_peaks(self):
         paths = app.openapi()["paths"]
         self.assertIn("post", paths["/api/v1/projects/render"])
-        self.assertIn("get", paths["/api/v1/productions/{production_id}/project-scene"])
+        self.assertIn("get", paths["/api/v1/projects/{project_id}/project-scene"])
         self.assertIn("get", paths["/api/v1/media/peaks/{name}"])
         bars = paths["/api/v1/media/peaks/{name}"]["get"]["parameters"][1]["schema"]
         self.assertEqual(bars["maximum"], 4096)

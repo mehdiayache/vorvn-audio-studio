@@ -11,7 +11,7 @@ import { Textarea } from "@/components/ui/textarea"
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group"
 import { VoiceGenderBadge } from "@/components/voice-gender-badge"
 import { RecordingLanguageField } from "@/features/voices/recording-language-field"
-import { studioApi } from "@/lib/api"
+import { originsApi } from "@/lib/api"
 import { cn } from "@/lib/utils"
 import type { StudioConfig, VoicePackagePlan } from "@/types/domain"
 import { VoiceMethodSourceEditor, routeSourceGuidance, type VoiceSourceDraft } from "./voice-method-source-editor"
@@ -55,8 +55,8 @@ export function CreateVoiceDialog({ open, onOpenChange, config, onQueued }: {
     setBusy("upload"); setError("")
     try {
       const [result, methodPlan] = await Promise.all([
-        studioApi.uploadVoiceReference(file),
-        studioApi.voicePackagePreflight(recordingLanguage, "complete"),
+        originsApi.uploadVoiceReference(file),
+        originsApi.voicePackagePreflight(recordingLanguage, "complete"),
       ])
       const drafts = Object.fromEntries(methodPlan.routes.map((route) => {
         const guidance = routeSourceGuidance(route)
@@ -88,7 +88,7 @@ export function CreateVoiceDialog({ open, onOpenChange, config, onQueued }: {
     }
     setBusy("upload"); setError("")
     try {
-      const window = await studioApi.saveUploadedVoiceReferenceWindow(referenceId, {
+      const window = await originsApi.saveUploadedVoiceReferenceWindow(referenceId, {
         provider_model_id: route.provider_model_id,
         start_ms: draft.startMs,
         duration_ms: draft.durationMs,
@@ -109,14 +109,14 @@ export function CreateVoiceDialog({ open, onOpenChange, config, onQueued }: {
     if (!referenceId || !plan?.routes.length) return
     setBusy("create"); setError("")
     try {
-      const result = await studioApi.createVoicePackage({ name: name.trim(), gender, language: recordingLanguage.trim(), editorial_language: editorialLanguage === "none" ? "" : editorialLanguage, reference_id: referenceId, reference_window_ids: referenceWindowIds, package: "complete", trait: trait.trim(), confirmed: true })
+      const result = await originsApi.createVoicePackage({ name: name.trim(), gender, language: recordingLanguage.trim(), editorial_language: editorialLanguage === "none" ? "" : editorialLanguage, reference_id: referenceId, reference_window_ids: referenceWindowIds, package: "complete", trait: trait.trim(), confirmed: true })
       onOpenChange(false); onQueued(); toast.success(`${name.trim()} added`, { description: `${result.queued} voice versions are being created.` })
     } catch (reason) { setError(reason instanceof Error ? reason.message : "The voice package could not be started.") }
     finally { setBusy(null) }
   }
 
   return <Dialog open={open} onOpenChange={(next) => { if (!busy) onOpenChange(next) }}><DialogContent className="voice-create-dialog">
-    <DialogHeader><DialogTitle>Create a production voice</DialogTitle><DialogDescription>Add one person or character, then prepare that recording for every available method.</DialogDescription></DialogHeader>
+    <DialogHeader><DialogTitle>Create a voice</DialogTitle><DialogDescription>Add one person or character, then prepare that recording for every available method.</DialogDescription></DialogHeader>
     <nav className="voice-create-steps" aria-label="Voice creation steps">{steps.map((label, index) => <span key={label} className={cn(index === step && "active", index < step && "done")}><i>{index < step ? <Check /> : index + 1}</i>{label}</span>)}</nav>
     <div className="voice-create-stage">
       {step === 0 && <section><span className="voice-create-symbol"><Mic2 /></span><div className="voice-create-heading"><h3>Who is this voice?</h3><p>The name belongs to the person or character. Provider model IDs stay underneath it.</p></div><label><span>Voice name</span><Input value={name} maxLength={80} autoFocus onChange={(event) => setName(event.target.value)} placeholder="e.g. Serinity" /></label><div className="voice-create-sex"><span>Sex</span><ToggleGroup type="single" variant="outline" value={gender} onValueChange={(value) => { if (value === "female" || value === "male") setGender(value) }} aria-label="Voice sex"><ToggleGroupItem value="female" aria-label="Female voice"><VoiceGenderBadge gender="female" /></ToggleGroupItem><ToggleGroupItem value="male" aria-label="Male voice"><VoiceGenderBadge gender="male" /></ToggleGroupItem></ToggleGroup><small>Shown consistently anywhere this voice is selected or used.</small></div><label><span>Voice language / accent flag <small>optional</small></span><Select value={editorialLanguage} onValueChange={setEditorialLanguage}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent><SelectItem value="none">No language focus</SelectItem>{languages.map(([code, label]) => <SelectItem value={code} key={code}>{label}</SelectItem>)}</SelectContent></Select><small>Shown beside this voice for casting. It never limits what the voice can say.</small></label><RecordingLanguageField value={recordingLanguage} onChange={setRecordingLanguage} suggestions={languages} /><label><span>Voice notes <small>optional</small></span><Textarea value={trait} maxLength={240} onChange={(event) => setTrait(event.target.value)} placeholder="Warm, intimate storyteller with a calm pace" /></label></section>}

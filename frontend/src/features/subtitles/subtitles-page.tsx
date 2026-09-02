@@ -13,8 +13,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { StudioPageHeader } from "@/components/studio-page-header"
 import { useJobExecution } from "@/hooks/use-job-execution"
 import { useJobQuery } from "@/hooks/use-job-query"
-import { useSpaceHome } from "@/hooks/use-space-home"
-import { studioApi } from "@/lib/api"
+import { useWorkspaceExplorer } from "@/hooks/use-workspace-explorer"
+import { originsApi } from "@/lib/api"
 import { buildCaptionPlayerTrack, useCaptionPresentation } from "@/lib/caption-presentation"
 import type { CaptionLayout, CaptionMutationResult, CaptionProfile, ExternalAudioUpload, ExternalTranscriptSummary, Transcript } from "@/types/domain"
 
@@ -36,7 +36,7 @@ function fallbackLayout(transcript: Transcript, profile: CaptionProfile): Captio
 
 export function SubtitlesPage() {
   const player = useGlobalPlayer()
-  const spaceHome = useSpaceHome()
+  const workspaceHome = useWorkspaceExplorer()
   const [jobId, setJobId] = useJobQuery("subtitle-job")
   const job = useJobExecution<CaptionMutationResult>(jobId)
   const terminalJob = useRef<string | null>(null)
@@ -59,15 +59,15 @@ export function SubtitlesPage() {
   const confirmation = job?.status === "blocked" && job.result?.needs_confirmation && !Boolean((job.result as CaptionMutationResult & { requires_review?: boolean })?.requires_review) ? job : null
 
   async function refresh() {
-    if (!spaceHome.selectedSpaceId) return
-    try { setHistory(await studioApi.externalTranscripts(spaceHome.selectedSpaceId)); setHistoryError("") }
+    if (!workspaceHome.selectedWorkspaceId) return
+    try { setHistory(await originsApi.externalTranscripts(workspaceHome.selectedWorkspaceId)); setHistoryError("") }
     catch (reason) { setHistoryError(reason instanceof Error ? reason.message : "Previous subtitles are unavailable.") }
   }
 
   async function openTranscript(id: number) {
     try {
-      const next = await studioApi.externalTranscript(id)
-      if (next.space_id !== spaceHome.selectedSpaceId) throw new Error("These subtitles belong to another Space.")
+      const next = await originsApi.externalTranscript(id)
+      if (next.workspace_id !== workspaceHome.selectedWorkspaceId) throw new Error("These subtitles belong to another Workspace.")
       player.pause()
       setTranscript(next)
     }
@@ -75,23 +75,23 @@ export function SubtitlesPage() {
   }
 
   useEffect(() => {
-    if (!spaceHome.selectedSpaceId) return
+    if (!workspaceHome.selectedWorkspaceId) return
     setHistory([])
     setTranscript(null)
     setFile(null)
     setUploaded(null)
     setJobId(null)
     void refresh()
-    void studioApi.config().then((config) => setLanguages((config.languages.length ? config.languages : fallbackLanguages).filter((item) => item !== "Auto"))).catch(() => undefined)
+    void originsApi.config().then((config) => setLanguages((config.languages.length ? config.languages : fallbackLanguages).filter((item) => item !== "Auto"))).catch(() => undefined)
     const requested = Number(new URLSearchParams(window.location.search).get("transcript") || 0)
     if (requested > 0) void openTranscript(requested)
-  }, [spaceHome.selectedSpaceId])
+  }, [workspaceHome.selectedWorkspaceId])
 
   useEffect(() => {
     if (!transcript?.id) { setLayout(null); return }
     let current = true
     setLayoutBusy(true)
-    void studioApi.subtitleLayout(transcript.id, profile).then((next) => { if (current) setLayout(next) }).catch((reason) => { if (current) toast.error(reason instanceof Error ? reason.message : "Caption layout could not be prepared.") }).finally(() => { if (current) setLayoutBusy(false) })
+    void originsApi.subtitleLayout(transcript.id, profile).then((next) => { if (current) setLayout(next) }).catch((reason) => { if (current) toast.error(reason instanceof Error ? reason.message : "Caption layout could not be prepared.") }).finally(() => { if (current) setLayoutBusy(false) })
     return () => { current = false }
   }, [profile, transcript?.id])
 
@@ -105,16 +105,16 @@ export function SubtitlesPage() {
   }, [job])
 
   async function enqueueTranscription(source: ExternalAudioUpload) {
-    if (!spaceHome.selectedSpaceId) return
+    if (!workspaceHome.selectedWorkspaceId) return
     setError("")
-    try { const next = await studioApi.enqueueExternalTranscription({ ...source, space_id: spaceHome.selectedSpaceId, language: language === "Auto" ? "" : language, enable_itn: enableItn }); setJobId(next.id, false) }
+    try { const next = await originsApi.enqueueExternalTranscription({ ...source, workspace_id: workspaceHome.selectedWorkspaceId, language: language === "Auto" ? "" : language, enable_itn: enableItn }); setJobId(next.id, false) }
     catch (reason) { const message = reason instanceof Error ? reason.message : "Transcription failed."; setError(message); toast.error(message) }
   }
 
   async function upload() {
     if (!file) return
     setUploading(true); setError("")
-    try { const source = uploaded || await studioApi.uploadExternalAudio(file); setUploaded(source); await enqueueTranscription(source) }
+    try { const source = uploaded || await originsApi.uploadExternalAudio(file); setUploaded(source); await enqueueTranscription(source) }
     catch (reason) { const message = reason instanceof Error ? reason.message : "Upload failed."; setError(message); toast.error(message) }
     finally { setUploading(false) }
   }
@@ -122,13 +122,13 @@ export function SubtitlesPage() {
   async function translate() {
     if (!transcript?.id || !translationLanguage) return
     setError("")
-    try { const next = await studioApi.enqueueTranscriptTranslation(transcript.id, translationLanguage); setJobId(next.id, false) }
+    try { const next = await originsApi.enqueueTranscriptTranslation(transcript.id, translationLanguage); setJobId(next.id, false) }
     catch (reason) { const message = reason instanceof Error ? reason.message : "Translation failed."; setError(message); toast.error(message) }
   }
 
   async function confirmJob() {
     if (!job) return
-    try { const next = await studioApi.confirmJob<CaptionMutationResult>(job.id); setJobId(next.id, false) }
+    try { const next = await originsApi.confirmJob<CaptionMutationResult>(job.id); setJobId(next.id, false) }
     catch (reason) { setError(reason instanceof Error ? reason.message : "Confirmation failed.") }
   }
 
@@ -145,17 +145,17 @@ export function SubtitlesPage() {
   }
 
   const display = transcript ? layout || fallbackLayout(transcript, profile) : null
-  if (spaceHome.spaces.status === "loading") return <main className="subtitles-page"><PageLoading label="Opening Subtitles" /></main>
-  if (!spaceHome.selectedSpaceId) return <main className="subtitles-page"><ErrorState title="Choose a Space first" message="Subtitle Files need a destination Space." retry={() => window.location.assign("/audio-studio/")} /></main>
-  if (spaceHome.overview.status === "error" && !spaceHome.overview.data) return <main className="subtitles-page"><ErrorState title="Space unavailable" message={spaceHome.overview.error || "This Space could not be loaded."} retry={() => void spaceHome.refresh()} /></main>
-  const spaceName = spaceHome.overview.data?.space.name || spaceHome.spaces.data?.find((space) => space.id === spaceHome.selectedSpaceId)?.name || "Current Space"
+  if (workspaceHome.workspaces.status === "loading") return <main className="subtitles-page"><PageLoading label="Opening Subtitles" /></main>
+  if (!workspaceHome.selectedWorkspaceId) return <main className="subtitles-page"><ErrorState title="Choose a Workspace first" message="Subtitle Files need a destination Workspace." retry={() => window.location.assign("/origins/")} /></main>
+  if (workspaceHome.overview.status === "error" && !workspaceHome.overview.data) return <main className="subtitles-page"><ErrorState title="Workspace unavailable" message={workspaceHome.overview.error || "This Workspace could not be loaded."} retry={() => void workspaceHome.refresh()} /></main>
+  const workspaceName = workspaceHome.overview.data?.workspace.name || workspaceHome.workspaces.data?.find((workspace) => workspace.id === workspaceHome.selectedWorkspaceId)?.name || "Current Workspace"
   return <main className="subtitles-page">
-    <StudioPageHeader eyebrow={`Saving to ${spaceName}`} title="Subtitles" description="Transcribe external audio into reusable subtitle Files. Production audio keeps its subtitles with that Project." />
+    <StudioPageHeader eyebrow={`Saving to ${workspaceName}`} title="Subtitles" description="Transcribe external audio into reusable subtitle Files. Project audio keeps its subtitles with that Project." />
     <div className="subtitles-layout"><div className="subtitles-main">
       <section className="subtitles-card"><header><div><h2>External audio</h2><p>MP3, WAV, M4A, AAC, OGG or FLAC · maximum 500 MB.</p></div></header><FileDropZone file={file} accept="audio/*,.mp3,.wav,.m4a,.aac,.ogg,.flac" disabled={uploading || active} onFile={(next) => { setFile(next); setUploaded(null); setError(""); setJobId(null) }} hint="or choose a file" emptyLabel="Drop audio here" /><div className="subtitles-form"><label><span>Spoken language</span><Select value={language} onValueChange={setLanguage}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent><SelectItem value="Auto">Auto</SelectItem>{languages.map((item) => <SelectItem value={item} key={item}>{item}</SelectItem>)}</SelectContent></Select></label><label className="subtitle-itn"><Checkbox checked={enableItn} onCheckedChange={(value) => setEnableItn(value === true)} /><span><b>Format numbers and dates</b><small>For example, “twenty twenty-six” may become “2026”.</small></span></label><Button disabled={!file || uploading || active} onClick={() => void upload()}>{uploading || (active && job?.type === "transcribe") ? <LoaderCircle className="spin" /> : error && uploaded ? <RotateCw /> : <Upload />}{uploading ? "Uploading…" : active && job?.type === "transcribe" ? "Creating subtitles…" : error && uploaded ? "Retry subtitles" : "Create subtitles"}</Button></div><p className="recognition-note">Word timings are saved whenever the provider supplies them. Caption styles can be changed later without paying again.</p>{error && <div className="subtitles-inline-error" role="alert"><CircleAlert /><div><b>Subtitles were not created</b><span>{error}</span>{uploaded && <small>Your upload is preserved. Retry does not upload the file again.</small>}</div></div>}</section>
       {job && <OperationState job={job} title={job.type === "translate" ? "Subtitle translation" : "Audio transcription"} onConfirm={confirmation ? () => void confirmJob() : undefined} onRetry={job.status === "failed" && uploaded && job.type === "transcribe" ? () => void enqueueTranscription(uploaded) : undefined} onDismiss={!active ? () => setJobId(null) : undefined} />}
       {transcript && display && <SubtitleResult transcript={transcript} display={display} layout={layout} profile={profile} layoutBusy={layoutBusy} languages={languages} translationLanguage={translationLanguage} translating={translating} player={player} onPlayAt={(seconds) => void playAt(seconds)} onProfileChange={setProfile} onTranslationLanguage={setTranslationLanguage} onTranslate={() => void translate()} />}
-    </div><SubtitleHistory history={history} error={historyError} onOpen={(id) => void openTranscript(id)} onDelete={(item) => studioApi.deleteExternalTranscript(item.id).then(() => { if (transcript?.id === item.id) setTranscript(null); return refresh() })} /></div>
+    </div><SubtitleHistory history={history} error={historyError} onOpen={(id) => void openTranscript(id)} onDelete={(item) => originsApi.deleteExternalTranscript(item.id).then(() => { if (transcript?.id === item.id) setTranscript(null); return refresh() })} /></div>
     <Dialog open={Boolean(confirmation)} onOpenChange={(open) => { if (!open) setJobId(null) }}><DialogContent><DialogHeader><DialogTitle>{job?.type === "translate" ? "Translate these subtitles?" : "Create these subtitles?"}</DialogTitle><DialogDescription>This provider request is estimated at ${Number(confirmation?.result?.estimate || 0).toFixed(4)}. The blocked Job remains in Activity if you decide not to continue.</DialogDescription></DialogHeader><DialogFooter><Button variant="outline" onClick={() => setJobId(null)}>Cancel</Button><Button onClick={() => void confirmJob()}>Confirm and continue</Button></DialogFooter></DialogContent></Dialog>
   </main>
 }

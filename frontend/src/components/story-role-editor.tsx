@@ -35,7 +35,7 @@ export function StoryRoleEditor({ value, busy = false, className, onSave }: {
       <form onSubmit={(event) => { event.preventDefault(); void save().catch(() => undefined) }}>
         <label htmlFor={inputId}>Story role</label>
         <Input id={inputId} autoFocus maxLength={120} value={draft} onChange={(event) => setDraft(event.target.value)} placeholder="Narrator, Esther, Mordecai…" />
-        <small>Labels the speaker in this Production. It never creates Cast logic.</small>
+        <small>Labels the speaker in this Project. It never creates Cast logic.</small>
         <div><Button type="button" variant="ghost" size="sm" onClick={() => setOpen(false)}>Cancel</Button><Button type="submit" size="sm" disabled={busy}>{busy ? "Saving…" : "Save role"}</Button></div>
       </form>
     </PopoverContent>

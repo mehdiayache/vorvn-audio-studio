@@ -2,31 +2,31 @@
 
 import unittest
 
-from audio_studio.application.sound_scenes import SoundSceneService
-from audio_studio.domain.sound_scene import empty_scene
+from origins.application.sound_scenes import SoundSceneService
+from origins.domain.sound_scene import empty_scene
 
 
 class Records:
     def __init__(self):
         self.scene = {
-            "production_id": 6, "revision": 1,
+            "project_id": 6, "revision": 1,
             "document": empty_scene(), "can_undo": False,
             "can_redo": False, "updated_at": "2026-08-18T00:00:00",
         }
 
-    def get(self, production_id):
-        return self.scene if production_id == 6 else None
+    def get(self, project_id):
+        return self.scene if project_id == 6 else None
 
-    def commit(self, production_id, expected_revision, document,
+    def commit(self, project_id, expected_revision, document,
                mutation_kind="operator"):
-        if production_id != 6 or expected_revision != self.scene["revision"]:
+        if project_id != 6 or expected_revision != self.scene["revision"]:
             return None
         self.scene = {**self.scene, "revision": expected_revision + 1,
                       "document": document, "can_undo": True}
         return self.scene
 
-    def step(self, production_id, direction):
-        return self.scene if production_id == 6 else None
+    def step(self, project_id, direction):
+        return self.scene if project_id == 6 else None
 
 
 class Sequence:
@@ -38,7 +38,7 @@ class Sequence:
             "missing": False,
         }]
 
-    def parts(self, _production_id):
+    def parts(self, _project_id):
         return self.items
 
 
@@ -46,8 +46,8 @@ class Workspace:
     def __init__(self):
         self.calls = []
 
-    def sequence_stem(self, production_id, parts, signature):
-        self.calls.append((production_id, parts, signature))
+    def sequence_stem(self, project_id, parts, signature):
+        self.calls.append((project_id, parts, signature))
         return {"url": "/audio/stem.mp3", "filename": "stem.mp3",
                 "duration_ms": 4_000, "signature": signature,
                 "cached": len(self.calls) > 1}

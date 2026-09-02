@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import unittest
 
-from audio_studio.application.settings import SettingsService
+from origins.application.settings import SettingsService
 
 
 class ControlPlaneFake:
@@ -31,7 +31,7 @@ class ControlPlaneFake:
 class ConfigurationFake:
     def __init__(self):
         self.saved_provider = None
-        self.saved_director_provider = None
+        self.saved_media_generation_provider = None
         self.saved_audio_catalog = None
         self.saved_audio_generation = None
         self.saved_storage = None
@@ -45,12 +45,12 @@ class ConfigurationFake:
     def provider(self):
         return {
             "name": "Alibaba Model Studio", "configured": True,
-            "workspace_configured": True, "workspace_id": "workspace",
+            "workspace_configured": True, "provider_workspace_id": "workspace",
             "region": "intl", "region_label": "Singapore",
             "http_base": "https://provider.test/api/v1",
         }
 
-    def director_provider(self):
+    def media_generation_provider(self):
         return {
             "name": "KIE", "configured": True,
             "base_url": "https://api.kie.ai", "reason": "",
@@ -83,8 +83,8 @@ class ConfigurationFake:
     def save_provider(self, values):
         self.saved_provider = values
 
-    def save_director_provider(self, values):
-        self.saved_director_provider = values
+    def save_media_generation_provider(self, values):
+        self.saved_media_generation_provider = values
 
     def save_audio_catalog(self, values):
         self.saved_audio_catalog = values
@@ -144,7 +144,7 @@ class SettingsServiceTests(unittest.TestCase):
             pronunciations=self.pronunciations,
             provider_connection_test=lambda: {
                 "connected": True, "provider": "alibaba"},
-            director_provider_connection_test=lambda: {
+            media_generation_provider_connection_test=lambda: {
                 "connected": True, "configured": True},
             load_preferences=lambda: dict(self.preferences),
             save_preferences=self._save_preferences,
@@ -157,7 +157,7 @@ class SettingsServiceTests(unittest.TestCase):
     def test_snapshot_exposes_configuration_state_but_never_secrets(self):
         result = self.service.snapshot()
         self.assertTrue(result["provider"]["configured"])
-        self.assertTrue(result["director_provider"]["configured"])
+        self.assertTrue(result["media_generation_provider"]["configured"])
         self.assertTrue(result["audio_catalog"]["search_configured"])
         self.assertFalse(result["audio_catalog"]["keep_configured"])
         self.assertTrue(result["audio_generation"]["configured"])
@@ -172,11 +172,11 @@ class SettingsServiceTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "Singapore or Beijing"):
             self.service.update_provider({"region": "moon"})
         self.service.update_provider({
-            "region": "beijing", "workspace_id": "  ws-cn  ",
+            "region": "beijing", "provider_workspace_id": "  ws-cn  ",
             "api_key": "  secret  ",
         })
         self.assertEqual(self.configuration.saved_provider, {
-            "region": "beijing", "workspace_id": "ws-cn",
+            "region": "beijing", "provider_workspace_id": "ws-cn",
             "api_key": "secret",
         })
         self.service.update_storage({"bucket": "new-private"})
@@ -184,17 +184,17 @@ class SettingsServiceTests(unittest.TestCase):
             self.configuration.saved_storage, {"bucket": "new-private"})
         self.assertTrue(self.service.test_provider()["connected"])
 
-    def test_kie_secret_uses_the_director_provider_port(self):
-        result = self.service.update_director_provider({
+    def test_kie_secret_uses_the_media_generation_provider_port(self):
+        result = self.service.update_media_generation_provider({
             "api_key": "  private-kie-key  ",
             "base_url": "  https://api.kie.ai  ",
         })
-        self.assertEqual(self.configuration.saved_director_provider, {
+        self.assertEqual(self.configuration.saved_media_generation_provider, {
             "api_key": "private-kie-key",
             "base_url": "https://api.kie.ai",
         })
-        self.assertNotIn("api_key", result["director_provider"])
-        self.assertTrue(self.service.test_director_provider()["connected"])
+        self.assertNotIn("api_key", result["media_generation_provider"])
+        self.assertTrue(self.service.test_media_generation_provider()["connected"])
 
     def test_freesound_secret_updates_use_the_configuration_port(self):
         result = self.service.update_audio_catalog({
@@ -225,7 +225,7 @@ class SettingsServiceTests(unittest.TestCase):
             "warn_above": "2.5", "daily_cap": 8,
             "synth_flags": {"enable_tn": False, "unknown": True},
             "extra_params": '{"new_provider_option": true}',
-            "naming": {"artist": "{venture}", "unknown": "discard"},
+            "naming": {"artist": "{workspace}", "unknown": "discard"},
         })
         self.assertEqual(self.preferences["warn_above"], 2.5)
         self.assertEqual(self.preferences["synth_flags"], {"enable_tn": False})

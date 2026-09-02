@@ -3,7 +3,7 @@
 from copy import deepcopy
 import unittest
 
-from audio_studio.domain.sound_scene import (
+from origins.domain.sound_scene import (
     SoundSceneError,
     effect_tail_ms,
     empty_scene,
@@ -28,16 +28,16 @@ def speech(part_id: int, duration_ms: int, position: int) -> dict:
 def anchored_scene(part_public_id: str) -> dict:
     scene = empty_scene()
     scene["tracks"].append({
-        "id": "music", "kind": "music", "name": "Music",
+        "id": "music", "kind": "audio", "role": "music", "name": "Music",
         "volume": 1, "muted": False, "clips": [{
         "id": "78af885c-aeb4-49bf-9edb-d3fc14496b2c",
-        "asset_id": 9, "asset_version_id": 11,
+        "file_id": 9, "file_version_id": 11,
         "start_ms": 0, "duration_ms": 2_000, "source_offset_ms": 250,
         "gain": .2, "fade_in_ms": 200, "fade_out_ms": 300,
         "loop": False, "ducking": True,
         "anchor": {"kind": "part", "part_public_id": part_public_id,
                    "edge": "start", "offset_ms": 500},
-        "asset_name": "Future transition", "filename": "transition.wav",
+        "file_name": "Future transition", "filename": "transition.wav",
         "source_duration_ms": 10_000, "missing": False,
         }],
     })
@@ -50,11 +50,11 @@ class SoundSceneDomainTests(unittest.TestCase):
         clip_id = "20000000-0000-4000-8000-000000000001"
         history = empty_scene()
         history["tracks"] = [{
-            "id": "embedded-video-audio", "kind": "audio",
+            "id": "embedded-video-audio", "kind": "audio", "role": "audio",
             "name": "Video audio", "volume": .7, "muted": False,
             "clips": [{
                 "id": clip_id, "linked_visual_clip_id": linked_id,
-                "asset_id": 8, "duration_ms": 2_000,
+                "file_id": 8, "duration_ms": 2_000,
                 "source_offset_ms": 100, "gain": .35,
                 "muted": True, "effects": [],
                 "anchor": {"kind": "absolute", "position_ms": 500},
@@ -83,11 +83,11 @@ class SoundSceneDomainTests(unittest.TestCase):
         effect_id = "30000000-0000-4000-8000-000000000001"
         history = empty_scene()
         history["tracks"] = [{
-            "id": "embedded-video-audio", "kind": "audio",
+            "id": "embedded-video-audio", "kind": "audio", "role": "audio",
             "name": "Camera sound", "volume": .72, "muted": True,
             "clips": [{
                 "id": clip_id, "linked_visual_clip_id": linked_id,
-                "asset_id": 8, "duration_ms": 2_000,
+                "file_id": 8, "duration_ms": 2_000,
                 "source_offset_ms": 100, "gain": .35,
                 "fade_in_ms": 120, "fade_out_ms": 240,
                 "ducking": True, "duck_amount_db": -9,
@@ -182,13 +182,13 @@ class SoundSceneDomainTests(unittest.TestCase):
         effects[2]["mix"] = .2
         self.assertEqual(effect_tail_ms(effects), 415)
 
-    def test_legacy_ducking_defaults_to_minus_twelve_db(self):
+    def test_ducking_defaults_to_minus_twelve_db(self):
         document = normalize_scene({
             "version": 1, "sequence_overrides": {}, "tracks": [{
-                "id": "music", "kind": "audio", "name": "Music",
+                "id": "music", "kind": "audio", "role": "music", "name": "Music",
                 "volume": 1, "muted": False, "clips": [{
                     "id": "78af885c-aeb4-49bf-9edb-d3fc14496b2c",
-                    "asset_id": 9, "duration_ms": 1000,
+                    "file_id": 9, "duration_ms": 1000,
                     "source_offset_ms": 0, "gain": 1, "fade_in_ms": 0,
                     "fade_out_ms": 0, "loop": False, "ducking": True,
                     "muted": False, "locked": False, "effects": [],
@@ -224,14 +224,14 @@ class SoundSceneDomainTests(unittest.TestCase):
         with self.assertRaisesRegex(SoundSceneError, "only one telephone"):
             normalize_scene(scene)
 
-    def test_historical_v1_normalizes_to_one_canonical_document(self):
-        historical = {
+    def test_noncanonical_track_and_position_are_rejected(self):
+        noncanonical = {
             "version": 1,
             "tracks": [{
                 "id": "music", "kind": "music", "name": "Music",
                 "volume": 1, "muted": False, "clips": [{
                     "id": "78af885c-aeb4-49bf-9edb-d3fc14496b2c",
-                    "asset_id": 9, "start_ms": 2_500,
+                    "file_id": 9, "start_ms": 2_500,
                     "duration_ms": 2_000, "source_offset_ms": 250,
                     "gain": .2, "fade_in_ms": 200,
                     "fade_out_ms": 300, "loop": False,
@@ -240,21 +240,8 @@ class SoundSceneDomainTests(unittest.TestCase):
             }],
         }
 
-        canonical = normalize_scene(historical)
-
-        self.assertEqual(canonical["sequence_overrides"], {})
-        self.assertEqual(canonical["tracks"][0]["kind"], "audio")
-        self.assertEqual(canonical["tracks"][0]["role"], "music")
-        self.assertEqual(canonical["tracks"][0]["name"], "Music")
-        clip = canonical["tracks"][0]["clips"][0]
-        self.assertNotIn("start_ms", clip)
-        self.assertEqual(clip["anchor"], {
-            "kind": "absolute", "position_ms": 2_500,
-        })
-        self.assertFalse(clip["muted"])
-        self.assertFalse(clip["locked"])
-        self.assertEqual(clip["effects"], [])
-        self.assertEqual(normalize_scene(canonical), canonical)
+        with self.assertRaisesRegex(SoundSceneError, "track kind"):
+            normalize_scene(noncanonical)
 
     def test_audio_track_role_is_explicit_and_never_inferred_from_clips(self):
         scene = empty_scene()
@@ -267,10 +254,10 @@ class SoundSceneDomainTests(unittest.TestCase):
         self.assertEqual(canonical["tracks"][0]["role"], "sfx")
         self.assertEqual(canonical["tracks"][0]["name"], "Kitchen Foley")
 
-    def test_duplicate_legacy_generic_track_names_are_numbered_once(self):
+    def test_track_names_are_preserved_by_the_domain(self):
         document = empty_scene()
         document["tracks"] = [{
-            "id": track_id, "kind": "audio", "name": name,
+            "id": track_id, "kind": "audio", "role": "audio", "name": name,
             "volume": 1, "muted": False, "clips": [],
         } for track_id, name in (
             ("audio-one", "Audio"),
@@ -282,7 +269,7 @@ class SoundSceneDomainTests(unittest.TestCase):
 
         self.assertEqual(
             [track["name"] for track in canonical["tracks"]],
-            ["Audio 1", "Audio 2", "Room tone"],
+            ["Audio", "Audio", "Room tone"],
         )
         self.assertEqual(normalize_scene(canonical), canonical)
 
@@ -456,10 +443,10 @@ class SoundSceneDomainTests(unittest.TestCase):
     def test_follow_duration_tracks_current_production_length(self):
         scene = empty_scene()
         scene["tracks"].append({
-            "id": "music", "kind": "music", "name": "Music",
+            "id": "music", "kind": "audio", "role": "music", "name": "Music",
             "volume": 1, "muted": False, "clips": [{
             "id": "78af885c-aeb4-49bf-9edb-d3fc14496b2c",
-            "asset_id": 9, "start_ms": 0, "duration_ms": None,
+            "file_id": 9, "start_ms": 0, "duration_ms": None,
             "source_offset_ms": 0, "gain": .1, "fade_in_ms": 0,
             "fade_out_ms": 0, "loop": True, "ducking": True,
             "anchor": {"kind": "absolute", "position_ms": 0},
@@ -490,7 +477,7 @@ class SoundSceneDomainTests(unittest.TestCase):
     def test_track_volume_is_normalized_separately_from_clip_gain(self):
         scene = empty_scene()
         scene["tracks"].append({
-            "id": "music", "kind": "music", "name": "Music",
+            "id": "music", "kind": "audio", "role": "music", "name": "Music",
             "volume": .65, "muted": False, "clips": [],
         })
         resolved = resolve_scene(scene, [speech(1, 4_000, 0)])

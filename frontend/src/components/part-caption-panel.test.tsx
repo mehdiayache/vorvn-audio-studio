@@ -3,7 +3,7 @@ import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/re
 import { afterEach, beforeAll, describe, expect, it, vi } from "vitest"
 
 const api = vi.hoisted(() => ({ subtitleLayout: vi.fn() }))
-vi.mock("@/lib/api", () => ({ studioApi: api }))
+vi.mock("@/lib/api", () => ({ originsApi: api }))
 
 import { PartCaptionPanel } from "./part-caption-panel"
 
@@ -26,7 +26,7 @@ describe("PartCaptionPanel durable review state", () => {
     expect(screen.queryByRole("button", { name: /retry/i })).toBeNull()
   })
 
-  it("restores free Standard, Short, and Word-by-word layouts inside Production", async () => {
+  it("restores free Standard, Short, and Word-by-word layouts inside Project", async () => {
     api.subtitleLayout.mockResolvedValue({
       profile: { key: "short", label: "Short", description: "", max_words: 5, max_chars: 32, line_chars: 32, max_lines: 1, min_duration_ms: 500, max_duration_ms: 2500 },
       cues: [{ start: 0, end: 900, text: "A short phrase", words: [], timing: "word" }],
@@ -38,7 +38,7 @@ describe("PartCaptionPanel durable review state", () => {
     })
     render(<PartCaptionPanel
       captions={[{ id: 8, name: "part", language: "English", duration_ms: 900, is_translation: false, stale: false }]}
-      transcript={{ id: 8, public_id: "caption-8", space_id: null, file: "part.mp3", url: "/audio/part.mp3", text: "A short phrase", srt: "", vtt: "", sentences: [], duration_ms: 900, language: "English", created_at: null, cost: 0, cost_basis: "actual", model: null, provider_region: null, price_version: null, catalog_rate: 0, source_job_id: null }}
+      transcript={{ id: 8, public_id: "caption-8", workspace_id: null, file: "part.mp3", url: "/audio/part.mp3", text: "A short phrase", srt: "", vtt: "", sentences: [], duration_ms: 900, language: "English", created_at: null, cost: 0, cost_basis: "actual", model: null, provider_region: null, price_version: null, catalog_rate: 0, source_job_id: null }}
       languages={["English", "Arabic"]} sourceLanguage="English" loading={false} busy={null} confirmation={null} job={null}
       onSelect={vi.fn()} onCreate={vi.fn()} onTranslate={vi.fn()} onConfirm={vi.fn()} onCancel={vi.fn()} onRetryJob={vi.fn()} onDismissJob={vi.fn()}
     />)
@@ -69,7 +69,7 @@ describe("PartCaptionPanel durable review state", () => {
   it("uses detected caption language instead of an Auto or stale recording hint", () => {
     render(<PartCaptionPanel
       captions={[{ id: 8, name: "part", language: "English", duration_ms: 900, is_translation: false, stale: false }]}
-      transcript={{ id: 8, public_id: "caption-8", space_id: null, file: "part.mp3", url: "/audio/part.mp3", text: "Detected speech", srt: "", vtt: "", sentences: [], duration_ms: 900, language: "English", created_at: null, cost: 0, cost_basis: "actual", model: null, provider_region: null, price_version: null, catalog_rate: 0, source_job_id: null }}
+      transcript={{ id: 8, public_id: "caption-8", workspace_id: null, file: "part.mp3", url: "/audio/part.mp3", text: "Detected speech", srt: "", vtt: "", sentences: [], duration_ms: 900, language: "English", created_at: null, cost: 0, cost_basis: "actual", model: null, provider_region: null, price_version: null, catalog_rate: 0, source_job_id: null }}
       languages={["English", "Arabic"]} sourceLanguage="Arabic" loading={false} busy={null} confirmation={null} job={null}
       onSelect={vi.fn()} onCreate={vi.fn()} onTranslate={vi.fn()} onConfirm={vi.fn()} onCancel={vi.fn()} onRetryJob={vi.fn()} onDismissJob={vi.fn()}
     />)
@@ -81,7 +81,7 @@ describe("PartCaptionPanel durable review state", () => {
   it("explains provider timing without pretending a second transcription ran", () => {
     render(<PartCaptionPanel
       captions={[{ id: 8, name: "part", language: "English", duration_ms: 900, is_translation: false, stale: false }]}
-      transcript={{ id: 8, public_id: "caption-8", space_id: null, file: "part.mp3", url: "/audio/part.mp3", text: "Provider timed speech", srt: "", vtt: "", sentences: [], duration_ms: 900, language: "English", created_at: null, cost: 0, cost_basis: "included_with_speech", timing_source: "provider_word_timestamps", model: "cosyvoice-v3-plus", provider_region: "intl", price_version: null, catalog_rate: 0, source_job_id: null }}
+      transcript={{ id: 8, public_id: "caption-8", workspace_id: null, file: "part.mp3", url: "/audio/part.mp3", text: "Provider timed speech", srt: "", vtt: "", sentences: [], duration_ms: 900, language: "English", created_at: null, cost: 0, cost_basis: "included_with_speech", timing_source: "provider_word_timestamps", model: "cosyvoice-v3-plus", provider_region: "intl", price_version: null, catalog_rate: 0, source_job_id: null }}
       languages={["English"]} loading={false} busy={null} confirmation={null} job={null}
       onSelect={vi.fn()} onCreate={vi.fn()} onTranslate={vi.fn()} onConfirm={vi.fn()} onCancel={vi.fn()} onRetryJob={vi.fn()} onDismissJob={vi.fn()}
     />)

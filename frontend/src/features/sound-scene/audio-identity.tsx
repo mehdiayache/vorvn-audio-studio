@@ -1,23 +1,23 @@
-import { AssetSourceIndicator } from "@/components/asset-source-indicator"
+import { FileSourceIndicator } from "@/components/file-source-indicator"
 import { OperatorTooltip } from "@/components/operator-tooltip"
-import { ASSET_SOURCE_PRESENTATION, type AssetSource } from "@/lib/asset-provenance"
+import { FILE_SOURCE_PRESENTATION, type FileSource } from "@/lib/file-provenance"
 import { cn } from "@/lib/utils"
 
 import { AUDIO_FAMILY_LABELS, SoundMediaIcon, type AudioFamily } from "./audio-presentation"
 
 import "./audio-identity.css"
 
-export const AUDIO_SOURCE_LABELS: Record<AssetSource, string> = {
-  generated: ASSET_SOURCE_PRESENTATION.generated.badgeLabel,
-  freesound: ASSET_SOURCE_PRESENTATION.freesound.badgeLabel,
-  uploaded: ASSET_SOURCE_PRESENTATION.uploaded.badgeLabel,
-  library: ASSET_SOURCE_PRESENTATION.library.badgeLabel,
+export const AUDIO_SOURCE_LABELS: Record<FileSource, string> = {
+  generated: FILE_SOURCE_PRESENTATION.generated.badgeLabel,
+  freesound: FILE_SOURCE_PRESENTATION.freesound.badgeLabel,
+  uploaded: FILE_SOURCE_PRESENTATION.uploaded.badgeLabel,
+  library: FILE_SOURCE_PRESENTATION.library.badgeLabel,
 }
 
-export { AssetSourceIcon as AudioSourceIcon, FreesoundMark } from "@/components/asset-source-indicator"
+export { FileSourceIcon as AudioSourceIcon, FreesoundMark } from "@/components/file-source-indicator"
 
-export function AudioSourceBadge({ source, detail, className }: { source: AssetSource; detail?: string; className?: string }) {
-  return <AssetSourceIndicator source={source} detail={detail} className={cn("audio-source-badge", className)} showLabel />
+export function AudioSourceBadge({ source, detail, className }: { source: FileSource; detail?: string; className?: string }) {
+  return <FileSourceIndicator source={source} detail={detail} className={cn("audio-source-badge", className)} showLabel />
 }
 
 export function AudioFamilyBadge({ family, suggested = false, className }: { family: AudioFamily; suggested?: boolean; className?: string }) {
@@ -26,5 +26,5 @@ export function AudioFamilyBadge({ family, suggested = false, className }: { fam
     <SoundMediaIcon kind={family} />
     <span>{label}</span>
   </span>
-  return suggested ? <OperatorTooltip label={`Suggested ${label}`} detail="Based on the result name and Freesound tags. You can change it before keeping the Asset." side="bottom">{badge}</OperatorTooltip> : badge
+  return suggested ? <OperatorTooltip label={`Suggested ${label}`} detail="Based on the result name and Freesound tags. You can change it before keeping the File." side="bottom">{badge}</OperatorTooltip> : badge
 }

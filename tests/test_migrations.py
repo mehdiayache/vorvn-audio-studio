@@ -1,21 +1,20 @@
-"""Fresh-database verification for the single versioned migration system."""
-
-from __future__ import annotations
+"""Fresh-database verification for the canonical Origins schema."""
 
 from dataclasses import replace
+from pathlib import Path
 import unittest
 from uuid import uuid4
 
 import psycopg
 from psycopg import sql
 
-from audio_studio.config import settings
-from audio_studio import migrations
+from origins.config import settings
+from origins import migrations
 
 
 class MigrationTests(unittest.TestCase):
-    def test_empty_database_bootstraps_idempotently_without_legacy_code(self):
-        database_name = f"audio_studio_test_{uuid4().hex[:12]}"
+    def test_empty_database_bootstraps_idempotently_to_origins(self):
+        database_name = f"origins_test_{uuid4().hex[:12]}"
         admin_url = settings.database_url.rsplit("/", 1)[0] + "/postgres"
         test_url = settings.database_url.rsplit("/", 1)[0] + f"/{database_name}"
         with psycopg.connect(admin_url, autocommit=True) as admin:
@@ -24,63 +23,11 @@ class MigrationTests(unittest.TestCase):
         original = migrations.settings
         try:
             migrations.settings = replace(settings, database_url=test_url)
-            self.assertEqual(migrations.run(), [
-                "000_base_schema.sql", "000a_prepare_pronunciation.sql",
-                "001_durable_jobs.sql",
-                "002_job_payloads.sql", "003_control_plane.sql",
-                "004_pronunciation_phoneme_boolean.sql",
-                "005_worker_runtime.sql",
-                "006_job_idempotency.sql",
-                "007_voice_provenance.sql",
-            "008_voice_output_languages.sql",
-            "009_speak_recording_sessions.sql",
-            "010_voice_editorial_language.sql",
-            "011_voice_architecture.sql",
-            "012_exact_media_relations.sql",
-            "013_retire_generation_identity.sql",
-                    "014_provider_model_pricing.sql",
-                    "015_voice_reference_objects.sql",
-                    "016_enrollment_campaign_controls.sql",
-                    "017_provider_model_execution_contract.sql",
-                    "018_provider_attempt_reconciliation.sql",
-                    "019_exact_enrollment_routes.sql",
-                    "020_provider_model_catalogue_truth.sql",
-                    "021_composer_working_drafts.sql",
-                    "022_capability_composer_controls.sql",
-                    "023_exact_route_speech_pricing.sql",
-                    "024_safe_series_defaults.sql",
-                    "025_archived_part_positions.sql",
-                    "026_reconcile_archived_part_positions.sql",
-                    "027_one_recording_per_part.sql",
-                    "028_part_enabled_state.sql",
-                    "029_remove_casting.sql",
-                    "030_remove_cast_draft_state.sql",
-                    "031_remove_enrollment_campaigns.sql",
-                    "032_replace_takes_with_clips.sql",
-                    "033_remove_take_job_payloads.sql",
-                    "034_simplify_speech_contracts.sql",
-                    "035_authored_part_roles.sql",
-                    "036_remove_qwen35_omni.sql",
-                    "037_cosyvoice_v3_plus.sql",
-                    "038_provider_word_captions.sql",
-                    "039_sound_scenes.sql",
-                    "040_sound_scene_public_anchors.sql",
-                    "041_audio_library_truth.sql",
-                    "042_auvi_studio_identity.sql",
-                    "043_voice_source_windows_and_previews.sql",
-                    "044_activate_successful_voice_reclones.sql",
-                    "045_audiovisual_assets.sql",
-                    "046_production_director_assets.sql",
-                    "047_visual_scenes.sql",
-                    "048_sound_scene_derived_history.sql",
-                "049_default_speech_volume.sql",
-                "050_saved_visual_references.sql",
-                "051_unified_asset_library.sql",
-                "052_asset_classification.sql",
-                "053_normalize_freesound_assets.sql",
-                "054_space_create_core.sql",
-                "055_space_creation_outputs.sql",
-        ])
+            expected = sorted(
+                path.name for path in Path(migrations.__file__).parent.glob(
+                    "*.sql")
+            )
+            self.assertEqual(migrations.run(), expected)
             self.assertEqual(migrations.run(), [])
             with psycopg.connect(test_url) as database:
                 tables = {row[0] for row in database.execute("""
@@ -88,50 +35,41 @@ class MigrationTests(unittest.TestCase):
                      WHERE table_schema = 'public'
                 """).fetchall()}
                 self.assertTrue({
-                    "ventures", "work_projects", "series", "productions",
-                    "production_parts", "sound_scenes",
-                    "sound_scene_history", "assets",
-                    "asset_versions", "exports", "jobs", "job_events",
-                    "audit_records", "transcripts", "schema_migrations",
-                    "composer_working_drafts",
-                    "voice_reference_windows", "voice_previews",
-                    "production_director_assets",
-                    "visual_scenes",
-                    "saved_visual_references",
-                    "saved_visual_reference_assets",
-                    "spaces", "folders", "project_files",
+                    "workspaces", "folders", "projects", "project_parts",
+                    "files", "file_versions", "project_file_usages",
+                    "objects", "object_file_usages", "jobs", "job_events",
+                    "sound_scenes", "sound_scene_history", "visual_scenes",
+                    "exports", "composer_working_drafts",
+                    "saved_visual_references", "saved_visual_reference_files",
+                    "schema_migrations",
                 }.issubset(tables))
-                self.assertNotIn("production_mixes", tables)
                 self.assertTrue({
-                    "enrollment_campaigns", "enrollment_campaign_items",
+                    "spaces", "ventures", "series", "productions",
+                    "production_parts", "assets", "asset_versions",
+                    "file_collections", "project_files",
                 }.isdisjoint(tables))
-                fixtures = dict(database.execute("""
-                    SELECT system_role, count(*) FROM projects
-                     WHERE system_role IN ('inbox', 'sandbox')
-                     GROUP BY system_role
-                """).fetchall())
-                self.assertEqual(fixtures, {"inbox": 1, "sandbox": 1})
-                self.assertEqual(database.execute("""
-                    SELECT count(*) FROM asset_collections collection
-                    JOIN ventures venture ON venture.id = collection.venture_id
-                    WHERE venture.system_role = 'sandbox'
-                """).fetchone()[0], 1)
-                version_columns = {row[0] for row in database.execute("""
+                file_columns = {row[0] for row in database.execute("""
                     SELECT column_name FROM information_schema.columns
-                     WHERE table_name = 'asset_versions'
+                     WHERE table_name='files'
+                """).fetchall()}
+                self.assertTrue({"workspace_id", "folder_id", "source"}.issubset(
+                    file_columns))
+                self.assertNotIn("scope", file_columns)
+                self.assertNotIn("source_generation_id", file_columns)
+                project_columns = {row[0] for row in database.execute("""
+                    SELECT column_name FROM information_schema.columns
+                     WHERE table_name='projects'
                 """).fetchall()}
                 self.assertTrue({
-                    "media_format", "width", "height", "video_codec",
-                    "frame_rate",
-                }.issubset(version_columns))
-                self.assertEqual(database.execute("""
-                    SELECT column_default FROM information_schema.columns
-                     WHERE table_name = 'assets' AND column_name = 'media_type'
-                """).fetchone()[0], "'audio'::text")
-                self.assertEqual(database.execute("""
-                    SELECT is_nullable FROM information_schema.columns
-                     WHERE table_name = 'transcripts' AND column_name = 'space_id'
-                """).fetchone()[0], "YES")
+                    "workspace_id", "folder_id", "project_type"
+                }.issubset(project_columns))
+                for table in ("project_parts", "clips", "transcripts",
+                              "jobs", "exports"):
+                    columns = {row[0] for row in database.execute("""
+                        SELECT column_name FROM information_schema.columns
+                         WHERE table_name=%s
+                    """, (table,)).fetchall()}
+                    self.assertNotIn("legacy_generation_id", columns, table)
         finally:
             migrations.settings = original
             with psycopg.connect(admin_url, autocommit=True) as admin:

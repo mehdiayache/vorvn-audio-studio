@@ -3,7 +3,7 @@
 
 from uuid import uuid4
 
-from audio_studio.domain import voice_routing
+from origins.domain import voice_routing
 
 
 BINDING_ID = str(uuid4())

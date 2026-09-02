@@ -1,0 +1,502 @@
+"""Native speech generation for standalone, Part and Draft recordings."""
+
+from __future__ import annotations
+
+import hashlib
+from typing import Any, Callable, Protocol
+from urllib.parse import quote
+
+from origins.domain import captions
+from origins.domain.jobs import Job, JobFailed
+from origins.domain.files import StoredFileVersion
+from origins.domain.speech import (
+    DEFAULT_SPEECH_VOLUME,
+    PreparedSpeech,
+    SpeechSynthesisError,
+    StoredAudio,
+    SynthesizedSpeech,
+)
+from origins.application.provider_operations import ProviderOperationService
+from origins.application.creation_files import CreationFileService
+
+
+PLAUSIBLE_CHARACTERS_PER_SECOND = 25
+_SETTING_FIELDS = (
+    "text", "text_raw", "text_shaped", "text_tagged", "text_state",
+    "spoken_profile",
+    "voice", "voice_identity_id", "binding_id", "catalogue_voice_id",
+    "capability_id", "engine", "model", "format", "language",
+    "instruction", "speech_mode", "rate", "pitch", "volume", "seed",
+    "enable_ssml",
+)
+
+
+class SpeechRepository(Protocol):
+    def voice_bindings(self, *, include_candidates: bool = False
+                       ) -> list[dict]: ...
+    def catalogue_voices(self) -> list[dict]: ...
+    def pronunciations(self) -> list[dict]: ...
+    def today_spend(self) -> float: ...
+    def part(self, part_id: int, project_id: int) -> dict | None: ...
+    def attach_clip(self, part_id: int, project_id: int,
+                    expected_revision: int,
+                    values: dict[str, Any]) -> dict[str, Any]: ...
+
+
+class SpeechProvider(Protocol):
+    def is_configured(self) -> bool: ...
+    def prepare(self, *, text: str, values: dict, bindings: list[dict],
+                catalogue: list[dict],
+                pronunciations: list[dict], preferences: dict
+                ) -> PreparedSpeech: ...
+    def synthesize(self, prepared: PreparedSpeech,
+                   on_progress=None) -> SynthesizedSpeech: ...
+
+
+class SpeechWorkspace(Protocol):
+    def save(self, audio: bytes, extension: str) -> StoredAudio: ...
+    def discard(self, filename: str) -> None: ...
+
+
+def _defaults(values: dict) -> dict:
+    return {
+        "text": "", "text_raw": None, "text_shaped": None,
+        "text_tagged": None, "text_state": "raw",
+        "spoken_profile": "spoken_1", "voice": "",
+        "voice_identity_id": None, "binding_id": None,
+        "catalogue_voice_id": None, "capability_id": None,
+        "engine": "audio", "model": "plus",
+        "format": "mp3", "language": "Auto", "instruction": "",
+        "speech_mode": "exact", "rate": 1, "pitch": 1,
+        "volume": DEFAULT_SPEECH_VOLUME,
+        "seed": 0, "enable_ssml": False, **values,
+    }
+
+
+def _truncation_warning(prepared: PreparedSpeech,
+                        duration_ms: int | None) -> str | None:
+    compared = prepared.spoken_text
+    if not duration_ms or duration_ms <= 0 or len(compared) < 25:
+        return None
+    speed = len(compared) / (duration_ms / 1000)
+    if speed <= PLAUSIBLE_CHARACTERS_PER_SECOND:
+        return None
+    detail = f"{duration_ms / 1000:.1f}s of audio for {len(compared)} characters"
+    if prepared.language:
+        return (f"This voice may not support {prepared.language} — {detail}. "
+                "Listen before using this recording or choose another voice.")
+    return f"The model may have stopped early — {detail}. Listen before using this recording."
+
+
+def _record(prepared: PreparedSpeech, result: SynthesizedSpeech,
+            saved: StoredAudio, values: dict) -> dict[str, Any]:
+    row = {
+        "text": prepared.original_text,
+        "text_raw": values.get("text_raw"),
+        "text_shaped": values.get("text_shaped"),
+        "text_tagged": values.get("text_tagged"),
+        "text_state": values.get("text_state") or "raw",
+        "spoken_profile": values.get("spoken_profile") or "spoken_1",
+        "voice": prepared.voice,
+        "voice_name": prepared.voice_name,
+        "voice_identity_id": prepared.voice_identity_id,
+        "engine": prepared.engine, "model": prepared.tier,
+        "format": prepared.output_format, "language": prepared.language,
+        "instruction": prepared.instruction,
+        "speech_mode": prepared.speech_mode,
+        "rate": prepared.rate, "pitch": prepared.pitch,
+        "volume": prepared.volume, "seed": prepared.seed,
+        "enable_ssml": bool(values.get("enable_ssml")),
+        "filename": saved.filename, "path": saved.path,
+        "file_url": f"/audio/{quote(saved.filename)}",
+        "size_bytes": saved.size_bytes, "duration_ms": saved.duration_ms,
+        "chars": len(prepared.original_text),
+        "requests": len(result.diagnostics) or prepared.request_count,
+        "cost": round(float(result.cost), 6),
+        "kind": "audio", "title": values.get("title"),
+        "usage": result.usage, "cost_basis": result.cost_basis,
+        "failures": result.failures,
+        "binding_id": prepared.binding_id,
+        "catalogue_voice_id": prepared.catalogue_voice_id,
+        "reference_id": prepared.reference_id,
+        "capability_id": prepared.capability_id,
+        "capability_name": prepared.capability_name,
+        "provider": prepared.provider or "alibaba",
+        "provider_region": prepared.provider_region or result.provider_region,
+        "provider_voice_id": prepared.voice,
+        "model_id": prepared.model_id,
+        "tier": prepared.tier,
+        "segmentation": {"requests": prepared.request_count},
+        "diagnostics": {"provider": result.diagnostics,
+                        "request_ids": result.request_ids,
+                        "failures": result.failures},
+    }
+    timed = (captions.provider_word_transcript(result.diagnostics)
+             if prepared.engine == "cosyvoice" else None)
+    if timed:
+        cues = captions.build_cues(timed["sentences"], "standard")
+        row["_provider_transcript"] = {
+            "name": saved.filename,
+            "source_url": row["file_url"],
+            "audio_url": row["file_url"],
+            "language": prepared.language,
+            "duration_ms": saved.duration_ms,
+            "text": timed["text"],
+            "srt": captions.render_srt(cues),
+            "vtt": captions.render_vtt(cues),
+            "translated_from": None,
+            "model": prepared.model_id,
+            "provider_region": prepared.provider_region or result.provider_region,
+            "price_version": result.price_version,
+            "catalog_rate": 0,
+            "catalog_cost": 0,
+            "cost_basis": "included_with_speech",
+            "timing_source": "provider_word_timestamps",
+            "sentences": timed["sentences"],
+        }
+    return row
+
+
+class SpeechGenerationService:
+    def __init__(self, repository: SpeechRepository, provider: SpeechProvider,
+                 workspace: SpeechWorkspace, preferences: Callable[[], dict],
+                 operations: ProviderOperationService | None = None):
+        self.repository = repository
+        self.provider = provider
+        self.workspace = workspace
+        self.preferences = preferences
+        self.operations = operations
+
+    def run(self, values: dict, on_progress=None) -> dict[str, Any]:
+        operation = str(values.get("operation") or "create")
+        project_id = values.get("project_id")
+        project_id = int(project_id) if project_id is not None else None
+        part_id = values.get("part_id")
+        part_id = int(part_id) if part_id is not None else None
+        part = None
+        if operation == "create":
+            if project_id is not None or part_id is not None:
+                raise ValueError(
+                    "Project speech must target the Part created by the command.")
+            overrides = {key: value for key, value in values.items()
+                         if key in _SETTING_FIELDS or key == "title"}
+            effective = _defaults(overrides)
+        else:
+            if operation != "record":
+                raise ValueError("Unknown speech operation.")
+            if project_id is None or part_id is None:
+                raise ValueError("A Project and Part are required.")
+            part = self.repository.part(part_id, project_id)
+            if not part:
+                raise LookupError("That Part no longer belongs to this Project.")
+            if part.get("kind") not in {"draft", "speech"}:
+                raise ValueError("That Part cannot contain speech.")
+            inherited = {key: part.get(key) for key in _SETTING_FIELDS}
+            inherited["title"] = part.get("title")
+            overrides = {key: value for key, value in values.items()
+                         if key in _SETTING_FIELDS or key == "title"}
+            effective = _defaults({**inherited, **overrides})
+            # The submitted text belongs to this composition attempt.  It is
+            # intentionally allowed to differ from the Part's canonical
+            # script; only an explicit Part edit may change that script and
+            # increment its revision.
+
+        text = str(effective.get("text") or "").strip()
+        if not text:
+            raise ValueError("Write something before generating speech.")
+        if not self.provider.is_configured():
+            raise RuntimeError("Add the Alibaba API key in Settings before generating.")
+        preferences = self.preferences()
+        include_candidates = bool(effective.get("_voice_preview"))
+        bindings = (
+            self.repository.voice_bindings(include_candidates=True)
+            if include_candidates else self.repository.voice_bindings()
+        )
+        prepared = self.provider.prepare(
+            text=text, values=effective,
+            bindings=bindings,
+            catalogue=self.repository.catalogue_voices(),
+            pronunciations=self.repository.pronunciations(),
+            preferences=preferences,
+        )
+        estimate = prepared.estimated_cost
+        job_id = int(values.get("_job_id") or 0)
+        reservation_id = None
+        attempt_id = None
+        warning_limit = float(preferences.get("warn_above") or 0)
+        if warning_limit > 0 and estimate > warning_limit \
+                and not bool(values.get("confirmed")):
+            return {
+                "needs_confirmation": True, "estimate": estimate,
+                "estimated_cost": estimate, "cost": 0,
+                "chars": len(prepared.spoken_text), "model": prepared.model_id,
+                "engine": prepared.engine, "voice": prepared.voice,
+            }
+        if self.operations and job_id:
+            reservation_id = self.operations.authorize(
+                job_id, "speech", estimate, preferences,
+                bool(values.get("confirmed")))
+            attempt_id = self.operations.repository.begin_attempt(
+                job_id, "speech", prepared.voice_route,
+                {"text_hash": hashlib.sha256(
+                    prepared.spoken_text.encode("utf-8")).hexdigest(),
+                 "language": prepared.language, "format": prepared.output_format,
+                 "delivery": {"instruction": prepared.instruction,
+                              "rate": prepared.rate, "pitch": prepared.pitch,
+                              "volume": prepared.volume}},
+                reservation_id)
+
+        if on_progress:
+            on_progress(0, max(1, prepared.request_count), "Preparing speech")
+        try:
+            if attempt_id:
+                self.operations.repository.mark_sent(attempt_id)
+            made = self.provider.synthesize(
+                prepared,
+                on_progress=(lambda done, total, detail: on_progress(
+                    max(0, int(done) - 1), max(1, int(total)), str(detail)[:300]))
+                if on_progress else None,
+            )
+        except SpeechSynthesisError as exc:
+            evidence = {
+                **exc.result,
+                "chars": len(prepared.spoken_text),
+                "estimated_cost": estimate,
+                "model": prepared.model_id,
+                "engine": prepared.engine,
+                "voice": prepared.voice,
+                "voice_identity_id": prepared.voice_identity_id,
+                "voice_route": prepared.voice_route,
+                "provider_attempt_id": attempt_id,
+            }
+            if attempt_id:
+                status = self.operations.failure_status(exc)
+                cost = float(evidence.get("cost") or (
+                    estimate if status == "ambiguous" else 0))
+                self.operations.repository.finish_attempt(
+                    attempt_id, status, cost=cost,
+                    usage=evidence.get("usage") or {},
+                    request_ids=evidence.get("request_ids") or [],
+                    error={"message": str(exc)})
+                evidence["ambiguous"] = status == "ambiguous"
+            raise JobFailed(str(exc), evidence) from exc
+        except Exception as exc:
+            if attempt_id:
+                self.operations.repository.finish_attempt(
+                    attempt_id, "ambiguous", cost=estimate, usage={},
+                    request_ids=[], error={"message": str(exc),
+                                           "type": type(exc).__name__})
+            raise JobFailed(
+                "The provider response was lost after the paid request was sent. "
+                "Review this ambiguous attempt before retrying.",
+                {"provider_attempt_id": attempt_id, "ambiguous": True,
+                 "requires_review": True,
+                 "estimated_cost": estimate}) from exc
+        if not made.audio:
+            if attempt_id:
+                self.operations.repository.finish_attempt(
+                    attempt_id, "definitive_failed", cost=float(made.cost or 0),
+                    usage=made.usage, request_ids=made.request_ids,
+                    error={"message": "Provider returned no audio."})
+            raise JobFailed("Alibaba returned no audio.", {
+                "provider_attempt_id": attempt_id, "cost": float(made.cost or 0),
+                "usage": made.usage, "request_ids": made.request_ids,
+            })
+        if made.failures:
+            if attempt_id:
+                self.operations.repository.finish_attempt(
+                    attempt_id, "definitive_failed", cost=float(made.cost or 0),
+                    usage=made.usage, request_ids=made.request_ids,
+                    error={"message": "Provider returned incomplete speech.",
+                           "failures": made.failures})
+            raise JobFailed(
+                "The provider could not complete every speech section. "
+                "No incomplete recording was saved.",
+                {
+                    "failures": made.failures,
+                    "usage": made.usage,
+                    "cost": made.cost,
+                    "cost_basis": made.cost_basis,
+                    "model": prepared.model_id,
+                    "engine": prepared.engine,
+                    "voice": prepared.voice,
+                    "request_ids": made.request_ids,
+                    "provider_diagnostics": made.diagnostics,
+                    "provider_attempt_id": attempt_id,
+                },
+            )
+        if attempt_id:
+            self.operations.repository.finish_attempt(
+                attempt_id, "succeeded", cost=float(made.cost or 0),
+                usage=made.usage, request_ids=made.request_ids, error={},
+                receipt={
+                    "audio_sha256": hashlib.sha256(made.audio).hexdigest(),
+                    "size_bytes": len(made.audio),
+                    "format": prepared.output_format,
+                    "provider_region": made.provider_region,
+                    "provider_endpoint": made.provider_endpoint,
+                })
+        try:
+            saved = self.workspace.save(made.audio, prepared.extension)
+        except Exception as exc:
+            raise JobFailed(
+                "The provider completed and may have billed this recording, "
+                "but Origins could not retain the audio locally. Provider "
+                "evidence was preserved; an operator must decide whether to "
+                "make a new paid attempt.",
+                {"provider_attempt_id": attempt_id,
+                 "provider_succeeded": True,
+                 "requires_review": True,
+                 "cost": float(made.cost or 0), "usage": made.usage,
+                 "cost_basis": made.cost_basis,
+                 "price_version": made.price_version,
+                 "provider_region": made.provider_region,
+                 "provider_endpoint": made.provider_endpoint,
+                 "request_ids": made.request_ids,
+                 "model": prepared.model_id, "engine": prepared.engine,
+                 "voice": prepared.voice}) from exc
+        if attempt_id:
+            self.operations.repository.record_artifact(attempt_id, {
+                "type": "audio", "filename": saved.filename,
+                "path": saved.path, "size_bytes": saved.size_bytes,
+                "duration_ms": saved.duration_ms,
+            })
+        row = _record(prepared, made, saved, effective)
+        row["provider_attempt_id"] = int(attempt_id) if attempt_id else None
+        row["_source_script_hash"] = values.get("_source_script_hash")
+        if row.get("_provider_transcript"):
+            row["_provider_transcript"]["source_job_id"] = job_id or None
+        mutation: dict[str, int] = {}
+        try:
+            if operation == "create":
+                created_part_id = None
+            else:
+                assert (part is not None and part_id is not None
+                        and project_id is not None)
+                created_part_id = part_id
+                mutation = self.repository.attach_clip(
+                    part_id, project_id,
+                    int(values.get("_source_part_revision") or part["revision"]),
+                    row)
+                replaced_filename = str(
+                    mutation.pop("replaced_filename", "") or "")
+                if replaced_filename and replaced_filename != saved.filename:
+                    try:
+                        self.workspace.discard(replaced_filename)
+                    except OSError:
+                        # The active recording is already committed. A stale
+                        # local file is safer than reporting a false failure.
+                        pass
+        except Exception as exc:
+            raise JobFailed(
+                "The provider completed and the audio was saved, but Audio "
+                "Studio could not attach its recording. The saved provider result "
+                "must be recovered instead of synthesized again.",
+                {"provider_attempt_id": attempt_id,
+                 "provider_succeeded": True,
+                 "requires_review": True,
+                 "cost": float(made.cost or 0), "usage": made.usage,
+                 "cost_basis": made.cost_basis,
+                 "price_version": made.price_version,
+                 "provider_region": made.provider_region,
+                 "provider_endpoint": made.provider_endpoint,
+                 "request_ids": made.request_ids,
+                 "saved_audio": {"filename": saved.filename,
+                                 "path": saved.path,
+                                 "size_bytes": saved.size_bytes,
+                                 "duration_ms": saved.duration_ms},
+                 "model": prepared.model_id, "engine": prepared.engine,
+                 "voice": prepared.voice}) from exc
+        if on_progress:
+            on_progress(max(1, prepared.request_count),
+                        max(1, prepared.request_count), "Speech ready")
+
+        warning = ("The Part changed while this recording was generating. "
+                   "The paid provider result remains in Activity evidence but "
+                   "was not attached to the Part."
+                   if mutation.get("attached") == 0 else
+                   _truncation_warning(prepared, saved.duration_ms))
+        request_ids = list(made.request_ids)
+        return {
+            "id": created_part_id,
+            "part_id": created_part_id,
+            "clip_id": mutation.get("clip_id"),
+            "url": f"/audio/{quote(saved.filename)}",
+            "name": saved.filename, "path": saved.path,
+            "chars": len(prepared.spoken_text),
+            "requests": len(made.diagnostics) or prepared.request_count,
+            "size_mb": round(saved.size_bytes / 1_000_000, 2),
+            "size_bytes": saved.size_bytes,
+            "duration_ms": saved.duration_ms,
+            "cost": round(float(made.cost), 6),
+            "estimated_cost": estimate, "cost_basis": made.cost_basis,
+            "usage": made.usage, "failures": made.failures,
+            "warning": warning, "voice_route": prepared.voice_route,
+            "pronunciations": prepared.pronunciations,
+            "rewrites": [{"from": before, "to": after}
+                         for before, after in prepared.rewrites],
+            "model": prepared.model_id, "engine": prepared.engine,
+            "voice": prepared.voice,
+            "voice_identity_id": prepared.voice_identity_id,
+            "provider_region": made.provider_region,
+            "provider_endpoint": made.provider_endpoint,
+            "price_version": made.price_version,
+            "provider_request_id": request_ids[0] if len(request_ids) == 1 else None,
+            "request_ids": request_ids,
+            "provider_diagnostics": made.diagnostics,
+            "provider_attempt_id": attempt_id,
+            **mutation,
+        }
+
+
+class SpeechJobHandler:
+    def __init__(self, service: SpeechGenerationService,
+                 files: CreationFileService):
+        self.service = service
+        self.files = files
+
+    def __call__(self, job: Job, repository) -> dict[str, Any]:
+        result = self.service.run(
+            {**job.payload, "_job_id": job.id},
+            on_progress=lambda done, total, detail: repository.progress(
+                job.id, done, total, detail),
+        )
+        if (job.workspace_id is not None
+                and job.payload.get("project_id") is None
+                and result.get("path") and result.get("name")):
+            extension = str(result["name"]).rsplit(".", 1)[-1].casefold()
+            mime_type = {
+                "mp3": "audio/mpeg", "wav": "audio/wav", "ogg": "audio/ogg",
+            }.get(extension, "audio/mpeg")
+            script = " ".join(str(job.payload.get("text") or "").split())
+            display_name = str(job.payload.get("title") or "").strip()
+            if not display_name:
+                display_name = f"Speech · {script[:72]}" if script else "Speech recording"
+            try:
+                file = self.files.register(
+                    job, output_key="speech", name=display_name,
+                    stored=StoredFileVersion(
+                        filename=str(result["name"]), path=str(result["path"]),
+                        mime_type=mime_type, family="audio",
+                        duration_ms=result.get("duration_ms"),
+                        audio_format=extension, media_format=extension,
+                    ),
+                    metadata={
+                        "provider": "alibaba",
+                        "model": result.get("model"),
+                        "voice": result.get("voice"),
+                        "language": job.payload.get("language"),
+                    },
+                    tags=("speech",),
+                )
+            except Exception as exc:
+                raise JobFailed(
+                    "The speech was generated and stored, but its File record "
+                    "could not be committed. The paid result needs review, not "
+                    "another provider call.",
+                    {**result, "provider_succeeded": True,
+                     "requires_review": True},
+                ) from exc
+            result["file_id"] = int(file["id"])
+            result["output_file_ids"] = [int(file["id"])]
+        return result

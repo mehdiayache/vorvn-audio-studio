@@ -37,7 +37,7 @@ async function visit(directory) {
 await visit(sourceRoot)
 
 if (violations.length) {
-  console.error("Auvi Studio typography must use semantic weights no heavier than 500:\n")
+  console.error("Origins typography must use semantic weights no heavier than 500:\n")
   console.error(violations.join("\n"))
   process.exit(1)
 }

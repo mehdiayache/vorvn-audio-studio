@@ -1,6 +1,6 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useState } from "react"
 
-import { studioApi } from "@/lib/api"
+import { originsApi } from "@/lib/api"
 import { productIdentity } from "@/lib/product-identity"
 import type { StudioConfig } from "@/types/domain"
 
@@ -24,7 +24,7 @@ export function ProductReadinessProvider({ children }: { children: React.ReactNo
   const refresh = useCallback(async () => {
     setReadiness({ status: "checking", config: null, message: `Checking ${productIdentity.name}` })
     try {
-      const config = await studioApi.config()
+      const config = await originsApi.config()
       setReadiness(config.has_key
         ? { status: "ready", config, message: `${productIdentity.name} ready` }
         : { status: "setup_required", config, message: "Setup required" })

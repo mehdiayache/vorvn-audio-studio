@@ -1,0 +1,138 @@
+.workspace-explorer {
+  min-block-size: 100%;
+  background: var(--workspace-background);
+}
+
+.workspace-explorer-header {
+  min-block-size: 3.5rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  padding-inline: clamp(1rem, 3vw, 2.5rem);
+  border-block-end: 1px solid color-mix(in oklab, var(--border) 72%, transparent);
+  background: var(--background);
+}
+.workspace-explorer-header > div { min-inline-size: 0; display: flex; align-items: center; gap: .75rem; }
+.workspace-explorer-header select { max-inline-size: 20rem; border: 0; color: var(--foreground); background: transparent; font-size: var(--type-body); font-weight: var(--weight-emphasis); outline: 0; }
+.workspace-explorer-header span, .workspace-explorer-header small { overflow: hidden; color: var(--muted-foreground); font-size: var(--type-caption); text-overflow: ellipsis; white-space: nowrap; }
+.workspace-explorer-content { inline-size: min(100% - clamp(2rem, 6vw, 6rem), 84rem); margin-inline: auto; padding-block: clamp(2.5rem, 6vh, 5rem) 6rem; }
+.workspace-explorer-content.is-library-view { padding-block-start: clamp(1.5rem, 3vh, 2.5rem); }
+.workspace-explorer-content.is-library-view .workspace-library-toolbar { margin-block-start: 0; }
+
+.workspace-create-stage { max-inline-size: 48rem; margin-inline: auto; text-align: center; }
+.workspace-create-kicker { display: inline-flex; align-items: center; gap: .4rem; color: var(--primary); font-size: var(--type-small); font-weight: var(--weight-emphasis); }
+.workspace-create-kicker svg { inline-size: 1rem; }
+.workspace-create-stage h1 { margin-block-start: .75rem; font-size: clamp(2.2rem, 5vw, 4.2rem); font-weight: var(--weight-title); letter-spacing: -.055em; line-height: .98; }
+.workspace-create-stage > p { max-inline-size: 36rem; margin: 1rem auto 0; color: color-mix(in oklab, var(--foreground) 68%, transparent); font-size: var(--type-heading-sm); line-height: 1.5; }
+.workspace-create-actions { margin-block-start: 1.75rem; }
+.workspace-create-action-catalog { max-inline-size: 58rem; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: .5rem; margin: 2rem auto 0; }
+.workspace-create-action {
+  min-inline-size: 0;
+  min-block-size: 4.5rem;
+  display: grid;
+  grid-template-columns: 2.25rem minmax(0, 1fr) auto;
+  align-items: center;
+  gap: .75rem;
+  padding: .65rem .75rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  color: var(--foreground);
+  background: var(--surface-raised);
+  box-shadow: var(--shadow-xs);
+  text-align: start;
+  white-space: normal;
+}
+.workspace-create-action:hover { border-color: color-mix(in oklab, var(--primary) 28%, var(--border)); background: var(--surface-raised); }
+.workspace-create-action > span:nth-child(2) { min-inline-size: 0; display: grid; gap: .125rem; }
+.workspace-create-action b, .workspace-create-action small { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.workspace-create-action b { font-size: var(--type-small); font-weight: var(--weight-emphasis); }
+.workspace-create-action small { color: var(--muted-foreground); font-size: var(--type-caption); }
+.workspace-create-action > svg { inline-size: .9rem; color: var(--muted-foreground); }
+.workspace-create-action-icon { inline-size: 2.25rem; block-size: 2.25rem; display: grid; place-items: center; border-radius: var(--radius-md); color: var(--primary); background: var(--primary-soft); }
+.workspace-create-action-icon svg { inline-size: 1rem; }
+.workspace-create-action.is-project { inline-size: min(100%, 30rem); margin-inline: auto; }
+.workspace-create-action.is-upload .workspace-create-action-icon { color: var(--primary); background: var(--primary-soft); }
+.workspace-create-action.is-music .workspace-create-action-icon { color: var(--audio-music); background: var(--audio-music-soft); }
+.workspace-create-action.is-sound .workspace-create-action-icon { color: var(--audio-sfx); background: var(--audio-sfx-soft); }
+.workspace-create-action.is-image .workspace-create-action-icon { color: var(--file-image); background: var(--file-image-soft); }
+.workspace-create-action.is-video .workspace-create-action-icon { color: var(--file-video); background: var(--file-video-soft); }
+.workspace-create-inline-error { display: inline-flex; align-items: center; gap: .5rem; margin-block-start: .75rem; color: var(--destructive); font-size: var(--type-caption); }
+
+.workspace-library-toolbar { display: flex; align-items: center; gap: .5rem; margin-block-start: 4rem; padding-block-end: 1rem; border-block-end: 1px solid var(--border); }
+.workspace-library-toolbar > label { position: relative; min-inline-size: 12rem; flex: 1; }
+.workspace-library-toolbar > label > svg { position: absolute; z-index: 1; inset-block-start: 50%; inset-inline-start: .7rem; inline-size: .9rem; color: var(--muted-foreground); transform: translateY(-50%); }
+.workspace-library-toolbar input { padding-inline-start: 2.1rem; border: 0; background: color-mix(in oklab, var(--muted) 52%, transparent); box-shadow: none; }
+
+.workspace-library-layout { display: grid; grid-template-columns: minmax(0, .9fr) minmax(0, 1.1fr); gap: 2.5rem; margin-block-start: 2rem; }
+.workspace-library-layout.has-single-column { grid-template-columns: minmax(0, 1fr); }
+.workspace-library-section { min-inline-size: 0; }
+.workspace-library-section > header { display: flex; align-items: start; justify-content: space-between; gap: 1rem; margin-block-end: .875rem; }
+.workspace-library-section > header h2, .workspace-folder-strip h2 { font-size: var(--type-heading-md); font-weight: var(--weight-title); }
+.workspace-library-section > header p { margin-block-start: .15rem; color: var(--muted-foreground); font-size: var(--type-caption); }
+.workspace-library-section > header > span, .workspace-folder-strip header > span { color: var(--muted-foreground); font-family: var(--studio-font-mono); font-size: var(--type-caption); }
+.workspace-project-list { display: grid; border-block-start: 1px solid var(--border); }
+.workspace-project-row { position: relative; min-inline-size: 0; min-block-size: 3.75rem; display: grid; grid-template-columns: 2rem minmax(0, 1fr) auto 1rem; align-items: center; gap: .75rem; border-block-end: 1px solid var(--border); }
+.workspace-project-row > a { position: absolute; z-index: 1; inset: 0; }
+.workspace-project-row:hover { background: color-mix(in oklab, var(--muted) 48%, transparent); }
+.workspace-project-icon { inline-size: 2rem; block-size: 2rem; display: grid; place-items: center; border-radius: var(--radius-md); color: var(--primary); background: var(--primary-soft); }
+.workspace-project-icon svg, .workspace-project-row > svg { inline-size: .9rem; }
+.workspace-project-copy, .workspace-project-meta { min-inline-size: 0; display: grid; gap: .1rem; }
+.workspace-project-copy b, .workspace-project-copy small { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.workspace-project-copy b, .workspace-project-meta b { font-size: var(--type-small); font-weight: var(--weight-emphasis); }
+.workspace-project-copy small, .workspace-project-meta small { color: var(--muted-foreground); font-size: var(--type-caption); }
+.workspace-project-meta { text-align: end; }
+.workspace-project-row > svg { color: var(--muted-foreground); }
+
+.workspace-file-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: .75rem; }
+.workspace-file-tile { min-inline-size: 0; }
+.workspace-file-preview { position: relative; aspect-ratio: 1; display: grid; place-items: center; overflow: hidden; border: 1px solid var(--border); border-radius: var(--radius-lg); background: var(--muted); }
+.workspace-file-preview img, .workspace-file-preview video { inline-size: 100%; block-size: 100%; object-fit: cover; }
+.workspace-file-art { inline-size: 2.75rem; block-size: 2.75rem; display: grid; place-items: center; border-radius: 50%; color: var(--primary); background: var(--primary-soft); }
+.workspace-file-art svg { inline-size: 1.2rem; }
+.workspace-file-source { position: absolute; inset-block-start: .45rem; inset-inline-start: .45rem; max-inline-size: calc(100% - .9rem); overflow: hidden; padding: .2rem .4rem; border-radius: var(--radius-sm); color: var(--foreground); background: color-mix(in oklab, var(--background) 88%, transparent); font-size: .625rem; text-overflow: ellipsis; text-transform: capitalize; white-space: nowrap; backdrop-filter: blur(8px); }
+.workspace-file-tile > div:last-child { display: grid; gap: .1rem; padding: .45rem .15rem 0; }
+.workspace-file-tile b, .workspace-file-tile small { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.workspace-file-tile b { font-size: var(--type-caption); font-weight: var(--weight-emphasis); }
+.workspace-file-tile small { color: var(--muted-foreground); font-family: var(--studio-font-mono); font-size: .625rem; text-transform: capitalize; }
+.workspace-quiet-empty { min-block-size: 8rem; grid-column: 1 / -1; display: grid; place-items: center; align-content: center; gap: .25rem; color: var(--muted-foreground); text-align: center; }
+.workspace-quiet-empty svg { inline-size: 1.25rem; }
+.workspace-quiet-empty b { color: var(--foreground); font-size: var(--type-small); font-weight: var(--weight-emphasis); }
+.workspace-quiet-empty span { font-size: var(--type-caption); }
+
+.workspace-folder-strip { margin-block-start: 3rem; padding-block-start: 1.25rem; border-block-start: 1px solid var(--border); }
+.workspace-folder-strip > header { display: flex; align-items: center; justify-content: space-between; }
+.workspace-folder-strip > div { display: flex; flex-wrap: wrap; gap: .5rem; margin-block-start: .75rem; }
+.workspace-folder-strip button { min-block-size: 2.25rem; display: inline-flex; align-items: center; gap: .45rem; padding-inline: .7rem; border: 1px solid var(--border); border-radius: var(--radius-md); color: var(--foreground); background: var(--surface-raised); font-size: var(--type-small); }
+.workspace-folder-strip button svg { inline-size: .9rem; color: var(--muted-foreground); }
+.workspace-folder-strip button:hover { border-color: var(--border-strong); background: var(--surface-subtle); }
+.workspace-folder-strip button[aria-pressed="true"] { border-color: color-mix(in oklab, var(--primary) 32%, var(--border)); color: var(--primary); background: var(--primary-soft); }
+.workspace-folder-strip button[aria-pressed="true"] svg { color: var(--primary); }
+.workspace-resource-dialog form { display: grid; gap: 1rem; }
+.workspace-resource-dialog label { display: grid; gap: .35rem; }
+.workspace-resource-dialog label > span { font-size: var(--type-small); font-weight: var(--weight-emphasis); }
+.workspace-resource-dialog label small { color: var(--muted-foreground); font-weight: var(--weight-body); }
+.workspace-file-upload-dialog { inline-size: min(42rem, calc(100vw - 2rem)); }
+.workspace-file-upload-fields { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: .75rem; }
+.workspace-file-upload-fields label { min-inline-size: 0; display: grid; gap: .35rem; }
+.workspace-file-upload-fields label > span { font-size: var(--type-small); font-weight: var(--weight-emphasis); }
+.workspace-file-upload-fields label small { color: var(--muted-foreground); font-weight: var(--weight-body); }
+.workspace-file-upload-error { color: var(--destructive); font-size: var(--type-caption); }
+
+.workspace-explorer-loading { min-block-size: calc(100dvh - 3.5rem); display: grid; place-items: center; align-content: center; gap: .5rem; color: var(--muted-foreground); text-align: center; }
+.workspace-explorer-loading svg { inline-size: 1.25rem; color: var(--primary); }
+.workspace-explorer-loading b { color: var(--foreground); font-weight: var(--weight-emphasis); }
+
+@media (max-width: 72rem) {
+  .workspace-create-action-catalog { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .workspace-library-layout { grid-template-columns: 1fr; }
+}
+@media (max-width: 48rem) {
+  .workspace-explorer-header > div > span, .workspace-explorer-header > small { display: none; }
+  .workspace-explorer-content { inline-size: min(100% - 2rem, 44rem); padding-block-start: 2.5rem; }
+  .workspace-create-action-catalog { grid-template-columns: 1fr; }
+  .workspace-library-toolbar { flex-wrap: wrap; }
+  .workspace-library-toolbar > label { flex-basis: 100%; }
+  .workspace-file-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .workspace-file-upload-fields { grid-template-columns: 1fr; }
+}

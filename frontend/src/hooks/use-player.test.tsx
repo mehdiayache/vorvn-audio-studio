@@ -76,12 +76,12 @@ describe("usePlayer", () => {
   it("stops the old source before playing a different one", async () => {
     const { result } = renderHook(() => usePlayer())
     await act(async () => result.current.toggleSource({ key: "part:1", url: "/audio/one.mp3", title: "One", kind: "clip" }))
-    await act(async () => result.current.toggleSource({ key: "asset-source:2", url: "/audio/two.mp3", title: "Two", kind: "music" }))
+    await act(async () => result.current.toggleSource({ key: "file-source:2", url: "/audio/two.mp3", title: "Two", kind: "music" }))
 
     expect(element.pause).toHaveBeenCalledTimes(1)
     expect(element.play).toHaveBeenCalledTimes(2)
     expect(element.src).toContain("/audio/two.mp3")
-    expect(result.current.source?.key).toBe("asset-source:2")
+    expect(result.current.source?.key).toBe("file-source:2")
     expect(result.current.state).toBe("playing")
   })
 

@@ -14,8 +14,8 @@ vi.mock("@/features/sound-scene/source-editor/music-source-editor", () => ({
 
 import { AudioClipInspector } from "@/features/sound-scene/inspector/music-inspector"
 
-const clip = { id: "78af885c-aeb4-49bf-9edb-d3fc14496b2c", asset_id: 9, filename: "bed.mp3", asset_name: "Bed", source_duration_ms: 60_000, duration_ms: null, source_offset_ms: 0, gain: .1, fade_in_ms: 2_000, fade_out_ms: 4_000, loop: true, ducking: true, muted: false, locked: false, effects: [], anchor: { kind: "absolute" as const, position_ms: 0 } }
-const track = { id: "music", kind: "audio" as const, name: "Music", volume: 1, muted: false, clips: [clip] }
+const clip = { id: "78af885c-aeb4-49bf-9edb-d3fc14496b2c", file_id: 9, filename: "bed.mp3", file_name: "Bed", source_duration_ms: 60_000, duration_ms: null, source_offset_ms: 0, gain: .1, fade_in_ms: 2_000, fade_out_ms: 4_000, loop: true, ducking: true, muted: false, locked: false, effects: [], anchor: { kind: "absolute" as const, position_ms: 0 } }
+const track = { id: "music", kind: "audio" as const, role: "music" as const, name: "Music", volume: 1, muted: false, clips: [clip] }
 
 afterEach(cleanup)
 
@@ -27,7 +27,7 @@ describe("AudioClipInspector", () => {
     render(<AudioClipInspector track={track} clip={clip} playing={false} onPlay={onPlay} onClipChange={onClipChange} onClipCommit={onClipCommit} onTrackMixChange={vi.fn()} onTrackMixCommit={vi.fn()} onChoose={vi.fn()} />)
     expect(screen.getByRole("region", { name: "Audio source window" })).toBeTruthy()
     fireEvent.click(screen.getByRole("button", { name: "Play audio audition" }))
-    expect(onPlay).toHaveBeenCalledWith(expect.objectContaining({ key: "asset-source:9", kind: "asset" }))
+    expect(onPlay).toHaveBeenCalledWith(expect.objectContaining({ key: "file-source:9", kind: "file" }))
     fireEvent.click(screen.getByRole("button", { name: "Clip volume" }))
     expect(onClipChange).toHaveBeenCalledWith({ gain: .5, muted: false })
     await waitFor(() => expect(onClipCommit).toHaveBeenCalledTimes(1))
@@ -48,7 +48,7 @@ describe("AudioClipInspector", () => {
 
   it("does not project sequential Part language onto an empty Audio Track", () => {
     render(<AudioClipInspector track={{ ...track, clips: [] }} clip={null} playing={false} onPlay={vi.fn()} onClipChange={vi.fn()} onClipCommit={vi.fn()} onTrackMixChange={vi.fn()} onTrackMixCommit={vi.fn()} onChoose={vi.fn()} />)
-    expect(screen.getByText(/Add one reusable audio Asset/)).toBeTruthy()
+    expect(screen.getByText(/Add one reusable audio File/)).toBeTruthy()
     expect(screen.queryByText(/Clip|Voice/)).toBeNull()
   })
 
@@ -73,7 +73,7 @@ describe("AudioClipInspector", () => {
   })
 
   it("shows canonical SFX identity and rich technical metadata", () => {
-    render(<AudioClipInspector track={track} clip={{ ...clip, asset_kind: "sfx" }} asset={{ id: 9, title: "Door latch", category: "sfx", duration_ms: 60_000, audio_format: "wav", sample_rate: 48_000, channels: 2, metadata: { origin: "generated", model: "stable-audio-3-small-sfx" } }} playing={false} onPlay={vi.fn()} onClipChange={vi.fn()} onClipCommit={vi.fn()} onTrackMixChange={vi.fn()} onTrackMixCommit={vi.fn()} onChoose={vi.fn()} />)
+    render(<AudioClipInspector track={track} clip={{ ...clip, file_kind: "sfx" }} file={{ id: 9, title: "Door latch", category: "sfx", duration_ms: 60_000, audio_format: "wav", sample_rate: 48_000, channels: 2, metadata: { origin: "generated", model: "stable-audio-3-small-sfx" } }} playing={false} onPlay={vi.fn()} onClipChange={vi.fn()} onClipCommit={vi.fn()} onTrackMixChange={vi.fn()} onTrackMixCommit={vi.fn()} onChoose={vi.fn()} />)
 
     expect(screen.getByText("Door latch")).toBeTruthy()
     expect(screen.getByText("SFX")).toBeTruthy()

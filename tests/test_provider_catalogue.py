@@ -5,12 +5,12 @@ from uuid import uuid4
 
 import psycopg
 
-from audio_studio.config import settings
-from audio_studio.domain import provider_catalog, voice_registry
-from audio_studio.infrastructure.postgres.provider_catalogue import (
+from origins.config import settings
+from origins.domain import provider_catalog, voice_registry
+from origins.infrastructure.postgres.provider_catalogue import (
     ProviderCatalogueRepository,
 )
-from audio_studio.infrastructure.postgres.speech import SpeechRepository
+from origins.infrastructure.postgres.speech import SpeechRepository
 
 
 class ProviderCatalogueTests(unittest.TestCase):

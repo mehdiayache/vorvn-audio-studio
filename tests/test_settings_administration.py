@@ -9,11 +9,11 @@ import time
 import unittest
 from unittest.mock import patch
 
-from audio_studio.infrastructure.settings_administration import (
+from origins.infrastructure.settings_administration import (
     EnvironmentSettings,
     FilesystemMaintenance,
 )
-from audio_studio.providers.freesound import FreesoundOAuthTokens
+from origins.providers.freesound import FreesoundOAuthTokens
 
 
 class SettingsAdministrationTests(unittest.TestCase):
@@ -26,11 +26,11 @@ class SettingsAdministrationTests(unittest.TestCase):
                 reload_environment=lambda: None,
             )
             with patch.dict(os.environ, {}, clear=True):
-                administration.save_director_provider({
+                administration.save_media_generation_provider({
                     "api_key": "private-kie-key",
                     "base_url": "https://api.kie.ai/",
                 })
-                status = administration.director_provider()
+                status = administration.media_generation_provider()
             saved = env_file.read_text()
             self.assertIn("KIE_API_KEY=private-kie-key", saved)
             self.assertIn("KIE_API_BASE_URL=https://api.kie.ai", saved)
@@ -111,7 +111,7 @@ class SettingsAdministrationTests(unittest.TestCase):
                 "secret_key": "existing-secret",
             }
             with patch(
-                    "audio_studio.infrastructure.settings_administration."
+                    "origins.infrastructure.settings_administration."
                     "object_storage.settings", return_value=current):
                 administration.save_storage({
                     "endpoint": "https://new.test", "bucket": "new-bucket",
@@ -164,10 +164,9 @@ class SettingsAdministrationTests(unittest.TestCase):
             output = root / "out"
             voice_references = root / ".media" / "voice-references"
             scratch = root / ".incoming" / "partial.wav"
-            legacy_master = root / ".uploads" / "original.wav"
             durable_master = voice_references / "ref_123" / "normalized.wav"
             finished = output / "finished.mp3"
-            for path in (scratch, legacy_master, durable_master, finished):
+            for path in (scratch, durable_master, finished):
                 path.parent.mkdir(parents=True, exist_ok=True)
                 path.write_bytes(b"audio")
                 os.utime(path, (1, 1))
@@ -178,12 +177,11 @@ class SettingsAdministrationTests(unittest.TestCase):
             result = maintenance.tidy(days=0)
             self.assertEqual(result, {"removed": 1, "freed": 5})
             self.assertFalse(scratch.exists())
-            self.assertTrue(legacy_master.exists())
             self.assertTrue(durable_master.exists())
             self.assertTrue(finished.exists())
             snapshot = maintenance.snapshot()
             self.assertEqual(snapshot["finished"]["files"], 1)
-            self.assertEqual(snapshot["protected_total"], 10)
+            self.assertEqual(snapshot["protected_total"], 5)
 
 
 if __name__ == "__main__":

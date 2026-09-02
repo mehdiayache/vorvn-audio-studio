@@ -9,7 +9,7 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { Input } from "@/components/ui/input"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Textarea } from "@/components/ui/textarea"
-import { studioApi } from "@/lib/api"
+import { originsApi } from "@/lib/api"
 import { productIdentity } from "@/lib/product-identity"
 import type { VoiceProfile } from "@/types/domain"
 
@@ -63,8 +63,8 @@ export function EditVoiceDialog({ profile, onOpenChange, onSaved, onArchived }: 
     setBusy("save"); setError("")
     try {
       let imageUrl = String(profile.metadata.image || "")
-      if (image) imageUrl = (await studioApi.uploadVoiceImage(image)).url
-      const saved = await studioApi.updateVoiceProfile(profile.id, {
+      if (image) imageUrl = (await originsApi.uploadVoiceImage(image)).url
+      const saved = await originsApi.updateVoiceProfile(profile.id, {
         name: form.name.trim(), image: imageUrl, gender: form.gender,
         age: form.age ? Number(form.age) : null, accent: form.accent.trim(),
         trait: form.trait.trim(), scene: form.scene.trim(), notes: form.notes.trim(),
@@ -78,17 +78,17 @@ export function EditVoiceDialog({ profile, onOpenChange, onSaved, onArchived }: 
   }
 
   async function archive() {
-    if (!profile || !window.confirm(`Archive ${profile.name}? Existing productions keep their audio and voice reference.`)) return
+    if (!profile || !window.confirm(`Archive ${profile.name}? Existing Projects keep their audio and voice reference.`)) return
     setBusy("archive"); setError("")
     try {
-      await studioApi.archiveVoiceProfile(profile.id)
+      await originsApi.archiveVoiceProfile(profile.id)
       onArchived(); onOpenChange(false); toast.success("Voice archived.")
     } catch (reason) {
       setError(reason instanceof Error ? reason.message : "Unable to archive this voice.")
     } finally { setBusy("") }
   }
 
-  const recordingLanguage = String(profile?.metadata.recording_language || profile?.metadata.language || "")
+  const recordingLanguage = String(profile?.metadata.recording_language || "")
   return <Dialog open={Boolean(profile)} onOpenChange={(open) => { if (!busy) onOpenChange(open) }}>
     <DialogContent className="voice-edit-dialog">
       <DialogHeader><DialogTitle>Edit voice</DialogTitle><DialogDescription>This identity supplies its name, portrait and casting details everywhere in {productIdentity.name}.</DialogDescription></DialogHeader>

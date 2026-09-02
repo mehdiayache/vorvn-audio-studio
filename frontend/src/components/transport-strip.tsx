@@ -16,9 +16,9 @@ import "./transport-strip.css"
 
 const sourceLabels: Record<PlayerSource["kind"], string> = {
   clip: "Recording",
-  production: "Production preview",
+  project: "Project preview",
   voice: "Voice preview",
-  asset: "Space audio",
+  file: "Workspace audio",
   music: "Music",
   subtitle: "Subtitle source",
   standalone: "Standalone recording",
@@ -75,7 +75,7 @@ export function TransportStripView({ source, state, currentTime, duration, volum
       disabled={!captionTracks.length}
       onClick={onToggleCaptions}
     ><Captions /></Button></OperatorTooltip>
-    {source.kind !== "production" && source.downloadable !== false && <AudioDownloadButton url={source.url} label={source.title} />}
+    {source.kind !== "project" && source.downloadable !== false && <AudioDownloadButton url={source.url} label={source.title} />}
     <OperatorTooltip label="Close audio player"><Button variant="ghost" size="icon" onClick={onClose} aria-label="Close audio player"><X /></Button></OperatorTooltip>
     {state === "error" && <p className="transport-strip-error" role="alert">This audio could not be played.</p>}
   </section>

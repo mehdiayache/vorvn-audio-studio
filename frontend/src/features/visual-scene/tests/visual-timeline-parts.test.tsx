@@ -3,12 +3,12 @@
 import { cleanup, fireEvent, render, screen } from "@testing-library/react"
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
 
-import type { VentureAsset, VisualSceneClip, VisualSceneTrack } from "@/types/domain"
+import type { WorkspaceFile, VisualSceneClip, VisualSceneTrack } from "@/types/domain"
 import { VisualContextToolbar, VisualTimelineClip, VisualTrackControl } from "../timeline/visual-timeline-parts"
 
 const clip = {
   id: "visual-clip",
-  asset_id: 91,
+  file_id: 91,
   start_ms: 2_000,
   duration_ms: 12_000,
   source_offset_ms: 0,
@@ -21,7 +21,7 @@ const image = {
   name: "Story still",
   filename: "story-still.png",
   media_type: "image",
-} as VentureAsset
+} as WorkspaceFile
 
 const video = {
   ...image,
@@ -29,7 +29,7 @@ const video = {
   name: "Story motion",
   filename: "story-motion.mp4",
   media_type: "video",
-} as VentureAsset
+} as WorkspaceFile
 
 const track = {
   id: "video-track",
@@ -49,7 +49,7 @@ afterEach(() => { cleanup(); vi.unstubAllGlobals() })
 
 describe("visual Timeline controls", () => {
   it("repeats an image thumbnail across a long temporal clip without stretching the source", () => {
-    const { container } = render(<VisualTimelineClip clip={clip} asset={image} selected={false} trackLocked={false} style={{ width: 480 }} onSelect={vi.fn()} onGesture={vi.fn()} />)
+    const { container } = render(<VisualTimelineClip clip={clip} file={image} selected={false} trackLocked={false} style={{ width: 480 }} onSelect={vi.fn()} onGesture={vi.fn()} />)
 
     const placement = screen.getByRole("button", { name: "Story still media clip" })
     expect(placement.className).toContain("is-image")
@@ -60,7 +60,7 @@ describe("visual Timeline controls", () => {
 
   it("exposes linked video audio in the same contextual toolbar", () => {
     const onAudioVolume = vi.fn()
-    const { container } = render(<VisualContextToolbar track={track} clip={{ ...clip, asset_id: 92 }} asset={video} saving={false} canSplit={false} hasAudio audioGain={1} audioMuted={false} onAudioVolume={onAudioVolume} onSplit={vi.fn()} onDuplicate={vi.fn()} onDelete={vi.fn()} />)
+    const { container } = render(<VisualContextToolbar track={track} clip={{ ...clip, file_id: 92 }} file={video} saving={false} canSplit={false} hasAudio audioGain={1} audioMuted={false} onAudioVolume={onAudioVolume} onSplit={vi.fn()} onDuplicate={vi.fn()} onDelete={vi.fn()} />)
 
     fireEvent.click(screen.getByRole("button", { name: "Video volume · 100%" }))
     fireEvent.click(screen.getByRole("button", { name: "Mute Video volume" }))
@@ -72,7 +72,7 @@ describe("visual Timeline controls", () => {
 
   it("keeps unavailable audio out and owns the single-placement lock action", () => {
     const onLock = vi.fn()
-    const { container } = render(<VisualContextToolbar track={track} clip={{ ...clip, asset_id: 92 }} asset={video} saving={false} canSplit={false} onSplit={vi.fn()} onLock={onLock} onDuplicate={vi.fn()} onDelete={vi.fn()} />)
+    const { container } = render(<VisualContextToolbar track={track} clip={{ ...clip, file_id: 92 }} file={video} saving={false} canSplit={false} onSplit={vi.fn()} onLock={onLock} onDuplicate={vi.fn()} onDelete={vi.fn()} />)
 
     expect(screen.queryByRole("button", { name: "No audio" })).toBeNull()
     const lock = screen.getByRole("button", { name: "Lock media placement" })
@@ -84,7 +84,7 @@ describe("visual Timeline controls", () => {
   })
 
   it("shows the locked state while keeping unlock available in the selection bar", () => {
-    const { container } = render(<VisualContextToolbar track={track} clip={{ ...clip, locked: true }} asset={image} saving={false} canSplit={false} selectionLocked onSplit={vi.fn()} onLock={vi.fn()} onDuplicate={vi.fn()} onDelete={vi.fn()} />)
+    const { container } = render(<VisualContextToolbar track={track} clip={{ ...clip, locked: true }} file={image} saving={false} canSplit={false} selectionLocked onSplit={vi.fn()} onLock={vi.fn()} onDuplicate={vi.fn()} onDelete={vi.fn()} />)
 
     const unlock = screen.getByRole("button", { name: "Unlock media placement" })
     expect(unlock.className).toContain("is-locked")
@@ -94,21 +94,21 @@ describe("visual Timeline controls", () => {
 
   it("keeps batch locking available when multiple placements are selected", () => {
     const onLock = vi.fn()
-    render(<VisualContextToolbar count={2} track={track} clip={clip} asset={video} saving={false} canSplit={false} selectionLocked={false} onSplit={vi.fn()} onLock={onLock} onDuplicate={vi.fn()} onDelete={vi.fn()} />)
+    render(<VisualContextToolbar count={2} track={track} clip={clip} file={video} saving={false} canSplit={false} selectionLocked={false} onSplit={vi.fn()} onLock={onLock} onDuplicate={vi.fn()} onDelete={vi.fn()} />)
 
     fireEvent.click(screen.getByRole("button", { name: "Lock selected media" }))
     expect(onLock).toHaveBeenCalledOnce()
   })
 
   it("shows locked placement status inside the clip label", () => {
-    render(<VisualTimelineClip clip={{ ...clip, locked: true }} asset={video} selected trackLocked={false} style={{ width: 160 }} onSelect={vi.fn()} onGesture={vi.fn()} />)
+    render(<VisualTimelineClip clip={{ ...clip, locked: true }} file={video} selected trackLocked={false} style={{ width: 160 }} onSelect={vi.fn()} onGesture={vi.fn()} />)
 
     expect(screen.getByLabelText("Locked placement")).toBeTruthy()
     expect(screen.queryByRole("button", { name: "Resize media start" })).toBeNull()
   })
 
   it("uses lock icons as track state instead of contradictory actions", () => {
-    const props = { assets: [video], collapsed: false, first: true, last: true, onVisible: vi.fn(), onLocked: vi.fn(), onAdd: vi.fn(), onMove: vi.fn(), onRename: vi.fn(), onRemove: vi.fn() }
+    const props = { files: [video], collapsed: false, first: true, last: true, onVisible: vi.fn(), onLocked: vi.fn(), onAdd: vi.fn(), onMove: vi.fn(), onRename: vi.fn(), onRemove: vi.fn() }
     const { container, rerender } = render(<VisualTrackControl {...props} track={track} />)
 
     expect(screen.getByRole("button", { name: "Lock Video" }).querySelector(".lucide-lock-open")).toBeTruthy()

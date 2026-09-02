@@ -2,9 +2,9 @@
 
 import unittest
 
-from audio_studio.application.recording_history import RecordingHistoryService
-from audio_studio.http.routers.jobs import SpeechJobCreate
-from audio_studio.infrastructure.postgres.recording_history import _safe_request
+from origins.application.recording_history import RecordingHistoryService
+from origins.http.routers.jobs import SpeechJobCreate
+from origins.infrastructure.postgres.recording_history import _safe_request
 
 
 class FakeLedger:
@@ -12,9 +12,9 @@ class FakeLedger:
         self.rows = recordings
         self.requested = False
 
-    def recordings(self, space_id):
+    def recordings(self, workspace_id):
         self.requested = True
-        self.space_id = space_id
+        self.workspace_id = workspace_id
         return self.rows
 
 
@@ -28,15 +28,15 @@ class RecordingHistoryTests(unittest.TestCase):
         self.assertEqual([item["id"] for item in result["recordings"]], ["a", "b"])
         self.assertEqual(result["total_cost"], .0035)
         self.assertTrue(ledger.requested)
-        self.assertEqual(ledger.space_id, 12)
+        self.assertEqual(ledger.workspace_id, 12)
 
     def test_standalone_speech_belongs_directly_to_a_space(self):
         contract = SpeechJobCreate(
-            text="Hello", catalogue_voice_id="catalogue:voice", space_id=12,
+            text="Hello", catalogue_voice_id="catalogue:voice", workspace_id=12,
         )
         persisted = contract.model_dump(exclude_unset=True, mode="json")
         self.assertNotIn("session_id", persisted)
-        self.assertEqual(persisted["space_id"], 12)
+        self.assertEqual(persisted["workspace_id"], 12)
 
     def test_history_preserves_ssml_choice_for_safe_reuse(self):
         request = _safe_request({

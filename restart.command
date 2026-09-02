@@ -1,5 +1,5 @@
 #!/bin/zsh
-# VORVN Auvi Studio — stop whatever is running, start it again, open it.
+# Origins — stop whatever is running, start it again, open it.
 #
 # Double-click this file in Finder. That is the whole procedure.
 # It is safe to run when nothing is running: it just starts it.
@@ -7,7 +7,7 @@
 cd "$(dirname "$0")"
 PORT=7860
 
-echo "VORVN Auvi Studio"
+echo "Origins"
 echo "────────────"
 
 # Whoever is holding the port is the old copy. Ask it to stop, then insist.
@@ -30,16 +30,16 @@ if command -v docker >/dev/null 2>&1; then
 fi
 
 echo "· starting"
-.venv/bin/python -m audio_studio > out/server.log 2>&1 &
+.venv/bin/python -m origins > out/server.log 2>&1 &
 
 # Wait for it to actually answer before opening the browser, so you never
 # land on a "can't connect" page.
 for i in $(seq 1 40); do
   if curl -s -o /dev/null "http://127.0.0.1:$PORT/api/v1/system/health"; then
-    echo "· running at http://127.0.0.1:$PORT/audio-studio/"
-    open "http://127.0.0.1:$PORT/audio-studio/"
+    echo "· running at http://127.0.0.1:$PORT/origins/"
+    open "http://127.0.0.1:$PORT/origins/"
     echo
-    echo "You can close this window. Auvi Studio keeps running."
+    echo "You can close this window. Origins keeps running."
     exit 0
   fi
   sleep 0.25

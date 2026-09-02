@@ -3,13 +3,13 @@ import { act, renderHook, waitFor } from "@testing-library/react"
 import { MemoryRouter, useLocation } from "react-router-dom"
 import { afterEach, describe, expect, it, vi } from "vitest"
 
-import type { DurableJob, ProductionPart } from "@/types/domain"
+import type { DurableJob, ProjectPart } from "@/types/domain"
 import { jobObserver } from "@/lib/job-observer"
 
 const api = vi.hoisted(() => ({
   captions: vi.fn(), transcript: vi.fn(), job: vi.fn(), enqueueTranscribePart: vi.fn(), enqueueTranscriptTranslation: vi.fn(), confirmJob: vi.fn(),
 }))
-vi.mock("@/lib/api", () => ({ studioApi: api }))
+vi.mock("@/lib/api", () => ({ originsApi: api }))
 
 import { usePartDetailData } from "./use-part-detail-data"
 
@@ -19,7 +19,7 @@ function deferred<T>() {
   return { promise, resolve }
 }
 
-const part = (id: number): ProductionPart => ({ id, kind: "speech", text: `Part ${id}`, cost: 0, created_at: "", position: id })
+const part = (id: number): ProjectPart => ({ id, kind: "speech", text: `Part ${id}`, cost: 0, created_at: "", position: id })
 const wrapper = ({ children }: { children: React.ReactNode }) => <MemoryRouter>{children}</MemoryRouter>
 
 afterEach(() => { vi.clearAllMocks(); jobObserver.reset() })
@@ -28,7 +28,7 @@ describe("usePartDetailData", () => {
   it("never lets a late Part A response overwrite the open Part B", async () => {
     const captionsA = deferred<{ transcripts: Array<{ id: number }> }>()
     api.captions.mockImplementation((_production: number, id: number) => id === 1 ? captionsA.promise : Promise.resolve({ transcripts: [{ id: 202 }] }))
-    let activePart: ProductionPart | null = part(1)
+    let activePart: ProjectPart | null = part(1)
     const { result, rerender } = renderHook(() => usePartDetailData(7, activePart, vi.fn().mockResolvedValue(undefined)), { wrapper })
     activePart = part(2)
     rerender()
@@ -63,7 +63,7 @@ describe("usePartDetailData", () => {
     jobObserver.register(blocked, vi.fn())
     const continued = { ...blocked, status: "queued", result: {} }
     api.confirmJob.mockResolvedValue(continued)
-    const recoverWrapper = ({ children }: { children: React.ReactNode }) => <MemoryRouter initialEntries={["/production?part-caption-job=caption-confirm"]}>{children}</MemoryRouter>
+    const recoverWrapper = ({ children }: { children: React.ReactNode }) => <MemoryRouter initialEntries={["/origins/projects/audiovisual/project-7?part-caption-job=caption-confirm"]}>{children}</MemoryRouter>
     const activePart = part(1)
     const onChanged = vi.fn().mockResolvedValue(undefined)
     const { result } = renderHook(() => usePartDetailData(7, activePart, onChanged), { wrapper: recoverWrapper })

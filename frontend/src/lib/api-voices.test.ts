@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 import { afterEach, describe, expect, it, vi } from "vitest"
 
-import { studioApi } from "@/lib/api"
+import { originsApi } from "@/lib/api"
 
 afterEach(() => vi.unstubAllGlobals())
 
@@ -20,7 +20,7 @@ describe("generated Voice API contracts", () => {
     }))
     vi.stubGlobal("fetch", fetchMock)
 
-    await expect(studioApi.voiceProfiles()).resolves.toEqual([])
+    await expect(originsApi.voiceProfiles()).resolves.toEqual([])
     expect(fetchMock).toHaveBeenCalledWith(
       "/api/v1/voices?limit=100",
       expect.objectContaining({ headers: {} }),
@@ -32,7 +32,7 @@ describe("generated Voice API contracts", () => {
       data: { needs_confirmation: true, estimate: 0.12, warn_above: 0.1 },
     }, 202)))
 
-    await expect(studioApi.createVoicePackage({
+    await expect(originsApi.createVoicePackage({
       confirmed: true,
       language: "en",
       name: "Test voice",

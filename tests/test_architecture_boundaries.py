@@ -13,7 +13,7 @@ import unittest
 
 
 ROOT = Path(__file__).resolve().parents[1]
-PACKAGE = ROOT / "audio_studio"
+PACKAGE = ROOT / "origins"
 
 
 def _module_name(path: Path) -> str:
@@ -63,8 +63,8 @@ class ArchitectureBoundaryTests(unittest.TestCase):
     def test_domain_is_technically_pure(self):
         paths = list((PACKAGE / "domain").rglob("*.py"))
         forbidden = (
-            "fastapi", "psycopg", "audio_studio.application",
-            "audio_studio.http", "audio_studio.infrastructure", "services",
+            "fastapi", "psycopg", "origins.application",
+            "origins.http", "origins.infrastructure", "services",
             "say", "batch", "transcribe", "translate", "naming",
             "rewrite", "streaming", "vocabulary", "importer",
         )
@@ -72,7 +72,7 @@ class ArchitectureBoundaryTests(unittest.TestCase):
 
     def test_application_infrastructure_debt_can_only_shrink(self):
         paths = list((PACKAGE / "application").rglob("*.py"))
-        actual = _edges(paths, ("audio_studio.infrastructure",))
+        actual = _edges(paths, ("origins.infrastructure",))
         self.assertEqual(actual, APPLICATION_INFRASTRUCTURE_DEBT)
 
     def test_application_technical_debt_can_only_shrink(self):
@@ -82,12 +82,12 @@ class ArchitectureBoundaryTests(unittest.TestCase):
 
     def test_http_infrastructure_debt_can_only_shrink(self):
         paths = list((PACKAGE / "http").rglob("*.py"))
-        actual = _edges(paths, ("audio_studio.infrastructure",))
+        actual = _edges(paths, ("origins.infrastructure",))
         self.assertEqual(actual, HTTP_INFRASTRUCTURE_DEBT)
 
     def test_reverse_infrastructure_dependency_can_only_shrink(self):
         paths = list((PACKAGE / "infrastructure").rglob("*.py"))
-        actual = _edges(paths, ("audio_studio.application",))
+        actual = _edges(paths, ("origins.application",))
         self.assertEqual(actual, INFRASTRUCTURE_APPLICATION_DEBT)
 
     def test_transitional_module_dependencies_can_only_shrink(self):

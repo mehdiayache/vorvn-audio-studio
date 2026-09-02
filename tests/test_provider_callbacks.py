@@ -8,8 +8,8 @@ from unittest.mock import patch
 from fastapi import FastAPI
 from fastapi.testclient import TestClient
 
-from audio_studio.http.errors import ApiProblem, problem_handler
-from audio_studio.http.routers.provider_callbacks import router
+from origins.http.errors import ApiProblem, problem_handler
+from origins.http.routers.provider_callbacks import router
 
 
 class FakeOperations:
@@ -39,7 +39,7 @@ class ProviderCallbackTest(unittest.TestCase):
         with patch.dict("os.environ", {
             "KIE_WEBHOOK_HMAC_KEY": "webhook-key",
         }, clear=True), patch(
-            "audio_studio.http.routers.provider_callbacks.provider_callback_recorder",
+            "origins.http.routers.provider_callbacks.provider_callback_recorder",
             operations,
         ):
             response = self.client.post(
@@ -76,7 +76,7 @@ class ProviderCallbackTest(unittest.TestCase):
         with patch.dict("os.environ", {
             "KIE_WEBHOOK_HMAC_KEY": "webhook-key",
         }, clear=True), patch(
-            "audio_studio.http.routers.provider_callbacks.provider_callback_recorder",
+            "origins.http.routers.provider_callbacks.provider_callback_recorder",
             operations,
         ):
             response = self.client.post(

@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from "react"
 
-import { studioApi } from "@/lib/api"
+import { originsApi } from "@/lib/api"
 import { listenForVoiceDirectoryChanges } from "@/lib/voice-directory-events"
 import type { ClonedVoice, StudioConfig, VoiceCatalogItem, VoiceDirectory, VoiceMeta, VoiceRegistry } from "@/types/domain"
 
@@ -17,7 +17,7 @@ export function useVoiceDirectory() {
   const refresh = useCallback(async () => {
     setError("")
     const results = await Promise.allSettled([
-      studioApi.config(), studioApi.voiceRegistry(), studioApi.voiceMeta(), studioApi.voiceUsage(), studioApi.voiceProfiles(),
+      originsApi.config(), originsApi.voiceRegistry(), originsApi.voiceMeta(), originsApi.voiceUsage(), originsApi.voiceProfiles(),
     ] as const)
     const [nextConfig, voiceRegistry, metadata, voiceUsage, voiceProfiles] = results
     if (nextConfig.status === "fulfilled") setConfig(nextConfig.value)

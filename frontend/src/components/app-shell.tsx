@@ -22,22 +22,22 @@ import { useMediaQuery } from "@/hooks/use-media-query"
 import { productIdentity } from "@/lib/product-identity"
 import { cn } from "@/lib/utils"
 
-export type AudioStudioMountMode = "standalone" | "embedded"
+export type OriginsMountMode = "standalone" | "embedded"
 
-type AudioStudioShellContextValue = {
+type OriginsShellContextValue = {
   railNavigation: boolean
   railExpanded: boolean
   toggleRail: () => void
 }
 
-const AudioStudioShellContext = createContext<AudioStudioShellContextValue>({
+const OriginsShellContext = createContext<OriginsShellContextValue>({
   railNavigation: false,
   railExpanded: false,
   toggleRail: () => undefined,
 })
 
-export function AudioStudioRailToggle({ className, tooltipSide = "right" }: { className?: string; tooltipSide?: "right" | "bottom" }) {
-  const shell = useContext(AudioStudioShellContext)
+export function OriginsRailToggle({ className, tooltipSide = "right" }: { className?: string; tooltipSide?: "right" | "bottom" }) {
+  const shell = useContext(OriginsShellContext)
   if (!shell.railNavigation) return null
   const label = shell.railExpanded ? `Collapse ${productIdentity.name} navigation` : `Expand ${productIdentity.name} navigation`
   return <Tooltip>
@@ -58,25 +58,25 @@ type StudioNavigationItem = {
   group: "primary" | "tools" | "system"
 }
 
-export const audioStudioNavigation: StudioNavigationItem[] = [
-  { id: "create", label: "Create", icon: Sparkles, href: "/audio-studio/", group: "primary" },
-  { id: "projects", label: "Projects", icon: FolderKanban, href: "/audio-studio/projects", group: "primary" },
-  { id: "files", label: "Files", icon: Files, href: "/audio-studio/files", group: "primary" },
-  { id: "voices", label: "Voices", icon: UsersRound, href: "/audio-studio/voices", group: "primary" },
-  { id: "activity", label: "Activity", icon: Activity, href: "/audio-studio/activity", group: "tools" },
-  { id: "settings", label: "Settings", icon: Settings2, href: "/audio-studio/settings", group: "system" },
+export const originsNavigation: StudioNavigationItem[] = [
+  { id: "create", label: "Create", icon: Sparkles, href: "/origins/", group: "primary" },
+  { id: "projects", label: "Projects", icon: FolderKanban, href: "/origins/projects", group: "primary" },
+  { id: "files", label: "Files", icon: Files, href: "/origins/files", group: "primary" },
+  { id: "voices", label: "Voices", icon: UsersRound, href: "/origins/voices", group: "primary" },
+  { id: "activity", label: "Activity", icon: Activity, href: "/origins/activity", group: "tools" },
+  { id: "settings", label: "Settings", icon: Settings2, href: "/origins/settings", group: "system" },
 ]
 
-export function activeAudioStudioDestination(pathname: string) {
-  const match = audioStudioNavigation.find((item) => (
+export function activeOriginsDestination(pathname: string) {
+  const match = originsNavigation.find((item) => (
     item.id === "create"
-      ? pathname === "/audio-studio" || pathname === "/audio-studio/"
-        || pathname === "/audio-studio/create"
-        || pathname.startsWith("/audio-studio/create/")
-        || pathname.startsWith("/audio-studio/speak")
-        || pathname.startsWith("/audio-studio/subtitles")
+      ? pathname === "/origins" || pathname === "/origins/"
+        || pathname === "/origins/create"
+        || pathname.startsWith("/origins/create/")
+        || pathname.startsWith("/origins/speak")
+        || pathname.startsWith("/origins/subtitles")
       : item.id === "projects"
-        ? pathname === item.href || /^\/audio-studio\/(ventures|projects|series|productions|workspaces)\//.test(pathname)
+        ? pathname === item.href || pathname.startsWith("/origins/projects/")
       : pathname === item.href || pathname.startsWith(`${item.href}/`)
   ))
   return match?.label || productIdentity.name
@@ -84,7 +84,7 @@ export function activeAudioStudioDestination(pathname: string) {
 
 function StudioBrand() {
   return (
-    <NavLink className="studio-deck-brand" to="/audio-studio/" aria-label={`${productIdentity.name} Work`}>
+    <NavLink className="studio-deck-brand" to="/origins/" aria-label={`${productIdentity.name} Work`}>
       <span className="studio-deck-mark"><Clapperboard aria-hidden="true" /></span>
       <span>{productIdentity.name}</span>
     </NavLink>
@@ -101,7 +101,7 @@ function ReadinessStatus() {
   }
   if (readiness.status === "setup_required") {
     return (
-      <NavLink className="studio-deck-readiness is-setup_required" to="/audio-studio/settings" role="status">
+      <NavLink className="studio-deck-readiness is-setup_required" to="/origins/settings" role="status">
         <span aria-hidden="true" />
         {readiness.message}
       </NavLink>
@@ -120,9 +120,9 @@ function ReadinessStatus() {
 }
 
 function PrimaryNavigation() {
-  const primaryItems = audioStudioNavigation.filter((item) => item.group === "primary")
-  const toolItems = audioStudioNavigation.filter((item) => item.group === "tools")
-  const settings = audioStudioNavigation.find((item) => item.id === "settings")!
+  const primaryItems = originsNavigation.filter((item) => item.group === "primary")
+  const toolItems = originsNavigation.filter((item) => item.group === "tools")
+  const settings = originsNavigation.find((item) => item.id === "settings")!
   const location = useLocation()
   const toolsActive = toolItems.some((item) => location.pathname === item.href || location.pathname.startsWith(`${item.href}/`))
 
@@ -132,7 +132,7 @@ function PrimaryNavigation() {
         {primaryItems.map((item) => {
           const Icon = item.icon
           const itemActive = item.id === "create" || item.id === "projects"
-            ? activeAudioStudioDestination(location.pathname) === item.label
+            ? activeOriginsDestination(location.pathname) === item.label
             : location.pathname === item.href || location.pathname.startsWith(`${item.href}/`)
           return (
             <Link
@@ -191,7 +191,7 @@ function PrimaryNavigation() {
 
 function railItemActive(item: StudioNavigationItem, pathname: string) {
   return item.id === "create" || item.id === "projects"
-    ? activeAudioStudioDestination(pathname) === item.label
+    ? activeOriginsDestination(pathname) === item.label
     : pathname === item.href || pathname.startsWith(`${item.href}/`)
 }
 
@@ -211,9 +211,9 @@ function StudioRailLink({ item, pathname }: { item: StudioNavigationItem; pathna
 
 function StudioRail() {
   const location = useLocation()
-  const primary = audioStudioNavigation.filter((item) => item.group === "primary")
-  const tools = audioStudioNavigation.filter((item) => item.group === "tools")
-  const settings = audioStudioNavigation.find((item) => item.id === "settings")!
+  const primary = originsNavigation.filter((item) => item.group === "primary")
+  const tools = originsNavigation.filter((item) => item.group === "tools")
+  const settings = originsNavigation.find((item) => item.id === "settings")!
   return <aside className="studio-rail" aria-label={`${productIdentity.name} navigation`}>
     <div className="studio-rail-head">
       <StudioBrand />
@@ -248,13 +248,13 @@ function MobileNavigation({ destination }: { destination: string }) {
           <SheetDescription>{destination}</SheetDescription>
         </SheetHeader>
         <nav aria-label={`${productIdentity.name} mobile tools`}>
-          {audioStudioNavigation.map((item) => {
+          {originsNavigation.map((item) => {
             const Icon = item.icon
             return (
               <NavLink
                 key={item.id}
                 to={item.href}
-                end={item.href === "/audio-studio/"}
+                end={item.href === "/origins/"}
                 onClick={() => setOpen(false)}
                 className={({ isActive }) => cn("studio-deck-mobile-link", isActive && "is-active")}
               >
@@ -269,7 +269,7 @@ function MobileNavigation({ destination }: { destination: string }) {
   )
 }
 
-function StudioDeckChrome({ mode, destination }: { mode: AudioStudioMountMode; destination: string }) {
+function StudioDeckChrome({ mode, destination }: { mode: OriginsMountMode; destination: string }) {
   return (
     <header className="studio-deck-bar">
       <div className="studio-deck-bar-inner">
@@ -285,24 +285,24 @@ function StudioDeckChrome({ mode, destination }: { mode: AudioStudioMountMode; d
   )
 }
 
-export function AppShell({ mode = "standalone" }: { mode?: AudioStudioMountMode }) {
+export function AppShell({ mode = "standalone" }: { mode?: OriginsMountMode }) {
   const location = useLocation()
-  const activeDestination = activeAudioStudioDestination(location.pathname)
+  const activeDestination = activeOriginsDestination(location.pathname)
   const desktop = useMediaQuery("(min-width: 48.01rem)")
   const [railExpanded, setRailExpanded] = useState(false)
   const railNavigation = mode === "standalone" && desktop
   return (
-    <AudioStudioShellContext.Provider value={{ railNavigation, railExpanded, toggleRail: () => setRailExpanded((expanded) => !expanded) }}>
+    <OriginsShellContext.Provider value={{ railNavigation, railExpanded, toggleRail: () => setRailExpanded((expanded) => !expanded) }}>
       <div className="studio-app-shell" data-mount-mode={mode} data-presentation="standard" data-navigation={railNavigation ? "rail" : "top"} data-rail-expanded={railExpanded ? "true" : "false"}>
-        <a className="studio-skip-link" href="#audio-studio-content">Skip to {productIdentity.name} content</a>
+        <a className="studio-skip-link" href="#origins-content">Skip to {productIdentity.name} content</a>
         {railNavigation ? <StudioRail /> : <StudioDeckChrome mode={mode} destination={activeDestination} />}
-        <main id="audio-studio-content" className="audio-studio-viewport" tabIndex={-1}>
+        <main id="origins-content" className="origins-viewport" tabIndex={-1}>
           <AppErrorBoundary key={location.pathname}>
             <Outlet />
           </AppErrorBoundary>
         </main>
         <TransportStrip />
       </div>
-    </AudioStudioShellContext.Provider>
+    </OriginsShellContext.Provider>
   )
 }

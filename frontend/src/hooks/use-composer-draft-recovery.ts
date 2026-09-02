@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react"
 
-import { studioApi } from "@/lib/api"
+import { originsApi } from "@/lib/api"
 import { contextWire, meaningfulDraft } from "@/lib/composer-draft-persistence"
 import type { CompositionContext, RecoverableCompositionDraft } from "@/lib/composer-contract"
 
@@ -38,13 +38,13 @@ export function useComposerDraftRecovery(input: {
       try {
         if (!meaningfulDraft(next)) {
           if (versionRef.current !== null) {
-            await studioApi.deleteComposerDraft(context, versionRef.current)
+            await originsApi.deleteComposerDraft(context, versionRef.current)
             versionRef.current = null
           }
           setStatus("ready")
           return
         }
-        const saved = await studioApi.saveComposerDraft(context, next, versionRef.current)
+        const saved = await originsApi.saveComposerDraft(context, next, versionRef.current)
         versionRef.current = saved.version
         setStatus("saved")
       } catch (reason) {
@@ -68,7 +68,7 @@ export function useComposerDraftRecovery(input: {
     readyRef.current = false
     versionRef.current = null
     setStatus("loading")
-    const load = studioApi.composerDraft(context).then((record) => {
+    const load = originsApi.composerDraft(context).then((record) => {
       versionRef.current = record?.version ?? null
       if (!active) return
       if (record) {
@@ -133,7 +133,7 @@ export function useComposerDraftRecovery(input: {
     await loadRef.current
     await chainRef.current
     if (versionRef.current !== null) {
-      await studioApi.deleteComposerDraft(context, versionRef.current)
+      await originsApi.deleteComposerDraft(context, versionRef.current)
       versionRef.current = null
     }
     setStatus("ready")
@@ -145,7 +145,7 @@ export function useComposerDraftRecovery(input: {
     timerRef.current = null
     setStatus("loading")
     try {
-      const record = await studioApi.composerDraft(context)
+      const record = await originsApi.composerDraft(context)
       if (record) {
         versionRef.current = record.version
         restoreRef.current(record.state)

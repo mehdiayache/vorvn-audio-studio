@@ -1,4 +1,4 @@
-# Auvi Studio
+# Origins
 
 ## Run
 
@@ -6,12 +6,12 @@
 docker compose up -d
 .venv/bin/pip install -r requirements.txt
 pnpm install
-.venv/bin/python -m audio_studio.migrations
+.venv/bin/python -m origins.migrations
 pnpm build:web
-.venv/bin/python -m audio_studio
+.venv/bin/python -m origins
 ```
 
-Open <http://127.0.0.1:7860/audio-studio/>.
+Open <http://127.0.0.1:7860/origins/>.
 
 ## Verify
 

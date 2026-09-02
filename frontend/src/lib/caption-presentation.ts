@@ -1,6 +1,6 @@
 import { useSyncExternalStore } from "react"
 
-import { studioApi } from "@/lib/api"
+import { originsApi } from "@/lib/api"
 import type { CaptionLayout, CaptionProfile, PlayerCaptionCue, PlayerCaptionTrack, Transcript } from "@/types/domain"
 
 export const CAPTION_PRESENTATION_MODES: ReadonlyArray<{
@@ -15,7 +15,7 @@ export const CAPTION_PRESENTATION_MODES: ReadonlyArray<{
 
 export const DEFAULT_CAPTION_PRESENTATION: CaptionProfile = "standard"
 
-const STORAGE_KEY = "audio-studio.caption-presentation"
+const STORAGE_KEY = "origins.caption-presentation"
 const listeners = new Set<() => void>()
 let memoryProfile: CaptionProfile = DEFAULT_CAPTION_PRESENTATION
 
@@ -78,7 +78,7 @@ export async function loadCaptionPresentations({
 }): Promise<Record<CaptionProfile, PlayerCaptionCue[]>> {
   const entries = await Promise.all(CAPTION_PRESENTATION_MODES.map(async ({ key }) => {
     try {
-      return [key, projectLayout(await studioApi.subtitleLayout(transcriptId, key), partId, offsetMs)] as const
+      return [key, projectLayout(await originsApi.subtitleLayout(transcriptId, key), partId, offsetMs)] as const
     } catch {
       return [key, fallback] as const
     }

@@ -11,7 +11,7 @@ vi.mock("@/components/global-player-provider", () => ({
 
 vi.mock("@/lib/api", () => ({
   audioUrl: (value: string) => value,
-  studioApi: {
+  originsApi: {
     approveVoicePreview: vi.fn(),
     createVoicePackage: vi.fn(),
     createVoicePreview: vi.fn(),
@@ -53,7 +53,7 @@ const profile: VoiceProfile = {
     superseded_by: null, created_at: "",
   }],
   jobs: [], previews: [], used_tags: ["whispers"], available_routes: [route],
-  usage: { uses: 2, productions: 1, spend: 0.01, last_used: null, preview_filename: "" },
+  usage: { uses: 2, projects: 1, spend: 0.01, last_used: null, preview_filename: "" },
 }
 
 describe("VoiceProfileDialog", () => {

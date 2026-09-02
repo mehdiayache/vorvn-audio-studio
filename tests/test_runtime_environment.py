@@ -7,13 +7,13 @@ import unittest
 from unittest.mock import patch
 from unittest.mock import Mock
 
-from audio_studio import runtime
-from audio_studio.infrastructure import runtime_environment
-from audio_studio.providers.alibaba import config as alibaba_config
-from audio_studio.providers.alibaba import sdk_runtime
-from audio_studio.infrastructure.settings_administration import EnvironmentSettings
-from audio_studio.composition.runtime_configuration import configured_api_environment
-from audio_studio import config
+from origins import runtime
+from origins.infrastructure import runtime_environment
+from origins.providers.alibaba import config as alibaba_config
+from origins.providers.alibaba import sdk_runtime
+from origins.infrastructure.settings_administration import EnvironmentSettings
+from origins.composition.runtime_configuration import configured_api_environment
+from origins import config
 from dataclasses import replace
 
 
@@ -24,8 +24,8 @@ class RuntimeEnvironmentTests(unittest.TestCase):
         with patch.object(runtime.subprocess, "Popen", return_value=process) as spawn:
             self.assertIs(supervisor._spawn(), process)
         environment = spawn.call_args.kwargs["env"]
-        self.assertEqual(environment["AUDIO_STUDIO_RUNTIME_ID"], "runtime-test")
-        self.assertEqual(environment["AUDIO_STUDIO_PARENT_PID"], "1234")
+        self.assertEqual(environment["ORIGINS_RUNTIME_ID"], "runtime-test")
+        self.assertEqual(environment["ORIGINS_PARENT_PID"], "1234")
 
     def test_alibaba_deployment_is_dynamic_and_secret_free(self):
         with patch.dict(os.environ, {
@@ -36,7 +36,7 @@ class RuntimeEnvironmentTests(unittest.TestCase):
             environment = config.alibaba_environment()
             self.assertEqual(environment.region, "beijing")
             self.assertEqual(environment.region_label, "Beijing")
-            self.assertEqual(environment.workspace_id, "ws-cn")
+            self.assertEqual(environment.provider_workspace_id, "ws-cn")
             self.assertTrue(environment.api_key_configured)
             self.assertNotIn("never-return-this", repr(environment))
             self.assertEqual(

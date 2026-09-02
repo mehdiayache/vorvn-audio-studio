@@ -16,19 +16,19 @@ jobs:
       postgres:
         image: postgres:17
         env:
-          POSTGRES_DB: voicestudio
-          POSTGRES_USER: voicestudio
-          POSTGRES_PASSWORD: voicestudio
+          POSTGRES_DB: origins
+          POSTGRES_USER: origins
+          POSTGRES_PASSWORD: origins
           POSTGRES_INITDB_ARGS: --auth-host=scram-sha-256 --auth-local=scram-sha-256
         ports:
           - 5432:5432
         options: >-
-          --health-cmd "pg_isready -U voicestudio -d voicestudio"
+          --health-cmd "pg_isready -U origins -d origins"
           --health-interval 5s
           --health-timeout 3s
           --health-retries 10
     env:
-      DATABASE_URL: postgresql://voicestudio:voicestudio@127.0.0.1:5432/voicestudio
+      DATABASE_URL: postgresql://origins:origins@127.0.0.1:5432/origins
       PYTHONUNBUFFERED: "1"
     steps:
       - name: Check out repository
@@ -43,20 +43,20 @@ jobs:
       - name: Install backend dependencies
         run: python -m venv .venv && .venv/bin/pip install -r requirements.txt
       - name: Run database migrations
-        run: .venv/bin/python -m audio_studio.migrations
+        run: .venv/bin/python -m origins.migrations
       - name: Create disposable database fixture
         run: |
           .venv/bin/python - <<'PY'
-          from audio_studio.application.spaces import SpaceService
-          from audio_studio.infrastructure.postgres.production_document import ProductionDocumentRepository
-          from audio_studio.infrastructure.postgres.spaces import SpaceRepository
+          from origins.application.workspaces import WorkspaceService
+          from origins.infrastructure.postgres.project_document import ProjectDocumentRepository
+          from origins.infrastructure.postgres.workspaces import WorkspaceRepository
 
-          service = SpaceService(SpaceRepository())
-          space = service.create_space("CI Space")
+          service = WorkspaceService(WorkspaceRepository())
+          workspace = service.create_workspace("CI Workspace")
           project = service.create_audiovisual_project(
-              space["id"], "CI Audiovisual Project"
+              workspace["id"], "CI Audiovisual Project"
           )
-          ProductionDocumentRepository().create_part(
+          ProjectDocumentRepository().create_part(
               project["id"], {"kind": "speech", "text": "CI fixture"}
           )
           PY
@@ -137,7 +137,7 @@ jobs:
       - name: Fail when generated contracts are stale
         run: >-
           git diff --exit-code --
-          openapi/audio-studio-v1.json
+          openapi/origins-v1.json
           frontend/src/types/api.generated.ts
 
   browser-smoke:
@@ -147,20 +147,20 @@ jobs:
       postgres:
         image: postgres:17
         env:
-          POSTGRES_DB: voicestudio
-          POSTGRES_USER: voicestudio
-          POSTGRES_PASSWORD: voicestudio
+          POSTGRES_DB: origins
+          POSTGRES_USER: origins
+          POSTGRES_PASSWORD: origins
           POSTGRES_INITDB_ARGS: --auth-host=scram-sha-256 --auth-local=scram-sha-256
         ports:
           - 5432:5432
         options: >-
-          --health-cmd "pg_isready -U voicestudio -d voicestudio"
+          --health-cmd "pg_isready -U origins -d origins"
           --health-interval 5s
           --health-timeout 3s
           --health-retries 10
     env:
-      DATABASE_URL: postgresql://voicestudio:voicestudio@127.0.0.1:5432/voicestudio
-      AUDIO_STUDIO_OUTPUT_DIR: /tmp/auvi-browser-output
+      DATABASE_URL: postgresql://origins:origins@127.0.0.1:5432/origins
+      ORIGINS_OUTPUT_DIR: /tmp/origins-browser-output
       PYTHONUNBUFFERED: "1"
     steps:
       - name: Check out repository
@@ -187,28 +187,28 @@ jobs:
         env:
           NODE_OPTIONS: --throw-deprecation
       - name: Run database migrations
-        run: .venv/bin/python -m audio_studio.migrations
+        run: .venv/bin/python -m origins.migrations
         env:
           PYTHONWARNINGS: error
-      - name: Start Auvi Studio
+      - name: Start Origins
         run: |
-          mkdir -p "$AUDIO_STUDIO_OUTPUT_DIR"
-          .venv/bin/python -m uvicorn audio_studio.http.app:app --host 127.0.0.1 --port 7860 > "$RUNNER_TEMP/auvi-browser-server.log" 2>&1 &
+          mkdir -p "$ORIGINS_OUTPUT_DIR"
+          .venv/bin/python -m uvicorn origins.http.app:app --host 127.0.0.1 --port 7860 > "$RUNNER_TEMP/origins-browser-server.log" 2>&1 &
           for attempt in {1..30}; do
             if curl --fail --silent http://127.0.0.1:7860/api/v1/system/health > /dev/null; then
               exit 0
             fi
             sleep 1
           done
-          cat "$RUNNER_TEMP/auvi-browser-server.log"
+          cat "$RUNNER_TEMP/origins-browser-server.log"
           exit 1
         env:
           PYTHONWARNINGS: error
       - name: Verify audiovisual Project workstation in Chromium
         run: pnpm test:browser:smoke
         env:
-          AUVI_E2E_BASE_URL: http://127.0.0.1:7860
+          ORIGINS_E2E_BASE_URL: http://127.0.0.1:7860
           NODE_OPTIONS: --throw-deprecation
       - name: Show server log on failure
         if: failure()
-        run: cat "$RUNNER_TEMP/auvi-browser-server.log"
+        run: cat "$RUNNER_TEMP/origins-browser-server.log"

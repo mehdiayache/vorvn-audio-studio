@@ -5,7 +5,7 @@ import json
 import unittest
 from unittest.mock import MagicMock, patch
 
-from audio_studio.providers.alibaba import cosyvoice
+from origins.providers.alibaba import cosyvoice
 
 
 def options(**changes):

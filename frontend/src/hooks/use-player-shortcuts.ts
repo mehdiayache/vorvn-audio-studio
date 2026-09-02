@@ -23,7 +23,7 @@ export function usePlayerShortcuts(controls: PlayerShortcutControls, closeTransi
         return
       }
       if (editing || !controls.hasSource) return
-      if (event.code === "Space") { event.preventDefault(); void controls.toggle() }
+      if (event.code === "Workspace") { event.preventDefault(); void controls.toggle() }
       if (event.key === "ArrowLeft") { event.preventDefault(); controls.seek(controls.currentTime - 5) }
       if (event.key === "ArrowRight") { event.preventDefault(); controls.seek(controls.currentTime + 5) }
     }

@@ -4,7 +4,7 @@ import { toast } from "sonner"
 
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
-import { studioApi } from "@/lib/api"
+import { originsApi } from "@/lib/api"
 import type { SettingsSnapshot } from "@/types/domain"
 
 export function SpendingSettingsCard({ settings, onUpdated }: { settings: SettingsSnapshot; onUpdated: (settings: SettingsSnapshot) => void }) {
@@ -16,7 +16,7 @@ export function SpendingSettingsCard({ settings, onUpdated }: { settings: Settin
   async function save() {
     setSaving(true)
     try {
-      onUpdated(await studioApi.updateSettings({ warn_above: Number(warnAbove), daily_cap: Number(dailyCap) }))
+      onUpdated(await originsApi.updateSettings({ warn_above: Number(warnAbove), daily_cap: Number(dailyCap) }))
       toast.success("Spending guardrails saved.")
     } catch (reason) { toast.error(reason instanceof Error ? reason.message : "Spending guardrails could not be saved.") }
     finally { setSaving(false) }

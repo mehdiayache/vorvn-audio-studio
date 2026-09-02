@@ -1,4 +1,4 @@
-import type { GeneratePayload, ProductionPart } from "@/types/domain"
+import type { GeneratePayload, ProjectPart } from "@/types/domain"
 import type { VoiceChoice } from "@/lib/voice-options"
 
 export type TextState = "raw" | "shaped" | "tagged"
@@ -10,8 +10,8 @@ export const DEFAULT_RECORDING_VOLUME = 100
 export type CompositionContext =
   | { kind: "standalone" }
   | {
-      kind: "production"
-      productionId: number
+      kind: "project"
+      projectId: number
       partId?: number
       insertion: { kind: "before_part"; partId: string | null } | null
     }
@@ -46,7 +46,7 @@ function textState(value: unknown): TextState {
  * Canonical Part words remain separate; Generate Again starts from the exact
  * immutable input variants used by the active recording whenever they exist.
  */
-export function composerTextFromPart(part?: ProductionPart | null): ComposerText {
+export function composerTextFromPart(part?: ProjectPart | null): ComposerText {
   if (!part) return { raw: "", shaped: "", tagged: "", active: "raw" }
 
   const attachedRequest = part.clip_id
@@ -138,14 +138,14 @@ export type SpeechGenerationCommand = {
 }
 
 export function compositionContext(input: {
-  productionId?: number
-  part?: ProductionPart | null
+  projectId?: number
+  part?: ProjectPart | null
   insertBeforePartId?: string | null
 }): CompositionContext {
-  if (!input.productionId) return { kind: "standalone" }
+  if (!input.projectId) return { kind: "standalone" }
   return {
-    kind: "production",
-    productionId: input.productionId,
+    kind: "project",
+    projectId: input.projectId,
     partId: input.part?.id,
     insertion: !input.part
       ? { kind: "before_part", partId: input.insertBeforePartId ?? null }
@@ -153,7 +153,7 @@ export function compositionContext(input: {
   }
 }
 
-export function editorialBaseline(part?: ProductionPart | null): EditorialBaseline | null {
+export function editorialBaseline(part?: ProjectPart | null): EditorialBaseline | null {
   if (!part) return null
   return {
     partId: part.id,
@@ -169,7 +169,7 @@ export function routeSelection(route: VoiceChoice, capabilityId?: string | null)
   throw new Error("That voice option does not contain an exact provider route.")
 }
 
-export function routeSelectionFromPart(part?: ProductionPart | null): RouteSelection | null {
+export function routeSelectionFromPart(part?: ProjectPart | null): RouteSelection | null {
   if (!part || !["draft", "speech", "audio"].includes(part.kind)) return null
   if (part.binding_id) return { kind: "owned", bindingId: part.binding_id, capabilityId: part.capability_id || null }
   if (part.catalogue_voice_id) return { kind: "catalogue", catalogueVoiceId: part.catalogue_voice_id, capabilityId: part.capability_id || null }
@@ -198,7 +198,7 @@ export function resolveSelectedRoute(selection: RouteSelection | null, routes: V
  * fact still matches; never silently move an operator to another model.
  */
 export function replacementRouteSelectionFromPart(
-  part: ProductionPart | null | undefined,
+  part: ProjectPart | null | undefined,
   routes: VoiceChoice[],
 ): RouteSelection | null {
   if (!part?.voice_identity_id) return null
@@ -235,7 +235,7 @@ export function buildSpeechCommand(input: {
 /** Public speech payload. Route snapshots are resolved and persisted by the server. */
 export function toGeneratePayload(command: SpeechGenerationCommand): GeneratePayload {
   const selectedText = command.text[command.text.active] || ""
-  const production = command.context.kind === "production" ? command.context : null
+  const project = command.context.kind === "project" ? command.context : null
   return {
     text: selectedText,
     authored_role: command.authoredRole?.trim().replace(/\s+/g, " ") || null,
@@ -244,8 +244,8 @@ export function toGeneratePayload(command: SpeechGenerationCommand): GeneratePay
     text_tagged: command.text.tagged || null,
     text_state: command.text.active,
     spoken_profile: command.textPreparation.spokenProfile,
-    ...(production ? { production_id: production.productionId } : {}),
-    insert_before_part_id: production?.insertion?.partId ?? null,
+    ...(project ? { project_id: project.projectId } : {}),
+    insert_before_part_id: project?.insertion?.partId ?? null,
     binding_id: command.route.kind === "owned" ? command.route.bindingId : null,
     catalogue_voice_id: command.route.kind === "catalogue" ? command.route.catalogueVoiceId : null,
     capability_id: command.route.capabilityId || null,

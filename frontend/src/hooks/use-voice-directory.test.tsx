@@ -3,7 +3,7 @@ import { act, renderHook, waitFor } from "@testing-library/react"
 import { afterEach, describe, expect, it, vi } from "vitest"
 
 const api = vi.hoisted(() => ({ config: vi.fn(), voiceRegistry: vi.fn(), voiceMeta: vi.fn(), voiceUsage: vi.fn(), voiceProfiles: vi.fn() }))
-vi.mock("@/lib/api", () => ({ studioApi: api }))
+vi.mock("@/lib/api", () => ({ originsApi: api }))
 vi.mock("@/lib/voice-directory-events", () => ({ listenForVoiceDirectoryChanges: () => vi.fn() }))
 
 import { useVoiceDirectory } from "./use-voice-directory"

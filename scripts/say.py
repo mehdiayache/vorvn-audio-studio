@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Direct Qwen Audio CLI built on Auvi Studio's native adapters.
+"""Direct Qwen Audio CLI built on Origins's native adapters.
 
 Run from the repository root with ``python -m scripts.say``.
 """
@@ -11,11 +11,11 @@ import os
 from pathlib import Path
 import sys
 
-from audio_studio.config import settings
-from audio_studio.domain import provider_catalog, speech_text
-from audio_studio.providers.alibaba import audio_tts
-from audio_studio.infrastructure.postgres.pronunciations import PronunciationRepository
-from audio_studio.infrastructure.runtime_environment import reload_owned_environment
+from origins.config import settings
+from origins.domain import provider_catalog, speech_text
+from origins.providers.alibaba import audio_tts
+from origins.infrastructure.postgres.pronunciations import PronunciationRepository
+from origins.infrastructure.runtime_environment import reload_owned_environment
 
 
 def main() -> int:

@@ -4,7 +4,7 @@ import { operationStatusLabel, operatorErrorMessage } from "./operation-language
 
 describe("operatorErrorMessage", () => {
   it("does not expose database internals as the operator message", () => {
-    expect(operatorErrorMessage('ForeignKeyViolation: relation "clips" failed')).toBe("Auvi Studio could not save this operation. Its technical record is available in Details.")
+    expect(operatorErrorMessage('ForeignKeyViolation: relation "clips" failed')).toBe("Origins could not save this operation. Its technical record is available in Details.")
   })
 
   it("explains known provider failures", () => {

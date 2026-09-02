@@ -1,0 +1,333 @@
+from __future__ import annotations
+
+import io
+import json
+import os
+from pathlib import Path
+from tempfile import TemporaryDirectory
+import unittest
+import urllib.parse
+from unittest.mock import patch
+
+from origins.providers.kie.models import KieModelAdapter
+from origins.providers.kie.provider import KieMediaGenerationProvider
+from origins.providers.media_generation import (
+    MediaGenerationProviderError, MediaGenerationProviderState,
+)
+from origins.providers.alibaba_singapore.provider import (
+    AlibabaSingaporeMediaGenerationProvider,
+)
+
+
+class Response(io.BytesIO):
+    def __init__(self, payload: dict | bytes, headers=None):
+        raw = payload if isinstance(payload, bytes) else json.dumps(payload).encode()
+        super().__init__(raw)
+        self.headers = headers or {}
+
+    def __enter__(self):
+        return self
+
+    def __exit__(self, *_):
+        self.close()
+
+
+class MediaGenerationProviderTests(unittest.TestCase):
+    def test_kie_model_adapter_translates_normalized_preset_only_at_boundary(self):
+        request = KieModelAdapter().request(
+            model={
+                "provider_model_id": "kling-3.0-omni/image-to-video"},
+            operation={"operation": "image_to_video"},
+            preset={
+                "prompt": "A slow camera move",
+                "controls": {
+                    "ratio": "auto", "resolution": "1080p",
+                    "duration": 7,
+                    "provider_parameters": {
+                        "audio": False,
+                        "customize_multi_shots": False,
+                    },
+                },
+            },
+            materialized_inputs=[{
+                "role": "source-image", "url": "https://files.test/a.png"}],
+            materialized_parameters={},
+        )
+        self.assertEqual(request, {
+            "model": "kling-3.0-omni/image-to-video",
+            "input": {
+                "prompt": "A slow camera move", "resolution": "1080p",
+                "aspect_ratio": "auto", "duration": 7,
+                "audio": False, "customize_multi_shots": False,
+                "image_urls": ["https://files.test/a.png"],
+            },
+        })
+
+    def test_kie_model_adapter_rejects_fixed_image_ratio_without_shots(self):
+        with self.assertRaisesRegex(ValueError, "source image ratio"):
+            KieModelAdapter().request(
+                model={
+                    "provider_model_id":
+                        "kling-3.0-omni/image-to-video"},
+                operation={"operation": "image_to_video"},
+                preset={
+                    "prompt": "A slow camera move",
+                    "controls": {
+                        "ratio": "16:9", "resolution": "720p",
+                        "duration": 5,
+                        "provider_parameters": {
+                            "customize_multi_shots": False,
+                        },
+                    },
+                },
+                materialized_inputs=[{
+                    "role": "source-image",
+                    "url": "https://files.test/a.png",
+                }],
+                materialized_parameters={},
+            )
+
+    def test_kie_model_adapter_orders_start_and_end_frames(self):
+        request = KieModelAdapter().request(
+            model={
+                "provider_model_id": "kling-3.0-omni/image-to-video"},
+            operation={"operation": "frames_to_video",
+                       "input_order": ["start-frame", "end-frame"]},
+            preset={
+                "prompt": "Move from dawn to dusk",
+                "controls": {
+                    "ratio": "auto", "resolution": "1080p", "duration": 8,
+                    "provider_parameters": {"audio": False},
+                },
+            },
+            materialized_inputs=[
+                {"role": "end-frame", "url": "https://files.test/end.png"},
+                {"role": "start-frame", "url": "https://files.test/start.png"},
+            ],
+            materialized_parameters={},
+        )
+        self.assertEqual(request["input"]["image_urls"], [
+            "https://files.test/start.png", "https://files.test/end.png",
+        ])
+        self.assertEqual(request["input"]["aspect_ratio"], "auto")
+        self.assertEqual(request["input"]["customize_multi_shots"], False)
+
+    def test_kie_model_adapter_materializes_subject_assets_only_at_boundary(self):
+        request = KieModelAdapter().request(
+            model={"provider_model_id": "kling-3.0-omni/text-to-video"},
+            operation={"operation": "text_to_video"},
+            preset={
+                "prompt": "@hero walks through the scene",
+                "controls": {
+                    "ratio": "9:16", "resolution": "4k", "duration": 5,
+                    "provider_parameters": {
+                        "audio": True, "customize_multi_shots": False,
+                        "prefer_multi_shots": True,
+                        "elements": [{"file_ids": [11, 14]}],
+                    },
+                },
+            },
+            materialized_inputs=[],
+            materialized_parameters={"elements": [{
+                "name": "hero", "description": "Main character",
+                "variant": "images",
+                "files": [
+                    {"url": "https://files.test/front.png"},
+                    {"url": "https://files.test/side.png"},
+                ],
+                "audio_files": [{"url": "https://files.test/voice.wav"}],
+            }]},
+        )
+        self.assertEqual(request["input"]["elements"], [{
+            "name": "hero", "description": "Main character",
+            "element_input_urls": [
+                "https://files.test/front.png",
+                "https://files.test/side.png",
+            ],
+            "element_input_audio_urls": ["https://files.test/voice.wav"],
+        }])
+        self.assertEqual(request["input"]["prefer_multi_shots"], True)
+
+    def test_kie_reference_video_keeps_ordinary_images_out_of_elements(self):
+        request = KieModelAdapter().request(
+            model={
+                "provider_model_id":
+                    "kling-3.0-omni/reference-to-video"},
+            operation={"operation": "reference_to_video"},
+            preset={
+                "prompt": "Keep the product identity while the camera orbits",
+                "controls": {
+                    "ratio": "1:1", "resolution": "1080p", "duration": 5,
+                    "provider_parameters": {"audio": False},
+                },
+            },
+            materialized_inputs=[
+                {"role": "reference-image",
+                 "url": "https://files.test/front.png"},
+                {"role": "reference-image",
+                 "url": "https://files.test/side.png"},
+            ],
+            materialized_parameters={},
+        )
+        self.assertEqual(request["input"]["image_urls"], [
+            "https://files.test/front.png",
+            "https://files.test/side.png",
+        ])
+        self.assertNotIn("elements", request["input"])
+
+    def test_kie_provider_uses_common_task_lifecycle_and_normalizes_results(self):
+        requests = []
+        responses = iter([
+            Response({"code": 200, "data": {"taskId": "task-1"}}),
+            Response({"code": 200, "data": {
+                "state": "success",
+                "progress": 100,
+                "resultJson": json.dumps({
+                    "resultUrls": ["https://files.test/result.mp4"]}),
+            }}),
+        ])
+
+        def opener(request, timeout=0):
+            requests.append((request, timeout))
+            return next(responses)
+
+        with patch.dict(os.environ, {"KIE_API_KEY": "secret"}, clear=True):
+            provider = KieMediaGenerationProvider(opener=opener)
+            submission = provider.submit({
+                "model": "kling-3.0-omni/text-to-video",
+                "input": {"prompt": "Quiet sea"},
+            })
+            state = provider.task(submission.provider_job_id)
+        self.assertEqual(submission.provider_job_id, "task-1")
+        self.assertEqual(state.state, "succeeded")
+        self.assertEqual(state.progress, 100)
+        self.assertEqual(
+            state.output_urls, ("https://files.test/result.mp4",))
+        self.assertEqual(
+            requests[0][0].full_url,
+            "https://api.kie.ai/api/v1/jobs/createTask")
+        self.assertEqual(
+            requests[1][0].full_url,
+            "https://api.kie.ai/api/v1/jobs/recordInfo?taskId=task-1")
+        self.assertEqual(
+            requests[0][0].headers["Authorization"], "Bearer secret")
+
+    def test_kie_provider_adds_callback_only_when_configured(self):
+        requests = []
+
+        def opener(request, **_kwargs):
+            requests.append(request)
+            return Response({"code": 200, "data": {"taskId": "task-2"}})
+
+        with patch.dict(os.environ, {
+            "KIE_API_KEY": "secret",
+            "KIE_CALLBACK_URL": "https://studio.test/api/v1/providers/kie/callback",
+            "KIE_WEBHOOK_HMAC_KEY": "webhook-key",
+        }, clear=True):
+            KieMediaGenerationProvider(opener=opener).submit({
+                "model": "kling-3.0-omni/text-to-video",
+                "input": {"prompt": "Quiet sea"},
+            }, callback_reference="51")
+        payload = json.loads(requests[0].data)
+        callback = urllib.parse.urlparse(payload["callBackUrl"])
+        query = urllib.parse.parse_qs(callback.query)
+        self.assertEqual(
+            f"{callback.scheme}://{callback.netloc}{callback.path}",
+            "https://studio.test/api/v1/providers/kie/callback")
+        self.assertEqual(query["attempt_id"], ["51"])
+        self.assertTrue(query["token"][0])
+
+    def test_kie_cost_estimate_and_reported_credit_accounting(self):
+        provider = KieMediaGenerationProvider()
+        estimate = provider.estimate_cost({
+            "model": "kling-3.0-omni/text-to-video", "input": {
+            "resolution": "1080p", "duration": 8, "audio": True,
+        }})
+        state = provider._state({
+            "state": "success", "creditsConsumed": 216,
+            "resultJson": {"resultUrls": ["https://files.test/result.mp4"]},
+        })
+        cost, usage = provider.accounting(state)
+        self.assertAlmostEqual(estimate, 1.08)
+        self.assertAlmostEqual(cost, 1.08)
+        self.assertEqual(usage["credits_consumed"], 216)
+
+    def test_kie_pricing_is_explicitly_scoped_to_each_model(self):
+        provider = KieMediaGenerationProvider()
+        models = (
+            "kling-3.0-omni/text-to-video",
+            "kling-3.0-omni/image-to-video",
+            "kling-3.0-omni/reference-to-video",
+            "kling-3.0-omni/transformation",
+        )
+        rates = {
+            ("720p", False): .07,
+            ("720p", True): .10,
+            ("1080p", False): .09,
+            ("1080p", True): .135,
+            ("4k", False): .335,
+            ("4k", True): .335,
+        }
+        for model in models:
+            for (resolution, audio), rate in rates.items():
+                with self.subTest(
+                    model=model, resolution=resolution, audio=audio,
+                ):
+                    self.assertAlmostEqual(provider.estimate_cost({
+                        "model": model,
+                        "input": {"resolution": resolution, "duration": 5,
+                                  "audio": audio},
+                    }), round(rate * 5, 6))
+        with self.assertRaisesRegex(
+            MediaGenerationProviderError, "pricing is not configured",
+        ):
+            provider.estimate_cost({
+                "model": "seedance-2.0/text-to-video",
+                "input": {"resolution": "720p", "duration": 5},
+            })
+
+    def test_failed_kie_task_without_credits_is_zero_cost(self):
+        state = KieMediaGenerationProvider._state({
+            "state": "fail", "failMsg": "Provider rejected the request",
+        })
+        cost, usage = KieMediaGenerationProvider.accounting(state)
+        self.assertEqual(cost, 0)
+        self.assertEqual(usage["basis"], "kie_failed_task_no_charge")
+
+    def test_alibaba_transport_cannot_be_paid_wired_without_pricing(self):
+        provider = AlibabaSingaporeMediaGenerationProvider()
+        self.assertFalse(provider.callback_configured())
+        with self.assertRaisesRegex(
+            MediaGenerationProviderError, "pricing is not configured",
+        ):
+            provider.estimate_cost({"model": "wan-not-yet-wired"})
+        state = provider.state_from_callback({
+            "output": {"task_status": "SUCCEEDED", "results": [
+                {"video_url": "https://files.test/wan.mp4"},
+            ]},
+        })
+        self.assertEqual(state.state, "succeeded")
+        self.assertEqual(state.output_urls, ("https://files.test/wan.mp4",))
+        self.assertEqual(
+            provider.accounting(MediaGenerationProviderState("succeeded")),
+            (0.0, {}),
+        )
+
+    def test_kie_download_is_streamed_to_the_requested_file(self):
+        requests = []
+
+        def opener(request, **_kwargs):
+            requests.append(request)
+            return Response(b"video-data")
+
+        provider = KieMediaGenerationProvider(opener=opener)
+        with TemporaryDirectory() as directory:
+            target = Path(directory) / "result.mp4"
+            size = provider.download("https://files.test/result.mp4", target)
+            self.assertEqual(size, 10)
+            self.assertEqual(target.read_bytes(), b"video-data")
+        self.assertEqual(requests[0].headers["User-agent"], "Origins/1.0")
+
+
+if __name__ == "__main__":
+    unittest.main()

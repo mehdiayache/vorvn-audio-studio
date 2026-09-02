@@ -1,4 +1,4 @@
-import type { SoundSceneClip, SoundSceneTrack, VentureAsset } from "@/types/domain"
+import type { SoundSceneClip, SoundSceneTrack, WorkspaceFile } from "@/types/domain"
 
 export type AudioFamily = "audio" | "music" | "sfx" | "ambience"
 export type SoundMediaKind = "speech" | AudioFamily | "video"
@@ -24,12 +24,12 @@ export function audioFamily(value?: string | null): AudioFamily {
   return "audio"
 }
 
-export function audioAssetFamily(asset?: Pick<VentureAsset, "category" | "kind"> | null): AudioFamily {
-  return audioFamily(asset?.category)
+export function audioFileFamily(file?: Pick<WorkspaceFile, "category" | "kind"> | null): AudioFamily {
+  return audioFamily(file?.category)
 }
 
-export function audioAssetCategory(asset?: Pick<VentureAsset, "category"> | null): Exclude<AudioFamily, "audio"> | null {
-  const category = String(asset?.category || "").trim().toLowerCase()
+export function audioFileCategory(file?: Pick<WorkspaceFile, "category"> | null): Exclude<AudioFamily, "audio"> | null {
+  const category = String(file?.category || "").trim().toLowerCase()
   return category === "music" || category === "sfx" || category === "ambience" ? category : null
 }
 
@@ -37,11 +37,11 @@ export function audioTrackRole(track: Pick<SoundSceneTrack, "role">): AudioFamil
   return audioFamily(track.role)
 }
 
-export function soundClipMediaKind(clip: Pick<SoundSceneClip, "asset_kind" | "source_media_type">): SoundMediaKind {
+export function soundClipMediaKind(clip: Pick<SoundSceneClip, "file_kind" | "source_media_type">): SoundMediaKind {
   if (clip.source_media_type === "video") return "video"
-  return audioFamily(clip.asset_kind)
+  return audioFamily(clip.file_kind)
 }
 
-export function audioUsageTags(asset?: Pick<VentureAsset, "category" | "kind" | "tags"> | null) {
-  return [...new Set((asset?.tags || []).map((tag) => String(tag).trim().toLowerCase()).filter(Boolean))]
+export function audioUsageTags(file?: Pick<WorkspaceFile, "category" | "kind" | "tags"> | null) {
+  return [...new Set((file?.tags || []).map((tag) => String(tag).trim().toLowerCase()).filter(Boolean))]
 }

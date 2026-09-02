@@ -1,22 +1,22 @@
 import { describe, expect, it, vi } from "vitest"
 
-import type { VentureAsset, VisualScene } from "@/types/domain"
+import type { WorkspaceFile, VisualScene } from "@/types/domain"
 import { VisualSceneSession } from "./visual-scene-session"
 
-const scene = (revision = 1): VisualScene => ({ production_id: 7, revision, document: { version: 1, canvas: { width: 1920, height: 1080 }, tracks: [] }, updated_at: "2026-08-27" })
-const image = { id: 44, media_type: "image", name: "Harbor", filename: "harbor.jpg", width: 1600, height: 900 } as VentureAsset
-const video = { id: 45, media_type: "video", name: "Harbor move", filename: "harbor.mp4", duration_ms: 12_000, width: 1920, height: 1080 } as VentureAsset
+const scene = (revision = 1): VisualScene => ({ project_id: 7, revision, document: { version: 1, canvas: { width: 1920, height: 1080 }, tracks: [] }, updated_at: "2026-08-27" })
+const image = { id: 44, media_type: "image", name: "Harbor", filename: "harbor.jpg", width: 1600, height: 900 } as WorkspaceFile
+const video = { id: 45, media_type: "video", name: "Harbor move", filename: "harbor.mp4", duration_ms: 12_000, width: 1920, height: 1080 } as WorkspaceFile
 
 describe("VisualSceneSession", () => {
-  it("places one image for five seconds without duplicating the Asset", async () => {
+  it("places one image for five seconds without duplicating the File", async () => {
     const update = vi.fn(async (document, expectedRevision) => ({ ...scene(expectedRevision + 1), document }))
     const session = new VisualSceneSession(scene(), { update }, 60_000)
     await session.addImage(image, 2_000)
     const track = session.snapshot().document.tracks[0]!
     expect(track.name).toBe("Image 1")
-    expect(track.clips[0]).toMatchObject({ asset_id: 44, start_ms: 2_000, duration_ms: 5_000, source_offset_ms: 0, position_x: 0, position_y: 0, scale: 1, rotation_degrees: 0, flip_horizontal: false, flip_vertical: false, opacity: 1 })
+    expect(track.clips[0]).toMatchObject({ file_id: 44, start_ms: 2_000, duration_ms: 5_000, source_offset_ms: 0, position_x: 0, position_y: 0, scale: 1, rotation_degrees: 0, flip_horizontal: false, flip_vertical: false, opacity: 1 })
     await session.duplicate({ trackId: track.id, clipId: track.clips[0]!.id })
-    expect(session.snapshot().document.tracks[0]!.clips.map((clip) => clip.asset_id)).toEqual([44, 44])
+    expect(session.snapshot().document.tracks[0]!.clips.map((clip) => clip.file_id)).toEqual([44, 44])
   })
 
   it("retains the latest edit while an earlier save is running", async () => {
@@ -80,7 +80,7 @@ describe("VisualSceneSession", () => {
     expect(session.currentClip(ref)).toMatchObject({ start_ms: 5_000, duration_ms: 6_000, source_offset_ms: 3_000 })
   })
 
-  it("splits a video placement without duplicating its source Asset", async () => {
+  it("splits a video placement without duplicating its source File", async () => {
     const update = vi.fn(async (document, expectedRevision) => ({ ...scene(expectedRevision + 1), document }))
     const session = new VisualSceneSession(scene(), { update }, 30_000)
     await session.addVisual(video, 1_000)
@@ -91,7 +91,7 @@ describe("VisualSceneSession", () => {
 
     const clips = session.snapshot().document.tracks[0]!.clips
     expect(clips).toHaveLength(2)
-    expect(clips.map((clip) => clip.asset_id)).toEqual([45, 45])
+    expect(clips.map((clip) => clip.file_id)).toEqual([45, 45])
     expect(clips[0]).toMatchObject({ start_ms: 1_000, duration_ms: 4_000, source_offset_ms: 0 })
     expect(clips[1]).toMatchObject({ start_ms: 5_000, duration_ms: 8_000, source_offset_ms: 4_000 })
   })

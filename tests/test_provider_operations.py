@@ -6,15 +6,15 @@ from uuid import uuid4
 import psycopg
 from fastapi.testclient import TestClient
 
-from audio_studio.application.provider_operations import ProviderOperationService
-from audio_studio.config import settings
-from audio_studio.infrastructure.postgres.jobs import JobRepository
-from audio_studio.infrastructure.postgres.provider_operations import (
+from origins.application.provider_operations import ProviderOperationService
+from origins.config import settings
+from origins.infrastructure.postgres.jobs import JobRepository
+from origins.infrastructure.postgres.provider_operations import (
     ProviderOperationRepository,
 )
-from audio_studio.infrastructure.postgres.activity import ActivityRepository
-from audio_studio.infrastructure.postgres.spend import today_provider_spend
-from audio_studio.http.app import app
+from origins.infrastructure.postgres.activity import ActivityRepository
+from origins.infrastructure.postgres.spend import today_provider_spend
+from origins.http.app import app
 
 
 class ProviderOperationTests(unittest.TestCase):
@@ -127,16 +127,16 @@ class ProviderOperationTests(unittest.TestCase):
         self.assertEqual(job_status[0], "blocked")
         self.assertTrue(job_status[1]["requires_review"])
 
-    def test_stale_director_job_resumes_persisted_provider_task(self):
+    def test_stale_media_generation_job_resumes_persisted_provider_task(self):
         job, _ = self.jobs.enqueue(
-            "director_generate", {"recipe": {"prompt": "harbor"}},
-            idempotency_key=f"director-resume-{uuid4()}",
-            source_tool="director", operation_label="Create visual")
+            "media_generate", {"preset": {"prompt": "harbor"}},
+            idempotency_key=f"media-resume-{uuid4()}",
+            source_tool="composer", operation_label="Create visual")
         self.job_ids.append(job.id)
         attempt = self.records.begin_attempt(
-            job.id, "director_generate",
+            job.id, "media_generate",
             {"provider": "kie", "model": "kling"},
-            {"recipe": {"prompt": "harbor"}}, None, estimated_cost=0)
+            {"preset": {"prompt": "harbor"}}, None, estimated_cost=0)
         self.records.mark_sent(attempt, "kie-task-71")
         with psycopg.connect(settings.database_url) as database:
             database.execute("""
@@ -159,15 +159,15 @@ class ProviderOperationTests(unittest.TestCase):
     def test_provider_callback_is_reconciled_by_task_identity(self):
         job_id = self.job()
         attempt = self.records.begin_attempt(
-            job_id, "director_generate",
+            job_id, "media_generate",
             {"provider": "kie", "model": "kling"},
-            {"recipe": {"prompt": "harbor"}}, None, estimated_cost=0)
+            {"preset": {"prompt": "harbor"}}, None, estimated_cost=0)
         self.records.mark_sent(attempt, "kie-task-99")
         self.assertTrue(self.records.record_callback(
             "kie", "kie-task-99",
             {"data": {"taskId": "kie-task-99", "state": "success"}}))
         recovered = self.records.attempt_for_job(
-            job_id, "director_generate")
+            job_id, "media_generate")
         self.assertEqual(recovered["provider_request_id"], "kie-task-99")
         self.assertEqual(
             recovered["diagnostics"]["provider_callback"]["data"]["state"],
@@ -175,14 +175,14 @@ class ProviderOperationTests(unittest.TestCase):
 
     def test_callback_closes_task_id_crash_window_and_requeues_job(self):
         job, _ = self.jobs.enqueue(
-            "director_generate", {"recipe": {"prompt": "harbor"}},
-            idempotency_key=f"director-callback-{uuid4()}",
-            source_tool="director", operation_label="Create visual")
+            "media_generate", {"preset": {"prompt": "harbor"}},
+            idempotency_key=f"media-callback-{uuid4()}",
+            source_tool="composer", operation_label="Create visual")
         self.job_ids.append(job.id)
         attempt = self.records.begin_attempt(
-            job.id, "director_generate",
+            job.id, "media_generate",
             {"provider": "kie", "model": "kling"},
-            {"recipe": {"prompt": "harbor"}}, None, estimated_cost=.35)
+            {"preset": {"prompt": "harbor"}}, None, estimated_cost=.35)
         with psycopg.connect(settings.database_url) as database:
             database.execute("""
                 UPDATE jobs SET status='blocked',
@@ -207,22 +207,22 @@ class ProviderOperationTests(unittest.TestCase):
 
     def test_provider_success_remains_pending_until_local_artifact_exists(self):
         job, _ = self.jobs.enqueue(
-            "director_generate", {"recipe": {"prompt": "harbor"}},
-            idempotency_key=f"director-ingest-{uuid4()}",
-            source_tool="director", operation_label="Create visual")
+            "media_generate", {"preset": {"prompt": "harbor"}},
+            idempotency_key=f"media-ingest-{uuid4()}",
+            source_tool="composer", operation_label="Create visual")
         self.job_ids.append(job.id)
         reservation = self.service.authorize(
-            job.id, "director_generate", .35,
+            job.id, "media_generate", .35,
             {"daily_cap": 0, "warn_above": 0}, True)
         attempt = self.records.begin_attempt(
-            job.id, "director_generate", {"provider": "kie"},
-            {"recipe": {"prompt": "harbor"}}, reservation,
+            job.id, "media_generate", {"provider": "kie"},
+            {"preset": {"prompt": "harbor"}}, reservation,
             estimated_cost=.35)
         self.records.mark_sent(attempt, "kie-task-ingest")
         self.records.record_provider_result(
             attempt, cost=.34, usage={"credits_consumed": 68},
             receipt={"state": "success", "resultJson": {"resultUrls": ["https://example.test/result.mp4"]}})
-        pending = self.records.attempt_for_job(job.id, "director_generate")
+        pending = self.records.attempt_for_job(job.id, "media_generate")
         self.assertEqual(pending["status"], "sent")
         self.assertTrue(pending["diagnostics"]["provider_succeeded"])
         with psycopg.connect(settings.database_url) as database:
@@ -240,15 +240,15 @@ class ProviderOperationTests(unittest.TestCase):
         retried = self.jobs.retry_local_ingestion(job.public_id)
         self.assertEqual(retried.status.value, "retrying")
 
-        self.records.record_artifact(attempt, {"output_asset_ids": [91]})
+        self.records.record_artifact(attempt, {"output_file_ids": [91]})
         self.records.finish_attempt(
             attempt, "succeeded", cost=.34,
             usage={"credits_consumed": 68},
             request_ids=["kie-task-ingest"], error={})
-        finished = self.records.attempt_for_job(job.id, "director_generate")
+        finished = self.records.attempt_for_job(job.id, "media_generate")
         self.assertEqual(finished["status"], "succeeded")
         self.assertEqual(
-            finished["diagnostics"]["local_artifact"]["output_asset_ids"],
+            finished["diagnostics"]["local_artifact"]["output_file_ids"],
             [91])
 
     def test_failure_classification_is_conservative_after_send(self):

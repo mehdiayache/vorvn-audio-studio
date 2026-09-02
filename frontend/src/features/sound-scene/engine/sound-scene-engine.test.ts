@@ -9,9 +9,9 @@ const clipId = "78af885c-aeb4-49bf-9edb-d3fc14496b2c"
 
 function scene(): SoundScene {
   const mix = { muted: false, gain: 1, fade_in_ms: 0, fade_out_ms: 0, effects: [] }
-  const clip = { id: clipId, asset_id: 9, duration_ms: null, source_offset_ms: 0, gain: .1, fade_in_ms: 2_000, fade_out_ms: 4_000, loop: true, ducking: true, muted: false, locked: false, effects: [], anchor: { kind: "absolute" as const, position_ms: 0 }, asset_name: "Night bed", filename: "bed.mp3", source_duration_ms: 60_000, resolved_start_ms: 0, resolved_duration_ms: 10_000 }
-  const track = { id: "music", kind: "audio" as const, name: "Music", volume: 1, muted: false, clips: [clip] }
-  return { production_id: 6, revision: 1, document: { version: 1, sequence_overrides: {}, tracks: [track] }, can_undo: false, can_redo: false, updated_at: "2026-08-18", resolved: { version: 1, signature: "scene", duration_ms: 10_000, sequence_projection: { signature: "sequence", duration_ms: 10_000, sample_rate: 48_000, spans: [{ part_id: 7, part_public_id: "part-7", position: 0, kind: "speech", title: "Opening", role: "Narrator", voice_name: "Eva", filename: "opening.mp3", start_ms: 0, duration_ms: 10_000, silence: false, missing: false, mix }] }, tracks: [track], orphans: [] }, sequence_stem: { url: "/audio/stem.mp3", filename: "stem.mp3", duration_ms: 10_000, signature: "sequence", cached: true } }
+  const clip = { id: clipId, file_id: 9, duration_ms: null, source_offset_ms: 0, gain: .1, fade_in_ms: 2_000, fade_out_ms: 4_000, loop: true, ducking: true, muted: false, locked: false, effects: [], anchor: { kind: "absolute" as const, position_ms: 0 }, file_name: "Night bed", filename: "bed.mp3", source_duration_ms: 60_000, resolved_start_ms: 0, resolved_duration_ms: 10_000 }
+  const track = { id: "music", kind: "audio" as const, role: "music" as const, name: "Music", volume: 1, muted: false, clips: [clip] }
+  return { project_id: 6, revision: 1, document: { version: 1, sequence_overrides: {}, tracks: [track] }, can_undo: false, can_redo: false, updated_at: "2026-08-18", resolved: { version: 1, signature: "scene", duration_ms: 10_000, sequence_projection: { signature: "sequence", duration_ms: 10_000, sample_rate: 48_000, spans: [{ part_id: 7, part_public_id: "part-7", position: 0, kind: "speech", title: "Opening", role: "Narrator", voice_name: "Eva", filename: "opening.mp3", start_ms: 0, duration_ms: 10_000, silence: false, missing: false, mix }] }, tracks: [track], orphans: [] }, sequence_stem: { url: "/audio/stem.mp3", filename: "stem.mp3", duration_ms: 10_000, signature: "sequence", cached: true } }
 }
 
 describe("SoundSceneEngine", () => {
@@ -99,7 +99,7 @@ describe("SoundSceneEngine", () => {
     editor.dispose()
   })
 
-  it("fits a long Production inside the actual timeline viewport", () => {
+  it("fits a long Project inside the actual timeline viewport", () => {
     const viewport = 1_040
     const duration = 7 * 60 + 21
     const samplesPerPixel = soundSceneZoomLevel(soundSceneFitZoomIndex(duration, viewport))
@@ -125,7 +125,7 @@ describe("SoundSceneEngine", () => {
 describe("SoundSceneSession", () => {
   it("keeps multi-track Solo as local audition state and never persists it", () => {
     const source = scene()
-    source.document.tracks.push({ id: "ambience", kind: "audio", name: "Ambience", volume: 1, muted: false, clips: [] })
+    source.document.tracks.push({ id: "ambience", kind: "audio", role: "ambience", name: "Ambience", volume: 1, muted: false, clips: [] })
     source.resolved.tracks.push(structuredClone(source.document.tracks[1]!))
     const update = vi.fn()
     const setSoloTracks = vi.fn()
@@ -148,7 +148,7 @@ describe("SoundSceneSession", () => {
     session.dispose()
   })
 
-  it("adds a neutral Audio track without deriving its role from Asset classification", async () => {
+  it("adds a neutral Audio track without deriving its role from File classification", async () => {
     const source = scene()
     const update = vi.fn().mockResolvedValue({ ...source, revision: 2 })
     const playout = {
@@ -162,9 +162,9 @@ describe("SoundSceneSession", () => {
 
     const document = update.mock.calls[0]![0]
     expect(document.tracks).toHaveLength(2)
-    expect(document.tracks[0].clips[0].asset_id).toBe(9)
+    expect(document.tracks[0].clips[0].file_id).toBe(9)
     expect(document.tracks[1]).toMatchObject({ name: "Audio 1", role: "audio" })
-    expect(document.tracks[1].clips[0].asset_id).toBe(22)
+    expect(document.tracks[1].clips[0].file_id).toBe(22)
     expect(document.tracks[1].clips[0].anchor.position_ms).toBe(3_000)
     expect(document.tracks[1].clips[0]).toMatchObject({ gain: 1, duration_ms: 8_000, loop: false, ducking: false })
     session.dispose()
@@ -183,11 +183,11 @@ describe("SoundSceneSession", () => {
 
     const document = update.mock.calls[0]![0]
     expect(document.tracks[0]).toMatchObject({ name: "Prayer underscore", volume: 1, muted: false })
-    expect(document.tracks[0].clips[0].asset_id).toBe(9)
+    expect(document.tracks[0].clips[0].file_id).toBe(9)
     session.dispose()
   })
 
-  it("reclassifies a legacy generic track name but preserves a custom name", async () => {
+  it("reclassifies an automatic track name but preserves a custom name", async () => {
     const source = scene()
     source.document.tracks[0]!.name = "Audio"
     source.document.tracks[0]!.role = "audio"
@@ -221,11 +221,11 @@ describe("SoundSceneSession", () => {
 
     const track = update.mock.calls[0]![0].tracks[0]
     expect(track.name).toBe("Night bed")
-    expect(track.clips.map((clip: { asset_id: number }) => clip.asset_id)).toEqual([9, 24])
+    expect(track.clips.map((clip: { file_id: number }) => clip.file_id)).toEqual([9, 24])
     session.dispose()
   })
 
-  it("uses neutral placement defaults regardless of Asset classification", async () => {
+  it("uses neutral placement defaults regardless of File classification", async () => {
     const source = scene()
     const update = vi.fn().mockImplementation(async (document) => ({ ...source, revision: 2, document }))
     const playout = {
@@ -570,7 +570,7 @@ describe("SoundSceneSession", () => {
     second.duration_ms = 2_000
     delete second.resolved_start_ms
     delete second.resolved_duration_ms
-    source.document.tracks.push({ id: "music-2", kind: "audio", name: "Music 2", volume: 1, muted: false, clips: [second] })
+    source.document.tracks.push({ id: "music-2", kind: "audio", role: "music", name: "Music 2", volume: 1, muted: false, clips: [second] })
     source.resolved.tracks.push({
       ...source.document.tracks[1]!,
       clips: [{ ...second, resolved_start_ms: 10_500, resolved_duration_ms: 2_000 }],
@@ -596,7 +596,7 @@ describe("SoundSceneSession", () => {
     session.dispose()
   })
 
-  it("splits selected clips at the playhead without duplicating their Asset", async () => {
+  it("splits selected clips at the playhead without duplicating their File", async () => {
     const source = scene()
     const update = vi.fn().mockImplementation(async (document) => ({ ...source, revision: 2, document }))
     const playout = {
@@ -611,8 +611,8 @@ describe("SoundSceneSession", () => {
 
     const [left, right] = update.mock.calls[0]![0].tracks[0].clips
     expect(update).toHaveBeenCalledOnce()
-    expect(left).toMatchObject({ id: clipId, asset_id: 9, duration_ms: 4_000, source_offset_ms: 0, fade_in_ms: 2_000, fade_out_ms: 0 })
-    expect(right).toMatchObject({ asset_id: 9, duration_ms: 6_000, source_offset_ms: 4_000, fade_in_ms: 0, fade_out_ms: 4_000, anchor: { kind: "absolute", position_ms: 4_000 } })
+    expect(left).toMatchObject({ id: clipId, file_id: 9, duration_ms: 4_000, source_offset_ms: 0, fade_in_ms: 2_000, fade_out_ms: 0 })
+    expect(right).toMatchObject({ file_id: 9, duration_ms: 6_000, source_offset_ms: 4_000, fade_in_ms: 0, fade_out_ms: 4_000, anchor: { kind: "absolute", position_ms: 4_000 } })
     expect(right.id).not.toBe(left.id)
     expect(session.snapshot().selection?.kind).toBe("clips")
     session.dispose()
@@ -623,7 +623,7 @@ describe("SoundSceneSession", () => {
     const second = structuredClone(source.document.tracks[0]!.clips[0]!)
     second.id = "88af885c-aeb4-49bf-9edb-d3fc14496b2c"
     second.anchor = { kind: "part", part_public_id: "part-7", edge: "end", offset_ms: 500 }
-    source.document.tracks.push({ id: "audio-2", kind: "audio", name: "Audio 2", volume: 1, muted: false, clips: [second] })
+    source.document.tracks.push({ id: "audio-2", kind: "audio", role: "audio", name: "Audio 2", volume: 1, muted: false, clips: [second] })
     source.resolved.tracks.push({ ...source.document.tracks[1]!, clips: [{ ...second, resolved_start_ms: 10_500, resolved_duration_ms: 2_000 }] })
     const update = vi.fn().mockImplementation(async (document) => ({ ...source, revision: 2, document }))
     const session = new SoundSceneSession(source, { update, undo: vi.fn(), redo: vi.fn() }, {
@@ -699,7 +699,7 @@ describe("SoundSceneSession", () => {
     second.id = "88af885c-aeb4-49bf-9edb-d3fc14496b2c"
     second.anchor = { kind: "part", part_public_id: "part-7", edge: "end", offset_ms: 500 }
     second.duration_ms = 2_000
-    source.document.tracks.push({ id: "music-2", kind: "audio", name: "Music 2", volume: 1, muted: false, clips: [second] })
+    source.document.tracks.push({ id: "music-2", kind: "audio", role: "music", name: "Music 2", volume: 1, muted: false, clips: [second] })
     source.resolved.tracks.push({
       ...source.document.tracks[1]!,
       clips: [{ ...second, resolved_start_ms: 10_500, resolved_duration_ms: 2_000 }],
@@ -793,7 +793,7 @@ describe("SoundSceneSession", () => {
       version: 1, canvas: { width: 1920, height: 1080 }, tracks: [{
         id: "video", name: "Video", media_type: "video",
         visible: true, locked: false, clips: [{
-          id: visualClipId, asset_id: 77, start_ms: 2_000,
+          id: visualClipId, file_id: 77, start_ms: 2_000,
           duration_ms: 4_000, source_offset_ms: 500, fit: "cover",
           position_x: 0, position_y: 0, scale: 1, rotation_degrees: 0, flip_horizontal: false, flip_vertical: false, opacity: 1,
           locked: false,
@@ -823,7 +823,7 @@ describe("SoundSceneSession", () => {
       version: 1, canvas: { width: 1920, height: 1080 }, tracks: [{
         id: "video", name: "Video", media_type: "video",
         visible: true, locked: false, clips: [{
-          id: visualClipId, asset_id: 77, start_ms: 2_000,
+          id: visualClipId, file_id: 77, start_ms: 2_000,
           duration_ms: 4_000, source_offset_ms: 500, fit: "cover",
           position_x: 0, position_y: 0, scale: 1, rotation_degrees: 0, flip_horizontal: false, flip_vertical: false, opacity: 1,
           locked: false,

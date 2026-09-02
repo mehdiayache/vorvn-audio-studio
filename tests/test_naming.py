@@ -2,11 +2,11 @@
 
 import unittest
 
-from audio_studio.domain import naming
+from origins.domain import naming
 
 
 class NamingPolicyTests(unittest.TestCase):
-    def test_blank_venture_values_inherit_global_settings(self):
+    def test_blank_workspace_values_inherit_global_settings(self):
         result = naming.merged({"prefix": "hearts"}, {"prefix": "", "digits": 3})
         self.assertEqual(result["prefix"], "hearts")
         self.assertEqual(result["digits"], 3)
@@ -14,14 +14,14 @@ class NamingPolicyTests(unittest.TestCase):
     def test_download_name_is_readable_safe_and_stably_numbered(self):
         result = naming.download_name(
             {"project": "Sleep", "folder": "صلاة النوم — Evening", "part": 3},
-            naming.merged({"prefix": "vorvn", "include_project": True}, None),
+            naming.merged({"prefix": "origins", "include_project": True}, None),
         )
-        self.assertEqual(result, "vorvn-Sleep-صلاة-النوم-Evening-part-03.mp3")
+        self.assertEqual(result, "origins-Sleep-صلاة-النوم-Evening-part-03.mp3")
 
     def test_metadata_uses_human_context_and_omits_blank_fields(self):
         settings = naming.merged({}, None)
         result = naming.id3(
-            {"venture": "Heartsnotes", "project": "Sleep", "folder": "Prayer", "part": 2},
+            {"workspace": "Heartsnotes", "project": "Sleep", "folder": "Prayer", "part": 2},
             settings,
         )
         self.assertEqual(result["artist"], "Heartsnotes")
@@ -30,8 +30,8 @@ class NamingPolicyTests(unittest.TestCase):
         self.assertNotIn("genre", result)
 
     def test_unknown_template_tokens_remain_visible(self):
-        self.assertEqual(naming.fill("{venture} {typo}", {"venture": "VORVN"}),
-                         "VORVN {typo}")
+        self.assertEqual(naming.fill("{workspace} {typo}", {"workspace": "Origins"}),
+                         "Origins {typo}")
 
 
 if __name__ == "__main__":

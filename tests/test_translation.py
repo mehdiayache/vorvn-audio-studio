@@ -7,21 +7,21 @@ from uuid import uuid4
 
 import psycopg
 
-from audio_studio.config import settings
-from audio_studio.application.translation import (
+from origins.config import settings
+from origins.application.translation import (
     MODELS,
     SubtitleTranslationJobHandler,
     SubtitleTranslationService,
     Translator,
     usage_cost,
 )
-from audio_studio.application.provider_operations import ProviderOperationService
-from audio_studio.domain.jobs import Job, JobStatus
-from audio_studio.domain.text import ProviderText
-from audio_studio.http.routers.jobs import TranslationJobCreate
-from audio_studio.providers.alibaba.translation import AlibabaTranslationProvider
-from audio_studio.infrastructure.postgres import transcripts as postgres_transcripts
-from audio_studio.providers.alibaba import text as alibaba_text
+from origins.application.provider_operations import ProviderOperationService
+from origins.domain.jobs import Job, JobStatus
+from origins.domain.text import ProviderText
+from origins.http.routers.jobs import TranslationJobCreate
+from origins.providers.alibaba.translation import AlibabaTranslationProvider
+from origins.infrastructure.postgres import transcripts as postgres_transcripts
+from origins.providers.alibaba import text as alibaba_text
 from test_support import FakeProviderOperationsRepository
 
 
@@ -237,8 +237,8 @@ class TranslationTests(unittest.TestCase):
         self.assertEqual(result.request_id, "req")
 
     def test_legacy_translation_execution_route_is_removed(self):
-        legacy_jobs = ROOT / "audio_studio/infrastructure/legacy_jobs.py"
-        worker = (ROOT / "audio_studio/worker.py").read_text()
+        legacy_jobs = ROOT / "origins/infrastructure/legacy_jobs.py"
+        worker = (ROOT / "origins/worker.py").read_text()
         self.assertFalse((ROOT / "server.py").exists())
         self.assertFalse(legacy_jobs.exists())
         self.assertIn('service.register("translate", SubtitleTranslationJobHandler', worker)

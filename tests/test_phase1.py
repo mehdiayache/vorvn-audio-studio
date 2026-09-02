@@ -6,8 +6,8 @@ import subprocess
 import tempfile
 from pathlib import Path
 
-from audio_studio.infrastructure import render_workspace as renders
-from audio_studio.application.speech import SpeechGenerationService
+from origins.infrastructure import render_workspace as renders
+from origins.application.speech import SpeechGenerationService
 
 
 results = []
@@ -50,7 +50,7 @@ with tempfile.TemporaryDirectory() as directory:
             {"id": 1, "kind": "audio", "filename": wav.name},
             {"id": 2, "kind": "silence", "title": "9",
              "duration_ms": 200, "filename": ""},
-            {"id": 3, "kind": "asset", "filename": second.name, "asset_of": 42},
+            {"id": 3, "kind": "file", "filename": second.name, "file_of": 42},
         ]
         try:
             manifest, _ = renders._sequence(parts, target)
@@ -73,9 +73,9 @@ with tempfile.TemporaryDirectory() as directory:
         check("output is normalized to 48 kHz", stream["sample_rate"] == "48000", stream)
         check("output is normalized to stereo", stream["channels"] == 2, stream)
         check("silence contributes to duration", 0.62 <= duration <= 0.90, duration)
-        check("manifest preserves order and asset identity",
-              [item["kind"] for item in manifest] == ["audio", "silence", "asset"]
-              and manifest[-1]["asset_of"] == 42, manifest)
+        check("manifest preserves order and file identity",
+              [item["kind"] for item in manifest] == ["audio", "silence", "file"]
+              and manifest[-1]["file_of"] == 42, manifest)
 
         music = root / "music.wav"
         make_audio(music, 220, 32000, "pcm_s16le")
@@ -100,7 +100,7 @@ with tempfile.TemporaryDirectory() as directory:
             "-of", "default=nw=1:nk=1", str(mixed),
         ], capture_output=True, text=True, check=True)
         mixed_duration = float(mixed_probe.stdout.strip())
-        check("music mix keeps the Production duration",
+        check("music mix keeps the Project duration",
               abs(mixed_duration - duration) <= 0.08, (mixed_duration, duration))
 
         missing_target = root / "must-not-exist.mp3"
@@ -121,7 +121,7 @@ print("\npaid-call destination gate")
 
 
 class MissingDestinationRepository:
-    def part(self, _part_id, _production_id):
+    def part(self, _part_id, _project_id):
         return None
 
 
@@ -143,7 +143,7 @@ service = SpeechGenerationService(
     lambda: {"warn_above": 0, "daily_cap": 0},
 )
 try:
-    service.run({"operation": "record", "production_id": 999999,
+    service.run({"operation": "record", "project_id": 999999,
                  "part_id": 888888,
                  "text": "Never send this", "voice": "Tina",
                  "engine": "audio", "model": "flash"})

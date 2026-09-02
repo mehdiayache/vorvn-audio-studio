@@ -4,8 +4,8 @@ from datetime import datetime, timezone
 from uuid import uuid4
 import unittest
 
-from audio_studio.application.jobs import JobService
-from audio_studio.domain.jobs import Job, JobCancelled, JobFailed, JobStatus
+from origins.application.jobs import JobService
+from origins.domain.jobs import Job, JobCancelled, JobFailed, JobStatus
 
 
 def fixture_job(kind: str = "fixture", status: JobStatus = JobStatus.QUEUED):

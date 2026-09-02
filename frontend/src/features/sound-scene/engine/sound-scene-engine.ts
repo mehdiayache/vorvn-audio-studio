@@ -103,7 +103,7 @@ function soundTrack(track: SoundSceneTrack): ClipTrack {
         : physicalSource
       return engineClip(
         clip.id,
-        clip.asset_name || track.name,
+        clip.file_name || track.name,
         Number(clip.resolved_start_ms ?? (clip.anchor.kind === "absolute" ? clip.anchor.position_ms : 0)),
         duration,
         editableSource,

@@ -3,8 +3,8 @@
 from pathlib import Path
 import unittest
 
-from audio_studio.application.media import MediaService
-from audio_studio.domain.media import MediaFile
+from origins.application.media import MediaService
+from origins.domain.media import MediaFile
 
 
 class FakeWorkspace:

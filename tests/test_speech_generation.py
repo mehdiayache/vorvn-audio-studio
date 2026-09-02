@@ -7,18 +7,18 @@ import unittest
 from unittest.mock import patch
 from uuid import uuid4
 
-from audio_studio.application.speech import (
+from origins.application.speech import (
     SpeechGenerationService,
     SpeechJobHandler,
 )
-from audio_studio.application.provider_operations import ProviderOperationService
-from audio_studio.domain.jobs import Job, JobFailed, JobStatus
-from audio_studio.domain.speech import PreparedSpeech, SpeechSynthesisError, StoredAudio, SynthesizedSpeech
-from audio_studio.http.routers.jobs import SpeechJobCreate
-from audio_studio.infrastructure.audio_workspace import AudioWorkspace
-from audio_studio.infrastructure import audio_codec
-from audio_studio.providers.alibaba.speech_generation import AlibabaSpeechProvider
-from audio_studio.providers.alibaba.qwen_tts import ChunkFailure
+from origins.application.provider_operations import ProviderOperationService
+from origins.domain.jobs import Job, JobFailed, JobStatus
+from origins.domain.speech import PreparedSpeech, SpeechSynthesisError, StoredAudio, SynthesizedSpeech
+from origins.http.routers.jobs import SpeechJobCreate
+from origins.infrastructure.audio_workspace import AudioWorkspace
+from origins.infrastructure import audio_codec
+from origins.providers.alibaba.speech_generation import AlibabaSpeechProvider
+from origins.providers.alibaba.qwen_tts import ChunkFailure
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -50,16 +50,16 @@ class FakeRepository:
     def today_spend(self):
         return self.spent
 
-    def part(self, part_id, production_id):
+    def part(self, part_id, project_id):
         if not self.current_part:
             return None
         return {**self.current_part, "id": part_id,
-                "production_id": production_id}
+                "project_id": project_id}
 
-    def attach_clip(self, part_id, production_id, expected_revision,
+    def attach_clip(self, part_id, project_id, expected_revision,
                     values):
         self.replaced.append(
-            (part_id, production_id, expected_revision, values))
+            (part_id, project_id, expected_revision, values))
         return {"attached": 1, "clip_id": 901, "subtitles_stale": 0,
                 "replaced_filename": self.replaced_filename}
 
@@ -236,7 +236,7 @@ class SpeechGenerationTests(unittest.TestCase):
             1, "مرحبا",
             "RuntimeError: invalid_parameter: unsupported language_type Arabic")
         with patch(
-                "audio_studio.providers.alibaba.speech_generation.synthesize",
+                "origins.providers.alibaba.speech_generation.synthesize",
                 return_value=(b"", [failure], [], {}, [], [])):
             with self.assertRaises(SpeechSynthesisError) as raised:
                 AlibabaSpeechProvider().synthesize(prepared)
@@ -280,10 +280,10 @@ class SpeechGenerationTests(unittest.TestCase):
         self.assertIsNone(provider.prepared[0].language)
         self.assertEqual(provider.prepared[0].engine, "audio")
 
-    def test_production_speech_requires_the_atomic_part_command(self):
+    def test_project_speech_requires_the_atomic_part_command(self):
         service, _, provider, workspace = self.service()
         with self.assertRaisesRegex(ValueError, "target the Part"):
-            service.run(payload(production_id=12))
+            service.run(payload(project_id=12))
         self.assertEqual((provider.calls, workspace.saved), ([], []))
 
     def service(self, repository=None, provider=None, preferences=None):
@@ -314,7 +314,7 @@ class SpeechGenerationTests(unittest.TestCase):
         repository = FakeRepository(part=existing("draft"))
         service, _, _, _ = self.service(repository=repository)
         result = service.run(payload(
-            operation="record", production_id=12, part_id=45,
+            operation="record", project_id=12, part_id=45,
             text="First recording"))
         self.assertEqual(result["id"], 45)
         self.assertEqual(repository.replaced[0][0], 45)
@@ -327,7 +327,7 @@ class SpeechGenerationTests(unittest.TestCase):
         service, _, _, workspace = self.service(repository=repository)
 
         result = service.run(payload(
-            operation="record", production_id=12, part_id=45,
+            operation="record", project_id=12, part_id=45,
             text="Updated recording"))
 
         self.assertEqual(result["clip_id"], 901)
@@ -350,7 +350,7 @@ class SpeechGenerationTests(unittest.TestCase):
             repository=repository, provider=provider)
 
         service.run(payload(
-            operation="record", production_id=12, part_id=45,
+            operation="record", project_id=12, part_id=45,
             engine="cosyvoice", text="Quiet now.", _job_id=77))
 
         transcript = repository.replaced[0][3]["_provider_transcript"]
@@ -370,7 +370,7 @@ class SpeechGenerationTests(unittest.TestCase):
         source_hash = hashlib.sha256(b"Canonical queued script").hexdigest()
 
         result = service.run(payload(
-            operation="record", production_id=12, part_id=44,
+            operation="record", project_id=12, part_id=44,
             text="Prepared words sent to the provider",
             _source_part_revision=3,
             _source_script_hash=source_hash,
@@ -386,7 +386,7 @@ class SpeechGenerationTests(unittest.TestCase):
         repository = FakeRepository(part=existing("draft"))
         service, _, provider, _ = self.service(repository=repository)
         service.run(payload(
-            operation="record", production_id=12, part_id=44,
+            operation="record", project_id=12, part_id=44,
             voice="Tina", voice_identity_id=None))
         self.assertIsNone(provider.prepared[0].voice_identity_id)
         self.assertIsNone(repository.replaced[0][3]["voice_identity_id"])
@@ -394,7 +394,7 @@ class SpeechGenerationTests(unittest.TestCase):
     def test_preflight_and_budget_guards_never_call_or_write_provider_audio(self):
         service, _, provider, workspace = self.service()
         with self.assertRaisesRegex(ValueError, "target the Part"):
-            service.run(payload(production_id=99))
+            service.run(payload(project_id=99))
         self.assertEqual((provider.calls, workspace.saved), ([], []))
 
         service, _, provider, workspace = self.service(
@@ -413,7 +413,7 @@ class SpeechGenerationTests(unittest.TestCase):
         repository = FakeRepository(part=existing("audio"))
         service, _, provider, workspace = self.service(repository=repository)
         with self.assertRaisesRegex(ValueError, "cannot contain speech"):
-            service.run(payload(operation="record", production_id=12,
+            service.run(payload(operation="record", project_id=12,
                                 part_id=4))
         self.assertEqual((provider.calls, workspace.saved), ([], []))
 
@@ -460,26 +460,26 @@ class SpeechGenerationTests(unittest.TestCase):
         cleared = SpeechJobCreate(
             text="Hello", voice_identity_id=None,
             catalogue_voice_id="alibaba:intl:qwen-audio-3.0-tts-plus:Cherry",
-            space_id=12)
+            workspace_id=12)
         self.assertIn("voice_identity_id", cleared.model_dump(exclude_unset=True))
         self.assertEqual(cleared.volume, 100)
         SpeechJobCreate(
             text="Hello",
             catalogue_voice_id="alibaba:intl:qwen-audio-3.0-tts-plus:Cherry",
-            production_id=7, part_id=8)
+            project_id=7, part_id=8)
         anchor = uuid4()
         anchored = SpeechJobCreate(
             text="Hello",
             catalogue_voice_id="alibaba:intl:qwen-audio-3.0-tts-plus:Cherry",
-            production_id=7, insert_before_part_id=anchor)
+            project_id=7, insert_before_part_id=anchor)
         self.assertEqual(anchored.insert_before_part_id, anchor)
         for changes in (
             {"voice": "Cherry"}, {"engine": "audio"}, {"model": "plus"},
             {"rate": 3}, {"volume": 101},
-            {"operation": "render_draft", "production_id": 7, "part_id": 8},
-            {"insert_at": 2}, {"project_id": 7},
+            {"operation": "render_draft", "project_id": 7, "part_id": 8},
+            {"insert_at": 2},
             {"part_id": 8},
-            {"production_id": 7, "part_id": 8,
+            {"project_id": 7, "part_id": 8,
              "insert_before_part_id": anchor},
         ):
             values = {"text": "Hello",
@@ -501,12 +501,12 @@ class SpeechGenerationTests(unittest.TestCase):
                 AudioWorkspace(root).save(b"audio", "../escape")
 
     def test_worker_has_no_loopback_speech_adapter(self):
-        worker = (ROOT / "audio_studio/worker.py").read_text()
+        worker = (ROOT / "origins/worker.py").read_text()
         self.assertFalse((ROOT / "server.py").exists())
         self.assertIn('service.register("speech", SpeechJobHandler', worker)
         self.assertNotIn("LegacyProviderJobHandlers", worker)
         self.assertFalse(
-            (ROOT / "audio_studio/infrastructure/legacy_jobs.py").exists())
+            (ROOT / "origins/infrastructure/legacy_jobs.py").exists())
 
 
 if __name__ == "__main__":

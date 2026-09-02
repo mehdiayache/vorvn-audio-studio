@@ -1,12 +1,12 @@
-import type { SoundSceneClip, SoundSceneDocument, VentureAsset, VisualSceneDocument } from "@/types/domain"
+import type { SoundSceneClip, SoundSceneDocument, WorkspaceFile, VisualSceneDocument } from "@/types/domain"
 
 export const VIDEO_AUDIO_TRACK_ID = "embedded-video-audio"
 
-function hasEmbeddedAudio(asset?: VentureAsset) {
-  if (asset?.media_type !== "video") return false
-  const metadata = { ...(asset.metadata || {}), ...(asset.version_metadata || {}) }
+function hasEmbeddedAudio(file?: WorkspaceFile) {
+  if (file?.media_type !== "video") return false
+  const metadata = { ...(file.metadata || {}), ...(file.version_metadata || {}) }
   return Boolean(
-    Number(asset.sample_rate || 0) > 0 && Number(asset.channels || 0) > 0
+    Number(file.sample_rate || 0) > 0 && Number(file.channels || 0) > 0
     || String(metadata.audio_codec || "").trim(),
   )
 }
@@ -30,15 +30,15 @@ function rememberClip(clip: SoundSceneClip): RememberedLinkedAudio {
 }
 
 function linkedClip(
-  asset: VentureAsset,
+  file: WorkspaceFile,
   visualClip: VisualSceneDocument["tracks"][number]["clips"][number],
   remembered?: RememberedLinkedAudio,
 ): SoundSceneClip {
   const clip: SoundSceneClip = {
     id: crypto.randomUUID(),
     linked_visual_clip_id: visualClip.id,
-    asset_id: asset.id,
-    asset_version_id: Number(asset.version_id) || null,
+    file_id: file.id,
+    file_version_id: Number(file.version_id) || null,
     duration_ms: visualClip.duration_ms,
     source_offset_ms: visualClip.source_offset_ms,
     gain: 1,
@@ -70,14 +70,14 @@ function linkedClip(
 export function synchronizeVideoAudio(
   source: SoundSceneDocument,
   visual: VisualSceneDocument,
-  assets: VentureAsset[],
+  files: WorkspaceFile[],
 ) {
   const document = structuredClone(source)
-  const assetsById = new Map(assets.map((asset) => [asset.id, asset]))
+  const assetsById = new Map(files.map((file) => [file.id, file]))
   const desired = visual.tracks.flatMap((track) => track.media_type === "video"
     ? track.clips.flatMap((clip) => {
-      const asset = assetsById.get(clip.asset_id)
-      return hasEmbeddedAudio(asset) ? [{ clip, asset: asset! }] : []
+      const file = assetsById.get(clip.file_id)
+      return hasEmbeddedAudio(file) ? [{ clip, file: file! }] : []
     })
     : [])
   const desiredIds = new Set(desired.map(({ clip }) => clip.id))
@@ -108,21 +108,22 @@ export function synchronizeVideoAudio(
     target = {
       id: VIDEO_AUDIO_TRACK_ID,
       kind: "audio",
+      role: "audio",
       ...remembered.track,
       clips: [],
     }
     document.tracks.unshift(target)
   }
 
-  for (const { clip: visualClip, asset } of desired) {
+  for (const { clip: visualClip, file } of desired) {
     const current = existing.get(visualClip.id)
     if (!current) {
       target!.clips.push(linkedClip(
-        asset, visualClip, remembered.clips[visualClip.id]))
+        file, visualClip, remembered.clips[visualClip.id]))
       continue
     }
-    current.asset_id = asset.id
-    current.asset_version_id = Number(asset.version_id) || null
+    current.file_id = file.id
+    current.file_version_id = Number(file.version_id) || null
     current.duration_ms = visualClip.duration_ms
     current.source_offset_ms = visualClip.source_offset_ms
     current.anchor = { kind: "absolute", position_ms: visualClip.start_ms }
@@ -150,6 +151,6 @@ export function synchronizeVideoAudio(
   }
 }
 
-export function videoHasEmbeddedAudio(asset?: VentureAsset) {
-  return hasEmbeddedAudio(asset)
+export function videoHasEmbeddedAudio(file?: WorkspaceFile) {
+  return hasEmbeddedAudio(file)
 }

@@ -2,8 +2,8 @@
 
 import unittest
 
-from audio_studio.domain.speech import PreparedSpeech, SynthesizedSpeech
-from audio_studio.providers.speech_registry import (
+from origins.domain.speech import PreparedSpeech, SynthesizedSpeech
+from origins.providers.speech_registry import (
     ExactSpeechProviderRegistry,
 )
 

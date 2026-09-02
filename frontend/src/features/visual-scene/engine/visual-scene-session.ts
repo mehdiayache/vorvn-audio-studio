@@ -1,6 +1,6 @@
 import { useSyncExternalStore } from "react"
 
-import type { VentureAsset, VisualScene, VisualSceneClip, VisualSceneDocument, VisualSceneTrack } from "@/types/domain"
+import type { WorkspaceFile, VisualScene, VisualSceneClip, VisualSceneDocument, VisualSceneTrack } from "@/types/domain"
 
 export type VisualClipRef = { trackId: string; clipId: string }
 export type VisualSceneSelection = VisualClipRef | { clips: VisualClipRef[] } | null
@@ -145,20 +145,20 @@ export class VisualSceneSession {
     this.set({ document })
   }
 
-  trimClip(ref: VisualClipRef, edge: "start" | "end", valueMs: number, asset?: VentureAsset) {
+  trimClip(ref: VisualClipRef, edge: "start" | "end", valueMs: number, file?: WorkspaceFile) {
     const clip = this.currentClip(ref)
     if (!clip || clip.locked || this.track(ref.trackId)?.locked) return
     const end = clip.start_ms + clip.duration_ms
-    const sourceDurationMs = asset?.media_type === "video" ? Number(asset.duration_ms || 0) : 0
+    const sourceDurationMs = file?.media_type === "video" ? Number(file.duration_ms || 0) : 0
     const desiredStart = Math.min(end - MIN_CLIP_MS, Math.max(0, valueMs))
-    const start = asset?.media_type === "video"
+    const start = file?.media_type === "video"
       ? Math.max(clip.start_ms - clip.source_offset_ms, desiredStart)
       : desiredStart
     const changes = edge === "start"
       ? {
         start_ms: start,
         duration_ms: end - start,
-        source_offset_ms: asset?.media_type === "video"
+        source_offset_ms: file?.media_type === "video"
           ? clip.source_offset_ms + start - clip.start_ms
           : 0,
       }
@@ -176,43 +176,43 @@ export class VisualSceneSession {
     await this.commit(document)
   }
 
-  async addVisual(asset: VentureAsset, startMs: number, trackId?: string) {
-    if (asset.media_type !== "image" && asset.media_type !== "video")
-      throw new Error("Timeline visuals require an image or video Asset.")
-    const sourceDurationMs = asset.media_type === "video" ? Number(asset.duration_ms || 0) : 0
-    if (asset.media_type === "video" && sourceDurationMs < MIN_CLIP_MS)
+  async addVisual(file: WorkspaceFile, startMs: number, trackId?: string) {
+    if (file.media_type !== "image" && file.media_type !== "video")
+      throw new Error("Timeline visuals require an image or video File.")
+    const sourceDurationMs = file.media_type === "video" ? Number(file.duration_ms || 0) : 0
+    if (file.media_type === "video" && sourceDurationMs < MIN_CLIP_MS)
       throw new Error("That video has no usable duration.")
     const document = cloneDocument(this.state.document)
     let track = trackId
       ? document.tracks.find((item) => item.id === trackId)
-      : document.tracks.find((item) => item.media_type === asset.media_type)
-    if (track && track.media_type !== asset.media_type)
-      throw new Error(`Choose a ${asset.media_type === "video" ? "Video" : "Image"} track for this Asset.`)
+      : document.tracks.find((item) => item.media_type === file.media_type)
+    if (track && track.media_type !== file.media_type)
+      throw new Error(`Choose a ${file.media_type === "video" ? "Video" : "Image"} track for this File.`)
     if (!track) {
-      track = { id: uuid(), name: this.nextTrackName(asset.media_type, document), media_type: asset.media_type, visible: true, locked: false, clips: [] }
+      track = { id: uuid(), name: this.nextTrackName(file.media_type, document), media_type: file.media_type, visible: true, locked: false, clips: [] }
       document.tracks.push(track)
     }
-    const durationMs = asset.media_type === "video" ? sourceDurationMs : DEFAULT_IMAGE_MS
-    const clip: VisualSceneClip = { id: uuid(), asset_id: asset.id, start_ms: Math.max(0, Math.round(startMs)), duration_ms: durationMs, source_offset_ms: 0, fit: "cover", position_x: 0, position_y: 0, scale: 1, rotation_degrees: 0, flip_horizontal: false, flip_vertical: false, opacity: 1, locked: false }
+    const durationMs = file.media_type === "video" ? sourceDurationMs : DEFAULT_IMAGE_MS
+    const clip: VisualSceneClip = { id: uuid(), file_id: file.id, start_ms: Math.max(0, Math.round(startMs)), duration_ms: durationMs, source_offset_ms: 0, fit: "cover", position_x: 0, position_y: 0, scale: 1, rotation_degrees: 0, flip_horizontal: false, flip_vertical: false, opacity: 1, locked: false }
     this.normalizeClip(clip, sourceDurationMs)
     track.clips.push(clip)
     this.set({ selection: { trackId: track.id, clipId: clip.id } })
     await this.commit(document)
   }
 
-  async addImage(asset: VentureAsset, startMs: number, trackId?: string) {
-    await this.addVisual(asset, startMs, trackId)
+  async addImage(file: WorkspaceFile, startMs: number, trackId?: string) {
+    await this.addVisual(file, startMs, trackId)
   }
 
-  canSplitVideo(ref: VisualClipRef, playheadMs: number, asset?: VentureAsset) {
+  canSplitVideo(ref: VisualClipRef, playheadMs: number, file?: WorkspaceFile) {
     const clip = this.currentClip(ref)
-    if (!clip || asset?.media_type !== "video" || clip.locked || this.track(ref.trackId)?.locked) return false
+    if (!clip || file?.media_type !== "video" || clip.locked || this.track(ref.trackId)?.locked) return false
     const local = Math.round(playheadMs) - clip.start_ms
     return local >= MIN_CLIP_MS && local <= clip.duration_ms - MIN_CLIP_MS
   }
 
-  async splitVideo(ref: VisualClipRef, playheadMs: number, asset?: VentureAsset) {
-    if (!this.canSplitVideo(ref, playheadMs, asset)) {
+  async splitVideo(ref: VisualClipRef, playheadMs: number, file?: WorkspaceFile) {
+    if (!this.canSplitVideo(ref, playheadMs, file)) {
       this.reportError("Place the playhead inside an unlocked video, at least 0.1 seconds from either edge.")
       return
     }
@@ -466,7 +466,7 @@ export class VisualSceneSession {
   }
 }
 
-const EMPTY_SCENE: VisualScene = { production_id: 0, revision: 0, document: { version: 1, canvas: { width: 1920, height: 1080 }, tracks: [] }, updated_at: "" }
+const EMPTY_SCENE: VisualScene = { project_id: 0, revision: 0, document: { version: 1, canvas: { width: 1920, height: 1080 }, tracks: [] }, updated_at: "" }
 const EMPTY_SNAPSHOT: Snapshot = { scene: EMPTY_SCENE, document: EMPTY_SCENE.document, selection: null, saving: false, error: "", canUndo: false, canRedo: false }
 const noopSubscribe = () => () => undefined
 const emptySnapshot = () => EMPTY_SNAPSHOT

@@ -1,7 +1,6 @@
 import type { components } from "./api.generated"
 
-export type AudioAssetCategory = NonNullable<components["schemas"]["UploadedAssetResponse"]["category"]>
-export type AudioAssetScope = components["schemas"]["UploadedAssetResponse"]["scope"]
+export type AudioFileCategory = NonNullable<components["schemas"]["UploadedFileResponse"]["category"]>
 export type CatalogSound = components["schemas"]["CatalogSoundResponse"]
 export type CatalogKeepResult = components["schemas"]["CatalogKeepResponse"]
 export type CatalogLicense = CatalogSound["license"]
@@ -9,53 +8,15 @@ export type AudioGenerationCandidate = components["schemas"]["AudioGenerationCan
 export type AudioGenerationHistoryItem = components["schemas"]["AudioGenerationHistoryItemResponse"]
 export type AudioGenerationStatus = components["schemas"]["AudioGenerationStatusResponse"]
 export type GeneratedKeepResult = components["schemas"]["GeneratedKeepResponse"]
-export type SoundRecipeCompilation = components["schemas"]["SoundRecipeCompileResponse"]
-export type SoundRecipeNormalizationResult = SoundRecipeCompilation & {
+export type SoundPresetCompilation = components["schemas"]["SoundPresetCompileResponse"]
+export type SoundPresetNormalizationResult = SoundPresetCompilation & {
   normalization_model: string | null
   normalization_cost: number
   normalization_price_version?: string
   usage: Record<string, unknown>
 }
-export type SoundRecipeTaxonomy = components["schemas"]["SoundRecipeTaxonomyResponse"]
-export type SoundRecipeTaxonomyItem = SoundRecipeTaxonomy["items"][number]
-
-export type ResourceType = "space" | "venture" | "project" | "series" | "production"
-
-export type HierarchyNode = components["schemas"]["HierarchyNodeResponse"]
-
-export type TrailItem = components["schemas"]["TrailItemResponse"]
-
-export type ProductionSummary = components["schemas"]["ProductionSummaryResponse"]
-
-export type WorkResource = {
-  id: number
-  public_id: string
-  key: string
-  type: "venture" | "project" | "series"
-  name: string
-  description: string
-  icon: string
-  cover_image?: string
-  updated_at?: string | null
-  locked?: boolean
-  project_id?: number
-  space_id?: number | null
-}
-
-export type SeriesSummary = components["schemas"]["ProjectSeriesSummaryResponse"]
-
-export type ProjectSummary = components["schemas"]["ProjectSummaryResponse"]
-
-export type WorkMetrics = {
-  project_count?: number
-  series_count?: number
-  standalone_count?: number
-  production_count: number
-  part_count: number
-  duration_ms: number
-  total_cost: number
-  current_sequence_cost?: number
-}
+export type SoundPresetTaxonomy = components["schemas"]["SoundPresetTaxonomyResponse"]
+export type SoundPresetTaxonomyItem = SoundPresetTaxonomy["items"][number]
 
 export type ActivityRun = components["schemas"]["ActivityRunResponse"]
 
@@ -67,19 +28,13 @@ export type PronunciationRule = components["schemas"]["PronunciationRuleResponse
 
 export type DiskSnapshot = components["schemas"]["DiskSnapshotResponse"]
 
-export type VentureOverview = components["schemas"]["VentureOverviewResponse"]
-
-export type ProjectOverview = components["schemas"]["ProjectOverviewResponse"]
-
-export type SeriesOverview = components["schemas"]["SeriesOverviewResponse"]
-
-export type ProductionPart = {
+export type ProjectPart = {
   id: number
   public_id?: string
   created_at: string
   position: number | null
   enabled?: boolean
-  kind: "audio" | "speech" | "draft" | "silence" | "asset" | "stitch" | string
+  kind: "audio" | "speech" | "draft" | "silence" | "file" | "stitch" | string
   title?: string | null
   authored_role?: string | null
   text: string
@@ -132,11 +87,11 @@ export type ProductionPart = {
   cost: number
   spent?: number
   duration_ms?: number | null
-  asset_of?: number | null
-  asset_id?: number | null
-  asset_version_id?: number | null
-  asset_kind?: string | null
-  asset_collection?: string | null
+  file_of?: number | null
+  file_id?: number | null
+  file_version_id?: number | null
+  file_kind?: string | null
+  file_category?: string | null
   speech_mode?: "exact" | "directed" | string
   cost_basis?: string
   subtitled?: boolean
@@ -152,9 +107,9 @@ export type PartEditorialUpdate = {
   authored_role?: string | null
 }
 
-export type ProductionExport = {
+export type ProjectExport = {
   id: number
-  production_id: number
+  project_id: number
   filename: string
   manifest: Record<string, unknown>
   renderer: string
@@ -163,21 +118,19 @@ export type ProductionExport = {
   created_at: string
 }
 
-export type Production = {
+export type Project = {
   id: number
   public_id: string
-  key: string
-  type: "production"
+  project_type: "audiovisual"
   name: string
   description: string
   status: "draft" | "in_progress" | "review" | "approved" | "released" | "archived" | string
-  space_id?: number | null
-  project_id?: number | null
-  series_id: number | null
+  workspace_id: number
+  folder_id?: number | null
+  settings: Record<string, unknown>
   updated_at?: string
-  trail: TrailItem[]
-  parts: ProductionPart[]
-  exports: ProductionExport[]
+  parts: ProjectPart[]
+  exports: ProjectExport[]
   export_job?: DurableJob<{ url?: string; name?: string; error?: string }> | null
   total_cost: number
   current_sequence_cost: number
@@ -186,7 +139,6 @@ export type Production = {
     current_sequence_cost: number
     retained_generation_cost: number
     tracked_spend: number
-    untracked_legacy_spend: number
     audio_spend?: number
     video_spend?: number
     other_spend?: number
@@ -198,7 +150,7 @@ export type SavedVisualReference = {
   id: string
   name: string
   type: "character" | "object" | "place" | "style" | "other"
-  asset_ids: number[]
+  file_ids: number[]
   created_at: string
   updated_at: string
 }
@@ -227,8 +179,8 @@ export type SequenceMixOverride = {
 export type SoundSceneClip = {
   id: string
   linked_visual_clip_id?: string | null
-  asset_id: number
-  asset_version_id?: number | null
+  file_id: number
+  file_version_id?: number | null
   duration_ms: number | null
   source_offset_ms: number
   gain: number
@@ -241,8 +193,8 @@ export type SoundSceneClip = {
   locked: boolean
   effects: SoundSceneEffect[]
   anchor: SoundSceneAnchor
-  asset_name?: string
-  asset_kind?: string
+  file_name?: string
+  file_kind?: string
   filename?: string
   source_duration_ms?: number
   source_media_type?: "audio" | "video"
@@ -257,7 +209,7 @@ export type SoundSceneClip = {
 export type SoundSceneTrack = {
   id: string
   kind: "audio"
-  role?: "audio" | "music" | "sfx" | "ambience"
+  role: "audio" | "music" | "sfx" | "ambience"
   name: string
   volume: number
   muted: boolean
@@ -302,7 +254,7 @@ export type SequenceProjectionSpan = {
 }
 
 export type SoundScene = {
-  production_id: number
+  project_id: number
   revision: number
   document: SoundSceneDocument
   can_undo: boolean
@@ -338,7 +290,7 @@ export type SoundScene = {
 
 export type VisualSceneClip = {
   id: string
-  asset_id: number
+  file_id: number
   start_ms: number
   duration_ms: number
   source_offset_ms: number
@@ -369,51 +321,16 @@ export type VisualSceneDocument = {
 }
 
 export type VisualScene = {
-  production_id: number
+  project_id: number
   revision: number
   document: VisualSceneDocument
   updated_at: string
 }
 
-export type VentureAsset = {
+export type WorkspaceFile = Partial<components["schemas"]["ProjectLibraryFileResponse"]> & {
   id: number
-  media_type?: "audio" | "image" | "video"
   name?: string
-  title?: string
-  text?: string
   folder?: string
-  collection?: string
-  kind?: string
-  category?: string | null
-  venture_id?: number
-  scope?: "space" | "studio"
-  tags?: string[]
-  metadata?: Record<string, unknown>
-  filename?: string
-  duration_ms?: number | null
-  audio_format?: string | null
-  media_format?: string | null
-  sample_rate?: number | null
-  channels?: number | null
-  width?: number | null
-  height?: number | null
-  video_codec?: string | null
-  frame_rate?: number | null
-  size_bytes?: number | null
-  mime_type?: string | null
-  version_metadata?: Record<string, unknown>
-  created_at?: string
-  updated_at?: string
-  missing?: boolean
-  [key: string]: unknown
-}
-
-export type AssetCollection = { id: number; venture_id: number; kind: string; name: string }
-export type VentureAssetLibrary = {
-  venture: WorkResource
-  collections: AssetCollection[]
-  assets: VentureAsset[]
-  director_asset_ids: number[]
 }
 
 export type PreviewResult = {
@@ -552,7 +469,7 @@ export type VoiceDirectory = {
   catalog: VoiceCatalogItem[]
   registry?: VoiceRegistry | null
   identities?: VoiceProfile[]
-  usage?: Record<string, { uses: number; folders: number; spend: number; last_used?: string | null; latest_preview?: string | null }>
+  usage?: Record<string, { uses: number; projects: number; spend: number; last_used?: string | null; latest_preview?: string | null }>
 }
 
 export type HistoricalVoiceReference = components["schemas"]["HistoricalVoiceResponse"]
@@ -595,7 +512,7 @@ export type DurableJob<T = Record<string, unknown>> = {
   part_id?: number | null
   context?: {
     part_id?: number | null
-    production_id?: number | null
+    project_id?: number | null
     transcript_id?: number | null
     target?: string
     language?: string
@@ -717,7 +634,7 @@ export type LoadState<T> =
   | { status: "ready"; data: T; error?: undefined }
   | { status: "error"; data?: T; error: string }
 
-export type SpaceSummary = {
+export type WorkspaceSummary = {
   id: number
   public_id: string
   name: string
@@ -729,20 +646,20 @@ export type SpaceSummary = {
   updated_at: string
 }
 
-export type SpaceFolder = {
+export type WorkspaceFolder = {
   id: number
   public_id: string
-  space_id: number
+  workspace_id: number
   parent_id: number | null
   name: string
   created_at: string
   updated_at: string
 }
 
-export type SpaceProject = {
+export type WorkspaceProject = {
   id: number
   public_id: string
-  space_id: number
+  workspace_id: number
   folder_id: number | null
   project_type: string
   name: string
@@ -753,7 +670,7 @@ export type SpaceProject = {
   part_count: number
 }
 
-export type SpaceFileVersion = {
+export type WorkspaceFileVersion = {
   id: number
   public_id: string
   version: number
@@ -768,10 +685,10 @@ export type SpaceFileVersion = {
   height: number | null
 }
 
-export type SpaceFile = {
+export type WorkspaceFileSummary = {
   id: number
   public_id: string
-  space_id: number
+  workspace_id: number
   folder_id: number | null
   name: string
   source: string
@@ -779,14 +696,14 @@ export type SpaceFile = {
   metadata: Record<string, unknown>
   created_at: string
   updated_at: string
-  current_version: SpaceFileVersion
+  current_version: WorkspaceFileVersion
 }
 
-export type SpaceOverview = {
-  space: SpaceSummary
-  folders: SpaceFolder[]
-  projects: SpaceProject[]
-  files: SpaceFile[]
+export type WorkspaceOverview = {
+  workspace: WorkspaceSummary
+  folders: WorkspaceFolder[]
+  projects: WorkspaceProject[]
+  files: WorkspaceFileSummary[]
 }
 
 export type CreationActionSummary = {
@@ -806,7 +723,7 @@ export type PlayerSource = {
   sourceLabel?: string
   artwork?: string
   downloadable?: boolean
-  kind: "clip" | "production" | "voice" | "asset" | "music" | "subtitle" | "standalone"
+  kind: "clip" | "project" | "voice" | "file" | "music" | "subtitle" | "standalone"
   captionTracks?: PlayerCaptionTrack[]
 }
 

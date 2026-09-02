@@ -6,7 +6,7 @@ import subprocess
 from tempfile import TemporaryDirectory
 import unittest
 
-from audio_studio.infrastructure.media_workspace import LocalMediaWorkspace
+from origins.infrastructure.media_workspace import LocalMediaWorkspace
 
 
 @unittest.skipUnless(shutil.which("ffmpeg") and shutil.which("ffprobe"),

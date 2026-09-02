@@ -18,7 +18,7 @@
 }
 
 .studio-app-shell[data-navigation="rail"][data-rail-expanded="true"] { --studio-rail-current: 12.5rem; }
-.studio-app-shell[data-navigation="rail"] .audio-studio-viewport { min-block-size: 0; overflow: auto; }
+.studio-app-shell[data-navigation="rail"] .origins-viewport { min-block-size: 0; overflow: auto; }
 
 .studio-rail {
   min-inline-size: 0;
@@ -209,7 +209,7 @@
 .studio-deck-readiness.is-setup_required { color: var(--warning); background: var(--warning-soft); }
 .studio-deck-readiness.is-unavailable { color: var(--destructive); background: var(--danger-soft); }
 .studio-deck-mobile-menu, .studio-deck-mobile-destination { display: none; }
-.audio-studio-viewport { min-inline-size: 0; }
+.origins-viewport { min-inline-size: 0; }
 
 .studio-deck-mobile-sheet { inline-size: min(22rem, 100%); }
 .studio-deck-mobile-sheet nav { display: grid; gap: 0.25rem; margin-top: 1.25rem; }

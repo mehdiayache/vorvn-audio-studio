@@ -4,7 +4,7 @@ import { toast } from "sonner"
 
 import { ActionButton } from "@/components/operator-action"
 import { useAsyncAction } from "@/hooks/use-async-action"
-import { studioApi } from "@/lib/api"
+import { originsApi } from "@/lib/api"
 import type { DiskSnapshot } from "@/types/domain"
 
 const size = (bytes: number) => bytes < 1_000_000 ? `${(bytes / 1000).toFixed(1)} KB` : `${(bytes / 1_000_000).toFixed(1)} MB`
@@ -12,11 +12,11 @@ const size = (bytes: number) => bytes < 1_000_000 ? `${(bytes / 1000).toFixed(1)
 export function MaintenanceSettingsCard() {
   const [disk, setDisk] = useState<DiskSnapshot | null>(null)
   const actions = useAsyncAction<"cleanup">()
-  const load = () => void studioApi.maintenance().then(setDisk).catch(() => undefined)
+  const load = () => void originsApi.maintenance().then(setDisk).catch(() => undefined)
   useEffect(load, [])
   const cleanup = () => actions.run("cleanup", async () => {
     try {
-      const result = await studioApi.tidyWorkingFiles(7)
+      const result = await originsApi.tidyWorkingFiles(7)
       toast.success(`${result.removed} temporary files removed · ${size(result.freed)} freed.`)
       load()
     } catch (reason) {

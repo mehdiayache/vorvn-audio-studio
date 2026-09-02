@@ -4,15 +4,15 @@ from pathlib import Path
 import unittest
 from uuid import uuid4
 
-from audio_studio.application.text_preparation import (
+from origins.application.text_preparation import (
     MODEL,
     TextPreparationJobHandler,
     TextPreparationService,
 )
-from audio_studio.application.provider_operations import ProviderOperationService
-from audio_studio.domain.jobs import Job, JobStatus
-from audio_studio.domain.text import ProviderText
-from audio_studio.http.routers.jobs import TextJobCreate
+from origins.application.provider_operations import ProviderOperationService
+from origins.domain.jobs import Job, JobStatus
+from origins.domain.text import ProviderText
+from origins.http.routers.jobs import TextJobCreate
 from test_support import FakeProviderOperationsRepository
 
 
@@ -29,8 +29,8 @@ class FakeRepository:
     def prompt_settings(self):
         return self.prompts
 
-    def style_for(self, production_id):
-        self.style_requests.append(production_id)
+    def style_for(self, project_id):
+        self.style_requests.append(project_id)
         return self.style
 
     def today_spend(self):
@@ -77,7 +77,7 @@ class TextPreparationTests(unittest.TestCase):
         )
         provider = FakeProvider("Hello there.")
         result = self.service(repository, provider).prepare(
-            operation="shape", text="Hello there", production_id=41, part_id=9,
+            operation="shape", text="Hello there", project_id=41, part_id=9,
             capability_id="exact_longform",
         )
 
@@ -102,7 +102,7 @@ class TextPreparationTests(unittest.TestCase):
         provider = FakeProvider("Wait—we continue. One unnecessary clause is gone.")
         result = self.service(repository=repository, provider=provider).prepare(
             operation="shape", text="Hello there we continue",
-            production_id=41, spoken_profile="spoken_2",
+            project_id=41, spoken_profile="spoken_2",
             capability_id="exact_longform")
         prompt = provider.calls[0]["messages"][0]["content"]
         self.assertIn(
@@ -193,7 +193,7 @@ class TextPreparationTests(unittest.TestCase):
         handler = TextPreparationJobHandler(self.service(provider=provider))
         progress = Progress()
         job = Job(8, uuid4(), "rewrite", JobStatus.RUNNING, {
-            "operation": "shape", "text": "Do this", "production_id": 3,
+            "operation": "shape", "text": "Do this", "project_id": 3,
             "part_id": 5, "density": "normal",
             "capability_id": "exact_longform",
         })
@@ -205,10 +205,10 @@ class TextPreparationTests(unittest.TestCase):
     def test_http_contract_uses_only_canonical_work_ids(self):
         payload = TextJobCreate(operation="shape", text="Hello",
                                 capability_id="exact_longform",
-                                production_id=7, part_id=8)
-        self.assertEqual(payload.production_id, 7)
+                                project_id=7, part_id=8)
+        self.assertEqual(payload.project_id, 7)
         self.assertEqual(payload.part_id, 8)
-        self.assertEqual(payload.model_dump()["production_id"], 7)
+        self.assertEqual(payload.model_dump()["project_id"], 7)
         with self.assertRaises(ValueError):
             TextJobCreate(operation="shape", text="Hello",
                           capability_id="exact_longform", project_id=7, id=8)
@@ -221,7 +221,7 @@ class TextPreparationTests(unittest.TestCase):
             operation="tag", text="مرحبا", density="normal",
             capability_id="expressive_tags")
         values = payload.model_dump(exclude_none=True)
-        self.assertNotIn("production_id", values)
+        self.assertNotIn("project_id", values)
         self.assertNotIn("part_id", values)
         self.assertEqual(values["operation"], "tag")
 
@@ -236,8 +236,8 @@ class TextPreparationTests(unittest.TestCase):
                           capability_id="exact_longform")
 
     def test_legacy_text_execution_routes_are_removed(self):
-        legacy_jobs = ROOT / "audio_studio/infrastructure/legacy_jobs.py"
-        worker = (ROOT / "audio_studio/worker.py").read_text()
+        legacy_jobs = ROOT / "origins/infrastructure/legacy_jobs.py"
+        worker = (ROOT / "origins/worker.py").read_text()
         self.assertFalse((ROOT / "server.py").exists())
         self.assertFalse(legacy_jobs.exists())
         self.assertIn('service.register("rewrite", TextPreparationJobHandler', worker)

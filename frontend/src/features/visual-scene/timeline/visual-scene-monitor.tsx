@@ -1,8 +1,8 @@
 import { Image as ImageIcon } from "lucide-react"
 import { useEffect, useRef, type CSSProperties, type PointerEvent as ReactPointerEvent } from "react"
 
-import type { VentureAsset, VisualSceneDocument } from "@/types/domain"
-import { visualAssetName, visualAssetPlaybackUrl, visualAssetPosterUrl, visualAssetUrl } from "@/features/production-workstation/director/director-assets"
+import type { WorkspaceFile, VisualSceneDocument } from "@/types/domain"
+import { visualFileName, visualFilePlaybackUrl, visualFilePosterUrl, visualFileUrl } from "@/features/projects/audiovisual/visuals/visuals-files"
 import type { VisualSceneClip } from "@/types/domain"
 import type { VisualClipRef, VisualSceneSession } from "@/features/visual-scene/engine/visual-scene-session"
 
@@ -18,8 +18,8 @@ export function visualLayerStyle(clip: VisualSceneClip, document: VisualSceneDoc
   }
 }
 
-function VideoLayer({ asset, clip, playheadMs, playing, style, selected = false, onPointerDown }: {
-  asset: VentureAsset
+function VideoLayer({ file, clip, playheadMs, playing, style, selected = false, onPointerDown }: {
+  file: WorkspaceFile
   clip: VisualSceneClip
   playheadMs: number
   playing: boolean
@@ -44,7 +44,7 @@ function VideoLayer({ asset, clip, playheadMs, playing, style, selected = false,
     }
     if (node.paused) void node.play().catch(() => undefined)
   }, [localSeconds, playing])
-  return <video ref={ref} src={visualAssetPlaybackUrl(asset)} poster={visualAssetPosterUrl(asset)} style={style} data-selected={selected ? "true" : undefined} muted playsInline preload="metadata" aria-label={visualAssetName(asset)} onPointerDown={onPointerDown} onLoadedMetadata={() => {
+  return <video ref={ref} src={visualFilePlaybackUrl(file)} poster={visualFilePosterUrl(file)} style={style} data-selected={selected ? "true" : undefined} muted playsInline preload="metadata" aria-label={visualFileName(file)} onPointerDown={onPointerDown} onLoadedMetadata={() => {
     const node = ref.current
     if (!node) return
     try { node.currentTime = localSeconds } catch { /* source is not seekable yet */ }
@@ -52,12 +52,12 @@ function VideoLayer({ asset, clip, playheadMs, playing, style, selected = false,
   }} />
 }
 
-export function VisualSceneMonitor({ document, assets, playheadMs, playback, selection = null, session }: { document: VisualSceneDocument; assets: VentureAsset[]; playheadMs: number; playback: "idle" | "preparing" | "playing"; selection?: VisualClipRef | null; session?: VisualSceneSession }) {
-  const byId = new Map(assets.map((asset) => [asset.id, asset]))
+export function VisualSceneMonitor({ document, files, playheadMs, playback, selection = null, session }: { document: VisualSceneDocument; files: WorkspaceFile[]; playheadMs: number; playback: "idle" | "preparing" | "playing"; selection?: VisualClipRef | null; session?: VisualSceneSession }) {
+  const byId = new Map(files.map((file) => [file.id, file]))
   const active = document.tracks.flatMap((track, index) => track.visible ? track.clips.flatMap((clip) => {
-    const asset = byId.get(clip.asset_id)
-    return asset && (asset.media_type === "image" || asset.media_type === "video") && playheadMs >= clip.start_ms && playheadMs < clip.start_ms + clip.duration_ms
-      ? [{ track, clip, asset, index }] : []
+    const file = byId.get(clip.file_id)
+    return file && (file.media_type === "image" || file.media_type === "video") && playheadMs >= clip.start_ms && playheadMs < clip.start_ms + clip.duration_ms
+      ? [{ track, clip, file, index }] : []
   }) : [])
   const frameStyle = {
     aspectRatio: `${document.canvas.width} / ${document.canvas.height}`,
@@ -98,13 +98,13 @@ export function VisualSceneMonitor({ document, assets, playheadMs, playback, sel
 
   return <section className="visual-scene-monitor" aria-label="Visual monitor">
     <div className="visual-scene-monitor-frame" data-orientation={document.canvas.width < document.canvas.height ? "portrait" : "landscape"} style={frameStyle}>
-      {active.length ? active.map(({ track, clip, asset, index }) => {
+      {active.length ? active.map(({ track, clip, file, index }) => {
         const ref = { trackId: track.id, clipId: clip.id }
         const selected = selection?.trackId === track.id && selection.clipId === clip.id
         const style = visualLayerStyle(clip, document, document.tracks.length - index)
-        return asset.media_type === "video"
-          ? <VideoLayer key={clip.id} asset={asset} clip={clip} playheadMs={playheadMs} playing={playback === "playing"} style={style} selected={selected} onPointerDown={selected ? (event) => moveSelected(event, ref, clip) : undefined} />
-          : <img key={clip.id} src={visualAssetUrl(asset)} alt={visualAssetName(asset)} style={style} data-selected={selected ? "true" : undefined} onPointerDown={selected ? (event) => moveSelected(event, ref, clip) : undefined} />
+        return file.media_type === "video"
+          ? <VideoLayer key={clip.id} file={file} clip={clip} playheadMs={playheadMs} playing={playback === "playing"} style={style} selected={selected} onPointerDown={selected ? (event) => moveSelected(event, ref, clip) : undefined} />
+          : <img key={clip.id} src={visualFileUrl(file)} alt={visualFileName(file)} style={style} data-selected={selected ? "true" : undefined} onPointerDown={selected ? (event) => moveSelected(event, ref, clip) : undefined} />
       })
         : <span><ImageIcon /><b>No media at the playhead</b><small>Add media or move the playhead over an image or video.</small></span>}
     </div>

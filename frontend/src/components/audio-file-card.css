@@ -1,0 +1,46 @@
+.audio-file-card {
+  --audio-family: var(--foreground);
+  --audio-family-soft: var(--surface-subtle);
+  position: relative;
+  min-width: 0;
+  min-height: 12rem;
+  aspect-ratio: 1 / .92;
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr) auto auto;
+  gap: 11px;
+  padding: 15px;
+  border: 1px solid color-mix(in oklab, var(--audio-family) 17%, var(--border));
+  border-radius: calc(var(--radius) * 1.35);
+  background: color-mix(in oklab, var(--audio-family-soft) 72%, var(--surface-raised));
+  transition: border-color 140ms ease, box-shadow 140ms ease, transform 140ms ease;
+}
+.audio-file-card.is-audio,
+.audio-file-card.is-unclassified { --audio-family: var(--audio-audio); --audio-family-soft: var(--audio-audio-soft); }
+.audio-file-card.is-music { --audio-family: var(--audio-music); --audio-family-soft: var(--audio-music-soft); }
+.audio-file-card.is-sfx { --audio-family: var(--audio-sfx); --audio-family-soft: var(--audio-sfx-soft); }
+.audio-file-card.is-ambience { --audio-family: var(--audio-ambience); --audio-family-soft: var(--audio-ambience-soft); }
+.audio-file-card:hover { border-color: color-mix(in oklab, var(--audio-family) 48%, var(--border)); box-shadow: var(--shadow-xs); transform: translateY(-1px); }
+.audio-file-card.is-selected { border-color: var(--primary); box-shadow: 0 0 0 2px color-mix(in oklab, var(--primary) 16%, transparent), var(--shadow-xs); }
+.audio-file-card-identity { min-width: 0; display: flex; align-items: center; gap: 5px; padding-right: 1.8rem; overflow: hidden; }
+.audio-file-card-identity .audio-family-badge,
+.audio-file-card-identity .audio-source-badge { flex: 0 1 auto; }
+.audio-file-card-main { min-width: 0; display: flex; flex-direction: column; align-items: flex-start; padding: 0; border: 0; background: transparent; color: inherit; text-align: left; }
+.audio-file-card-main:focus-visible { outline: 3px solid color-mix(in oklab, var(--ring) 34%, transparent); outline-offset: 5px; border-radius: var(--radius-sm); }
+.audio-file-card-copy { min-width: 0; width: 100%; display: grid; }
+.audio-file-card-copy b { display: -webkit-box; overflow: hidden; min-height: 3.9em; font-size: .98rem; font-weight: var(--weight-emphasis); line-height: 1.3; -webkit-box-orient: vertical; -webkit-line-clamp: 3; }
+.audio-file-card-used { position: absolute; z-index: 2; right: .75rem; top: .75rem; width: 1.55rem; height: 1.55rem; display: grid; place-items: center; border-radius: 999px; color: white; background: var(--success); box-shadow: 0 0 0 2px rgb(255 255 255 / 82%); }
+.audio-file-card-used svg { width: .92rem; height: .92rem; }
+.audio-file-card-meta { min-width: 0; display: flex; align-items: center; gap: 5px; overflow: hidden; }
+.audio-file-card-meta > span { flex: 0 0 auto; max-width: 7rem; overflow: hidden; padding: 3px 7px; border: 1px solid color-mix(in oklab, var(--audio-family) 13%, transparent); border-radius: 999px; background: color-mix(in oklab, var(--surface-raised) 72%, var(--audio-family-soft)); color: var(--audio-family); font-size: 9px; font-weight: var(--weight-emphasis); line-height: 1.35; text-overflow: ellipsis; text-transform: capitalize; white-space: nowrap; }
+.audio-file-card-meta > .audio-file-card-more-tags { border-color: color-mix(in oklab, var(--foreground) 12%, transparent); color: color-mix(in oklab, var(--foreground) 62%, transparent); background: color-mix(in oklab, var(--surface-raised) 82%, transparent); }
+.audio-file-card-actions { min-width: 0; display: flex; align-items: center; justify-content: flex-end; gap: 5px; }
+.audio-file-card-audition { min-width: 0; display: inline-flex; align-items: center; gap: 3px; margin-right: auto; }
+.audio-file-card-audition > small { color: color-mix(in oklab, var(--foreground) 60%, transparent); font-family: var(--font-mono); font-size: 9px; }
+.audio-file-card-play { color: var(--audio-family); }
+.audio-file-card-play:hover { color: var(--primary); background: var(--primary-soft); }
+.audio-file-card-play[data-playing="true"] { color: var(--primary-foreground); background: var(--primary); }
+.audio-file-card-play[data-playing="true"]:hover { color: var(--primary-foreground); background: color-mix(in oklab, var(--primary) 88%, black); }
+.audio-file-card-audition:has(.audio-file-card-play[data-playing="true"]) > small { color: var(--primary); }
+.audio-file-card-actions .button, .audio-file-card-actions button { flex: 0 0 auto; }
+.audio-file-card-add { border-color: color-mix(in oklab, var(--primary) 26%, var(--border)); color: var(--primary); background: var(--surface-raised); box-shadow: none; }
+.audio-file-card-add:hover { border-color: color-mix(in oklab, var(--primary) 48%, var(--border)); color: var(--primary); background: var(--primary-soft); }

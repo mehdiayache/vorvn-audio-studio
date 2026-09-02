@@ -5,10 +5,10 @@ from tempfile import TemporaryDirectory
 import unittest
 from uuid import uuid4
 
-from audio_studio.application.creation_files import CreationFileService
-from audio_studio.domain.files import StoredFileVersion
-from audio_studio.domain.jobs import Job, JobStatus
-from audio_studio.infrastructure.creation_file_storage import (
+from origins.application.creation_files import CreationFileService
+from origins.domain.files import StoredFileVersion
+from origins.domain.jobs import Job, JobStatus
+from origins.infrastructure.creation_file_storage import (
     LocalCreationFileStorage,
 )
 
@@ -17,8 +17,8 @@ class FakeRecords:
     def __init__(self):
         self.calls = []
 
-    def create_generated_space_file(self, space_id, **values):
-        self.calls.append((space_id, values))
+    def create_generated_workspace_file(self, workspace_id, **values):
+        self.calls.append((workspace_id, values))
         return ({"id": 40 + len(self.calls), "name": values["name"]}, False)
 
 
@@ -32,10 +32,10 @@ class FakeJobs:
 
 
 class CreationFileTests(unittest.TestCase):
-    def job(self, space_id=12):
+    def job(self, workspace_id=12):
         return Job(
             7, uuid4(), "transcribe", JobStatus.RUNNING,
-            space_id=space_id, creation_action_id="create-subtitles",
+            workspace_id=workspace_id, creation_action_id="create-subtitles",
         )
 
     def test_register_uses_job_and_action_as_canonical_provenance(self):
@@ -55,8 +55,8 @@ class CreationFileTests(unittest.TestCase):
             )
 
         self.assertEqual(file["id"], 41)
-        space_id, values = records.calls[0]
-        self.assertEqual(space_id, 12)
+        workspace_id, values = records.calls[0]
+        self.assertEqual(workspace_id, 12)
         self.assertEqual(values["name"], "My speech")
         self.assertEqual(values["candidate_id"], f"{job.public_id}:speech")
         self.assertEqual(values["metadata"]["origin"], "generated")
@@ -76,10 +76,10 @@ class CreationFileTests(unittest.TestCase):
                 vtt="WEBVTT\n\n00:00.000 --> 00:01.000\nBonjour\n",
             )
             saved = [Path(values["stored"].path)
-                     for _space_id, values in records.calls]
+                     for _workspace_id, values in records.calls]
             self.assertEqual([path.suffix for path in saved], [".srt", ".vtt"])
             self.assertEqual([values["stored"].family
-                              for _space_id, values in records.calls],
+                              for _workspace_id, values in records.calls],
                              ["subtitle", "subtitle"])
             self.assertTrue(all(path.exists() for path in saved))
 
@@ -94,9 +94,9 @@ class CreationFileTests(unittest.TestCase):
             service = CreationFileService(
                 FakeRecords(), FakeJobs(),
                 LocalCreationFileStorage(Path(directory)))
-            with self.assertRaisesRegex(ValueError, "Space-owned Job"):
+            with self.assertRaisesRegex(ValueError, "Workspace-owned Job"):
                 service.register(
-                    self.job(space_id=None), output_key="speech", name="Speech",
+                    self.job(workspace_id=None), output_key="speech", name="Speech",
                     stored=StoredFileVersion(
                         filename=path.name, path=str(path),
                         mime_type="audio/wav", family="audio"),

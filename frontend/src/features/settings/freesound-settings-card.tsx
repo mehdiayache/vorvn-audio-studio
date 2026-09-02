@@ -6,7 +6,7 @@ import { ActionButton } from "@/components/operator-action"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { useAsyncAction } from "@/hooks/use-async-action"
-import { studioApi } from "@/lib/api"
+import { originsApi } from "@/lib/api"
 import type { SettingsSnapshot } from "@/types/domain"
 
 export function FreesoundSettingsCard({ settings, onUpdated }: {
@@ -19,7 +19,7 @@ export function FreesoundSettingsCard({ settings, onUpdated }: {
   const action = useAsyncAction<"save">()
   const save = () => action.run("save", async () => {
     try {
-      const next = await studioApi.updateFreesoundSettings({
+      const next = await originsApi.updateFreesoundSettings({
         api_token: apiToken, client_id: clientId,
         authorization_code: authorizationCode,
       })

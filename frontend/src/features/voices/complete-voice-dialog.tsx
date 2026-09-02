@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button"
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { RecordingLanguageField } from "@/features/voices/recording-language-field"
-import { studioApi } from "@/lib/api"
+import { originsApi } from "@/lib/api"
 import type { StudioConfig, VoiceProfile } from "@/types/domain"
 import { bindingMatchesRoute, jobMatchesRoute } from "./voice-route"
 
@@ -44,16 +44,16 @@ export function CompleteVoiceDialog({ profile, config, onOpenChange, onQueued }:
     setUseNewReference(false)
     const preferred = profile?.references.find((reference) => reference.id === profile.preferred_reference_id) || profile?.references[0]
     setReferenceId(preferred?.id || "")
-    setRecordingLanguage(String(preferred?.source_language || profile?.metadata.recording_language || profile?.metadata.language || ""))
+    setRecordingLanguage(String(preferred?.source_language || profile?.metadata.recording_language || ""))
     setError("")
-  }, [profile?.id, profile?.metadata.language, profile?.metadata.recording_language, profile?.preferred_reference_id, profile?.references])
+  }, [profile?.id, profile?.metadata.recording_language, profile?.preferred_reference_id, profile?.references])
 
   async function complete() {
     if (!profile || (requiresUpload && !file)) return
     setBusy(true)
     try {
-      const explicitReferenceId = file ? (await studioApi.uploadVoiceReference(file)).reference_id : referenceId
-      const result = await studioApi.createVoicePackage({
+      const explicitReferenceId = file ? (await originsApi.uploadVoiceReference(file)).reference_id : referenceId
+      const result = await originsApi.createVoicePackage({
         identity_id: profile.id,
         name: profile.name,
         language: recordingLanguage,

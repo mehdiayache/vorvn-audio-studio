@@ -1,4 +1,4 @@
-const voiceDirectoryEvent = "audio-studio:voices-changed"
+const voiceDirectoryEvent = "origins:voices-changed"
 const voiceDirectoryStorageKey = "vorvn:voices-revision"
 
 export function announceVoiceDirectoryChange() {

@@ -37,7 +37,7 @@ export function ActivityDetailSheet({ run, onClose }: { run: ActivityRun | null;
     <SheetContent className="activity-detail">
       {run && <><SheetHeader><SheetTitle>{run.operation}</SheetTitle><SheetDescription>{audit ? "Permanent action" : run.kind_label} · {new Date(run.when).toLocaleString()}</SheetDescription></SheetHeader>
         {audit ? <div className="activity-detail-body">
-          <section className="activity-deletion-receipt"><span>Deletion receipt</span><b>Content permanently removed</b><p>This record proves the operator action occurred. It contains no Production name, script, audio, captions or restorable state.</p></section>
+          <section className="activity-deletion-receipt"><span>Deletion receipt</span><b>Content permanently removed</b><p>This record proves the operator action occurred. It contains no Project name, script, audio, captions or restorable state.</p></section>
           <dl>
             <Field label="Status">Recorded</Field><Field label="Started by">{run.actor_label}</Field>
             <Field label="Workspace">{run.organization_id}</Field><Field label="Tool">{run.source_tool}</Field>
@@ -52,7 +52,7 @@ export function ActivityDetailSheet({ run, onClose }: { run: ActivityRun | null;
             {run.requires_review && <Field label="Provider result">Ambiguous — review before retry</Field>}
             {run.needs_confirmation && <Field label="Operator action">Cost confirmation required</Field>}
             <Field label="Workspace">{run.organization_id}</Field><Field label="Tool">{run.source_tool}</Field>
-            <Field label="Production">{run.production_name}</Field><Field label="Model">{run.model ? <SpeechModelIdentity modelId={run.model} /> : null}</Field>
+            <Field label="Project">{run.project_name}</Field><Field label="Model">{run.model ? <SpeechModelIdentity modelId={run.model} /> : null}</Field>
             <Field label="Region">{run.provider_region}</Field><Field label="Price version">{run.price_version}</Field>
             <Field label="Provider request ID">{run.provider_request_id}</Field><Field label="Duration">{run.seconds ? `${run.seconds.toFixed(2)} seconds` : null}</Field>
           </dl>

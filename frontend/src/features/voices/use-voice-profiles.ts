@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from "react"
 
-import { studioApi } from "@/lib/api"
+import { originsApi } from "@/lib/api"
 import type { StudioConfig, VoiceProfile } from "@/types/domain"
 
 export function useVoiceProfiles() {
@@ -9,7 +9,7 @@ export function useVoiceProfiles() {
   const [status, setStatus] = useState<"loading" | "ready" | "error">("loading")
   const [error, setError] = useState("")
   const refresh = useCallback(async () => {
-    const [voiceResult, configResult] = await Promise.allSettled([studioApi.voiceProfiles(), studioApi.config()])
+    const [voiceResult, configResult] = await Promise.allSettled([originsApi.voiceProfiles(), originsApi.config()])
     if (voiceResult.status === "fulfilled") setProfiles(voiceResult.value)
     if (configResult.status === "fulfilled") setConfig(configResult.value)
     const failure = voiceResult.status === "rejected" ? voiceResult.reason : configResult.status === "rejected" ? configResult.reason : null

@@ -7,15 +7,15 @@ from uuid import uuid4
 
 import psycopg
 
-from audio_studio.composition.operations import system_service
-from audio_studio.config import settings
-from audio_studio.domain import speech_text
-from audio_studio.infrastructure.postgres.activity import ActivityRepository
-from audio_studio.infrastructure.postgres.jobs import JobRepository
-from audio_studio.infrastructure.postgres.control_plane import (
+from origins.composition.operations import system_service
+from origins.config import settings
+from origins.domain import speech_text
+from origins.infrastructure.postgres.activity import ActivityRepository
+from origins.infrastructure.postgres.jobs import JobRepository
+from origins.infrastructure.postgres.control_plane import (
     ControlPlaneRepository,
 )
-from audio_studio.infrastructure.postgres.pronunciations import (
+from origins.infrastructure.postgres.pronunciations import (
     PronunciationRepository,
 )
 

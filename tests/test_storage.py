@@ -7,12 +7,12 @@ import subprocess
 import unittest
 from unittest.mock import Mock, patch
 
-from audio_studio.infrastructure import object_storage as storage
-from audio_studio.infrastructure import media_metadata, upload_workspace
+from origins.infrastructure import object_storage as storage
+from origins.infrastructure import media_metadata, upload_workspace
 
-from audio_studio.infrastructure.media_paths import contained
-from audio_studio.infrastructure.upload_workspace import LocalUploadWorkspace
-from audio_studio.infrastructure.voice_reference_workspace import VoiceReferenceWorkspace
+from origins.infrastructure.media_paths import contained
+from origins.infrastructure.upload_workspace import LocalUploadWorkspace
+from origins.infrastructure.voice_reference_workspace import VoiceReferenceWorkspace
 
 
 class FakeObjects:
@@ -30,7 +30,7 @@ class FakeObjects:
     def put(self, path, **values):
         self.uploads.append((path, values))
         return {"bucket": "private", "key": (
-            "audio-studio/voice-references/ref_12345678/"
+            "origins/voice-references/ref_12345678/"
             f"{values.get('variant', 'source')}{Path(path).suffix}"),
             "sha256": __import__("hashlib").sha256(
                 Path(path).read_bytes()).hexdigest(),
@@ -75,7 +75,7 @@ class StorageContracts(unittest.TestCase):
         upload_workspace.shutil.which("ffprobe"),
         "FFmpeg and FFprobe are required",
     )
-    def test_asset_format_extension_and_mime_follow_audio_truth(self):
+    def test_file_format_extension_and_mime_follow_audio_truth(self):
         with TemporaryDirectory() as directory:
             root = Path(directory)
             encoded = root / "actual.mp3"
@@ -90,7 +90,7 @@ class StorageContracts(unittest.TestCase):
                 root=root, output=root / "media",
                 references=root / "references")
 
-            stored = workspace.store_asset(
+            stored = workspace.store_file(
                 incoming, original_name="deliberately-misnamed.wav",
                 size_bytes=incoming.stat().st_size)
 
@@ -105,7 +105,7 @@ class StorageContracts(unittest.TestCase):
         upload_workspace.shutil.which("ffprobe"),
         "FFmpeg and FFprobe are required",
     )
-    def test_image_asset_uses_real_dimensions_and_visual_identity(self):
+    def test_image_file_uses_real_dimensions_and_visual_identity(self):
         with TemporaryDirectory() as directory:
             root = Path(directory)
             encoded = root / "cover.png"
@@ -120,7 +120,7 @@ class StorageContracts(unittest.TestCase):
                 root=root, output=root / "media",
                 references=root / "references")
 
-            stored = workspace.store_asset(
+            stored = workspace.store_file(
                 incoming, original_name="cover.png",
                 size_bytes=incoming.stat().st_size)
 
@@ -136,7 +136,7 @@ class StorageContracts(unittest.TestCase):
         upload_workspace.shutil.which("ffprobe"),
         "FFmpeg and FFprobe are required",
     )
-    def test_video_asset_uses_real_duration_dimensions_codec_and_rate(self):
+    def test_video_file_uses_real_duration_dimensions_codec_and_rate(self):
         with TemporaryDirectory() as directory:
             root = Path(directory)
             encoded = root / "scene.mp4"
@@ -152,7 +152,7 @@ class StorageContracts(unittest.TestCase):
                 root=root, output=root / "media",
                 references=root / "references")
 
-            stored = workspace.store_asset(
+            stored = workspace.store_file(
                 incoming, original_name="scene.mp4",
                 size_bytes=incoming.stat().st_size)
 
@@ -234,7 +234,7 @@ class StorageContracts(unittest.TestCase):
             self.assertEqual(
                 video_audio_inspection.metadata["audio_codec"], "aac")
 
-    def test_invalid_asset_audio_removes_the_moved_media_file(self):
+    def test_invalid_file_audio_removes_the_moved_media_file(self):
         with TemporaryDirectory() as directory:
             root = Path(directory)
             source = root / "incoming.upload"
@@ -245,7 +245,7 @@ class StorageContracts(unittest.TestCase):
             with patch.object(upload_workspace, "inspect_media",
                               return_value=None):
                 with self.assertRaisesRegex(ValueError, "supported audio"):
-                    workspace.store_asset(
+                    workspace.store_file(
                         source, original_name="broken.wav", size_bytes=9)
             self.assertEqual(list(output.iterdir()), [])
 
@@ -268,15 +268,15 @@ class StorageContracts(unittest.TestCase):
 
     def test_keys_are_stable_scoped_ids_not_user_filenames(self):
         with patch.dict("os.environ", {
-            "RUSTFS_PREFIX": "audio-studio",
-            "AUDIO_STUDIO_ORGANIZATION_ID": "local-studio",
+            "RUSTFS_PREFIX": "origins",
+            "ORIGINS_ORGANIZATION_ID": "local-studio",
         }):
             key = storage.object_key(
                 kind="voice-references", object_id="ref_12345678",
                 extension=".WAV")
         self.assertEqual(
             key,
-            "audio-studio/v1/organizations/local-studio/objects/"
+            "origins/v1/organizations/local-studio/objects/"
             "voice-references/ref_12345678/source.wav",
         )
         self.assertNotIn("../", key)
@@ -287,7 +287,7 @@ class StorageContracts(unittest.TestCase):
         values = {
             "RUSTFS_ENDPOINT": "https://s3.test", "RUSTFS_ACCESS_KEY": "a",
             "RUSTFS_SECRET_KEY": "s", "RUSTFS_BUCKET": "bucket",
-            "RUSTFS_PREFIX": "audio-studio",
+            "RUSTFS_PREFIX": "origins",
             "RUSTFS_PUBLIC_URL": "https://public.example/ignored",
         }
         with TemporaryDirectory() as directory:
@@ -308,8 +308,8 @@ class StorageContracts(unittest.TestCase):
 
     def test_user_names_and_invalid_tenant_segments_cannot_enter_keys(self):
         with patch.dict("os.environ", {
-            "RUSTFS_PREFIX": "audio-studio",
-            "AUDIO_STUDIO_ORGANIZATION_ID": "../another-tenant",
+            "RUSTFS_PREFIX": "origins",
+            "ORIGINS_ORGANIZATION_ID": "../another-tenant",
         }):
             with self.assertRaisesRegex(ValueError, "ORGANIZATION"):
                 storage.object_key(kind="voice-references",

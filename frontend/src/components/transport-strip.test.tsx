@@ -51,18 +51,18 @@ describe("TransportStrip", () => {
 
   it("labels every supported product source without page-specific players", () => {
     const kinds: Array<[PlayerSource["kind"], string]> = [
-      ["production", "Production preview"], ["voice", "Voice preview"], ["asset", "Space audio"],
+      ["project", "Project preview"], ["voice", "Voice preview"], ["file", "Workspace audio"],
       ["music", "Music"], ["subtitle", "Subtitle source"], ["standalone", "Standalone recording"],
     ]
-    const { rerender } = render(<TransportStripView {...props} source={{ ...source, kind: "production" }} />)
+    const { rerender } = render(<TransportStripView {...props} source={{ ...source, kind: "project" }} />)
     for (const [kind, label] of kinds) {
       rerender(<TransportStripView {...props} source={{ ...source, kind }} />)
       expect(screen.getByText(label)).toBeTruthy()
     }
   })
 
-  it("does not offer the temporary production preview as a download", () => {
-    render(<TransportStripView {...props} source={{ ...source, kind: "production" }} />)
+  it("does not offer the temporary project preview as a download", () => {
+    render(<TransportStripView {...props} source={{ ...source, kind: "project" }} />)
     expect(screen.queryByRole("link", { name: /Download/ })).toBeNull()
   })
 
@@ -140,9 +140,9 @@ describe("TransportStrip", () => {
     expect(screen.queryByLabelText("No active caption")).toBeNull()
   })
 
-  it("marks an old Production preview and offers an explicit refresh", () => {
+  it("marks an old Project preview and offers an explicit refresh", () => {
     const onRefreshPreview = vi.fn()
-    render(<TransportStripView {...props} source={{ ...source, kind: "production" }} previewStale onRefreshPreview={onRefreshPreview} />)
+    render(<TransportStripView {...props} source={{ ...source, kind: "project" }} previewStale onRefreshPreview={onRefreshPreview} />)
     expect(screen.getByText("Preview out of date")).toBeTruthy()
     fireEvent.click(screen.getByRole("button", { name: "Refresh" }))
     expect(onRefreshPreview).toHaveBeenCalledOnce()

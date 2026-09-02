@@ -8,7 +8,7 @@ import { languageDisplay, languageFlag } from "@/lib/voice"
 import { voiceLanguageStatus } from "@/lib/voice-capabilities"
 import type { VoiceChoice } from "@/lib/voice-options"
 
-const RECENT_KEY = "audio-studio:recent-output-languages"
+const RECENT_KEY = "origins:recent-output-languages"
 
 function readRecent() {
   try {

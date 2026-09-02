@@ -4,7 +4,7 @@ from pathlib import Path
 from tempfile import TemporaryDirectory
 import unittest
 
-from audio_studio.infrastructure.timeline_workspace import LocalTimelineWorkspace
+from origins.infrastructure.timeline_workspace import LocalTimelineWorkspace
 
 
 class TimelineWorkspaceTests(unittest.TestCase):

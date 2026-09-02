@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, it, vi } from "vitest"
 
-import { studioApi } from "@/lib/api"
+import { originsApi } from "@/lib/api"
 import { jobObserver } from "@/lib/job-observer"
 import type { DurableJob, GeneratePayload, GenerateResult } from "@/types/domain"
 
@@ -19,7 +19,7 @@ describe("speech Job API", () => {
     const queued: DurableJob<GenerateResult> = { id: "job-from-api", type: "speech", status: "queued", progress: 0, detail: "Queued", retries: 0, result: {}, part_id: 127 }
     const fetch = vi.fn().mockResolvedValue({ ok: true, status: 202, json: async () => ({ data: queued }) })
     vi.stubGlobal("fetch", fetch)
-    const returned = await studioApi.enqueueGenerate(payload)
+    const returned = await originsApi.enqueueGenerate(payload)
     expect(returned).toEqual(queued)
     expect(returned.part_id).toBe(127)
     expect(jobObserver.getSnapshot("job-from-api")).toEqual(queued)

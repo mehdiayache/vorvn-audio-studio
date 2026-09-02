@@ -1,4 +1,4 @@
 export const productIdentity = {
-  name: "Auvi Studio",
-  documentTitle: "VORVN Auvi Studio",
+  name: "Origins",
+  documentTitle: "Origins",
 } as const

@@ -1,5 +1,5 @@
 import { VoiceLanguageSupport } from "@/components/voice-language-support"
-import { VoiceMethodPicker } from "@/components/production-tools/voice-method-picker"
+import { VoiceMethodPicker } from "@/features/composer/speech/voice-method-picker"
 import { VoicePicker } from "@/components/voice-picker"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { outputLanguageOptions } from "@/lib/voice-capabilities"

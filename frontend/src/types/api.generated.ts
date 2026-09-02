@@ -21,41 +21,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/v1/asset-collections/{collection_id}/assets/upload": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /** Upload Venture Asset */
-        post: operations["uploadVentureAsset"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/assets/{asset_id}": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        /** Update Asset */
-        patch: operations["updateAsset"];
-        trace?: never;
-    };
-    "/api/v1/audio-catalogs/freesound/audiovisual-projects/{project_id}/keep": {
+    "/api/v1/audio-catalogs/freesound/projects/{project_id}/keep": {
         parameters: {
             query?: never;
             header?: never;
@@ -66,23 +32,6 @@ export interface paths {
         put?: never;
         /** Keep Freesound In Audiovisual Project */
         post: operations["keepFreesoundFileInAudiovisualProject"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/audio-catalogs/freesound/keep": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /** Keep Freesound */
-        post: operations["keepFreesoundAsset"];
         delete?: never;
         options?: never;
         head?: never;
@@ -106,23 +55,6 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/v1/audio-catalogs/freesound/spaces/{space_id}/keep": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /** Keep Freesound In Space */
-        post: operations["keepFreesoundFileInSpace"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
     "/api/v1/audio-catalogs/freesound/status": {
         parameters: {
             query?: never;
@@ -140,6 +72,57 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/audio-catalogs/freesound/workspaces/{workspace_id}/keep": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Keep Freesound In Workspace */
+        post: operations["keepFreesoundFileInWorkspace"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/audio-generations/preset/compile": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Compile Preset */
+        post: operations["compileSoundPreset"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/audio-generations/preset/taxonomy": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Sound Preset Taxonomy */
+        get: operations["getSoundPresetTaxonomy"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/audio-generations/recent": {
         parameters: {
             query?: never;
@@ -149,40 +132,6 @@ export interface paths {
         };
         /** Recent Audio Generations */
         get: operations["listRecentAudioGenerations"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/audio-generations/recipe/compile": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /** Compile Recipe */
-        post: operations["compileSoundRecipe"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/audio-generations/recipe/taxonomy": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** Sound Recipe Taxonomy */
-        get: operations["getSoundRecipeTaxonomy"];
         put?: never;
         post?: never;
         delete?: never;
@@ -225,23 +174,6 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/v1/audio-generations/{candidate_id}/audiovisual-projects/{project_id}/keep": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /** Keep Generated Audio In Audiovisual Project */
-        post: operations["keepGeneratedAudioFileInAudiovisualProject"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
     "/api/v1/audio-generations/{candidate_id}/candidate": {
         parameters: {
             query?: never;
@@ -260,7 +192,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/v1/audio-generations/{candidate_id}/keep": {
+    "/api/v1/audio-generations/{candidate_id}/projects/{project_id}/keep": {
         parameters: {
             query?: never;
             header?: never;
@@ -269,15 +201,15 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        /** Keep Generated Audio */
-        post: operations["keepGeneratedAudio"];
+        /** Keep Generated Audio In Audiovisual Project */
+        post: operations["keepGeneratedAudioFileInAudiovisualProject"];
         delete?: never;
         options?: never;
         head?: never;
         patch?: never;
         trace?: never;
     };
-    "/api/v1/audio-generations/{candidate_id}/spaces/{space_id}/keep": {
+    "/api/v1/audio-generations/{candidate_id}/workspaces/{workspace_id}/keep": {
         parameters: {
             query?: never;
             header?: never;
@@ -286,42 +218,8 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        /** Keep Generated Audio In Space */
-        post: operations["keepGeneratedAudioFileInSpace"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/audiovisual-projects/{project_identifier}": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** Get Audiovisual Project */
-        get: operations["getAudiovisualProject"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/audiovisual-projects/{project_id}/files/upload": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /** Upload Audiovisual Project File */
-        post: operations["uploadAudiovisualProjectFile"];
+        /** Keep Generated Audio In Workspace */
+        post: operations["keepGeneratedAudioFileInWorkspace"];
         delete?: never;
         options?: never;
         head?: never;
@@ -363,6 +261,112 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/composer/capabilities": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Composer Capabilities */
+        get: operations["getMediaGenerationCapabilities"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/composer/generations": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List Generations */
+        get: operations["listMediaGenerations"];
+        put?: never;
+        /** Create Generation */
+        post: operations["createMediaGeneration"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/composer/generations/{job_id}/cancel": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Cancel Generation */
+        post: operations["cancelMediaGeneration"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/composer/generations/{job_id}/retry-ingestion": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Retry Generation Ingestion */
+        post: operations["retryMediaGenerationIngestion"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/composer/input-compatibility": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Check Composer Input Compatibility */
+        post: operations["checkComposerInputCompatibility"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/composer/models": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Media Models
+         * @description Canonical model catalogue consumed by Composer and external clients.
+         */
+        get: operations["getMediaModels"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/config": {
         parameters: {
             query?: never;
@@ -397,43 +401,6 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/v1/director-generation-capabilities": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** Director Capabilities */
-        get: operations["getDirectorGenerationCapabilities"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/director/models": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * Director Models
-         * @description Canonical model catalogue consumed by Director and external clients.
-         */
-        get: operations["getDirectorModels"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
     "/api/v1/exports/{export_id}/download": {
         parameters: {
             query?: never;
@@ -451,21 +418,21 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/v1/hierarchy": {
+    "/api/v1/files/{file_id}": {
         parameters: {
             query?: never;
             header?: never;
             path?: never;
             cookie?: never;
         };
-        /** List Hierarchy */
-        get: operations["listHierarchy"];
+        get?: never;
         put?: never;
         post?: never;
         delete?: never;
         options?: never;
         head?: never;
-        patch?: never;
+        /** Update File */
+        patch: operations["updateFile"];
         trace?: never;
     };
     "/api/v1/jobs/audio-generation": {
@@ -502,7 +469,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/v1/jobs/sound-recipe-normalization": {
+    "/api/v1/jobs/sound-preset-normalization": {
         parameters: {
             query?: never;
             header?: never;
@@ -511,8 +478,8 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        /** Create Sound Recipe Normalization Job */
-        post: operations["createSoundRecipeNormalizationJob"];
+        /** Create Sound Preset Normalization Job */
+        post: operations["createSoundPresetNormalizationJob"];
         delete?: never;
         options?: never;
         head?: never;
@@ -672,520 +639,6 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/v1/production-imports": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /** Create Import */
-        post: operations["createProductionImport"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/production-imports/validate": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /** Validate Import */
-        post: operations["validateProductionImport"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/productions/{production_id}/assets": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** List Production Assets */
-        get: operations["listProductionAssets"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/productions/{production_id}/director-assets": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /** Attach Production Director Asset */
-        post: operations["attachProductionDirectorAsset"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/productions/{production_id}/director-assets/{asset_id}": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        post?: never;
-        /** Detach Production Director Asset */
-        delete: operations["detachProductionDirectorAsset"];
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/productions/{production_id}/director-generations": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** List Generations */
-        get: operations["listDirectorGenerations"];
-        put?: never;
-        /** Create Generation */
-        post: operations["createDirectorGeneration"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/productions/{production_id}/director-generations/{job_id}/cancel": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /** Cancel Generation */
-        post: operations["cancelDirectorGeneration"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/productions/{production_id}/director-generations/{job_id}/retry-ingestion": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /** Retry Generation Ingestion */
-        post: operations["retryDirectorGenerationIngestion"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/productions/{production_id}/director-input-compatibility": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /** Check Director Input Compatibility */
-        post: operations["checkDirectorInputCompatibility"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/productions/{production_id}/editor": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** Get Production Editor */
-        get: operations["getProductionEditor"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/productions/{production_id}/import": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /** Import Production */
-        post: operations["importProductionDocument"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/productions/{production_id}/parts": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        post?: never;
-        /** Delete Parts */
-        delete: operations["deleteProductionParts"];
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/productions/{production_id}/parts/assets": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /** Insert Asset */
-        post: operations["insertProductionAsset"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/productions/{production_id}/parts/drafts": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /** Add Draft */
-        post: operations["addProductionDraft"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/productions/{production_id}/parts/move": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /** Move Parts */
-        post: operations["moveProductionParts"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/productions/{production_id}/parts/reorder": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /** Reorder Parts */
-        post: operations["reorderProductionParts"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/productions/{production_id}/parts/silence": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /** Add Silence */
-        post: operations["addProductionSilence"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/productions/{production_id}/parts/{part_id}/asset": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        /** Replace Asset */
-        patch: operations["replaceProductionAsset"];
-        trace?: never;
-    };
-    "/api/v1/productions/{production_id}/parts/{part_id}/captions": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** List Part Captions */
-        get: operations["listProductionPartCaptions"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/productions/{production_id}/parts/{part_id}/draft": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        /** Update Part Text */
-        patch: operations["updateProductionPartDraft"];
-        trace?: never;
-    };
-    "/api/v1/productions/{production_id}/parts/{part_id}/duplicate": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /** Duplicate Part */
-        post: operations["duplicateProductionPart"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/productions/{production_id}/parts/{part_id}/editorial": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        /** Update Part Editorial */
-        patch: operations["updateProductionPartEditorial"];
-        trace?: never;
-    };
-    "/api/v1/productions/{production_id}/parts/{part_id}/enabled": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        /** Update Part Enabled */
-        patch: operations["updateProductionPartEnabled"];
-        trace?: never;
-    };
-    "/api/v1/productions/{production_id}/parts/{part_id}/silence": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        /** Update Silence */
-        patch: operations["updateProductionSilence"];
-        trace?: never;
-    };
-    "/api/v1/productions/{production_id}/project-scene": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** Get Production Project Scene */
-        get: operations["getProductionProjectScene"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/productions/{production_id}/sound-scene": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** Get Sound Scene */
-        get: operations["getProductionSoundScene"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        /** Update Sound Scene */
-        patch: operations["updateProductionSoundScene"];
-        trace?: never;
-    };
-    "/api/v1/productions/{production_id}/sound-scene/redo": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /** Redo Sound Scene */
-        post: operations["redoProductionSoundScene"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/productions/{production_id}/sound-scene/undo": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /** Undo Sound Scene */
-        post: operations["undoProductionSoundScene"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/productions/{production_id}/visual-scene": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** Get Visual Scene */
-        get: operations["getProductionVisualScene"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        /** Update Visual Scene */
-        patch: operations["updateProductionVisualScene"];
-        trace?: never;
-    };
-    "/api/v1/productions/{resource_id}": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        post?: never;
-        /** Delete Production */
-        delete: operations["deleteProduction"];
-        options?: never;
-        head?: never;
-        /** Update Production */
-        patch: operations["updateProduction"];
-        trace?: never;
-    };
     "/api/v1/project-covers/upload": {
         parameters: {
             query?: never;
@@ -1197,6 +650,40 @@ export interface paths {
         put?: never;
         /** Upload Project Cover */
         post: operations["uploadProjectCover"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/project-imports": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Create Import */
+        post: operations["createProjectImport"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/project-imports/validate": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Validate Import */
+        post: operations["validateProjectImport"];
         delete?: never;
         options?: never;
         head?: never;
@@ -1220,41 +707,24 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/v1/projects/{project_id}/productions": {
+    "/api/v1/projects/{project_identifier}": {
         parameters: {
             query?: never;
             header?: never;
             path?: never;
             cookie?: never;
         };
-        get?: never;
+        /** Get Audiovisual Project */
+        get: operations["getAudiovisualProject"];
         put?: never;
-        /** Create Production */
-        post: operations["createProduction"];
+        post?: never;
         delete?: never;
         options?: never;
         head?: never;
         patch?: never;
         trace?: never;
     };
-    "/api/v1/projects/{project_id}/series": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /** Create Series */
-        post: operations["createSeries"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/projects/{resource_id}": {
+    "/api/v1/projects/{project_id}": {
         parameters: {
             query?: never;
             header?: never;
@@ -1272,21 +742,414 @@ export interface paths {
         patch: operations["updateProject"];
         trace?: never;
     };
-    "/api/v1/projects/{resource_id}/overview": {
+    "/api/v1/projects/{project_id}/editor": {
         parameters: {
             query?: never;
             header?: never;
             path?: never;
             cookie?: never;
         };
-        /** Get Project Overview */
-        get: operations["getProjectOverview"];
+        /** Get Project Editor */
+        get: operations["getAudiovisualProjectEditor"];
         put?: never;
         post?: never;
         delete?: never;
         options?: never;
         head?: never;
         patch?: never;
+        trace?: never;
+    };
+    "/api/v1/projects/{project_id}/files": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List Project Files */
+        get: operations["listProjectFiles"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/projects/{project_id}/files/upload": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Upload Audiovisual Project File */
+        post: operations["uploadAudiovisualProjectFile"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/projects/{project_id}/import": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Import Project */
+        post: operations["importProjectDocument"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/projects/{project_id}/parts": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /** Delete Parts */
+        delete: operations["deleteProjectParts"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/projects/{project_id}/parts/drafts": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Add Draft */
+        post: operations["addProjectDraft"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/projects/{project_id}/parts/files": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Insert File */
+        post: operations["insertProjectFile"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/projects/{project_id}/parts/move": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Move Parts */
+        post: operations["moveProjectParts"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/projects/{project_id}/parts/reorder": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Reorder Parts */
+        post: operations["reorderProjectParts"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/projects/{project_id}/parts/silence": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Add Silence */
+        post: operations["addProjectSilence"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/projects/{project_id}/parts/{part_id}/captions": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List Part Captions */
+        get: operations["listProjectPartCaptions"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/projects/{project_id}/parts/{part_id}/draft": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /** Update Part Text */
+        patch: operations["updateProjectPartDraft"];
+        trace?: never;
+    };
+    "/api/v1/projects/{project_id}/parts/{part_id}/duplicate": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Duplicate Part */
+        post: operations["duplicateProjectPart"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/projects/{project_id}/parts/{part_id}/editorial": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /** Update Part Editorial */
+        patch: operations["updateProjectPartEditorial"];
+        trace?: never;
+    };
+    "/api/v1/projects/{project_id}/parts/{part_id}/enabled": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /** Update Part Enabled */
+        patch: operations["updateProjectPartEnabled"];
+        trace?: never;
+    };
+    "/api/v1/projects/{project_id}/parts/{part_id}/file": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /** Replace File */
+        patch: operations["replaceProjectFile"];
+        trace?: never;
+    };
+    "/api/v1/projects/{project_id}/parts/{part_id}/silence": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /** Update Silence */
+        patch: operations["updateProjectSilence"];
+        trace?: never;
+    };
+    "/api/v1/projects/{project_id}/project-scene": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Project Scene */
+        get: operations["getProjectScene"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/projects/{project_id}/sound-scene": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Sound Scene */
+        get: operations["getProjectSoundScene"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /** Update Sound Scene */
+        patch: operations["updateProjectSoundScene"];
+        trace?: never;
+    };
+    "/api/v1/projects/{project_id}/sound-scene/redo": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Redo Sound Scene */
+        post: operations["redoProjectSoundScene"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/projects/{project_id}/sound-scene/undo": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Undo Sound Scene */
+        post: operations["undoProjectSoundScene"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/projects/{project_id}/visual-files": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Attach Project Visual File */
+        post: operations["attachProjectVisualFile"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/projects/{project_id}/visual-files/{file_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /** Detach Project Visual File */
+        delete: operations["detachProjectVisualFile"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/projects/{project_id}/visual-scene": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Visual Scene */
+        get: operations["getProjectVisualScene"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /** Update Visual Scene */
+        patch: operations["updateProjectVisualScene"];
         trace?: never;
     };
     "/api/v1/recordings/{recording_id}/download": {
@@ -1300,58 +1163,6 @@ export interface paths {
         get: operations["downloadRecording"];
         put?: never;
         post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/series/{resource_id}": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        post?: never;
-        /** Delete Series */
-        delete: operations["deleteSeries"];
-        options?: never;
-        head?: never;
-        /** Update Series */
-        patch: operations["updateSeries"];
-        trace?: never;
-    };
-    "/api/v1/series/{resource_id}/overview": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** Get Series Overview */
-        get: operations["getSeriesOverview"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/series/{series_id}/productions": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /** Create Series Production */
-        post: operations["createSeriesProduction"];
         delete?: never;
         options?: never;
         head?: never;
@@ -1615,127 +1426,6 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/v1/spaces": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** List Spaces */
-        get: operations["listSpaces"];
-        put?: never;
-        /** Create Space */
-        post: operations["createSpace"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/spaces/{space_id}": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** Get Space */
-        get: operations["getSpace"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/spaces/{space_id}/files/upload": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /** Upload Space File */
-        post: operations["uploadSpaceFile"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/spaces/{space_id}/folders": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /** Create Folder */
-        post: operations["createFolder"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/spaces/{space_id}/projects/audiovisual": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /** Create Audiovisual Project */
-        post: operations["createAudiovisualProject"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/spaces/{space_id}/saved-references": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** List Space Saved References */
-        get: operations["listSpaceSavedReferences"];
-        put?: never;
-        /** Create Space Saved Reference */
-        post: operations["createSpaceSavedReference"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/spaces/{space_id}/saved-references/{reference_id}": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        post?: never;
-        /** Delete Space Saved Reference */
-        delete: operations["deleteSpaceSavedReference"];
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
     "/api/v1/speak/recordings": {
         parameters: {
             query?: never;
@@ -1837,144 +1527,6 @@ export interface paths {
         put?: never;
         post?: never;
         delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/venture-logos/upload": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /** Upload Venture Logo */
-        post: operations["uploadVentureLogo"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/ventures": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /** Create Venture */
-        post: operations["createVenture"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/ventures/{resource_id}": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        post?: never;
-        /** Delete Venture */
-        delete: operations["deleteVenture"];
-        options?: never;
-        head?: never;
-        /** Update Venture */
-        patch: operations["updateVenture"];
-        trace?: never;
-    };
-    "/api/v1/ventures/{resource_id}/assets": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** List Venture Assets */
-        get: operations["listVentureAssets"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/ventures/{resource_id}/overview": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** Get Venture Overview */
-        get: operations["getVentureOverview"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/ventures/{venture_id}/projects": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /** Create Project */
-        post: operations["createProject"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/ventures/{venture_id}/saved-references": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** List Saved References */
-        get: operations["listSavedReferences"];
-        put?: never;
-        /** Create Saved Reference */
-        post: operations["createSavedReference"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/ventures/{venture_id}/saved-references/{reference_id}": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        post?: never;
-        /** Delete Saved Reference */
-        delete: operations["deleteSavedReference"];
         options?: never;
         head?: never;
         patch?: never;
@@ -2288,6 +1840,127 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/workspaces": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List Workspaces */
+        get: operations["listWorkspaces"];
+        put?: never;
+        /** Create Workspace */
+        post: operations["createWorkspace"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Workspace */
+        get: operations["getWorkspace"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace_id}/files/upload": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Upload Workspace File */
+        post: operations["uploadWorkspaceFile"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace_id}/folders": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Create Folder */
+        post: operations["createFolder"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace_id}/projects/audiovisual": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Create Audiovisual Project */
+        post: operations["createAudiovisualProject"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace_id}/saved-references": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List Workspace Saved References */
+        get: operations["listWorkspaceSavedReferences"];
+        put?: never;
+        /** Create Workspace Saved Reference */
+        post: operations["createWorkspaceSavedReference"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace_id}/saved-references/{reference_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /** Delete Workspace Saved Reference */
+        delete: operations["deleteWorkspaceSavedReference"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -2394,10 +2067,10 @@ export interface components {
             output_ids: components["schemas"]["OutputReference"][];
             /** Price Version */
             price_version: string | null;
-            /** Production Id */
-            production_id: number | null;
-            /** Production Name */
-            production_name: string | null;
+            /** Project Id */
+            project_id: number | null;
+            /** Project Name */
+            project_name: string | null;
             /** Provider Attempt Id */
             provider_attempt_id?: string | null;
             /** Provider Attempt Status */
@@ -2497,51 +2170,12 @@ export interface components {
             id: number;
             /**
              * Type
-             * @enum {string}
+             * @default project
+             * @constant
              */
-            type: "venture" | "project" | "series" | "production";
+            type: "project";
         } & {
             [key: string]: unknown;
-        };
-        /** AssetBody */
-        AssetBody: {
-            /** Asset Id */
-            asset_id: number;
-            /** Insert Before Part Id */
-            insert_before_part_id?: string | null;
-        };
-        /** AssetCollectionResponse */
-        AssetCollectionResponse: {
-            /** Id */
-            id: number;
-            /** Kind */
-            kind: string;
-            /** Name */
-            name: string;
-            /** Venture Id */
-            venture_id: number;
-        };
-        /** AssetKindSummaryResponse */
-        AssetKindSummaryResponse: {
-            /** Collection Id */
-            collection_id: number;
-            /** Count */
-            count: number;
-            /** Duration Ms */
-            duration_ms: number;
-            /** Name */
-            name: string;
-        };
-        /** AssetSummaryResponse */
-        AssetSummaryResponse: {
-            /** By Kind */
-            by_kind: {
-                [key: string]: components["schemas"]["AssetKindSummaryResponse"];
-            };
-            /** Duration Ms */
-            duration_ms: number;
-            /** Total */
-            total: number;
         };
         /** AudioCatalogSettingsResponse */
         AudioCatalogSettingsResponse: {
@@ -2632,7 +2266,7 @@ export interface components {
             error?: string | null;
             /** Job Id */
             job_id: string;
-            kept_asset?: components["schemas"]["UploadedAssetResponse"] | null;
+            kept_file?: components["schemas"]["UploadedFileResponse"] | null;
             /** Progress */
             progress: number;
             request: components["schemas"]["AudioGenerationRequestResponse"];
@@ -2654,8 +2288,8 @@ export interface components {
             generation_brief?: {
                 [key: string]: unknown;
             } | null;
-            /** Production Id */
-            production_id?: number | null;
+            /** Project Id */
+            project_id?: number | null;
             /** Prompt */
             prompt?: string | null;
             /**
@@ -2677,8 +2311,8 @@ export interface components {
              * @default
              */
             source_free_text: string;
-            /** Space Id */
-            space_id?: number | null;
+            /** Workspace Id */
+            workspace_id?: number | null;
         };
         /** AudioGenerationRequestResponse */
         AudioGenerationRequestResponse: {
@@ -2883,9 +2517,9 @@ export interface components {
         };
         /** CatalogKeepResponse */
         CatalogKeepResponse: {
-            asset: components["schemas"]["UploadedAssetResponse"];
             /** Duplicate */
             duplicate: boolean;
+            file: components["schemas"]["UploadedFileResponse"];
         };
         /** CatalogSearchEnvelope */
         CatalogSearchEnvelope: {
@@ -2953,6 +2587,260 @@ export interface components {
             next_cursor: string | null;
             /** Total */
             total: number;
+        };
+        /** ComposerCapabilities */
+        ComposerCapabilities: {
+            /** Models */
+            models: components["schemas"]["MediaModelCapability"][];
+            /** Operations */
+            operations: components["schemas"]["ComposerOperationInfo"][];
+            /** Providers */
+            providers: {
+                [key: string]: string;
+            }[];
+        };
+        /** ComposerCapabilitiesEnvelope */
+        ComposerCapabilitiesEnvelope: {
+            data: components["schemas"]["ComposerCapabilities"];
+        };
+        /** ComposerContext */
+        ComposerContext: {
+            /** Folder Id */
+            folder_id?: number | null;
+            /** Object Id */
+            object_id?: number | null;
+            /** Project Id */
+            project_id?: number | null;
+            /** Project Type */
+            project_type?: string | null;
+            /** Selection */
+            selection?: {
+                [key: string]: unknown;
+            };
+            /** Workspace Id */
+            workspace_id: number;
+        };
+        /** ComposerControlRule */
+        ComposerControlRule: {
+            /** Default */
+            default: string;
+            /** Values */
+            values: string[];
+            /** When */
+            when?: {
+                [key: string]: unknown;
+            };
+        };
+        /** ComposerDurationRange */
+        ComposerDurationRange: {
+            /** Default */
+            default: number;
+            /** Max */
+            max: number;
+            /** Min */
+            min: number;
+            /** Step */
+            step: number;
+        };
+        /** ComposerGenerationRequest */
+        ComposerGenerationRequest: {
+            context: components["schemas"]["ComposerContext"];
+            preset: components["schemas"]["MediaGenerationPreset"];
+        };
+        /** ComposerInputCompatibilityEnvelope */
+        ComposerInputCompatibilityEnvelope: {
+            /** Data */
+            data: components["schemas"]["ComposerInputCompatibilityResponse"][];
+        };
+        /** ComposerInputCompatibilityRequest */
+        ComposerInputCompatibilityRequest: {
+            /**
+             * Audio
+             * @default false
+             */
+            audio: boolean;
+            context: components["schemas"]["ComposerContext"];
+            /** File Ids */
+            file_ids: number[];
+            /** Model Id */
+            model_id: string;
+            /** Operation */
+            operation: string;
+            /** Parameter Key */
+            parameter_key?: string | null;
+            /** Role */
+            role?: string | null;
+            /** Variant Id */
+            variant_id?: string | null;
+        };
+        /** ComposerInputCompatibilityResponse */
+        ComposerInputCompatibilityResponse: {
+            /** File Id */
+            file_id: number;
+            /** Reasons */
+            reasons: string[];
+            /**
+             * State
+             * @enum {string}
+             */
+            state: "compatible" | "incompatible" | "unknown";
+        };
+        /** ComposerInputSlot */
+        ComposerInputSlot: {
+            /** Aspect Ratio Max */
+            aspect_ratio_max?: number | null;
+            /** Aspect Ratio Min */
+            aspect_ratio_min?: number | null;
+            /** Duration Max Ms */
+            duration_max_ms?: number | null;
+            /** Duration Min Ms */
+            duration_min_ms?: number | null;
+            /** Fps Max */
+            fps_max?: number | null;
+            /** Fps Min */
+            fps_min?: number | null;
+            /** Label */
+            label: string;
+            /** Max */
+            max: number;
+            /** Max Bytes */
+            max_bytes?: number | null;
+            /** Max Height */
+            max_height?: number | null;
+            /** Max Pixels */
+            max_pixels?: number | null;
+            /** Max Width */
+            max_width?: number | null;
+            /** Media Types */
+            media_types: ("image" | "video" | "audio")[];
+            /** Mime Types */
+            mime_types?: string[];
+            /** Min Height */
+            min_height?: number | null;
+            /** Min Width */
+            min_width?: number | null;
+            /** Required */
+            required: boolean;
+            /** Role */
+            role: string;
+        };
+        /** ComposerOperationCapability */
+        ComposerOperationCapability: {
+            duration_range?: components["schemas"]["ComposerDurationRange"] | null;
+            /** Durations */
+            durations: number[];
+            /** Fps */
+            fps: number[];
+            /** Input Modes */
+            input_modes?: {
+                [key: string]: unknown;
+            }[];
+            /** Input Order */
+            input_order?: string[];
+            /** Inputs */
+            inputs: components["schemas"]["ComposerInputSlot"][];
+            /** Operation */
+            operation: string;
+            output: components["schemas"]["ComposerOutputCapability"];
+            /**
+             * Output Media Type
+             * @enum {string}
+             */
+            output_media_type: "image" | "video";
+            /** Parameters */
+            parameters?: components["schemas"]["ComposerParameterCapability"][];
+            prompt: components["schemas"]["ComposerPromptCapability"];
+            /** Ratio Rules */
+            ratio_rules?: components["schemas"]["ComposerControlRule"][];
+            /** Ratios */
+            ratios: string[];
+            /** Required Any Of */
+            required_any_of?: string[][];
+            /** Resolutions */
+            resolutions: string[];
+            /** Supports Cancel */
+            supports_cancel: boolean;
+            /** Supports Seed */
+            supports_seed: boolean;
+        };
+        /** ComposerOperationInfo */
+        ComposerOperationInfo: {
+            /** Detail */
+            detail: string;
+            /** Id */
+            id: string;
+            /** Label */
+            label: string;
+            /** Presentation */
+            presentation: {
+                [key: string]: string;
+            };
+        };
+        /** ComposerOutputCapability */
+        ComposerOutputCapability: {
+            /** Extension */
+            extension: string;
+            /** Mime Type */
+            mime_type: string;
+        };
+        /** ComposerParameterCapability */
+        ComposerParameterCapability: {
+            /** Conflicts With */
+            conflicts_with?: string[];
+            /** Default */
+            default?: unknown;
+            /**
+             * Exposure
+             * @default advanced
+             * @enum {string}
+             */
+            exposure: "primary" | "advanced";
+            /** Item */
+            item?: {
+                [key: string]: unknown;
+            };
+            /** Key */
+            key: string;
+            /** Label */
+            label: string;
+            /** Max */
+            max?: number | null;
+            /** Max Length */
+            max_length?: number | null;
+            /** Min */
+            min?: number | null;
+            /** Options */
+            options?: unknown[];
+            /**
+             * Required
+             * @default false
+             */
+            required: boolean;
+            /** Step */
+            step?: number | null;
+            /**
+             * Type
+             * @enum {string}
+             */
+            type: "boolean" | "integer" | "number" | "select" | "text" | "textarea" | "file_list" | "structured_shots";
+            /** Visible When */
+            visible_when?: {
+                [key: string]: unknown;
+            };
+        };
+        /** ComposerPromptCapability */
+        ComposerPromptCapability: {
+            /**
+             * Max Length
+             * @default 20000
+             */
+            max_length: number;
+            /** Negative Prompt */
+            negative_prompt: boolean;
+            /** Required */
+            required: boolean;
+            /** Supported */
+            supported: boolean;
         };
         /** ComposerState */
         ComposerState: {
@@ -3115,467 +3003,6 @@ export interface components {
              */
             volume: number;
         };
-        /** DirectorAssetMutationEnvelope */
-        DirectorAssetMutationEnvelope: {
-            data: components["schemas"]["DirectorAssetMutationResponse"];
-        };
-        /** DirectorAssetMutationRequest */
-        DirectorAssetMutationRequest: {
-            /** Asset Id */
-            asset_id: number;
-        };
-        /** DirectorAssetMutationResponse */
-        DirectorAssetMutationResponse: {
-            /** Asset Id */
-            asset_id: number;
-            /** Attached */
-            attached: boolean;
-        };
-        /** DirectorCapabilities */
-        DirectorCapabilities: {
-            /** Models */
-            models: components["schemas"]["DirectorModelCapability"][];
-            /** Operations */
-            operations: components["schemas"]["DirectorOperationInfo"][];
-            /** Providers */
-            providers: {
-                [key: string]: string;
-            }[];
-        };
-        /** DirectorCapabilitiesEnvelope */
-        DirectorCapabilitiesEnvelope: {
-            data: components["schemas"]["DirectorCapabilities"];
-        };
-        /** DirectorControlRule */
-        DirectorControlRule: {
-            /** Default */
-            default: string;
-            /** Values */
-            values: string[];
-            /** When */
-            when?: {
-                [key: string]: unknown;
-            };
-        };
-        /** DirectorDurationRange */
-        DirectorDurationRange: {
-            /** Default */
-            default: number;
-            /** Max */
-            max: number;
-            /** Min */
-            min: number;
-            /** Step */
-            step: number;
-        };
-        /** DirectorGenerationControls */
-        DirectorGenerationControls: {
-            /** Duration */
-            duration?: number | null;
-            /** Fps */
-            fps?: number | null;
-            /** Provider Parameters */
-            provider_parameters?: {
-                [key: string]: unknown;
-            };
-            /**
-             * Ratio
-             * @default
-             */
-            ratio: string;
-            /**
-             * Resolution
-             * @default
-             */
-            resolution: string;
-            /** Seed */
-            seed?: number | null;
-        };
-        /** DirectorGenerationEnvelope */
-        DirectorGenerationEnvelope: {
-            data: components["schemas"]["DirectorGenerationResponse"];
-            /** Meta */
-            meta?: {
-                [key: string]: boolean;
-            } | null;
-        };
-        /** DirectorGenerationInput */
-        DirectorGenerationInput: {
-            /** Asset Id */
-            asset_id: number;
-            /**
-             * Media Type
-             * @enum {string}
-             */
-            media_type: "image" | "video" | "audio";
-            /** Position */
-            position: number;
-            /** Role */
-            role: string;
-        };
-        /** DirectorGenerationListEnvelope */
-        DirectorGenerationListEnvelope: {
-            /** Data */
-            data: components["schemas"]["DirectorGenerationResponse"][];
-        };
-        /** DirectorGenerationRecipe */
-        DirectorGenerationRecipe: {
-            controls: components["schemas"]["DirectorGenerationControls"];
-            /** Inputs */
-            inputs?: components["schemas"]["DirectorGenerationInput"][];
-            /** Model Id */
-            model_id: string;
-            /**
-             * Negative Prompt
-             * @default
-             */
-            negative_prompt: string;
-            /** Operation */
-            operation: string;
-            /**
-             * Prompt
-             * @default
-             */
-            prompt: string;
-        };
-        /** DirectorGenerationResponse */
-        DirectorGenerationResponse: {
-            /** Adapter Version */
-            adapter_version?: string | null;
-            /**
-             * Can Retry Ingestion
-             * @default false
-             */
-            can_retry_ingestion: boolean;
-            /** Capability Manifest Version */
-            capability_manifest_version?: string | null;
-            /** Capability Snapshot */
-            capability_snapshot?: {
-                [key: string]: unknown;
-            } | null;
-            /** Confirmation Message */
-            confirmation_message?: string | null;
-            /** Cost */
-            cost?: number | null;
-            /** Created At */
-            created_at: string | null;
-            /** Detail */
-            detail: string;
-            /** Error */
-            error: string | null;
-            /** Estimated Cost */
-            estimated_cost: number | null;
-            /** Id */
-            id: string;
-            /** Job Id */
-            job_id: string;
-            /**
-             * Local Ingestion Pending
-             * @default false
-             */
-            local_ingestion_pending: boolean;
-            /** Model Label */
-            model_label: string;
-            /** Model Version */
-            model_version: string;
-            /**
-             * Needs Confirmation
-             * @default false
-             */
-            needs_confirmation: boolean;
-            /** Output Asset Ids */
-            output_asset_ids: number[];
-            /**
-             * Output Media Type
-             * @enum {string}
-             */
-            output_media_type: "image" | "video";
-            /** Progress */
-            progress: number;
-            /** Provider */
-            provider: string;
-            /** Provider Id */
-            provider_id?: string | null;
-            /** Provider Job Id */
-            provider_job_id: string | null;
-            /** Provider Model Id */
-            provider_model_id?: string | null;
-            recipe: components["schemas"]["DirectorGenerationRecipe"];
-            /**
-             * Requires Review
-             * @default false
-             */
-            requires_review: boolean;
-            /**
-             * Status
-             * @enum {string}
-             */
-            status: "queued" | "generating" | "ready" | "canceled" | "failed";
-            /** Updated At */
-            updated_at: string | null;
-            /** Usage */
-            usage?: {
-                [key: string]: unknown;
-            };
-        };
-        /** DirectorInputCompatibilityEnvelope */
-        DirectorInputCompatibilityEnvelope: {
-            /** Data */
-            data: components["schemas"]["DirectorInputCompatibilityResponse"][];
-        };
-        /** DirectorInputCompatibilityRequest */
-        DirectorInputCompatibilityRequest: {
-            /** Asset Ids */
-            asset_ids: number[];
-            /**
-             * Audio
-             * @default false
-             */
-            audio: boolean;
-            /** Model Id */
-            model_id: string;
-            /** Operation */
-            operation: string;
-            /** Parameter Key */
-            parameter_key?: string | null;
-            /** Role */
-            role?: string | null;
-            /** Variant Id */
-            variant_id?: string | null;
-        };
-        /** DirectorInputCompatibilityResponse */
-        DirectorInputCompatibilityResponse: {
-            /** Asset Id */
-            asset_id: number;
-            /** Reasons */
-            reasons: string[];
-            /**
-             * State
-             * @enum {string}
-             */
-            state: "compatible" | "incompatible" | "unknown";
-        };
-        /** DirectorInputSlot */
-        DirectorInputSlot: {
-            /** Aspect Ratio Max */
-            aspect_ratio_max?: number | null;
-            /** Aspect Ratio Min */
-            aspect_ratio_min?: number | null;
-            /** Duration Max Ms */
-            duration_max_ms?: number | null;
-            /** Duration Min Ms */
-            duration_min_ms?: number | null;
-            /** Fps Max */
-            fps_max?: number | null;
-            /** Fps Min */
-            fps_min?: number | null;
-            /** Label */
-            label: string;
-            /** Max */
-            max: number;
-            /** Max Bytes */
-            max_bytes?: number | null;
-            /** Max Height */
-            max_height?: number | null;
-            /** Max Pixels */
-            max_pixels?: number | null;
-            /** Max Width */
-            max_width?: number | null;
-            /** Media Types */
-            media_types: ("image" | "video" | "audio")[];
-            /** Mime Types */
-            mime_types?: string[];
-            /** Min Height */
-            min_height?: number | null;
-            /** Min Width */
-            min_width?: number | null;
-            /** Required */
-            required: boolean;
-            /** Role */
-            role: string;
-        };
-        /** DirectorModelCapability */
-        DirectorModelCapability: {
-            /** Adapter Key */
-            adapter_key: string;
-            /** Adapter Version */
-            adapter_version: string;
-            /** Capability Manifest Version */
-            capability_manifest_version: string;
-            /** Description */
-            description: string;
-            /** Id */
-            id: string;
-            /** Label */
-            label: string;
-            /** Operations */
-            operations: components["schemas"]["DirectorOperationCapability"][];
-            /** Presentation */
-            presentation?: {
-                [key: string]: string;
-            };
-            /** Provider */
-            provider: string;
-            /** Provider Id */
-            provider_id: string;
-            /** Provider Model Id */
-            provider_model_id: string;
-            /**
-             * Status
-             * @enum {string}
-             */
-            status: "draft" | "verified" | "enabled";
-        };
-        /** DirectorOperationCapability */
-        DirectorOperationCapability: {
-            duration_range?: components["schemas"]["DirectorDurationRange"] | null;
-            /** Durations */
-            durations: number[];
-            /** Fps */
-            fps: number[];
-            /** Input Modes */
-            input_modes?: {
-                [key: string]: unknown;
-            }[];
-            /** Input Order */
-            input_order?: string[];
-            /** Inputs */
-            inputs: components["schemas"]["DirectorInputSlot"][];
-            /** Operation */
-            operation: string;
-            output: components["schemas"]["DirectorOutputCapability"];
-            /**
-             * Output Media Type
-             * @enum {string}
-             */
-            output_media_type: "image" | "video";
-            /** Parameters */
-            parameters?: components["schemas"]["DirectorParameterCapability"][];
-            prompt: components["schemas"]["DirectorPromptCapability"];
-            /** Ratio Rules */
-            ratio_rules?: components["schemas"]["DirectorControlRule"][];
-            /** Ratios */
-            ratios: string[];
-            /** Required Any Of */
-            required_any_of?: string[][];
-            /** Resolutions */
-            resolutions: string[];
-            /** Supports Cancel */
-            supports_cancel: boolean;
-            /** Supports Seed */
-            supports_seed: boolean;
-        };
-        /** DirectorOperationInfo */
-        DirectorOperationInfo: {
-            /** Detail */
-            detail: string;
-            /** Id */
-            id: string;
-            /** Label */
-            label: string;
-            /** Presentation */
-            presentation: {
-                [key: string]: string;
-            };
-        };
-        /** DirectorOutputCapability */
-        DirectorOutputCapability: {
-            /** Extension */
-            extension: string;
-            /** Mime Type */
-            mime_type: string;
-        };
-        /** DirectorParameterCapability */
-        DirectorParameterCapability: {
-            /** Conflicts With */
-            conflicts_with?: string[];
-            /** Default */
-            default?: unknown;
-            /**
-             * Exposure
-             * @default advanced
-             * @enum {string}
-             */
-            exposure: "primary" | "advanced";
-            /** Item */
-            item?: {
-                [key: string]: unknown;
-            };
-            /** Key */
-            key: string;
-            /** Label */
-            label: string;
-            /** Max */
-            max?: number | null;
-            /** Max Length */
-            max_length?: number | null;
-            /** Min */
-            min?: number | null;
-            /** Options */
-            options?: unknown[];
-            /**
-             * Required
-             * @default false
-             */
-            required: boolean;
-            /** Step */
-            step?: number | null;
-            /**
-             * Type
-             * @enum {string}
-             */
-            type: "boolean" | "integer" | "number" | "select" | "text" | "textarea" | "asset_list" | "structured_shots";
-            /** Visible When */
-            visible_when?: {
-                [key: string]: unknown;
-            };
-        };
-        /** DirectorPromptCapability */
-        DirectorPromptCapability: {
-            /**
-             * Max Length
-             * @default 20000
-             */
-            max_length: number;
-            /** Negative Prompt */
-            negative_prompt: boolean;
-            /** Required */
-            required: boolean;
-            /** Supported */
-            supported: boolean;
-        };
-        /** DirectorProviderSettingsResponse */
-        DirectorProviderSettingsResponse: {
-            /** Base Url */
-            base_url: string;
-            /**
-             * Callback Configured
-             * @default false
-             */
-            callback_configured: boolean;
-            /** Configured */
-            configured: boolean;
-            /** Name */
-            name: string;
-            /**
-             * Reason
-             * @default
-             */
-            reason: string;
-        };
-        /** DirectorProviderUpdate */
-        DirectorProviderUpdate: {
-            /**
-             * Api Key
-             * @default
-             */
-            api_key: string;
-            /**
-             * Base Url
-             * @default
-             */
-            base_url: string;
-        };
         /** DiskLocationResponse */
         DiskLocationResponse: {
             /** Bytes */
@@ -3724,7 +3151,7 @@ export interface components {
         /** DraftDelete */
         DraftDelete: {
             /** Context */
-            context: components["schemas"]["StandaloneContext"] | components["schemas"]["ProductionContext"];
+            context: components["schemas"]["StandaloneContext"] | components["schemas"]["ProjectContext"];
             /** Expected Version */
             expected_version?: number | null;
         };
@@ -3744,7 +3171,7 @@ export interface components {
         /** DraftLookup */
         DraftLookup: {
             /** Context */
-            context: components["schemas"]["StandaloneContext"] | components["schemas"]["ProductionContext"];
+            context: components["schemas"]["StandaloneContext"] | components["schemas"]["ProjectContext"];
         };
         /** DraftResponse */
         DraftResponse: {
@@ -3765,7 +3192,7 @@ export interface components {
         /** DraftWrite */
         DraftWrite: {
             /** Context */
-            context: components["schemas"]["StandaloneContext"] | components["schemas"]["ProductionContext"];
+            context: components["schemas"]["StandaloneContext"] | components["schemas"]["ProjectContext"];
             /** Expected Version */
             expected_version?: number | null;
             state: components["schemas"]["ComposerState"];
@@ -3817,6 +3244,13 @@ export interface components {
             /** Enabled */
             enabled: boolean;
         };
+        /** FileBody */
+        FileBody: {
+            /** File Id */
+            file_id: number;
+            /** Insert Before Part Id */
+            insert_before_part_id?: string | null;
+        };
         /** FileResponse */
         FileResponse: {
             /** Created At */
@@ -3836,12 +3270,12 @@ export interface components {
             public_id: string;
             /** Source */
             source: string;
-            /** Space Id */
-            space_id: number;
             /** Tags */
             tags: string[];
             /** Updated At */
             updated_at: string;
+            /** Workspace Id */
+            workspace_id: number;
         } & {
             [key: string]: unknown;
         };
@@ -3929,10 +3363,10 @@ export interface components {
             parent_id: number | null;
             /** Public Id */
             public_id: string;
-            /** Space Id */
-            space_id: number;
             /** Updated At */
             updated_at: string;
+            /** Workspace Id */
+            workspace_id: number;
         };
         /** FreesoundSettingsUpdate */
         FreesoundSettingsUpdate: {
@@ -3967,58 +3401,14 @@ export interface components {
         };
         /** GeneratedKeepResponse */
         GeneratedKeepResponse: {
-            asset: components["schemas"]["UploadedAssetResponse"];
             /** Duplicate */
             duplicate: boolean;
+            file: components["schemas"]["UploadedFileResponse"];
         };
         /** HTTPValidationError */
         HTTPValidationError: {
             /** Detail */
             detail?: components["schemas"]["ValidationError"][];
-        };
-        /** HierarchyMetricsResponse */
-        HierarchyMetricsResponse: {
-            /** Cost */
-            cost: number;
-            /** Parts */
-            parts: number;
-        };
-        /** HierarchyNodeResponse */
-        HierarchyNodeResponse: {
-            /** Children */
-            children?: components["schemas"]["HierarchyNodeResponse"][] | null;
-            /** Description */
-            description: string;
-            /** Icon */
-            icon: string;
-            /** Id */
-            id: number;
-            /** Key */
-            key: string;
-            /** Locked */
-            locked: boolean;
-            metrics: components["schemas"]["HierarchyMetricsResponse"];
-            /** Name */
-            name: string;
-            /** Parent Key */
-            parent_key: string | null;
-            /** Public Id */
-            public_id: string;
-            /** System Role */
-            system_role?: string | null;
-            /**
-             * Type
-             * @enum {string}
-             */
-            type: "venture" | "project" | "series" | "production";
-            /** Updated At */
-            updated_at?: string | null;
-        };
-        /** HierarchyPageEnvelope */
-        HierarchyPageEnvelope: {
-            /** Data */
-            data: components["schemas"]["HierarchyNodeResponse"][];
-            meta: components["schemas"]["PaginationMetaResponse"];
         };
         /** HistoricalVoiceCollectionEnvelope */
         HistoricalVoiceCollectionEnvelope: {
@@ -4039,8 +3429,8 @@ export interface components {
              * @default
              */
             preview_filename: string;
-            /** Productions */
-            productions: number;
+            /** Projects */
+            projects: number;
             /** Provider Voice Id */
             provider_voice_id: string;
             /** Uses */
@@ -4063,15 +3453,9 @@ export interface components {
         };
         /**
          * ImportSpeechItem
-         * @description Authored speech truth plus tolerated V1 legacy generation hints.
-         *
-         *     Legacy hints remain readable so existing documents do not break, but the
-         *     import use case never promotes them into a recording route or delivery
-         *     configuration without an explicit operator choice.
+         * @description Authored speech truth; generation configuration is chosen in Origins.
          */
         ImportSpeechItem: {
-            /** Format */
-            format?: ("mp3" | "mp3-24k" | "wav" | "opus") | null;
             /**
              * Instruction
              * @default
@@ -4079,16 +3463,8 @@ export interface components {
             instruction: string;
             /** Language */
             language?: string | null;
-            /** Pitch */
-            pitch?: number | null;
-            /** Rate */
-            rate?: number | null;
             /** Role */
             role: string;
-            /** Seed */
-            seed?: number | null;
-            /** Speech Mode */
-            speech_mode?: ("exact" | "directed") | null;
             /** Text */
             text: string;
             /**
@@ -4096,8 +3472,6 @@ export interface components {
              * @enum {string}
              */
             type: "speech";
-            /** Volume */
-            volume?: number | null;
         };
         /** JobCreatedEnvelope */
         JobCreatedEnvelope: {
@@ -4174,40 +3548,23 @@ export interface components {
             };
             /** Retries */
             retries: number;
-            /** Space Id */
-            space_id?: number | null;
             /** Started At */
             started_at?: string | null;
             /** Status */
             status: string;
             /** Type */
             type: string;
+            /** Workspace Id */
+            workspace_id?: number | null;
         };
         /** KeepFreesoundBody */
         KeepFreesoundBody: {
             /** Category */
             category?: ("music" | "ambience" | "sfx") | null;
-            /** Collection Id */
-            collection_id: number;
             /** External Id */
             external_id: string;
-            /** Name */
-            name: string;
-            /**
-             * Scope
-             * @default space
-             * @enum {string}
-             */
-            scope: "space" | "studio";
-            /** Tags */
-            tags?: string[];
-        };
-        /** KeepFreesoundInSpaceBody */
-        KeepFreesoundInSpaceBody: {
-            /** Category */
-            category?: ("music" | "ambience" | "sfx") | null;
-            /** External Id */
-            external_id: string;
+            /** Folder Id */
+            folder_id?: number | null;
             /** Name */
             name: string;
             /** Tags */
@@ -4220,25 +3577,8 @@ export interface components {
              * @enum {string}
              */
             category: "music" | "ambience" | "sfx";
-            /** Collection Id */
-            collection_id: number;
-            /** Name */
-            name: string;
-            /**
-             * Scope
-             * @enum {string}
-             */
-            scope: "space" | "studio";
-            /** Tags */
-            tags?: string[];
-        };
-        /** KeepGeneratedInSpaceBody */
-        KeepGeneratedInSpaceBody: {
-            /**
-             * Category
-             * @enum {string}
-             */
-            category: "music" | "ambience" | "sfx";
+            /** Folder Id */
+            folder_id?: number | null;
             /** Name */
             name: string;
             /** Tags */
@@ -4312,10 +3652,224 @@ export interface components {
              */
             volume: number;
         };
+        /** MediaGenerationControls */
+        MediaGenerationControls: {
+            /** Duration */
+            duration?: number | null;
+            /** Fps */
+            fps?: number | null;
+            /** Provider Parameters */
+            provider_parameters?: {
+                [key: string]: unknown;
+            };
+            /**
+             * Ratio
+             * @default
+             */
+            ratio: string;
+            /**
+             * Resolution
+             * @default
+             */
+            resolution: string;
+            /** Seed */
+            seed?: number | null;
+        };
+        /** MediaGenerationEnvelope */
+        MediaGenerationEnvelope: {
+            data: components["schemas"]["MediaGenerationResponse"];
+            /** Meta */
+            meta?: {
+                [key: string]: boolean;
+            } | null;
+        };
+        /** MediaGenerationInput */
+        MediaGenerationInput: {
+            /** File Id */
+            file_id: number;
+            /**
+             * Media Type
+             * @enum {string}
+             */
+            media_type: "image" | "video" | "audio";
+            /** Position */
+            position: number;
+            /** Role */
+            role: string;
+        };
+        /** MediaGenerationListEnvelope */
+        MediaGenerationListEnvelope: {
+            /** Data */
+            data: components["schemas"]["MediaGenerationResponse"][];
+        };
+        /** MediaGenerationPreset */
+        MediaGenerationPreset: {
+            controls: components["schemas"]["MediaGenerationControls"];
+            /** Inputs */
+            inputs?: components["schemas"]["MediaGenerationInput"][];
+            /** Model Id */
+            model_id: string;
+            /**
+             * Negative Prompt
+             * @default
+             */
+            negative_prompt: string;
+            /** Operation */
+            operation: string;
+            /**
+             * Prompt
+             * @default
+             */
+            prompt: string;
+        };
+        /** MediaGenerationProviderSettingsResponse */
+        MediaGenerationProviderSettingsResponse: {
+            /** Base Url */
+            base_url: string;
+            /**
+             * Callback Configured
+             * @default false
+             */
+            callback_configured: boolean;
+            /** Configured */
+            configured: boolean;
+            /** Name */
+            name: string;
+            /**
+             * Reason
+             * @default
+             */
+            reason: string;
+        };
+        /** MediaGenerationProviderUpdate */
+        MediaGenerationProviderUpdate: {
+            /**
+             * Api Key
+             * @default
+             */
+            api_key: string;
+            /**
+             * Base Url
+             * @default
+             */
+            base_url: string;
+        };
+        /** MediaGenerationResponse */
+        MediaGenerationResponse: {
+            /** Adapter Version */
+            adapter_version?: string | null;
+            /**
+             * Can Retry Ingestion
+             * @default false
+             */
+            can_retry_ingestion: boolean;
+            /** Capability Manifest Version */
+            capability_manifest_version?: string | null;
+            /** Capability Snapshot */
+            capability_snapshot?: {
+                [key: string]: unknown;
+            } | null;
+            /** Confirmation Message */
+            confirmation_message?: string | null;
+            /** Cost */
+            cost?: number | null;
+            /** Created At */
+            created_at: string | null;
+            /** Detail */
+            detail: string;
+            /** Error */
+            error: string | null;
+            /** Estimated Cost */
+            estimated_cost: number | null;
+            /** Id */
+            id: string;
+            /** Job Id */
+            job_id: string;
+            /**
+             * Local Ingestion Pending
+             * @default false
+             */
+            local_ingestion_pending: boolean;
+            /** Model Label */
+            model_label: string;
+            /** Model Version */
+            model_version: string;
+            /**
+             * Needs Confirmation
+             * @default false
+             */
+            needs_confirmation: boolean;
+            /** Output File Ids */
+            output_file_ids: number[];
+            /**
+             * Output Media Type
+             * @enum {string}
+             */
+            output_media_type: "image" | "video";
+            preset: components["schemas"]["MediaGenerationPreset"];
+            /** Progress */
+            progress: number;
+            /** Provider */
+            provider: string;
+            /** Provider Id */
+            provider_id?: string | null;
+            /** Provider Job Id */
+            provider_job_id: string | null;
+            /** Provider Model Id */
+            provider_model_id?: string | null;
+            /**
+             * Requires Review
+             * @default false
+             */
+            requires_review: boolean;
+            /**
+             * Status
+             * @enum {string}
+             */
+            status: "queued" | "generating" | "ready" | "canceled" | "failed";
+            /** Updated At */
+            updated_at: string | null;
+            /** Usage */
+            usage?: {
+                [key: string]: unknown;
+            };
+        };
+        /** MediaModelCapability */
+        MediaModelCapability: {
+            /** Adapter Key */
+            adapter_key: string;
+            /** Adapter Version */
+            adapter_version: string;
+            /** Capability Manifest Version */
+            capability_manifest_version: string;
+            /** Description */
+            description: string;
+            /** Id */
+            id: string;
+            /** Label */
+            label: string;
+            /** Operations */
+            operations: components["schemas"]["ComposerOperationCapability"][];
+            /** Presentation */
+            presentation?: {
+                [key: string]: string;
+            };
+            /** Provider */
+            provider: string;
+            /** Provider Id */
+            provider_id: string;
+            /** Provider Model Id */
+            provider_model_id: string;
+            /**
+             * Status
+             * @enum {string}
+             */
+            status: "draft" | "verified" | "enabled";
+        };
         /** MoveBody */
         MoveBody: {
-            /** Destination Production Id */
-            destination_production_id: number;
+            /** Destination Project Id */
+            destination_project_id: number;
             /** Ids */
             ids: number[];
         };
@@ -4372,41 +3926,6 @@ export interface components {
              * @default Auto
              */
             language: string;
-        };
-        /** OverviewResourceResponse */
-        OverviewResourceResponse: {
-            /** Description */
-            description: string;
-            /** Icon */
-            icon: string;
-            /** Id */
-            id: number;
-            /** Key */
-            key: string;
-            /** Locked */
-            locked?: boolean | null;
-            /** Name */
-            name: string;
-            /** Public Id */
-            public_id: string;
-            /**
-             * Type
-             * @enum {string}
-             */
-            type: "venture" | "project" | "series";
-            /** Updated At */
-            updated_at?: string | null;
-        } & {
-            [key: string]: unknown;
-        };
-        /** PaginationMetaResponse */
-        PaginationMetaResponse: {
-            /** Count */
-            count: number;
-            /** Next Cursor */
-            next_cursor: string | null;
-            /** Total */
-            total: number;
         };
         /** PanEffect */
         PanEffect: {
@@ -4558,8 +4077,8 @@ export interface components {
             /** Name */
             name: string;
         };
-        /** ProductionAccountingResponse */
-        ProductionAccountingResponse: {
+        /** ProjectAccountingResponse */
+        ProjectAccountingResponse: {
             /**
              * Audio Spend
              * @default 0
@@ -4578,95 +4097,90 @@ export interface components {
             retained_generation_cost: number;
             /** Tracked Spend */
             tracked_spend: number;
-            /** Untracked Legacy Spend */
-            untracked_legacy_spend: number;
             /**
              * Video Spend
              * @default 0
              */
             video_spend: number;
         };
-        /** ProductionContext */
-        ProductionContext: {
+        /** ProjectClip */
+        ProjectClip: {
+            /** Duration */
+            duration: number;
+            /** File Url */
+            file_url: string;
+            /** Id */
+            id: string;
+            /** Start Time */
+            start_time: number;
+        };
+        /** ProjectContext */
+        ProjectContext: {
             /** Insert Before Part Id */
             insert_before_part_id?: string | null;
             /**
              * @description discriminator enum property added by openapi-typescript
              * @enum {string}
              */
-            kind: "production";
+            kind: "project";
             /** Part Id */
             part_id?: number | null;
-            /** Production Id */
-            production_id: number;
+            /** Project Id */
+            project_id: number;
         };
-        /** ProductionEditorEnvelope */
-        ProductionEditorEnvelope: {
-            data: components["schemas"]["ProductionEditorResponse"];
+        /** ProjectEditorEnvelope */
+        ProjectEditorEnvelope: {
+            data: components["schemas"]["ProjectEditorResponse"];
         };
-        /** ProductionEditorResponse */
-        ProductionEditorResponse: {
-            accounting: components["schemas"]["ProductionAccountingResponse"];
-            /** Children */
-            children?: components["schemas"]["HierarchyNodeResponse"][] | null;
-            /** Cover Image */
-            cover_image?: string | null;
+        /** ProjectEditorResponse */
+        ProjectEditorResponse: {
+            accounting: components["schemas"]["ProjectAccountingResponse"];
             /** Current Sequence Cost */
             current_sequence_cost: number;
             /** Description */
             description: string;
-            export_job?: components["schemas"]["ProductionRenderJobResponse"] | null;
+            export_job?: components["schemas"]["ProjectRenderJobResponse"] | null;
             /** Exports */
-            exports: components["schemas"]["ProductionExportResponse"][];
-            /** Icon */
-            icon?: string | null;
+            exports: components["schemas"]["ProjectExportResponse"][];
+            /** Folder Id */
+            folder_id?: number | null;
             /** Id */
             id: number;
-            /** Key */
-            key: string;
-            /** Locked */
-            locked?: boolean | null;
-            metrics?: components["schemas"]["HierarchyMetricsResponse"] | null;
             /** Name */
             name: string;
-            /** Parent Key */
-            parent_key?: string | null;
             /** Parts */
-            parts: components["schemas"]["ProductionPartResponse"][];
-            /** Project Id */
-            project_id?: number | null;
+            parts: components["schemas"]["ProjectPartResponse"][];
+            /**
+             * Project Type
+             * @default audiovisual
+             * @constant
+             */
+            project_type: "audiovisual";
             /** Public Id */
             public_id: string;
-            /** Series Id */
-            series_id: number | null;
             /** Settings */
             settings: {
                 [key: string]: unknown;
             };
-            /** Space Id */
-            space_id?: number | null;
             /** Status */
-            status?: string | null;
-            /** System Role */
-            system_role?: string | null;
+            status: string;
             /** Total Bytes */
             total_bytes: number;
             /** Total Cost */
             total_cost: number;
-            /** Trail */
-            trail: components["schemas"]["TrailItemResponse"][];
-            /**
-             * Type
-             * @constant
-             */
-            type: "production";
             /** Updated At */
             updated_at?: string | null;
+            /** Workspace Id */
+            workspace_id: number;
         } & {
             [key: string]: unknown;
         };
-        /** ProductionExportResponse */
-        ProductionExportResponse: {
+        /** ProjectEnvelope */
+        ProjectEnvelope: {
+            data: components["schemas"]["AudioProject"];
+        };
+        /** ProjectExportResponse */
+        ProjectExportResponse: {
             /** Created At */
             created_at: string;
             /** Duration Ms */
@@ -4679,40 +4193,54 @@ export interface components {
             manifest: {
                 [key: string]: unknown;
             };
-            /** Production Id */
-            production_id: number;
+            /** Project Id */
+            project_id: number;
             /** Renderer */
             renderer: string;
             /** Size Bytes */
             size_bytes: number;
         };
+        /** ProjectFileLibraryEnvelope */
+        ProjectFileLibraryEnvelope: {
+            data: components["schemas"]["ProjectFileLibraryResponse"];
+        };
+        /** ProjectFileLibraryResponse */
+        ProjectFileLibraryResponse: {
+            /** Files */
+            files: components["schemas"]["ProjectLibraryFileResponse"][];
+            /** Project File Ids */
+            project_file_ids?: number[];
+            /** Visual File Ids */
+            visual_file_ids?: number[];
+            workspace: components["schemas"]["WorkspaceFileOwnerResponse"];
+        };
         /**
-         * ProductionImportBody
-         * @description Compatibility shape for the original append-only endpoint.
+         * ProjectImportBody
+         * @description Append authored Parts to one existing audiovisual Project.
          */
-        ProductionImportBody: {
-            document: components["schemas"]["ProductionImportDocument"];
+        ProjectImportBody: {
+            document: components["schemas"]["ProjectImportDocument"];
             /** Role Voices */
             role_voices: {
                 [key: string]: string;
             };
         };
-        /** ProductionImportDestination */
-        ProductionImportDestination: {
+        /** ProjectImportDestination */
+        ProjectImportDestination: {
+            /** Folder Id */
+            folder_id?: number | null;
             /**
              * Kind
              * @enum {string}
              */
             kind: "existing" | "new";
-            /** Parent Id */
-            parent_id?: number | null;
-            /** Parent Type */
-            parent_type?: ("project" | "series") | null;
-            /** Production Id */
-            production_id?: number | null;
+            /** Project Id */
+            project_id?: number | null;
+            /** Workspace Id */
+            workspace_id?: number | null;
         };
-        /** ProductionImportDocument */
-        ProductionImportDocument: {
+        /** ProjectImportDocument */
+        ProjectImportDocument: {
             /**
              * Description
              * @default
@@ -4726,7 +4254,7 @@ export interface components {
              * Schema
              * @constant
              */
-            schema: "audio-studio-production-import";
+            schema: "origins-project-import";
             /** Title */
             title: string;
             /**
@@ -4735,29 +4263,29 @@ export interface components {
              */
             version: 1;
         };
-        /** ProductionImportEnvelope */
-        ProductionImportEnvelope: {
-            data: components["schemas"]["ProductionImportResponse"];
+        /** ProjectImportEnvelope */
+        ProjectImportEnvelope: {
+            data: components["schemas"]["ProjectImportResponse"];
         };
-        /** ProductionImportExecuteBody */
-        ProductionImportExecuteBody: {
+        /** ProjectImportExecuteBody */
+        ProjectImportExecuteBody: {
             /**
              * Description
              * @default
              */
             description: string;
-            destination: components["schemas"]["ProductionImportDestination"];
-            document: components["schemas"]["ProductionImportDocument"];
-            preparation: components["schemas"]["ProductionImportPreparation"];
+            destination: components["schemas"]["ProjectImportDestination"];
+            document: components["schemas"]["ProjectImportDocument"];
+            preparation: components["schemas"]["ProjectImportPreparation"];
             /** Role Routes */
             role_routes: {
-                [key: string]: components["schemas"]["ProductionImportRouteSelection"];
+                [key: string]: components["schemas"]["ProjectImportRouteSelection"];
             };
             /** Title */
             title: string;
         };
-        /** ProductionImportPreparation */
-        ProductionImportPreparation: {
+        /** ProjectImportPreparation */
+        ProjectImportPreparation: {
             /** Language */
             language: string;
             /**
@@ -4779,8 +4307,8 @@ export interface components {
              */
             text_version: "imported" | "spoken_1" | "spoken_2";
         };
-        /** ProductionImportResponse */
-        ProductionImportResponse: {
+        /** ProjectImportResponse */
+        ProjectImportResponse: {
             /** Items */
             items: number;
             /** Silence */
@@ -4788,15 +4316,15 @@ export interface components {
             /** Speech */
             speech: number;
         };
-        /** ProductionImportRoleResponse */
-        ProductionImportRoleResponse: {
+        /** ProjectImportRoleResponse */
+        ProjectImportRoleResponse: {
             /** Count */
             count: number;
             /** Name */
             name: string;
         };
-        /** ProductionImportRouteSelection */
-        ProductionImportRouteSelection: {
+        /** ProjectImportRouteSelection */
+        ProjectImportRouteSelection: {
             /** Binding Id */
             binding_id: string;
             /** Capability Id */
@@ -4804,48 +4332,115 @@ export interface components {
             /** Voice Identity Id */
             voice_identity_id: string;
         };
-        /** ProductionImportSummaryResponse */
-        ProductionImportSummaryResponse: {
+        /** ProjectImportSummaryResponse */
+        ProjectImportSummaryResponse: {
             /** Estimated Duration Ms */
             estimated_duration_ms: number;
             /** Items */
             items: number;
             /** Language */
             language: string | null;
-            /** Legacy Generation Hints */
-            legacy_generation_hints: number;
             /** Roles */
-            roles: components["schemas"]["ProductionImportRoleResponse"][];
+            roles: components["schemas"]["ProjectImportRoleResponse"][];
             /** Silence */
             silence: number;
             /** Speech */
             speech: number;
         };
-        /** ProductionImportValidationBody */
-        ProductionImportValidationBody: {
-            document: components["schemas"]["ProductionImportDocument"];
+        /** ProjectImportValidationBody */
+        ProjectImportValidationBody: {
+            document: components["schemas"]["ProjectImportDocument"];
         };
-        /** ProductionImportValidationEnvelope */
-        ProductionImportValidationEnvelope: {
-            data: components["schemas"]["ProductionImportValidationResponse"];
+        /** ProjectImportValidationEnvelope */
+        ProjectImportValidationEnvelope: {
+            data: components["schemas"]["ProjectImportValidationResponse"];
         };
-        /** ProductionImportValidationResponse */
-        ProductionImportValidationResponse: {
-            document: components["schemas"]["ProductionImportDocument"];
-            summary: components["schemas"]["ProductionImportSummaryResponse"];
+        /** ProjectImportValidationResponse */
+        ProjectImportValidationResponse: {
+            document: components["schemas"]["ProjectImportDocument"];
+            summary: components["schemas"]["ProjectImportSummaryResponse"];
         };
-        /** ProductionPartResponse */
-        ProductionPartResponse: {
-            /** Asset Collection */
-            asset_collection?: string | null;
-            /** Asset Id */
-            asset_id?: number | null;
-            /** Asset Kind */
-            asset_kind?: string | null;
-            /** Asset Of */
-            asset_of?: number | null;
-            /** Asset Version Id */
-            asset_version_id?: number | null;
+        /** ProjectLibraryFileResponse */
+        ProjectLibraryFileResponse: {
+            /** Audio Format */
+            audio_format?: string | null;
+            /** Category */
+            category?: string | null;
+            /** Channels */
+            channels?: number | null;
+            /** Created At */
+            created_at?: string | null;
+            /** Duration Ms */
+            duration_ms?: number | null;
+            /** Filename */
+            filename?: string | null;
+            /** Folder Id */
+            folder_id?: number | null;
+            /** Frame Rate */
+            frame_rate?: number | null;
+            /** Height */
+            height?: number | null;
+            /** Id */
+            id: number;
+            /** Kind */
+            kind?: string | null;
+            /** Media Format */
+            media_format?: string | null;
+            /**
+             * Media Type
+             * @default audio
+             * @enum {string}
+             */
+            media_type: "audio" | "image" | "video";
+            /** Metadata */
+            metadata?: {
+                [key: string]: unknown;
+            };
+            /** Mime Type */
+            mime_type?: string | null;
+            /** Missing */
+            missing?: boolean | null;
+            /** Public Id */
+            public_id: string;
+            /** Sample Rate */
+            sample_rate?: number | null;
+            /** Size Bytes */
+            size_bytes?: number | null;
+            /** Source */
+            source: string;
+            /** Tags */
+            tags?: string[];
+            /** Text */
+            text?: string | null;
+            /** Title */
+            title?: string | null;
+            /** Updated At */
+            updated_at?: string | null;
+            /** Url */
+            url?: string | null;
+            /** Version Id */
+            version_id?: number | null;
+            /** Version Metadata */
+            version_metadata?: {
+                [key: string]: unknown;
+            };
+            /** Video Codec */
+            video_codec?: string | null;
+            /** Voice */
+            voice?: string | null;
+            /** Width */
+            width?: number | null;
+            /** Workspace Id */
+            workspace_id: number;
+        } & {
+            [key: string]: unknown;
+        };
+        /** ProjectMutationEnvelope */
+        ProjectMutationEnvelope: {
+            data: components["schemas"]["ProjectResponse"];
+        };
+        /** ProjectPartResponse */
+        ProjectPartResponse: {
             /** Authored Role */
             authored_role?: string | null;
             /** Binding Id */
@@ -4902,6 +4497,16 @@ export interface components {
             enable_ssml: boolean;
             /** Engine */
             engine?: string | null;
+            /** File Category */
+            file_category?: string | null;
+            /** File Id */
+            file_id?: number | null;
+            /** File Kind */
+            file_kind?: string | null;
+            /** File Of */
+            file_of?: number | null;
+            /** File Version Id */
+            file_version_id?: number | null;
             /** Filename */
             filename?: string | null;
             /** Format */
@@ -4994,8 +4599,12 @@ export interface components {
         } & {
             [key: string]: unknown;
         };
-        /** ProductionRenderJobResponse */
-        ProductionRenderJobResponse: {
+        /** ProjectRenderEnvelope */
+        ProjectRenderEnvelope: {
+            data: components["schemas"]["ProjectRenderResult"];
+        };
+        /** ProjectRenderJobResponse */
+        ProjectRenderJobResponse: {
             /** Created At */
             created_at?: string | null;
             /** Detail */
@@ -5026,106 +4635,6 @@ export interface components {
             /** Type */
             type: string;
         };
-        /** ProductionSummaryResponse */
-        ProductionSummaryResponse: {
-            /** Current Sequence Cost */
-            current_sequence_cost: number;
-            /** Description */
-            description: string;
-            /** Duration Ms */
-            duration_ms: number;
-            /** Id */
-            id: number;
-            /** Key */
-            key: string;
-            /** Name */
-            name: string;
-            /** Part Count */
-            part_count: number;
-            /** Project Id */
-            project_id?: number | null;
-            /** Project Name */
-            project_name?: string | null;
-            /** Project Public Id */
-            project_public_id?: string | null;
-            /** Public Id */
-            public_id: string;
-            /** Series Id */
-            series_id: number | null;
-            /** Series Name */
-            series_name?: string | null;
-            /** Series Public Id */
-            series_public_id?: string | null;
-            /** Status */
-            status: string;
-            /** Total Cost */
-            total_cost: number;
-            /**
-             * Type
-             * @default production
-             * @constant
-             */
-            type: "production";
-            /** Updated At */
-            updated_at?: string | null;
-        } & {
-            [key: string]: unknown;
-        };
-        /** ProjectClip */
-        ProjectClip: {
-            /** Duration */
-            duration: number;
-            /** File Url */
-            file_url: string;
-            /** Id */
-            id: string;
-            /** Start Time */
-            start_time: number;
-        };
-        /** ProjectEnvelope */
-        ProjectEnvelope: {
-            data: components["schemas"]["AudioProject"];
-        };
-        /** ProjectMutationEnvelope */
-        ProjectMutationEnvelope: {
-            data: components["schemas"]["ProjectResponse"];
-        };
-        /** ProjectOverviewEnvelope */
-        ProjectOverviewEnvelope: {
-            data: components["schemas"]["ProjectOverviewResponse"];
-        };
-        /** ProjectOverviewMetricsResponse */
-        ProjectOverviewMetricsResponse: {
-            /** Current Sequence Cost */
-            current_sequence_cost: number;
-            /** Duration Ms */
-            duration_ms: number;
-            /** Part Count */
-            part_count: number;
-            /** Production Count */
-            production_count: number;
-            /** Series Count */
-            series_count: number;
-            /** Standalone Count */
-            standalone_count: number;
-            /** Total Cost */
-            total_cost: number;
-        };
-        /** ProjectOverviewResponse */
-        ProjectOverviewResponse: {
-            metrics: components["schemas"]["ProjectOverviewMetricsResponse"];
-            resource: components["schemas"]["OverviewResourceResponse"];
-            /** Series */
-            series: components["schemas"]["ProjectSeriesSummaryResponse"][];
-            /** Standalone Productions */
-            standalone_productions: components["schemas"]["ProductionSummaryResponse"][];
-            /** Trail */
-            trail: components["schemas"]["TrailItemResponse"][];
-        };
-        /** ProjectRenderEnvelope */
-        ProjectRenderEnvelope: {
-            data: components["schemas"]["ProjectRenderResult"];
-        };
         /** ProjectRenderResult */
         ProjectRenderResult: {
             /** Cached */
@@ -5155,7 +4664,10 @@ export interface components {
         ProjectResponse: {
             /** Description */
             description: string;
-            /** File Count */
+            /**
+             * File Count
+             * @default 0
+             */
             file_count: number;
             /** Folder Id */
             folder_id: number | null;
@@ -5163,77 +4675,25 @@ export interface components {
             id: number;
             /** Name */
             name: string;
-            /** Part Count */
+            /**
+             * Part Count
+             * @default 0
+             */
             part_count: number;
             /** Project Type */
             project_type: string;
             /** Public Id */
             public_id: string;
-            /** Space Id */
-            space_id: number;
+            /** Settings */
+            settings?: {
+                [key: string]: unknown;
+            };
             /** Status */
             status: string;
             /** Updated At */
             updated_at: string;
-        };
-        /** ProjectSeriesSummaryResponse */
-        ProjectSeriesSummaryResponse: {
-            /** Defaults */
-            defaults: {
-                [key: string]: unknown;
-            };
-            /** Description */
-            description: string;
-            /**
-             * Icon
-             * @default
-             */
-            icon: string;
-            /** Id */
-            id: number;
-            /** Key */
-            key: string;
-            metrics: components["schemas"]["SummaryMetricsResponse"];
-            /** Name */
-            name: string;
-            /** Productions */
-            productions?: components["schemas"]["ProductionSummaryResponse"][];
-            /** Public Id */
-            public_id: string;
-            /**
-             * Type
-             * @default series
-             * @constant
-             */
-            type: "series";
-            /** Updated At */
-            updated_at?: string | null;
-        } & {
-            [key: string]: unknown;
-        };
-        /** ProjectSummaryResponse */
-        ProjectSummaryResponse: {
-            /** Cover Image */
-            cover_image: string;
-            /** Description */
-            description: string;
-            /** Id */
-            id: number;
-            /** Key */
-            key: string;
-            metrics: components["schemas"]["SummaryMetricsResponse"];
-            /** Name */
-            name: string;
-            /** Public Id */
-            public_id: string;
-            /**
-             * Type
-             * @default project
-             * @constant
-             */
-            type: "project";
-            /** Updated At */
-            updated_at?: string | null;
+            /** Workspace Id */
+            workspace_id: number;
         };
         /** ProjectTrack */
         ProjectTrack: {
@@ -5357,17 +4817,17 @@ export interface components {
             http_base: string;
             /** Name */
             name: string;
+            /**
+             * Provider Workspace Id
+             * @default
+             */
+            provider_workspace_id: string;
             /** Region */
             region: string;
             /** Region Label */
             region_label: string;
             /** Workspace Configured */
             workspace_configured: boolean;
-            /**
-             * Workspace Id
-             * @default
-             */
-            workspace_id: string;
         };
         /** ProviderUpdate */
         ProviderUpdate: {
@@ -5376,13 +4836,29 @@ export interface components {
              * @default
              */
             api_key: string;
-            /** Region */
-            region: string;
             /**
-             * Workspace Id
+             * Provider Workspace Id
              * @default
              */
-            workspace_id: string;
+            provider_workspace_id: string;
+            /** Region */
+            region: string;
+        };
+        /** ProviderWorkspaceResponse */
+        ProviderWorkspaceResponse: {
+            /** Configured */
+            configured: boolean;
+            /** Http Base */
+            http_base: string;
+            /**
+             * Id
+             * @default
+             */
+            id: string;
+            /** Region */
+            region: string;
+            /** Region Label */
+            region_label: string;
         };
         /** RecordingHistoryEnvelope */
         RecordingHistoryEnvelope: {
@@ -5413,26 +4889,18 @@ export interface components {
              * @enum {string}
              */
             operation: "preview" | "export";
-            /** Production Id */
-            production_id: number;
+            /** Project Id */
+            project_id: number;
         };
-        /** ReplaceAssetBody */
-        ReplaceAssetBody: {
-            /** Asset Id */
-            asset_id: number;
+        /** ReplaceFileBody */
+        ReplaceFileBody: {
+            /** File Id */
+            file_id: number;
         };
         /** ResolvedSoundSceneClip */
         ResolvedSoundSceneClip: {
             /** Anchor */
             anchor: components["schemas"]["AbsoluteAnchor"] | components["schemas"]["PartAnchor"];
-            /** Asset Id */
-            asset_id: number;
-            /** Asset Kind */
-            asset_kind?: string | null;
-            /** Asset Name */
-            asset_name?: string | null;
-            /** Asset Version Id */
-            asset_version_id?: number | null;
             /**
              * Duck Amount Db
              * @default -12
@@ -5462,6 +4930,14 @@ export interface components {
              * @default 0
              */
             fade_out_ms: number;
+            /** File Id */
+            file_id: number;
+            /** File Kind */
+            file_kind?: string | null;
+            /** File Name */
+            file_name?: string | null;
+            /** File Version Id */
+            file_version_id?: number | null;
             /** Filename */
             filename?: string | null;
             /**
@@ -5531,45 +5007,6 @@ export interface components {
             role: "audio" | "music" | "sfx" | "ambience";
             /** Volume */
             volume: number;
-        };
-        /** ResourceCreate */
-        ResourceCreate: {
-            /**
-             * Description
-             * @default
-             */
-            description: string;
-            /** Name */
-            name: string;
-        };
-        /** ResourceMutationEnvelope */
-        ResourceMutationEnvelope: {
-            data: components["schemas"]["ResourceMutationResponse"];
-        };
-        /**
-         * ResourceMutationResponse
-         * @description A command acknowledgement; callers reload the canonical resource.
-         */
-        ResourceMutationResponse: {
-            /** Description */
-            description?: string | null;
-            /** Id */
-            id: number;
-            /** Key */
-            key?: string | null;
-            /** Name */
-            name?: string | null;
-            /** Parent Key */
-            parent_key?: string | null;
-            /** Public Id */
-            public_id?: string | null;
-            /**
-             * Type
-             * @enum {string}
-             */
-            type: "venture" | "project" | "series" | "production";
-        } & {
-            [key: string]: unknown;
         };
         /** ResourceUpdate */
         ResourceUpdate: {
@@ -5649,8 +5086,8 @@ export interface components {
         };
         /** SavedReferenceCreate */
         SavedReferenceCreate: {
-            /** Asset Ids */
-            asset_ids: number[];
+            /** File Ids */
+            file_ids: number[];
             /** Name */
             name: string;
             /**
@@ -5670,10 +5107,10 @@ export interface components {
         };
         /** SavedReferenceResponse */
         SavedReferenceResponse: {
-            /** Asset Ids */
-            asset_ids: number[];
             /** Created At */
             created_at: string;
+            /** File Ids */
+            file_ids: number[];
             /** Id */
             id: string;
             /** Name */
@@ -5773,36 +5210,6 @@ export interface components {
             /** Url */
             url: string;
         };
-        /** SeriesOverviewEnvelope */
-        SeriesOverviewEnvelope: {
-            data: components["schemas"]["SeriesOverviewResponse"];
-        };
-        /** SeriesOverviewMetricsResponse */
-        SeriesOverviewMetricsResponse: {
-            /** Current Sequence Cost */
-            current_sequence_cost: number;
-            /** Duration Ms */
-            duration_ms: number;
-            /** Part Count */
-            part_count: number;
-            /** Production Count */
-            production_count: number;
-            /** Total Cost */
-            total_cost: number;
-        };
-        /** SeriesOverviewResponse */
-        SeriesOverviewResponse: {
-            /** Defaults */
-            defaults: {
-                [key: string]: unknown;
-            };
-            metrics: components["schemas"]["SeriesOverviewMetricsResponse"];
-            /** Productions */
-            productions: components["schemas"]["ProductionSummaryResponse"][];
-            resource: components["schemas"]["OverviewResourceResponse"];
-            /** Trail */
-            trail: components["schemas"]["TrailItemResponse"][];
-        };
         /** SettingsSnapshotEnvelope */
         SettingsSnapshotEnvelope: {
             data: components["schemas"]["SettingsSnapshotResponse"];
@@ -5811,8 +5218,8 @@ export interface components {
         SettingsSnapshotResponse: {
             audio_catalog: components["schemas"]["AudioCatalogSettingsResponse"];
             audio_generation: components["schemas"]["AudioGenerationSettingsResponse"];
-            database: components["schemas"]["audio_studio__http__settings_contracts__DatabaseStatusResponse"];
-            director_provider: components["schemas"]["DirectorProviderSettingsResponse"];
+            database: components["schemas"]["origins__http__settings_contracts__DatabaseStatusResponse"];
+            media_generation_provider: components["schemas"]["MediaGenerationProviderSettingsResponse"];
             /** Naming */
             naming: {
                 [key: string]: string | number | boolean;
@@ -5855,12 +5262,12 @@ export interface components {
             /** Seconds */
             seconds: number;
         };
-        /** SoundRecipeCompileEnvelope */
-        SoundRecipeCompileEnvelope: {
-            data: components["schemas"]["SoundRecipeCompileResponse"];
+        /** SoundPresetCompileEnvelope */
+        SoundPresetCompileEnvelope: {
+            data: components["schemas"]["SoundPresetCompileResponse"];
         };
-        /** SoundRecipeCompileRequest */
-        SoundRecipeCompileRequest: {
+        /** SoundPresetCompileRequest */
+        SoundPresetCompileRequest: {
             /** Capability */
             capability: string;
             /** Final Prompt Override */
@@ -5875,8 +5282,8 @@ export interface components {
              */
             source_free_text: string;
         };
-        /** SoundRecipeCompileResponse */
-        SoundRecipeCompileResponse: {
+        /** SoundPresetCompileResponse */
+        SoundPresetCompileResponse: {
             /** Capability */
             capability: string;
             /** Compiled Prompt */
@@ -5884,7 +5291,7 @@ export interface components {
             /** Compiler Version */
             compiler_version: string;
             /** Conflicts */
-            conflicts: components["schemas"]["SoundRecipeConflictResponse"][];
+            conflicts: components["schemas"]["SoundPresetConflictResponse"][];
             /** Model */
             model: string;
             /** Semantic Schema Version */
@@ -5898,8 +5305,8 @@ export interface components {
             /** Taxonomy Version */
             taxonomy_version: string;
         };
-        /** SoundRecipeConflictResponse */
-        SoundRecipeConflictResponse: {
+        /** SoundPresetConflictResponse */
+        SoundPresetConflictResponse: {
             /** Field */
             field: string;
             /** Free Text */
@@ -5911,8 +5318,8 @@ export interface components {
             /** Title */
             title: string;
         };
-        /** SoundRecipeNormalizationJobCreate */
-        SoundRecipeNormalizationJobCreate: {
+        /** SoundPresetNormalizationJobCreate */
+        SoundPresetNormalizationJobCreate: {
             /**
              * Capability
              * @enum {string}
@@ -5923,8 +5330,8 @@ export interface components {
              * @default false
              */
             confirmed: boolean;
-            /** Production Id */
-            production_id?: number | null;
+            /** Project Id */
+            project_id?: number | null;
             /** Semantic State */
             semantic_state: {
                 [key: string]: unknown;
@@ -5934,15 +5341,15 @@ export interface components {
              * @default
              */
             source_free_text: string;
-            /** Space Id */
-            space_id?: number | null;
+            /** Workspace Id */
+            workspace_id?: number | null;
         };
-        /** SoundRecipeTaxonomyEnvelope */
-        SoundRecipeTaxonomyEnvelope: {
-            data: components["schemas"]["SoundRecipeTaxonomyResponse"];
+        /** SoundPresetTaxonomyEnvelope */
+        SoundPresetTaxonomyEnvelope: {
+            data: components["schemas"]["SoundPresetTaxonomyResponse"];
         };
-        /** SoundRecipeTaxonomyResponse */
-        SoundRecipeTaxonomyResponse: {
+        /** SoundPresetTaxonomyResponse */
+        SoundPresetTaxonomyResponse: {
             /** Items */
             items: {
                 [key: string]: unknown;
@@ -5954,10 +5361,6 @@ export interface components {
         SoundSceneClipDocument: {
             /** Anchor */
             anchor: components["schemas"]["AbsoluteAnchor"] | components["schemas"]["PartAnchor"];
-            /** Asset Id */
-            asset_id: number;
-            /** Asset Version Id */
-            asset_version_id?: number | null;
             /**
              * Duck Amount Db
              * @default -12
@@ -5982,6 +5385,10 @@ export interface components {
              * @default 0
              */
             fade_out_ms: number;
+            /** File Id */
+            file_id: number;
+            /** File Version Id */
+            file_version_id?: number | null;
             /**
              * Gain
              * @default 1
@@ -6057,8 +5464,8 @@ export interface components {
             /** Can Undo */
             can_undo: boolean;
             document: components["schemas"]["SoundSceneDocument"];
-            /** Production Id */
-            production_id: number;
+            /** Project Id */
+            project_id: number;
             resolved: components["schemas"]["SoundSceneResolution"];
             /** Revision */
             revision: number;
@@ -6074,9 +5481,9 @@ export interface components {
             id: string;
             /**
              * Kind
-             * @enum {string}
+             * @constant
              */
-            kind: "audio" | "music" | "sfx" | "ambience";
+            kind: "audio";
             /**
              * Muted
              * @default false
@@ -6086,7 +5493,6 @@ export interface components {
             name: string;
             /**
              * Role
-             * @default audio
              * @enum {string}
              */
             role: "audio" | "music" | "sfx" | "ambience";
@@ -6107,84 +5513,6 @@ export interface components {
              * @enum {string}
              */
             mutation_kind: "operator" | "derived_visual_audio";
-        };
-        /** SpaceAssetOwnerResponse */
-        SpaceAssetOwnerResponse: {
-            /** Created At */
-            created_at: string;
-            /** Description */
-            description: string;
-            /** Id */
-            id: number;
-            /** Name */
-            name: string;
-            /** Public Id */
-            public_id: string;
-            /** Updated At */
-            updated_at: string;
-        };
-        /** SpaceCreateRequest */
-        SpaceCreateRequest: {
-            /**
-             * Description
-             * @default
-             */
-            description: string;
-            /** Name */
-            name: string;
-        };
-        /** SpaceListEnvelope */
-        SpaceListEnvelope: {
-            /** Data */
-            data: components["schemas"]["SpaceResponse"][];
-        };
-        /** SpaceMutationEnvelope */
-        SpaceMutationEnvelope: {
-            data: components["schemas"]["SpaceResponse"];
-        };
-        /** SpaceOverviewEnvelope */
-        SpaceOverviewEnvelope: {
-            data: components["schemas"]["SpaceOverviewResponse"];
-        };
-        /** SpaceOverviewResponse */
-        SpaceOverviewResponse: {
-            /** Files */
-            files: components["schemas"]["FileResponse"][];
-            /** Folders */
-            folders: components["schemas"]["FolderResponse"][];
-            /** Projects */
-            projects: components["schemas"]["ProjectResponse"][];
-            space: components["schemas"]["SpaceResponse"];
-        };
-        /** SpaceResponse */
-        SpaceResponse: {
-            /** Created At */
-            created_at: string;
-            /** Description */
-            description: string;
-            /**
-             * File Count
-             * @default 0
-             */
-            file_count: number;
-            /**
-             * Folder Count
-             * @default 0
-             */
-            folder_count: number;
-            /** Id */
-            id: number;
-            /** Name */
-            name: string;
-            /**
-             * Project Count
-             * @default 0
-             */
-            project_count: number;
-            /** Public Id */
-            public_id: string;
-            /** Updated At */
-            updated_at: string;
         };
         /**
          * SpeechGenerateResultResponse
@@ -6245,8 +5573,8 @@ export interface components {
              * @default 1
              */
             pitch: number;
-            /** Production Id */
-            production_id?: number | null;
+            /** Project Id */
+            project_id?: number | null;
             /**
              * Rate
              * @default 1
@@ -6257,8 +5585,6 @@ export interface components {
              * @default 0
              */
             seed: number;
-            /** Space Id */
-            space_id?: number | null;
             /**
              * Speech Mode
              * @default exact
@@ -6291,6 +5617,8 @@ export interface components {
              * @default 100
              */
             volume: number;
+            /** Workspace Id */
+            workspace_id?: number | null;
         };
         /** SpeechJobCreatedEnvelope */
         SpeechJobCreatedEnvelope: {
@@ -6326,14 +5654,14 @@ export interface components {
             result: components["schemas"]["SpeechGenerateResultResponse"];
             /** Retries */
             retries: number;
-            /** Space Id */
-            space_id?: number | null;
             /** Started At */
             started_at?: string | null;
             /** Status */
             status: string;
             /** Type */
             type: string;
+            /** Workspace Id */
+            workspace_id?: number | null;
         };
         /** SpeechSettingsResponse */
         SpeechSettingsResponse: {
@@ -6558,6 +5886,7 @@ export interface components {
             prefs: {
                 [key: string]: unknown;
             };
+            provider_workspace: components["schemas"]["ProviderWorkspaceResponse"];
             /** Rates */
             rates: {
                 [key: string]: number;
@@ -6614,7 +5943,6 @@ export interface components {
                     [key: string]: string;
                 };
             };
-            workspace: components["schemas"]["WorkspaceResponse"];
         };
         /** SubtitleDeletedEnvelope */
         SubtitleDeletedEnvelope: {
@@ -6664,8 +5992,6 @@ export interface components {
             sentences: components["schemas"]["TranscriptSentenceResponse"][];
             /** Source Job Id */
             source_job_id: string | null;
-            /** Space Id */
-            space_id: number | null;
             /** Srt */
             srt: string;
             /** Text */
@@ -6676,6 +6002,8 @@ export interface components {
             url: string | null;
             /** Vtt */
             vtt: string;
+            /** Workspace Id */
+            workspace_id: number | null;
         };
         /** SubtitleSummaryResponse */
         SubtitleSummaryResponse: {
@@ -6704,26 +6032,13 @@ export interface components {
             /** When */
             when: string;
         };
-        /** SummaryMetricsResponse */
-        SummaryMetricsResponse: {
-            /** Current Sequence Cost */
-            current_sequence_cost: number;
-            /** Duration Ms */
-            duration_ms: number;
-            /** Part Count */
-            part_count: number;
-            /** Production Count */
-            production_count: number;
-            /** Total Cost */
-            total_cost: number;
-        };
         /** SystemHealthEnvelope */
         SystemHealthEnvelope: {
             data: components["schemas"]["SystemHealthResponse"];
         };
         /** SystemHealthResponse */
         SystemHealthResponse: {
-            database: components["schemas"]["audio_studio__http__operational_contracts__DatabaseStatusResponse"];
+            database: components["schemas"]["origins__http__operational_contracts__DatabaseStatusResponse"];
             /** Name */
             name: string;
             /** Status */
@@ -6785,8 +6100,8 @@ export interface components {
             operation: "shape" | "tag";
             /** Part Id */
             part_id?: number | null;
-            /** Production Id */
-            production_id?: number | null;
+            /** Project Id */
+            project_id?: number | null;
             /**
              * Spoken Profile
              * @default spoken_1
@@ -6862,22 +6177,6 @@ export interface components {
             /** Removed */
             removed: number;
         };
-        /** TrailItemResponse */
-        TrailItemResponse: {
-            /** Icon */
-            icon?: string | null;
-            /** Id */
-            id: number;
-            /** Name */
-            name: string;
-            /** Public Id */
-            public_id: string;
-            /**
-             * Type
-             * @enum {string}
-             */
-            type: "space" | "venture" | "project" | "series";
-        };
         /** TranscriptSentenceResponse */
         TranscriptSentenceResponse: {
             /** End */
@@ -6950,15 +6249,13 @@ export interface components {
              * @default
              */
             playable: string;
-            /** Production Id */
-            production_id?: number | null;
+            /** Project Id */
+            project_id?: number | null;
             /**
              * Size Bytes
              * @default 0
              */
             size_bytes: number;
-            /** Space Id */
-            space_id?: number | null;
             /**
              * Url
              * @default
@@ -6966,6 +6263,8 @@ export interface components {
             url: string;
             /** Vocabulary Id */
             vocabulary_id?: string | null;
+            /** Workspace Id */
+            workspace_id?: number | null;
         };
         /** TranslationJobCreate */
         TranslationJobCreate: {
@@ -6990,90 +6289,14 @@ export interface components {
             /** Transcript Id */
             transcript_id: number;
         };
-        /** UpdateAssetBody */
-        UpdateAssetBody: {
+        /** UpdateFileBody */
+        UpdateFileBody: {
             /** Category */
             category?: ("music" | "ambience" | "sfx") | null;
             /** Name */
             name: string;
-            /**
-             * Scope
-             * @enum {string}
-             */
-            scope: "space" | "studio";
             /** Tags */
             tags?: string[];
-        };
-        /** UploadedAssetEnvelope */
-        UploadedAssetEnvelope: {
-            data: components["schemas"]["UploadedAssetResponse"];
-        };
-        /** UploadedAssetResponse */
-        UploadedAssetResponse: {
-            /** Audio Format */
-            audio_format?: string | null;
-            /** Category */
-            category?: ("music" | "ambience" | "sfx") | null;
-            /** Channels */
-            channels?: number | null;
-            /**
-             * Created At
-             * Format: date-time
-             */
-            created_at: string;
-            /** Duration Ms */
-            duration_ms?: number | null;
-            /** Filename */
-            filename: string;
-            /** Frame Rate */
-            frame_rate?: number | null;
-            /** Height */
-            height?: number | null;
-            /** Id */
-            id: number;
-            /** Media Format */
-            media_format: string;
-            /**
-             * Media Type
-             * @enum {string}
-             */
-            media_type: "audio" | "image" | "video" | "subtitle" | "document" | "archive" | "data" | "other";
-            /** Metadata */
-            metadata: {
-                [key: string]: unknown;
-            };
-            /** Mime Type */
-            mime_type: string;
-            /** Name */
-            name: string;
-            /** Sample Rate */
-            sample_rate?: number | null;
-            /**
-             * Scope
-             * @enum {string}
-             */
-            scope: "space" | "studio";
-            /** Size Bytes */
-            size_bytes: number;
-            /** Tags */
-            tags: string[];
-            /**
-             * Updated At
-             * Format: date-time
-             */
-            updated_at: string;
-            /** Url */
-            url: string;
-            /** Version Id */
-            version_id: number;
-            /** Version Metadata */
-            version_metadata: {
-                [key: string]: unknown;
-            };
-            /** Video Codec */
-            video_codec?: string | null;
-            /** Width */
-            width?: number | null;
         };
         /** UploadedFileEnvelope */
         UploadedFileEnvelope: {
@@ -7197,114 +6420,21 @@ export interface components {
             /** Error Type */
             type: string;
         };
-        /** VentureAssetLibraryEnvelope */
-        VentureAssetLibraryEnvelope: {
-            data: components["schemas"]["VentureAssetLibraryResponse"];
+        /** VisualFileMutationEnvelope */
+        VisualFileMutationEnvelope: {
+            data: components["schemas"]["VisualFileMutationResponse"];
         };
-        /** VentureAssetLibraryResponse */
-        VentureAssetLibraryResponse: {
-            /** Assets */
-            assets: components["schemas"]["VentureAssetResponse"][];
-            /** Collections */
-            collections: components["schemas"]["AssetCollectionResponse"][];
-            /** Director Asset Ids */
-            director_asset_ids?: number[];
-            /** Project File Ids */
-            project_file_ids?: number[];
-            space?: components["schemas"]["SpaceAssetOwnerResponse"] | null;
-            venture?: components["schemas"]["HierarchyNodeResponse"] | null;
+        /** VisualFileMutationRequest */
+        VisualFileMutationRequest: {
+            /** File Id */
+            file_id: number;
         };
-        /** VentureAssetResponse */
-        VentureAssetResponse: {
-            /** Audio Format */
-            audio_format?: string | null;
-            /** Category */
-            category?: string | null;
-            /** Channels */
-            channels?: number | null;
-            /** Collection */
-            collection?: string | null;
-            /** Created At */
-            created_at?: string | null;
-            /** Duration Ms */
-            duration_ms?: number | null;
-            /** Filename */
-            filename?: string | null;
-            /** Folder */
-            folder?: string | null;
-            /** Frame Rate */
-            frame_rate?: number | null;
-            /** Height */
-            height?: number | null;
-            /** Id */
-            id: number;
-            /** Kind */
-            kind?: string | null;
-            /** Media Format */
-            media_format?: string | null;
-            /**
-             * Media Type
-             * @default audio
-             * @enum {string}
-             */
-            media_type: "audio" | "image" | "video";
-            /** Metadata */
-            metadata?: {
-                [key: string]: unknown;
-            };
-            /** Mime Type */
-            mime_type?: string | null;
-            /** Missing */
-            missing?: boolean | null;
-            /** Sample Rate */
-            sample_rate?: number | null;
-            /**
-             * Scope
-             * @default space
-             * @enum {string}
-             */
-            scope: "space" | "studio";
-            /** Size Bytes */
-            size_bytes?: number | null;
-            /** Tags */
-            tags?: string[];
-            /** Text */
-            text?: string | null;
-            /** Title */
-            title?: string | null;
-            /** Updated At */
-            updated_at?: string | null;
-            /** Venture Id */
-            venture_id?: number | null;
-            /** Version Id */
-            version_id?: number | null;
-            /** Version Metadata */
-            version_metadata?: {
-                [key: string]: unknown;
-            };
-            /** Video Codec */
-            video_codec?: string | null;
-            /** Voice */
-            voice?: string | null;
-            /** Width */
-            width?: number | null;
-        } & {
-            [key: string]: unknown;
-        };
-        /** VentureOverviewEnvelope */
-        VentureOverviewEnvelope: {
-            data: components["schemas"]["VentureOverviewResponse"];
-        };
-        /** VentureOverviewResponse */
-        VentureOverviewResponse: {
-            asset_summary: components["schemas"]["AssetSummaryResponse"];
-            /** Projects */
-            projects: components["schemas"]["ProjectSummaryResponse"][];
-            /** Recent Productions */
-            recent_productions: components["schemas"]["ProductionSummaryResponse"][];
-            resource: components["schemas"]["OverviewResourceResponse"];
-            /** Trail */
-            trail: components["schemas"]["TrailItemResponse"][];
+        /** VisualFileMutationResponse */
+        VisualFileMutationResponse: {
+            /** Attached */
+            attached: boolean;
+            /** File Id */
+            file_id: number;
         };
         /** VisualSceneCanvasDocument */
         VisualSceneCanvasDocument: {
@@ -7321,10 +6451,10 @@ export interface components {
         };
         /** VisualSceneClipDocument */
         VisualSceneClipDocument: {
-            /** Asset Id */
-            asset_id: number;
             /** Duration Ms */
             duration_ms: number;
+            /** File Id */
+            file_id: number;
             /**
              * Fit
              * @default cover
@@ -7405,8 +6535,8 @@ export interface components {
         /** VisualSceneResponse */
         VisualSceneResponse: {
             document: components["schemas"]["VisualSceneDocument"];
-            /** Production Id */
-            production_id: number;
+            /** Project Id */
+            project_id: number;
             /** Revision */
             revision: number;
             /** Updated At */
@@ -7946,8 +7076,6 @@ export interface components {
             gender?: string | null;
             /** Image */
             image?: string | null;
-            /** Language */
-            language?: string | null;
             /** Notes */
             notes?: string | null;
             /** Package */
@@ -7999,8 +7127,8 @@ export interface components {
              * @default
              */
             preview_filename: string;
-            /** Productions */
-            productions: number;
+            /** Projects */
+            projects: number;
             /** Spend */
             spend: number;
             /** Uses */
@@ -8233,70 +7361,16 @@ export interface components {
         };
         /** VoiceUsageResponse */
         VoiceUsageResponse: {
-            /** Folders */
-            folders: number;
             /** Last Used */
             last_used?: string | null;
             /** Latest Preview */
             latest_preview?: string | null;
+            /** Projects */
+            projects: number;
             /** Spend */
             spend: number;
             /** Uses */
             uses: number;
-        };
-        /** WorkResourceEnvelope */
-        WorkResourceEnvelope: {
-            data: components["schemas"]["WorkResourceResponse"];
-        };
-        /**
-         * WorkResourceResponse
-         * @description The shared identity fields returned by any Work resource.
-         */
-        WorkResourceResponse: {
-            /** Children */
-            children?: components["schemas"]["HierarchyNodeResponse"][] | null;
-            /** Cover Image */
-            cover_image?: string | null;
-            /** Description */
-            description: string;
-            /** Icon */
-            icon?: string | null;
-            /** Id */
-            id: number;
-            /** Key */
-            key: string;
-            /** Locked */
-            locked?: boolean | null;
-            metrics?: components["schemas"]["HierarchyMetricsResponse"] | null;
-            /** Name */
-            name: string;
-            /** Parent Key */
-            parent_key?: string | null;
-            /** Project Id */
-            project_id?: number | null;
-            /** Public Id */
-            public_id: string;
-            /** Series Id */
-            series_id?: number | null;
-            /** Settings */
-            settings?: {
-                [key: string]: unknown;
-            } | null;
-            /** Status */
-            status?: string | null;
-            /** System Role */
-            system_role?: string | null;
-            /** Trail */
-            trail?: components["schemas"]["TrailItemResponse"][] | null;
-            /**
-             * Type
-             * @enum {string}
-             */
-            type: "venture" | "project" | "series" | "production";
-            /** Updated At */
-            updated_at?: string | null;
-        } & {
-            [key: string]: unknown;
         };
         /** WorkerStatusResponse */
         WorkerStatusResponse: {
@@ -8319,24 +7393,86 @@ export interface components {
             /** Status */
             status: string;
         };
-        /** WorkspaceResponse */
-        WorkspaceResponse: {
-            /** Configured */
-            configured: boolean;
-            /** Http Base */
-            http_base: string;
+        /** WorkspaceCreateRequest */
+        WorkspaceCreateRequest: {
             /**
-             * Id
+             * Description
              * @default
              */
-            id: string;
-            /** Region */
-            region: string;
-            /** Region Label */
-            region_label: string;
+            description: string;
+            /** Name */
+            name: string;
+        };
+        /** WorkspaceFileOwnerResponse */
+        WorkspaceFileOwnerResponse: {
+            /** Created At */
+            created_at: string;
+            /** Description */
+            description: string;
+            /** Id */
+            id: number;
+            /** Name */
+            name: string;
+            /** Public Id */
+            public_id: string;
+            /** Updated At */
+            updated_at: string;
+        };
+        /** WorkspaceListEnvelope */
+        WorkspaceListEnvelope: {
+            /** Data */
+            data: components["schemas"]["WorkspaceResponse"][];
+        };
+        /** WorkspaceMutationEnvelope */
+        WorkspaceMutationEnvelope: {
+            data: components["schemas"]["WorkspaceResponse"];
+        };
+        /** WorkspaceOverviewEnvelope */
+        WorkspaceOverviewEnvelope: {
+            data: components["schemas"]["WorkspaceOverviewResponse"];
+        };
+        /** WorkspaceOverviewResponse */
+        WorkspaceOverviewResponse: {
+            /** Files */
+            files: components["schemas"]["FileResponse"][];
+            /** Folders */
+            folders: components["schemas"]["FolderResponse"][];
+            /** Projects */
+            projects: components["schemas"]["ProjectResponse"][];
+            workspace: components["schemas"]["WorkspaceResponse"];
+        };
+        /** WorkspaceResponse */
+        WorkspaceResponse: {
+            /** Created At */
+            created_at: string;
+            /** Description */
+            description: string;
+            /**
+             * File Count
+             * @default 0
+             */
+            file_count: number;
+            /**
+             * Folder Count
+             * @default 0
+             */
+            folder_count: number;
+            /** Id */
+            id: number;
+            /** Name */
+            name: string;
+            /**
+             * Project Count
+             * @default 0
+             */
+            project_count: number;
+            /** Public Id */
+            public_id: string;
+            /** Updated At */
+            updated_at: string;
         };
         /** DatabaseStatusResponse */
-        audio_studio__http__operational_contracts__DatabaseStatusResponse: {
+        origins__http__operational_contracts__DatabaseStatusResponse: {
             /** Connected */
             connected: boolean;
             /** Count */
@@ -8345,7 +7481,7 @@ export interface components {
             reason?: string | null;
         };
         /** DatabaseStatusResponse */
-        audio_studio__http__settings_contracts__DatabaseStatusResponse: {
+        origins__http__settings_contracts__DatabaseStatusResponse: {
             /** Connected */
             connected: boolean;
             /** Count */
@@ -8397,78 +7533,6 @@ export interface operations {
             };
         };
     };
-    uploadVentureAsset: {
-        parameters: {
-            query?: never;
-            header?: {
-                "x-filename"?: string;
-                "x-asset-category"?: string | null;
-                "x-asset-name"?: string | null;
-                "x-asset-scope"?: string | null;
-                "x-asset-tags"?: string | null;
-            };
-            path: {
-                collection_id: number;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            201: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["UploadedAssetEnvelope"];
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    updateAsset: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                asset_id: number;
-            };
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["UpdateAssetBody"];
-            };
-        };
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["UploadedAssetEnvelope"];
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
     keepFreesoundFileInAudiovisualProject: {
         parameters: {
             query?: never;
@@ -8476,39 +7540,6 @@ export interface operations {
             path: {
                 project_id: number;
             };
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["KeepFreesoundInSpaceBody"];
-            };
-        };
-        responses: {
-            /** @description Successful Response */
-            201: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["CatalogKeepEnvelope"];
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    keepFreesoundAsset: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
             cookie?: never;
         };
         requestBody: {
@@ -8571,18 +7602,38 @@ export interface operations {
             };
         };
     };
-    keepFreesoundFileInSpace: {
+    getFreesoundCatalogStatus: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CatalogStatusEnvelope"];
+                };
+            };
+        };
+    };
+    keepFreesoundFileInWorkspace: {
         parameters: {
             query?: never;
             header?: never;
             path: {
-                space_id: number;
+                workspace_id: number;
             };
             cookie?: never;
         };
         requestBody: {
             content: {
-                "application/json": components["schemas"]["KeepFreesoundInSpaceBody"];
+                "application/json": components["schemas"]["KeepFreesoundBody"];
             };
         };
         responses: {
@@ -8606,7 +7657,40 @@ export interface operations {
             };
         };
     };
-    getFreesoundCatalogStatus: {
+    compileSoundPreset: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SoundPresetCompileRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SoundPresetCompileEnvelope"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    getSoundPresetTaxonomy: {
         parameters: {
             query?: never;
             header?: never;
@@ -8621,7 +7705,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["CatalogStatusEnvelope"];
+                    "application/json": components["schemas"]["SoundPresetTaxonomyEnvelope"];
                 };
             };
         };
@@ -8629,8 +7713,8 @@ export interface operations {
     listRecentAudioGenerations: {
         parameters: {
             query?: {
-                production_id?: number | null;
-                space_id?: number | null;
+                project_id?: number | null;
+                workspace_id?: number | null;
             };
             header?: never;
             path?: never;
@@ -8654,59 +7738,6 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    compileSoundRecipe: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["SoundRecipeCompileRequest"];
-            };
-        };
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["SoundRecipeCompileEnvelope"];
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    getSoundRecipeTaxonomy: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["SoundRecipeTaxonomyEnvelope"];
                 };
             };
         };
@@ -8749,42 +7780,6 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["AudioGenerationCandidateEnvelope"];
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    keepGeneratedAudioFileInAudiovisualProject: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                candidate_id: string;
-                project_id: number;
-            };
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["KeepGeneratedInSpaceBody"];
-            };
-        };
-        responses: {
-            /** @description Successful Response */
-            201: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["GeneratedKeepEnvelope"];
                 };
             };
             /** @description Validation Error */
@@ -8858,12 +7853,13 @@ export interface operations {
             };
         };
     };
-    keepGeneratedAudio: {
+    keepGeneratedAudioFileInAudiovisualProject: {
         parameters: {
             query?: never;
             header?: never;
             path: {
                 candidate_id: string;
+                project_id: number;
             };
             cookie?: never;
         };
@@ -8893,19 +7889,19 @@ export interface operations {
             };
         };
     };
-    keepGeneratedAudioFileInSpace: {
+    keepGeneratedAudioFileInWorkspace: {
         parameters: {
             query?: never;
             header?: never;
             path: {
                 candidate_id: string;
-                space_id: number;
+                workspace_id: number;
             };
             cookie?: never;
         };
         requestBody: {
             content: {
-                "application/json": components["schemas"]["KeepGeneratedInSpaceBody"];
+                "application/json": components["schemas"]["KeepGeneratedBody"];
             };
         };
         responses: {
@@ -8916,73 +7912,6 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["GeneratedKeepEnvelope"];
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    getAudiovisualProject: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                project_identifier: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ProjectMutationEnvelope"];
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    uploadAudiovisualProjectFile: {
-        parameters: {
-            query?: never;
-            header?: {
-                "x-filename"?: string;
-                "x-asset-category"?: string | null;
-                "x-asset-name"?: string | null;
-                "x-asset-tags"?: string | null;
-            };
-            path: {
-                project_id: number;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            201: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["UploadedAssetEnvelope"];
                 };
             };
             /** @description Validation Error */
@@ -9095,6 +8024,217 @@ export interface operations {
             };
         };
     };
+    getMediaGenerationCapabilities: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ComposerCapabilitiesEnvelope"];
+                };
+            };
+        };
+    };
+    listMediaGenerations: {
+        parameters: {
+            query: {
+                workspace_id: number;
+                project_id?: number | null;
+                limit?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MediaGenerationListEnvelope"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    createMediaGeneration: {
+        parameters: {
+            query?: never;
+            header: {
+                "Idempotency-Key": string;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ComposerGenerationRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            202: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MediaGenerationEnvelope"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    cancelMediaGeneration: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                job_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ComposerContext"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MediaGenerationEnvelope"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    retryMediaGenerationIngestion: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                job_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ComposerContext"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MediaGenerationEnvelope"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    checkComposerInputCompatibility: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ComposerInputCompatibilityRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ComposerInputCompatibilityEnvelope"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    getMediaModels: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ComposerCapabilitiesEnvelope"];
+                };
+            };
+        };
+    };
     getStudioConfig: {
         parameters: {
             query?: never;
@@ -9146,46 +8286,6 @@ export interface operations {
             };
         };
     };
-    getDirectorGenerationCapabilities: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["DirectorCapabilitiesEnvelope"];
-                };
-            };
-        };
-    };
-    getDirectorModels: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["DirectorCapabilitiesEnvelope"];
-                };
-            };
-        };
-    };
     downloadExport: {
         parameters: {
             query?: never;
@@ -9215,17 +8315,20 @@ export interface operations {
             };
         };
     };
-    listHierarchy: {
+    updateFile: {
         parameters: {
-            query?: {
-                limit?: number;
-                after?: string | null;
-            };
+            query?: never;
             header?: never;
-            path?: never;
+            path: {
+                file_id: number;
+            };
             cookie?: never;
         };
-        requestBody?: never;
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["UpdateFileBody"];
+            };
+        };
         responses: {
             /** @description Successful Response */
             200: {
@@ -9233,7 +8336,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["HierarchyPageEnvelope"];
+                    "application/json": components["schemas"]["UploadedFileEnvelope"];
                 };
             };
             /** @description Validation Error */
@@ -9317,7 +8420,7 @@ export interface operations {
             };
         };
     };
-    createSoundRecipeNormalizationJob: {
+    createSoundPresetNormalizationJob: {
         parameters: {
             query?: never;
             header?: {
@@ -9328,7 +8431,7 @@ export interface operations {
         };
         requestBody: {
             content: {
-                "application/json": components["schemas"]["SoundRecipeNormalizationJobCreate"];
+                "application/json": components["schemas"]["SoundPresetNormalizationJobCreate"];
             };
         };
         responses: {
@@ -9651,7 +8754,38 @@ export interface operations {
             };
         };
     };
-    createProductionImport: {
+    uploadProjectCover: {
+        parameters: {
+            query?: never;
+            header?: {
+                "x-filename"?: string;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["UploadedImageEnvelope"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    createProjectImport: {
         parameters: {
             query?: never;
             header?: {
@@ -9662,7 +8796,7 @@ export interface operations {
         };
         requestBody: {
             content: {
-                "application/json": components["schemas"]["ProductionImportExecuteBody"];
+                "application/json": components["schemas"]["ProjectImportExecuteBody"];
             };
         };
         responses: {
@@ -9686,7 +8820,7 @@ export interface operations {
             };
         };
     };
-    validateProductionImport: {
+    validateProjectImport: {
         parameters: {
             query?: never;
             header?: never;
@@ -9695,7 +8829,7 @@ export interface operations {
         };
         requestBody: {
             content: {
-                "application/json": components["schemas"]["ProductionImportValidationBody"];
+                "application/json": components["schemas"]["ProjectImportValidationBody"];
             };
         };
         responses: {
@@ -9705,1116 +8839,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["ProductionImportValidationEnvelope"];
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    listProductionAssets: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                production_id: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["VentureAssetLibraryEnvelope"];
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    attachProductionDirectorAsset: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                production_id: string;
-            };
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["DirectorAssetMutationRequest"];
-            };
-        };
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["DirectorAssetMutationEnvelope"];
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    detachProductionDirectorAsset: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                production_id: string;
-                asset_id: number;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["DirectorAssetMutationEnvelope"];
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    listDirectorGenerations: {
-        parameters: {
-            query?: {
-                limit?: number;
-            };
-            header?: never;
-            path: {
-                production_id: number;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["DirectorGenerationListEnvelope"];
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    createDirectorGeneration: {
-        parameters: {
-            query?: never;
-            header: {
-                "Idempotency-Key": string;
-            };
-            path: {
-                production_id: number;
-            };
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["DirectorGenerationRecipe"];
-            };
-        };
-        responses: {
-            /** @description Successful Response */
-            202: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["DirectorGenerationEnvelope"];
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    cancelDirectorGeneration: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                production_id: number;
-                job_id: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["DirectorGenerationEnvelope"];
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    retryDirectorGenerationIngestion: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                production_id: number;
-                job_id: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["DirectorGenerationEnvelope"];
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    checkDirectorInputCompatibility: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                production_id: number;
-            };
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["DirectorInputCompatibilityRequest"];
-            };
-        };
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["DirectorInputCompatibilityEnvelope"];
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    getProductionEditor: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                production_id: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ProductionEditorEnvelope"];
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    importProductionDocument: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                production_id: number;
-            };
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["ProductionImportBody"];
-            };
-        };
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ProductionImportEnvelope"];
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    deleteProductionParts: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                production_id: number;
-            };
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["DeleteBody"];
-            };
-        };
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["DeletedPartsEnvelope"];
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    insertProductionAsset: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                production_id: number;
-            };
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["AssetBody"];
-            };
-        };
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["PartCreatedEnvelope"];
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    addProductionDraft: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                production_id: number;
-            };
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["DraftBody"];
-            };
-        };
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["PartCreatedEnvelope"];
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    moveProductionParts: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                production_id: number;
-            };
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["MoveBody"];
-            };
-        };
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["MovedPartsEnvelope"];
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    reorderProductionParts: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                production_id: number;
-            };
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["OrderBody"];
-            };
-        };
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["OkEnvelope"];
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    addProductionSilence: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                production_id: number;
-            };
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["SilenceBody"];
-            };
-        };
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["PartCreatedEnvelope"];
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    replaceProductionAsset: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                production_id: number;
-                part_id: number;
-            };
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["ReplaceAssetBody"];
-            };
-        };
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["PartCreatedEnvelope"];
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    listProductionPartCaptions: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                production_id: number;
-                part_id: number;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["TranscriptSummaryListEnvelope"];
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    updateProductionPartDraft: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                production_id: number;
-                part_id: number;
-            };
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["TextBody"];
-            };
-        };
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["OkEnvelope"];
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    duplicateProductionPart: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                production_id: number;
-                part_id: number;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["PartCreatedEnvelope"];
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    updateProductionPartEditorial: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                production_id: number;
-                part_id: number;
-            };
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["EditorialBody"];
-            };
-        };
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["OkEnvelope"];
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    updateProductionPartEnabled: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                production_id: number;
-                part_id: number;
-            };
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["EnabledBody"];
-            };
-        };
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["OkEnvelope"];
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    updateProductionSilence: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                production_id: number;
-                part_id: number;
-            };
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["SilenceBody"];
-            };
-        };
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["PartCreatedEnvelope"];
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    getProductionProjectScene: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                production_id: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ProjectEnvelope"];
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    getProductionSoundScene: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                production_id: number;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["SoundSceneEnvelope"];
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    updateProductionSoundScene: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                production_id: number;
-            };
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["SoundSceneUpdateBody"];
-            };
-        };
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["SoundSceneEnvelope"];
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    redoProductionSoundScene: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                production_id: number;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["SoundSceneEnvelope"];
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    undoProductionSoundScene: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                production_id: number;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["SoundSceneEnvelope"];
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    getProductionVisualScene: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                production_id: number;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["VisualSceneEnvelope"];
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    updateProductionVisualScene: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                production_id: number;
-            };
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["VisualSceneUpdateBody"];
-            };
-        };
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["VisualSceneEnvelope"];
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    deleteProduction: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                resource_id: number;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ArchivedResourceEnvelope"];
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    updateProduction: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                resource_id: number;
-            };
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["ResourceUpdate"];
-            };
-        };
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["WorkResourceEnvelope"];
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    uploadProjectCover: {
-        parameters: {
-            query?: never;
-            header?: {
-                "x-filename"?: string;
-            };
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["UploadedImageEnvelope"];
+                    "application/json": components["schemas"]["ProjectImportValidationEnvelope"];
                 };
             };
             /** @description Validation Error */
@@ -10861,63 +8886,24 @@ export interface operations {
             };
         };
     };
-    createProduction: {
+    getAudiovisualProject: {
         parameters: {
             query?: never;
             header?: never;
             path: {
-                project_id: number;
+                project_identifier: string;
             };
             cookie?: never;
         };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["ResourceCreate"];
-            };
-        };
+        requestBody?: never;
         responses: {
             /** @description Successful Response */
-            201: {
+            200: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["ResourceMutationEnvelope"];
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    createSeries: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                project_id: number;
-            };
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["ResourceCreate"];
-            };
-        };
-        responses: {
-            /** @description Successful Response */
-            201: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ResourceMutationEnvelope"];
+                    "application/json": components["schemas"]["ProjectMutationEnvelope"];
                 };
             };
             /** @description Validation Error */
@@ -10936,7 +8922,7 @@ export interface operations {
             query?: never;
             header?: never;
             path: {
-                resource_id: number;
+                project_id: number;
             };
             cookie?: never;
         };
@@ -10967,7 +8953,7 @@ export interface operations {
             query?: never;
             header?: never;
             path: {
-                resource_id: number;
+                project_id: number;
             };
             cookie?: never;
         };
@@ -10983,7 +8969,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["WorkResourceEnvelope"];
+                    "application/json": components["schemas"]["ProjectMutationEnvelope"];
                 };
             };
             /** @description Validation Error */
@@ -10997,12 +8983,12 @@ export interface operations {
             };
         };
     };
-    getProjectOverview: {
+    getAudiovisualProjectEditor: {
         parameters: {
             query?: never;
             header?: never;
             path: {
-                resource_id: string;
+                project_id: string;
             };
             cookie?: never;
         };
@@ -11014,7 +9000,855 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["ProjectOverviewEnvelope"];
+                    "application/json": components["schemas"]["ProjectEditorEnvelope"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    listProjectFiles: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                project_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProjectFileLibraryEnvelope"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    uploadAudiovisualProjectFile: {
+        parameters: {
+            query?: never;
+            header?: {
+                "x-filename"?: string;
+                "x-file-category"?: string | null;
+                "x-file-name"?: string | null;
+                "x-file-tags"?: string | null;
+            };
+            path: {
+                project_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["UploadedFileEnvelope"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    importProjectDocument: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                project_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ProjectImportBody"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProjectImportEnvelope"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    deleteProjectParts: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                project_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["DeleteBody"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DeletedPartsEnvelope"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    addProjectDraft: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                project_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["DraftBody"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PartCreatedEnvelope"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    insertProjectFile: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                project_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["FileBody"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PartCreatedEnvelope"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    moveProjectParts: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                project_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["MoveBody"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MovedPartsEnvelope"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    reorderProjectParts: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                project_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["OrderBody"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OkEnvelope"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    addProjectSilence: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                project_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SilenceBody"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PartCreatedEnvelope"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    listProjectPartCaptions: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                project_id: number;
+                part_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TranscriptSummaryListEnvelope"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    updateProjectPartDraft: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                project_id: number;
+                part_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["TextBody"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OkEnvelope"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    duplicateProjectPart: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                project_id: number;
+                part_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PartCreatedEnvelope"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    updateProjectPartEditorial: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                project_id: number;
+                part_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["EditorialBody"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OkEnvelope"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    updateProjectPartEnabled: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                project_id: number;
+                part_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["EnabledBody"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OkEnvelope"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    replaceProjectFile: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                project_id: number;
+                part_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ReplaceFileBody"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PartCreatedEnvelope"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    updateProjectSilence: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                project_id: number;
+                part_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SilenceBody"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PartCreatedEnvelope"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    getProjectScene: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                project_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProjectEnvelope"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    getProjectSoundScene: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                project_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SoundSceneEnvelope"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    updateProjectSoundScene: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                project_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SoundSceneUpdateBody"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SoundSceneEnvelope"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    redoProjectSoundScene: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                project_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SoundSceneEnvelope"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    undoProjectSoundScene: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                project_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SoundSceneEnvelope"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    attachProjectVisualFile: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                project_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["VisualFileMutationRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["VisualFileMutationEnvelope"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    detachProjectVisualFile: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                project_id: string;
+                file_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["VisualFileMutationEnvelope"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    getProjectVisualScene: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                project_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["VisualSceneEnvelope"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    updateProjectVisualScene: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                project_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["VisualSceneUpdateBody"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["VisualSceneEnvelope"];
                 };
             };
             /** @description Validation Error */
@@ -11045,140 +9879,6 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content?: never;
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    deleteSeries: {
-        parameters: {
-            query?: {
-                strategy?: string;
-            };
-            header?: never;
-            path: {
-                resource_id: number;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ArchivedResourceEnvelope"];
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    updateSeries: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                resource_id: number;
-            };
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["ResourceUpdate"];
-            };
-        };
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["WorkResourceEnvelope"];
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    getSeriesOverview: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                resource_id: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["SeriesOverviewEnvelope"];
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    createSeriesProduction: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                series_id: number;
-            };
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["ResourceCreate"];
-            };
-        };
-        responses: {
-            /** @description Successful Response */
-            201: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ResourceMutationEnvelope"];
-                };
             };
             /** @description Validation Error */
             422: {
@@ -11558,7 +10258,7 @@ export interface operations {
         };
         requestBody: {
             content: {
-                "application/json": components["schemas"]["DirectorProviderUpdate"];
+                "application/json": components["schemas"]["MediaGenerationProviderUpdate"];
             };
         };
         responses: {
@@ -11655,296 +10355,10 @@ export interface operations {
             };
         };
     };
-    listSpaces: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["SpaceListEnvelope"];
-                };
-            };
-        };
-    };
-    createSpace: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["SpaceCreateRequest"];
-            };
-        };
-        responses: {
-            /** @description Successful Response */
-            201: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["SpaceMutationEnvelope"];
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    getSpace: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                space_id: number;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["SpaceOverviewEnvelope"];
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    uploadSpaceFile: {
-        parameters: {
-            query?: never;
-            header?: {
-                "x-filename"?: string;
-                "x-file-category"?: string | null;
-                "x-file-name"?: string | null;
-                "x-file-tags"?: string | null;
-            };
-            path: {
-                space_id: number;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            201: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["UploadedFileEnvelope"];
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    createFolder: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                space_id: number;
-            };
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["FolderCreateRequest"];
-            };
-        };
-        responses: {
-            /** @description Successful Response */
-            201: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["FolderMutationEnvelope"];
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    createAudiovisualProject: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                space_id: number;
-            };
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["AudiovisualProjectCreateRequest"];
-            };
-        };
-        responses: {
-            /** @description Successful Response */
-            201: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ProjectMutationEnvelope"];
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    listSpaceSavedReferences: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                space_id: number;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["SavedReferenceListEnvelope"];
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    createSpaceSavedReference: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                space_id: number;
-            };
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["SavedReferenceCreate"];
-            };
-        };
-        responses: {
-            /** @description Successful Response */
-            201: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["SavedReferenceEnvelope"];
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    deleteSpaceSavedReference: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                space_id: number;
-                reference_id: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            204: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
     getStandaloneRecordingHistory: {
         parameters: {
             query: {
-                space_id: number;
+                workspace_id: number;
             };
             header?: never;
             path?: never;
@@ -11975,7 +10389,7 @@ export interface operations {
     listSubtitles: {
         parameters: {
             query: {
-                space_id: number;
+                workspace_id: number;
                 limit?: number;
             };
             header?: never;
@@ -12145,329 +10559,6 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["SystemHealthEnvelope"];
-                };
-            };
-        };
-    };
-    uploadVentureLogo: {
-        parameters: {
-            query?: never;
-            header?: {
-                "x-filename"?: string;
-            };
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["UploadedImageEnvelope"];
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    createVenture: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["ResourceCreate"];
-            };
-        };
-        responses: {
-            /** @description Successful Response */
-            201: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ResourceMutationEnvelope"];
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    deleteVenture: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                resource_id: number;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ArchivedResourceEnvelope"];
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    updateVenture: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                resource_id: number;
-            };
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["ResourceUpdate"];
-            };
-        };
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["WorkResourceEnvelope"];
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    listVentureAssets: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                resource_id: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["VentureAssetLibraryEnvelope"];
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    getVentureOverview: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                resource_id: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["VentureOverviewEnvelope"];
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    createProject: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                venture_id: number;
-            };
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["ResourceCreate"];
-            };
-        };
-        responses: {
-            /** @description Successful Response */
-            201: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ResourceMutationEnvelope"];
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    listSavedReferences: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                venture_id: number;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["SavedReferenceListEnvelope"];
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    createSavedReference: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                venture_id: number;
-            };
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["SavedReferenceCreate"];
-            };
-        };
-        responses: {
-            /** @description Successful Response */
-            201: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["SavedReferenceEnvelope"];
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    deleteSavedReference: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                venture_id: number;
-                reference_id: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            204: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
                 };
             };
         };
@@ -13085,6 +11176,293 @@ export interface operations {
                 content: {
                     "application/json": components["schemas"]["VoiceProfileEnvelope"];
                 };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    listWorkspaces: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["WorkspaceListEnvelope"];
+                };
+            };
+        };
+    };
+    createWorkspace: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["WorkspaceCreateRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["WorkspaceMutationEnvelope"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    getWorkspace: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                workspace_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["WorkspaceOverviewEnvelope"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    uploadWorkspaceFile: {
+        parameters: {
+            query?: never;
+            header?: {
+                "x-filename"?: string;
+                "x-file-category"?: string | null;
+                "x-file-name"?: string | null;
+                "x-file-tags"?: string | null;
+                "x-folder-id"?: number | null;
+            };
+            path: {
+                workspace_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["UploadedFileEnvelope"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    createFolder: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                workspace_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["FolderCreateRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FolderMutationEnvelope"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    createAudiovisualProject: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                workspace_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AudiovisualProjectCreateRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProjectMutationEnvelope"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    listWorkspaceSavedReferences: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                workspace_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SavedReferenceListEnvelope"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    createWorkspaceSavedReference: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                workspace_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SavedReferenceCreate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SavedReferenceEnvelope"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    deleteWorkspaceSavedReference: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                workspace_id: number;
+                reference_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
             };
             /** @description Validation Error */
             422: {

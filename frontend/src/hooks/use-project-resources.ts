@@ -1,0 +1,56 @@
+import { useCallback, useEffect, useState } from "react"
+
+import { originsApi } from "@/lib/api"
+import type { LoadState, WorkspaceFile } from "@/types/domain"
+import { useVoiceDirectory } from "@/hooks/use-voice-directory"
+
+export type ProjectFileResources = {
+  files: WorkspaceFile[]
+  projectFileIds: number[]
+  visualFileIds: number[]
+}
+
+const EMPTY_FILES: WorkspaceFile[] = []
+const EMPTY_IDS: number[] = []
+
+export function useProjectResources(projectId: number) {
+  const [fileState, setFileState] = useState<LoadState<ProjectFileResources>>({ status: "loading" })
+  const voices = useVoiceDirectory()
+
+  const refreshFiles = useCallback(async () => {
+    setFileState((current) => ({ status: "loading", data: current.data }))
+    try {
+      const result = await originsApi.files(projectId)
+      setFileState({
+        status: "ready",
+        data: {
+          files: result.files || [],
+          projectFileIds: result.project_file_ids || [],
+          visualFileIds: result.visual_file_ids || [],
+        },
+      })
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "The file library is unavailable."
+      setFileState((current) => ({ status: "error", data: current.data, error: message }))
+      throw error
+    }
+  }, [projectId])
+
+  useEffect(() => {
+    void refreshFiles().catch(() => undefined)
+  }, [refreshFiles])
+
+  return {
+    files: fileState.data?.files || EMPTY_FILES,
+    projectFileIds: fileState.data?.projectFileIds || EMPTY_IDS,
+    visualFileIds: fileState.data?.visualFileIds || EMPTY_IDS,
+    fileState,
+    fileError: fileState.status === "error" ? fileState.error || "The file library is unavailable." : null,
+    voiceError: voices.error || null,
+    config: voices.config,
+    cloned: voices.cloned,
+    voiceDirectory: voices.directory,
+    refreshFiles,
+    refreshVoices: voices.refresh,
+  }
+}

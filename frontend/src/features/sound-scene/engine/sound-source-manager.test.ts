@@ -8,7 +8,7 @@ import {
 
 function clip(changes: Partial<SoundSceneClip> = {}): SoundSceneClip {
   return {
-    id: "78af885c-aeb4-49bf-9edb-d3fc14496b2a", asset_id: 1,
+    id: "78af885c-aeb4-49bf-9edb-d3fc14496b2a", file_id: 1,
     duration_ms: 2_000, source_offset_ms: 0, gain: 1,
     fade_in_ms: 0, fade_out_ms: 0, loop: false, ducking: false,
     muted: false, locked: false, effects: [],

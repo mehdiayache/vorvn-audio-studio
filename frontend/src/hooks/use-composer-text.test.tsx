@@ -2,12 +2,12 @@
 import { act, cleanup, renderHook, waitFor } from "@testing-library/react"
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
 
-import { studioApi } from "@/lib/api"
+import { originsApi } from "@/lib/api"
 import { useComposerText } from "./use-composer-text"
 
 vi.mock("@/lib/api", async (importOriginal) => {
   const actual = await importOriginal<typeof import("@/lib/api")>()
-  return { ...actual, studioApi: { ...actual.studioApi, enqueueTextPass: vi.fn(), textPassResult: vi.fn(), confirmJob: vi.fn(), saveTextStates: vi.fn() } }
+  return { ...actual, originsApi: { ...actual.originsApi, enqueueTextPass: vi.fn(), textPassResult: vi.fn(), confirmJob: vi.fn(), saveTextStates: vi.fn() } }
 })
 
 afterEach(cleanup)
@@ -15,24 +15,24 @@ afterEach(cleanup)
 describe("useComposerText text preparation contract", () => {
   beforeEach(() => {
     vi.clearAllMocks()
-    vi.mocked(studioApi.enqueueTextPass).mockResolvedValue({
+    vi.mocked(originsApi.enqueueTextPass).mockResolvedValue({
       id: "11111111-1111-4111-8111-111111111111", type: "text", status: "queued", progress: 0, detail: "", retries: 0, result: {},
     })
-    vi.mocked(studioApi.textPassResult).mockResolvedValue({
+    vi.mocked(originsApi.textPassResult).mockResolvedValue({
       before: "مرحبا", after: "[whispers] مرحبا", difference: [], cost: 0,
     })
-    vi.mocked(studioApi.confirmJob).mockResolvedValue({
+    vi.mocked(originsApi.confirmJob).mockResolvedValue({
       id: "33333333-3333-4333-8333-333333333333", type: "text", status: "queued", progress: 0, detail: "", retries: 0, result: {},
     })
-    vi.mocked(studioApi.saveTextStates).mockResolvedValue({} as never)
+    vi.mocked(originsApi.saveTextStates).mockResolvedValue({} as never)
   })
 
-  it.each(["shape", "tag"] as const)("omits Production identifiers for standalone Speak %s", async (operation) => {
+  it.each(["shape", "tag"] as const)("omits Project identifiers for standalone Speak %s", async (operation) => {
     const { result } = renderHook(() => useComposerText(undefined, undefined, "expressive_tags"))
     act(() => result.current.updateText("مرحبا"))
     await act(async () => { await result.current.run(operation) })
 
-    expect(studioApi.enqueueTextPass).toHaveBeenCalledWith(operation, {
+    expect(originsApi.enqueueTextPass).toHaveBeenCalledWith(operation, {
       text: "مرحبا", density: "normal", capability_id: "expressive_tags", confirmed: false,
       ...(operation === "shape" ? { spoken_profile: "spoken_1" } : {}),
     })
@@ -50,25 +50,25 @@ describe("useComposerText text preparation contract", () => {
     expect(result.current.text).toBe("[whispers] مرحبا")
   })
 
-  it("includes Production and Part identifiers inside a Production", async () => {
+  it("includes Project and Part identifiers inside a Project", async () => {
     const part = { id: 121, text: "مرحبا", text_state: "raw" } as never
     const { result } = renderHook(() => useComposerText(part, 28, "expressive_tags"))
     await act(async () => { await result.current.run("tag") })
 
-    expect(studioApi.enqueueTextPass).toHaveBeenCalledWith("tag", expect.objectContaining({
-      production_id: 28, part_id: 121,
+    expect(originsApi.enqueueTextPass).toHaveBeenCalledWith("tag", expect.objectContaining({
+      project_id: 28, part_id: 121,
     }))
   })
 
   it("sends Spoken 2 explicitly and adopts it only after acceptance", async () => {
-    vi.mocked(studioApi.textPassResult).mockResolvedValue({
+    vi.mocked(originsApi.textPassResult).mockResolvedValue({
       before: "Keep every word", after: "Keep every word...",
       difference: [], cost: 0, spoken_profile: "spoken_2",
     })
     const { result } = renderHook(() => useComposerText(undefined, undefined, "expressive_tags"))
     act(() => result.current.updateText("Keep every word"))
     await act(async () => { await result.current.run("shape", false, "spoken_2") })
-    expect(studioApi.enqueueTextPass).toHaveBeenCalledWith("shape", expect.objectContaining({
+    expect(originsApi.enqueueTextPass).toHaveBeenCalledWith("shape", expect.objectContaining({
       spoken_profile: "spoken_2",
     }))
     await waitFor(() => expect(result.current.review).not.toBeNull())
@@ -80,7 +80,7 @@ describe("useComposerText text preparation contract", () => {
     const reference = { jobId: "22222222-2222-4222-8222-222222222222", kind: "shape" as const }
     const { result } = renderHook(() => useComposerText(undefined, undefined, "expressive_tags", { reviewReference: reference }))
     await waitFor(() => expect(result.current.review?.result.after).toBe("[whispers] مرحبا"))
-    expect(studioApi.textPassResult).toHaveBeenCalledWith(reference.jobId)
+    expect(originsApi.textPassResult).toHaveBeenCalledWith(reference.jobId)
   })
 
   it("persists accepted text while clearing the review pointer", async () => {
@@ -93,9 +93,9 @@ describe("useComposerText text preparation contract", () => {
     expect(onReviewReferenceChange).toHaveBeenLastCalledWith(null, expect.objectContaining({ active: "tagged", tagged: "[whispers] مرحبا" }))
   })
 
-  it("keeps a Production candidate unresolved until its text variants are durably saved", async () => {
+  it("keeps a Project candidate unresolved until its text variants are durably saved", async () => {
     let releaseSave!: (value: never) => void
-    vi.mocked(studioApi.saveTextStates).mockReturnValue(new Promise((resolve) => { releaseSave = resolve }))
+    vi.mocked(originsApi.saveTextStates).mockReturnValue(new Promise((resolve) => { releaseSave = resolve }))
     const part = { id: 121, text: "مرحبا", text_state: "raw" } as never
     const { result } = renderHook(() => useComposerText(part, 28, "expressive_tags"))
 
@@ -116,7 +116,7 @@ describe("useComposerText text preparation contract", () => {
   })
 
   it("publishes the durable Job pointer before a paid result finishes", async () => {
-    vi.mocked(studioApi.textPassResult).mockReturnValue(new Promise(() => undefined))
+    vi.mocked(originsApi.textPassResult).mockReturnValue(new Promise(() => undefined))
     const onReviewReferenceChange = vi.fn().mockResolvedValue(undefined)
     const { result } = renderHook(() => useComposerText(undefined, undefined, "expressive_tags", { onReviewReferenceChange }))
     act(() => result.current.updateText("Wait for me"))
@@ -131,7 +131,7 @@ describe("useComposerText text preparation contract", () => {
   it("continues the exact blocked text Job instead of enqueueing mutable text again", async () => {
     const blocked = "22222222-2222-4222-8222-222222222222"
     const continued = "33333333-3333-4333-8333-333333333333"
-    vi.mocked(studioApi.textPassResult).mockImplementation(async (jobId) => (
+    vi.mocked(originsApi.textPassResult).mockImplementation(async (jobId) => (
       jobId === blocked
         ? { before: "مرحبا", after: "", difference: [], cost: 0, needs_confirmation: true, estimate: .04 }
         : { before: "مرحبا", after: "[whispers] مرحبا", difference: [], cost: .04 }
@@ -145,8 +145,8 @@ describe("useComposerText text preparation contract", () => {
     await waitFor(() => expect(result.current.pending?.estimate).toBe(.04))
     await act(async () => { await result.current.confirmPending() })
 
-    expect(studioApi.confirmJob).toHaveBeenCalledWith(blocked)
-    expect(studioApi.enqueueTextPass).not.toHaveBeenCalled()
+    expect(originsApi.confirmJob).toHaveBeenCalledWith(blocked)
+    expect(originsApi.enqueueTextPass).not.toHaveBeenCalled()
     expect(onReviewReferenceChange).toHaveBeenCalledWith({ jobId: continued, kind: "tag" })
     await waitFor(() => expect(result.current.review?.result.after).toBe("[whispers] مرحبا"))
   })

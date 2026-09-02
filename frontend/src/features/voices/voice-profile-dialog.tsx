@@ -12,7 +12,7 @@ import { ScrollArea } from "@/components/ui/scroll-area"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Textarea } from "@/components/ui/textarea"
-import { audioUrl, studioApi } from "@/lib/api"
+import { audioUrl, originsApi } from "@/lib/api"
 import { formatDuration } from "@/lib/format"
 import { cn } from "@/lib/utils"
 import type { VoicePackageRoute, VoiceProfile } from "@/types/domain"
@@ -142,7 +142,7 @@ export function VoiceProfileDialog({ profile, open, onOpenChange, onEditIdentity
     }
     setSetupBusy(true)
     try {
-      const updated = await studioApi.saveVoiceReferenceWindow(profile!.id, reference.id, {
+      const updated = await originsApi.saveVoiceReferenceWindow(profile!.id, reference.id, {
         provider_model_id: setupRoute.provider_model_id,
         start_ms: sourceDraft.startMs,
         duration_ms: sourceDraft.durationMs,
@@ -153,7 +153,7 @@ export function VoiceProfileDialog({ profile, open, onOpenChange, onEditIdentity
       const savedReference = updated.references.find((item) => item.id === reference.id)
       const savedWindow = savedReference?.windows?.find((item) => item.provider_model_id === setupRoute.provider_model_id)
       if (!savedWindow) throw new Error("The selected source could not be prepared for this recording method.")
-      await studioApi.createVoicePackage({
+      await originsApi.createVoicePackage({
         name: profile!.name,
         identity_id: profile!.id,
         reference_id: reference.id,
@@ -175,13 +175,13 @@ export function VoiceProfileDialog({ profile, open, onOpenChange, onEditIdentity
     if (!selectedBinding || !testText.trim()) return
     setTestBusy(true)
     try {
-      const created = await studioApi.createVoicePreview(profile!.id, {
+      const created = await originsApi.createVoicePreview(profile!.id, {
         binding_id: selectedBinding.binding_id,
         tag: testingTag === "neutral" ? null : testingTag,
         text: testText.trim(), instruction: "", seed: 0,
         language: reference?.source_language || profile!.metadata.recording_language || "Auto",
       })
-      await studioApi.voicePreviewResult(created.job_id)
+      await originsApi.voicePreviewResult(created.job_id)
       toast.success("Voice test ready")
       onChanged()
     } catch (reason) {
@@ -190,7 +190,7 @@ export function VoiceProfileDialog({ profile, open, onOpenChange, onEditIdentity
   }
 
   return <Dialog open={open} onOpenChange={onOpenChange}><DialogContent className="voice-profile-dialog">
-    <DialogHeader className="voice-profile-dialog-header"><div className="voice-profile-dialog-identity"><span className="voice-profile-dialog-avatar">{image ? <img src={image} alt="" /> : initials}</span><span><span className="voice-profile-title-row"><DialogTitle>{profile.name}</DialogTitle><VoiceGenderBadge gender={profile.metadata.gender} /><VoiceLanguageBadge language={String(profile.metadata.editorial_language || "")} /><Button variant="ghost" size="sm" onClick={onEditIdentity}><Pencil /> Edit</Button></span><DialogDescription>{profile.metadata.trait || "Cloned production voice"}</DialogDescription></span></div></DialogHeader>
+    <DialogHeader className="voice-profile-dialog-header"><div className="voice-profile-dialog-identity"><span className="voice-profile-dialog-avatar">{image ? <img src={image} alt="" /> : initials}</span><span><span className="voice-profile-title-row"><DialogTitle>{profile.name}</DialogTitle><VoiceGenderBadge gender={profile.metadata.gender} /><VoiceLanguageBadge language={String(profile.metadata.editorial_language || "")} /><Button variant="ghost" size="sm" onClick={onEditIdentity}><Pencil /> Edit</Button></span><DialogDescription>{profile.metadata.trait || "Cloned voice"}</DialogDescription></span></div></DialogHeader>
     <Tabs value={tab} onValueChange={(next) => { setTab(next); if (next !== "methods") setSetupRouteId("") }} className="voice-profile-tabs">
       <TabsList><TabsTrigger value="methods">Recording methods</TabsTrigger><TabsTrigger value="tests">Voice tests</TabsTrigger></TabsList>
       <ScrollArea className="voice-profile-dialog-scroll">

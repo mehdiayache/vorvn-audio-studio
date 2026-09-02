@@ -11,12 +11,12 @@ import unittest
 from unittest.mock import Mock, patch
 from uuid import uuid4
 
-from audio_studio.application.audio_generation import AudioGenerationService
-from audio_studio.domain.jobs import Job, JobFailed, JobStatus
-from audio_studio.http.audio_generation_contracts import (
+from origins.application.audio_generation import AudioGenerationService
+from origins.domain.jobs import Job, JobFailed, JobStatus
+from origins.http.audio_generation_contracts import (
     AudioGenerationHistoryEnvelope,
 )
-from audio_studio.providers.vorvn_audio import OurStableAudioGenerator
+from origins.providers.vorvn_audio import OurStableAudioGenerator
 
 
 class Response:
@@ -119,7 +119,7 @@ class FakeJobs:
     def enqueue(self, kind, payload, **values):
         job = Job(
             1, uuid4(), kind, JobStatus.QUEUED, payload=payload,
-            space_id=values.get("space_id"),
+            workspace_id=values.get("workspace_id"),
             creation_action_id=values.get("creation_action_id"),
             creation_preset_id=values.get("creation_preset_id"),
             creation_context=values.get("creation_context") or {},
@@ -131,13 +131,13 @@ class FakeJobs:
     def get(self, public_id):
         return self.jobs.get(public_id)
 
-    def recent_for_production(self, _production_id, *, kind, limit=8):
+    def recent_for_project(self, _project_id, *, kind, limit=8):
         return [job for job in reversed(list(self.jobs.values()))
                 if job.kind == kind][:limit]
 
-    def recent_for_space(self, space_id, *, kind, limit=8):
+    def recent_for_workspace(self, workspace_id, *, kind, limit=8):
         return [job for job in reversed(list(self.jobs.values()))
-                if job.kind == kind and job.space_id == space_id][:limit]
+                if job.kind == kind and job.workspace_id == workspace_id][:limit]
 
     def attach_output_file(self, public_id, file_id):
         job = self.jobs.get(public_id)
@@ -153,32 +153,20 @@ class FakeUploads:
         self.existing = None
         self.saved = []
 
-    def generated_asset(self, *, candidate_id):
+    def generated_workspace_file(self, *, workspace_id, candidate_id):
         return self.existing
 
-    def generated_space_file(self, *, space_id, candidate_id):
-        return self.existing
-
-    def prepare_asset_upload(self, *args, **kwargs):
+    def prepare_file_upload(self, *args, **kwargs):
         return {"args": args, "values": kwargs}
 
-    def save_generated_asset_file(self, collection_id, source, size_bytes,
-                                  *, candidate_id, details):
+    def save_generated_workspace_file(self, workspace_id, source, size_bytes,
+                                  *, candidate_id, details, folder_id=None):
         self.saved.append({
-            "collection_id": collection_id, "source": Path(source),
+            "workspace_id": workspace_id, "source": Path(source),
             "size_bytes": size_bytes, "candidate_id": candidate_id,
-            "details": details,
+            "details": details, "folder_id": folder_id,
         })
-        return {"asset": {"id": 91}, "duplicate": False}
-
-    def save_generated_space_file(self, space_id, source, size_bytes,
-                                  *, candidate_id, details):
-        self.saved.append({
-            "space_id": space_id, "source": Path(source),
-            "size_bytes": size_bytes, "candidate_id": candidate_id,
-            "details": details,
-        })
-        return {"asset": {"id": 93}, "duplicate": False}
+        return {"file": {"id": 93}, "duplicate": False}
 
 
 class WinningUploads(FakeUploads):
@@ -186,7 +174,7 @@ class WinningUploads(FakeUploads):
         super().__init__()
         self.lookups = 0
 
-    def generated_asset(self, *, candidate_id):
+    def generated_workspace_file(self, *, workspace_id, candidate_id):
         self.lookups += 1
         return None if self.lookups == 1 else {
             "id": 45, "name": "Concurrent winner"}
@@ -224,7 +212,7 @@ class AudioGenerationApplicationTests(unittest.TestCase):
             job = Job(
                 1, uuid4(), "audio_generate", JobStatus.RUNNING,
                 payload={"capability": "sfx", "prompt": "Soft cloth movement",
-                         "seconds": 3, "seed": None})
+                         "seconds": 3, "seed": None}, workspace_id=4)
             result = service.handle_job(job, progress)
 
             self.assertEqual(uploads.saved, [])
@@ -237,15 +225,16 @@ class AudioGenerationApplicationTests(unittest.TestCase):
 
             jobs.jobs[job.public_id] = Job(
                 job.id, job.public_id, job.kind, JobStatus.SUCCEEDED,
-                payload=job.payload, result=result)
+                payload=job.payload, result=result, workspace_id=4)
             kept = service.keep(
-                candidate_id=job.public_id, collection_id=41,
-                name="Soft cloth movement", category="sfx", scope="studio",
-                tags=("cloth",))
-            self.assertEqual(kept["asset"]["id"], 91)
+                candidate_id=job.public_id, workspace_id=4,
+                name="Soft cloth movement", category="sfx",
+                tags=("cloth",), folder_id=12)
+            self.assertEqual(kept["file"]["id"], 93)
             self.assertEqual(len(uploads.saved), 1)
             self.assertEqual(uploads.saved[0]["candidate_id"],
                              str(job.public_id))
+            self.assertEqual(uploads.saved[0]["folder_id"], 12)
             provenance = uploads.saved[0]["details"]["values"]["metadata"]
             self.assertEqual(provenance["prompt_mode"], "expert")
             self.assertEqual(provenance["resolved_prompt"],
@@ -258,17 +247,20 @@ class AudioGenerationApplicationTests(unittest.TestCase):
     def test_same_candidate_keep_resolves_existing_without_new_media(self):
         with TemporaryDirectory() as directory:
             root = Path(directory)
-            service, _, uploads = self.service(root)
+            service, jobs, uploads = self.service(root)
             uploads.existing = {"id": 44, "name": "Existing candidate"}
             candidate_id = uuid4()
+            jobs.jobs[candidate_id] = Job(
+                1, candidate_id, "audio_generate", JobStatus.SUCCEEDED,
+                workspace_id=4)
             target = root / "generated" / f"{candidate_id}.wav"
             target.parent.mkdir(parents=True)
             target.write_bytes(b"stale candidate")
             result = service.keep(
-                candidate_id=candidate_id, collection_id=41, name="Ignored",
-                category="music", scope="space", tags=())
+                candidate_id=candidate_id, workspace_id=4, name="Ignored",
+                category="music", tags=())
             self.assertEqual(result, {
-                "asset": uploads.existing, "duplicate": True})
+                "file": uploads.existing, "duplicate": True})
             self.assertEqual(uploads.saved, [])
             self.assertFalse(target.exists())
 
@@ -282,14 +274,14 @@ class AudioGenerationApplicationTests(unittest.TestCase):
             candidate_id = uuid4()
             jobs.jobs[candidate_id] = Job(
                 1, candidate_id, "audio_generate", JobStatus.SUCCEEDED,
-                result={"candidate_id": str(candidate_id)})
+                result={"candidate_id": str(candidate_id)}, workspace_id=4)
 
             result = service.keep(
-                candidate_id=candidate_id, collection_id=41, name="Ignored",
-                category="sfx", scope="studio", tags=())
+                candidate_id=candidate_id, workspace_id=4, name="Ignored",
+                category="sfx", tags=())
 
             self.assertEqual(result, {
-                "asset": {"id": 45, "name": "Concurrent winner"},
+                "file": {"id": 45, "name": "Concurrent winner"},
                 "duplicate": True,
             })
             self.assertEqual(uploads.saved, [])
@@ -346,7 +338,7 @@ class AudioGenerationApplicationTests(unittest.TestCase):
                 capability="music", prompt="Purpose: quiet underscore.",
                 seconds=20, seed=9, prompt_mode="simple",
                 generation_brief={"purpose": "quiet underscore"},
-                idempotency_key="intent", production_id=81)
+                idempotency_key="intent", project_id=81)
             self.assertEqual(job.payload["resolved_prompt"],
                              "Purpose: quiet underscore.")
             self.assertEqual(job.payload["generation_brief"], {
@@ -363,18 +355,19 @@ class AudioGenerationApplicationTests(unittest.TestCase):
                 "purpose": "quiet underscore"})
             self.assertFalse(recent[0]["candidate_available"])
 
-    def test_space_generation_owns_its_action_history_and_output_file(self):
+    def test_workspace_generation_owns_its_action_history_and_output_file(self):
         with TemporaryDirectory() as directory:
             root = Path(directory)
             service, jobs, uploads = self.service(root)
             job, _ = service.enqueue(
                 capability="sfx", prompt="A short wooden knock", seconds=2,
-                seed=7, idempotency_key="space-sfx", space_id=14)
+                seed=7, idempotency_key="workspace-sfx", workspace_id=14)
 
-            self.assertEqual(job.space_id, 14)
+            self.assertEqual(job.workspace_id, 14)
             self.assertEqual(job.creation_action_id, "generate-sound-effect")
             self.assertEqual(job.creation_context, {
-                "space_id": 14, "audiovisual_project_id": None,
+                "workspace_id": 14, "project_id": None,
+                "project_type": None,
             })
             jobs.jobs[job.public_id] = replace(
                 job, status=JobStatus.SUCCEEDED,
@@ -389,18 +382,18 @@ class AudioGenerationApplicationTests(unittest.TestCase):
             candidate.write_bytes(b"generated-wave")
 
             self.assertEqual(
-                service.recent(None, space_id=14)[0]["job_id"],
+                service.recent(None, workspace_id=14)[0]["job_id"],
                 str(job.public_id))
-            kept = service.keep_in_space(
-                candidate_id=job.public_id, space_id=14,
+            kept = service.keep(
+                candidate_id=job.public_id, workspace_id=14,
                 name="Wooden knock", category="sfx", tags=("wood",))
 
-            self.assertEqual(kept["asset"]["id"], 93)
-            self.assertEqual(uploads.saved[0]["space_id"], 14)
+            self.assertEqual(kept["file"]["id"], 93)
+            self.assertEqual(uploads.saved[0]["workspace_id"], 14)
             self.assertEqual(
                 jobs.jobs[job.public_id].output_file_ids, (93,))
 
-    def test_kept_history_serializes_canonical_asset_datetimes(self):
+    def test_kept_history_serializes_canonical_file_datetimes(self):
         with TemporaryDirectory() as directory:
             service, jobs, uploads = self.service(Path(directory))
             now = datetime(2026, 8, 28, 4, 30, tzinfo=timezone.utc)
@@ -421,7 +414,7 @@ class AudioGenerationApplicationTests(unittest.TestCase):
                 1, uuid4(), "audio_generate", JobStatus.SUCCEEDED,
                 payload={"capability": "sfx", "prompt": "Soft bell",
                          "prompt_mode": "expert", "seconds": 3,
-                         "seed": 7})
+                         "seed": 7}, workspace_id=4)
             jobs.jobs[job.public_id] = job
 
             envelope = AudioGenerationHistoryEnvelope.model_validate({
@@ -430,13 +423,13 @@ class AudioGenerationApplicationTests(unittest.TestCase):
             serialized = json.loads(envelope.model_dump_json())
 
             self.assertEqual(
-                serialized["data"][0]["kept_asset"]["created_at"],
+                serialized["data"][0]["kept_file"]["created_at"],
                 "2026-08-28T04:30:00Z")
 
-    def test_sound_recipe_is_compiled_server_side_and_stored_as_snapshot(self):
+    def test_sound_preset_is_compiled_server_side_and_stored_as_snapshot(self):
         with TemporaryDirectory() as directory:
             service, jobs, _ = self.service(Path(directory))
-            recipe = {
+            preset = {
                 "creative_brief": "A gentle prayer bed",
                 "context": ["context.faith"],
                 "moment": ["moment.prayer"],
@@ -448,9 +441,9 @@ class AudioGenerationApplicationTests(unittest.TestCase):
             job, _ = service.enqueue(
                 capability="music", prompt="this client prompt is ignored",
                 seconds=5, seed=None, prompt_mode="expert",
-                semantic_state=recipe,
-                source_free_text=recipe["creative_brief"],
-                idempotency_key="recipe", production_id=81)
+                semantic_state=preset,
+                source_free_text=preset["creative_brief"],
+                idempotency_key="preset", project_id=81)
 
             self.assertIn("TrackType: Music", job.payload["prompt"])
             self.assertNotIn("client prompt", job.payload["prompt"])
@@ -472,7 +465,7 @@ class AudioGenerationApplicationTests(unittest.TestCase):
             self.assertEqual(request["source_free_text"],
                              "A gentle prayer bed")
 
-    def test_unresolved_sound_recipe_conflict_cannot_generate(self):
+    def test_unresolved_sound_preset_conflict_cannot_generate(self):
         service, _, _ = self.service(Path("/tmp"))
         with self.assertRaisesRegex(ValueError, "Resolve the conflicting"):
             service.enqueue(

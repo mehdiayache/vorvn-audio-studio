@@ -9,19 +9,19 @@ from uuid import uuid4
 
 import psycopg
 
-from audio_studio.application.voice_cloning import VoiceCloningService
-from audio_studio.application.provider_operations import ProviderOperationService
-from audio_studio.config import settings
-from audio_studio.domain.voice_packages import (
+from origins.application.voice_cloning import VoiceCloningService
+from origins.application.provider_operations import ProviderOperationService
+from origins.config import settings
+from origins.domain.voice_packages import (
     CreatedVoiceBinding,
     VoicePackageJob,
 )
-from audio_studio.infrastructure.postgres.voice_packages import VoicePackageRepository
-from audio_studio.providers.alibaba.voice_cloning import AlibabaVoiceCloningProvider
-from audio_studio.providers.enrollment_registry import (
+from origins.infrastructure.postgres.voice_packages import VoicePackageRepository
+from origins.providers.alibaba.voice_cloning import AlibabaVoiceCloningProvider
+from origins.providers.enrollment_registry import (
     ExactEnrollmentProviderRegistry,
 )
-from audio_studio.infrastructure.voice_reference_workspace import VoiceReferenceWorkspace
+from origins.infrastructure.voice_reference_workspace import VoiceReferenceWorkspace
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -135,10 +135,10 @@ class VoicePackageWorkerTests(unittest.TestCase):
             local.write_bytes(b"RIFF-test")
             with patch.dict("os.environ", {"DASHSCOPE_API_KEY": "fixture"}), \
                     patch(
-                        "audio_studio.providers.alibaba.voice_cloning.storage.configured",
+                        "origins.providers.alibaba.voice_cloning.storage.configured",
                         return_value=True), \
                     patch(
-                        "audio_studio.providers.alibaba.voice_cloning.storage.upload",
+                        "origins.providers.alibaba.voice_cloning.storage.upload",
                         return_value="https://storage.test/reference.wav"), \
                     patch("dashscope.audio.tts_v2.VoiceEnrollmentService") as service:
                 service.return_value.create_voice.return_value = "audio-fixture"
@@ -161,10 +161,10 @@ class VoicePackageWorkerTests(unittest.TestCase):
             local.write_bytes(b"RIFF-test")
             with patch.dict("os.environ", {"DASHSCOPE_API_KEY": "fixture"}), \
                     patch(
-                        "audio_studio.providers.alibaba.voice_cloning.storage.configured",
+                        "origins.providers.alibaba.voice_cloning.storage.configured",
                         return_value=True), \
                     patch(
-                        "audio_studio.providers.alibaba.voice_cloning.storage.upload",
+                        "origins.providers.alibaba.voice_cloning.storage.upload",
                         return_value="https://storage.test/reference.wav"), \
                     patch("dashscope.audio.tts_v2.VoiceEnrollmentService") as service:
                 service.return_value.create_voice.return_value = "audio-fixture"
@@ -178,7 +178,7 @@ class VoicePackageWorkerTests(unittest.TestCase):
     def test_alibaba_adapter_rejects_a_different_region_before_upload(self):
         job = package_job(region="beijing")
         with patch(
-                "audio_studio.providers.alibaba.voice_cloning.storage.upload"
+                "origins.providers.alibaba.voice_cloning.storage.upload"
                 ) as upload, patch.dict(
                     "os.environ", {"DASHSCOPE_API_KEY": "fixture"}):
             with self.assertRaisesRegex(ValueError, "region"):
@@ -196,10 +196,10 @@ class VoicePackageWorkerTests(unittest.TestCase):
             local.write_bytes(b"RIFF-test")
             with patch.dict("os.environ", {"DASHSCOPE_API_KEY": "fixture"}), \
                     patch(
-                        "audio_studio.providers.alibaba.voice_cloning.storage.configured",
+                        "origins.providers.alibaba.voice_cloning.storage.configured",
                         return_value=True), \
                     patch(
-                        "audio_studio.providers.alibaba.voice_cloning.storage.upload",
+                        "origins.providers.alibaba.voice_cloning.storage.upload",
                         return_value="https://storage.test/reference.wav"), \
                     patch("dashscope.audio.tts_v2.VoiceEnrollmentService") as service:
                 service.return_value.create_voice.return_value = "cosy-fixture"
@@ -222,13 +222,13 @@ class VoicePackageWorkerTests(unittest.TestCase):
             local.write_bytes(b"RIFF-test")
             with patch.dict("os.environ", {"DASHSCOPE_API_KEY": "fixture"}), \
                     patch(
-                        "audio_studio.providers.alibaba.voice_cloning.storage.configured",
+                        "origins.providers.alibaba.voice_cloning.storage.configured",
                         return_value=True), \
                     patch(
-                        "audio_studio.providers.alibaba.voice_cloning.storage.upload",
+                        "origins.providers.alibaba.voice_cloning.storage.upload",
                         return_value="https://storage.test/reference.wav"), \
                     patch(
-                        "audio_studio.providers.alibaba.voice_cloning.qwen_tts.create_voice",
+                        "origins.providers.alibaba.voice_cloning.qwen_tts.create_voice",
                         return_value="qwen3-tts-vc-fixture") as create:
                 binding = AlibabaVoiceCloningProvider().create(job, local)
         self.assertEqual(binding.provider_voice_id, "qwen3-tts-vc-fixture")
@@ -249,13 +249,13 @@ class VoicePackageWorkerTests(unittest.TestCase):
             local.write_bytes(b"RIFF-test")
             with patch.dict("os.environ", {"DASHSCOPE_API_KEY": "fixture"}), \
                     patch(
-                        "audio_studio.providers.alibaba.voice_cloning.storage.configured",
+                        "origins.providers.alibaba.voice_cloning.storage.configured",
                         return_value=True), \
                     patch(
-                        "audio_studio.providers.alibaba.voice_cloning.storage.upload",
+                        "origins.providers.alibaba.voice_cloning.storage.upload",
                         return_value="https://storage.test/reference.wav"), \
                     patch(
-                        "audio_studio.providers.alibaba.voice_cloning.qwen_tts.create_voice",
+                        "origins.providers.alibaba.voice_cloning.qwen_tts.create_voice",
                         return_value="qwen3-tts-vc-fixture") as create:
                 AlibabaVoiceCloningProvider().create(job, local)
         create.assert_called_once_with(
@@ -536,8 +536,8 @@ class VoicePackageWorkerTests(unittest.TestCase):
                 database.commit()
 
     def test_active_runtime_has_no_legacy_voice_package_worker(self):
-        worker = (ROOT / "audio_studio/worker.py").read_text()
-        runtime = (ROOT / "audio_studio/runtime.py").read_text()
+        worker = (ROOT / "origins/worker.py").read_text()
+        runtime = (ROOT / "origins/runtime.py").read_text()
         self.assertNotIn("import db", worker)
         self.assertNotIn("import db", runtime)
         self.assertNotIn("voice_package_worker", worker)

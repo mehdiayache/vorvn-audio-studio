@@ -3,7 +3,7 @@ import { act, renderHook } from "@testing-library/react"
 import { afterEach, describe, expect, it, vi } from "vitest"
 
 import { jobObserver, observedJobCount } from "@/lib/job-observer"
-import { studioApi } from "@/lib/api"
+import { originsApi } from "@/lib/api"
 import type { DurableJob } from "@/types/domain"
 import { useJobExecution } from "./use-job-execution"
 
@@ -31,10 +31,10 @@ describe("useJobExecution", () => {
 
   it("rediscovers a Job by durable ID after navigation erased local state", async () => {
     vi.useFakeTimers()
-    vi.spyOn(studioApi, "job").mockResolvedValue(job("running"))
+    vi.spyOn(originsApi, "job").mockResolvedValue(job("running"))
     const { result } = renderHook(() => useJobExecution<{ url?: string }>("job-survives-ui"))
     await act(async () => { await vi.advanceTimersByTimeAsync(0) })
     expect(result.current).toMatchObject({ id: "job-survives-ui", status: "running" })
-    expect(studioApi.job).toHaveBeenCalledWith("job-survives-ui")
+    expect(originsApi.job).toHaveBeenCalledWith("job-survives-ui")
   })
 })

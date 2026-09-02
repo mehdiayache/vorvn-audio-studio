@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest"
 
-import type { ProductionPart } from "@/types/domain"
+import type { ProjectPart } from "@/types/domain"
 import type { VoiceChoice } from "@/lib/voice-options"
 import {
   buildSpeechCommand,
@@ -49,18 +49,18 @@ function draft(route: CompositionDraft["route"]): CompositionDraft {
 }
 
 describe("provider-neutral Composer contract", () => {
-  it("uses the same draft and command contract for Standalone and Production", () => {
+  it("uses the same draft and command contract for Standalone and Project", () => {
     const selected = routeSelection(ownedRoute)
     const standalone = buildSpeechCommand({ context: compositionContext({}), draft: draft(selected) })
-    const production = buildSpeechCommand({ context: compositionContext({ productionId: 7, insertBeforePartId: "part-public-3" }), draft: draft(selected) })
-    expect(standalone.route).toEqual(production.route)
-    expect(standalone.text).toEqual(production.text)
+    const project = buildSpeechCommand({ context: compositionContext({ projectId: 7, insertBeforePartId: "part-public-3" }), draft: draft(selected) })
+    expect(standalone.route).toEqual(project.route)
+    expect(standalone.text).toEqual(project.text)
     expect(standalone.context).toEqual({ kind: "standalone" })
-    expect(production.context).toEqual({ kind: "production", productionId: 7, insertion: { kind: "before_part", partId: "part-public-3" } })
-    expect(toGeneratePayload(production)).toMatchObject({
+    expect(project.context).toEqual({ kind: "project", projectId: 7, insertion: { kind: "before_part", partId: "part-public-3" } })
+    expect(toGeneratePayload(project)).toMatchObject({
       insert_before_part_id: "part-public-3",
     })
-    expect(toGeneratePayload(production)).not.toHaveProperty("operation")
+    expect(toGeneratePayload(project)).not.toHaveProperty("operation")
   })
 
   it("refuses generation without an operator-selected exact route", () => {
@@ -109,15 +109,15 @@ describe("provider-neutral Composer contract", () => {
   })
 
   it("keeps existing Part truth as a read-only editorial baseline", () => {
-    const part = { id: 9, revision: 4, text: "Current script", clip_id: 12 } as ProductionPart
+    const part = { id: 9, revision: 4, text: "Current script", clip_id: 12 } as ProjectPart
     expect(editorialBaseline(part)).toEqual({ partId: 9, revision: 4, script: "Current script" })
   })
 
   it("restores the exact saved route for Drafts and active recordings", () => {
     const routeFields = { binding_id: "binding-1", capability_id: "expressive_tags" }
-    expect(routeSelectionFromPart({ kind: "speech", ...routeFields } as ProductionPart))
+    expect(routeSelectionFromPart({ kind: "speech", ...routeFields } as ProjectPart))
       .toEqual({ kind: "owned", bindingId: "binding-1", capabilityId: "expressive_tags" })
-    expect(routeSelectionFromPart({ kind: "draft", ...routeFields } as ProductionPart))
+    expect(routeSelectionFromPart({ kind: "draft", ...routeFields } as ProjectPart))
       .toEqual({ kind: "owned", bindingId: "binding-1", capabilityId: "expressive_tags" })
   })
 
@@ -130,13 +130,13 @@ describe("provider-neutral Composer contract", () => {
       engine: "audio",
       model: "qwen-audio-3.0-tts-flash",
       capability_id: "expressive_tags",
-    } as ProductionPart
+    } as ProjectPart
     expect(replacementRouteSelectionFromPart(part, [ownedRoute])).toEqual({
       kind: "owned",
       bindingId: "binding-1",
       capabilityId: "expressive_tags",
     })
-    expect(replacementRouteSelectionFromPart({ ...part, model: "another-model" } as ProductionPart, [ownedRoute])).toBeNull()
+    expect(replacementRouteSelectionFromPart({ ...part, model: "another-model" } as ProjectPart, [ownedRoute])).toBeNull()
   })
 
   it("rehydrates Generate Again from the exact attached recording request", () => {
@@ -157,7 +157,7 @@ describe("provider-neutral Composer contract", () => {
       clip_spoken_text: "Historical spoken fallback",
       clip_tagged_text: "[old] Historical tagged fallback",
       speech_job: { result: { clip_id: 44 }, request },
-    } as ProductionPart
+    } as ProjectPart
 
     expect(composerTextFromPart(part)).toEqual({
       raw: "Canonical words",
@@ -180,7 +180,7 @@ describe("provider-neutral Composer contract", () => {
         result: { clip_id: 43 },
         request: { text: "Obsolete request", text_state: "raw" },
       },
-    } as ProductionPart
+    } as ProjectPart
 
     expect(composerTextFromPart(part)).toEqual({
       raw: "Clip original",

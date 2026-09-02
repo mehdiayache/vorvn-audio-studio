@@ -3,9 +3,9 @@
 from pathlib import Path
 import unittest
 
-from audio_studio.application.renders import RenderService
-from audio_studio.domain.rendering import FinishedExport, RenderError
-from audio_studio.domain.sound_scene import empty_scene
+from origins.application.renders import RenderService
+from origins.domain.rendering import FinishedExport, RenderError
+from origins.domain.sound_scene import empty_scene
 
 
 PART = {
@@ -22,26 +22,26 @@ class FakeRecords:
         self.fail_create = False
 
     @staticmethod
-    def production(production_id):
-        return ({"id": production_id, "name": "Evening Reset"}
-                if production_id == 6 else None)
+    def project(project_id):
+        return ({"id": project_id, "name": "Evening Reset"}
+                if project_id == 6 else None)
 
-    def parts(self, _production_id):
+    def parts(self, _project_id):
         return self.part_items
 
     @staticmethod
-    def sound_scene(_production_id):
+    def sound_scene(_project_id):
         return {"document": empty_scene()}
 
     @staticmethod
-    def visual_scene(_production_id):
+    def visual_scene(_project_id):
         return {
             "revision": 2,
             "document": {
                 "version": 1, "canvas": {"width": 1920, "height": 1080},
                 "tracks": [{
                     "id": "video", "media_type": "video", "visible": True,
-                    "clips": [{"asset_id": 90, "duration_ms": 1000}],
+                    "clips": [{"file_id": 90, "duration_ms": 1000}],
                 }],
             },
             "sources": {"90": {"filename": "visual.mp4", "media_type": "video"}},
@@ -54,10 +54,10 @@ class FakeRecords:
         return {"sentences": [{"start": 0, "end": 700,
                                 "text": "Rest now"}], "stale": False}
 
-    def create_export(self, production_id, *, artifact):
+    def create_export(self, project_id, *, artifact):
         if self.fail_create:
             raise RuntimeError("database unavailable")
-        self.created.append((production_id, artifact))
+        self.created.append((project_id, artifact))
         return {"export_id": 91, "generation_id": 150}
 
 
@@ -74,13 +74,13 @@ class FakeWorkspace:
         return 1000
 
     def preview(
-            self, production_id, parts, scene, *, skipped_drafts):
-        self.previews.append((production_id, parts, scene, skipped_drafts))
+            self, project_id, parts, scene, *, skipped_drafts):
+        self.previews.append((project_id, parts, scene, skipped_drafts))
         return {"name": "preview.mp3", "cached": False,
                 "skipped_drafts": skipped_drafts}
 
     def finish_export(
-            self, production_id, production_name, parts, scene, subtitles):
+            self, project_id, project_name, parts, scene, subtitles):
         artifact = FinishedExport(
             target=Path("/media/final.mp3"),
             manifest_path=Path("/media/final.manifest.json"),
@@ -95,7 +95,7 @@ class FakeWorkspace:
         return artifact
 
     def finish_video_export(
-            self, production_id, production_name, parts, scene,
+            self, project_id, project_name, parts, scene,
             visual_scene, subtitles):
         artifact = FinishedExport(
             target=Path("/media/final.mp4"),
@@ -218,7 +218,7 @@ class RenderServiceTests(unittest.TestCase):
     def test_mp4_requires_one_visible_timeline_visual(self):
         class EmptyVisualRecords(FakeRecords):
             @staticmethod
-            def visual_scene(_production_id):
+            def visual_scene(_project_id):
                 return {"document": {"version": 1, "canvas": {
                     "width": 1920, "height": 1080}, "tracks": []}}
 

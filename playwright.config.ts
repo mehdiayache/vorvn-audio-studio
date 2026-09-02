@@ -7,7 +7,7 @@ export default defineConfig({
   retries: process.env.CI ? 1 : 0,
   reporter: process.env.CI ? [["github"], ["line"]] : "list",
   use: {
-    baseURL: process.env.AUVI_E2E_BASE_URL || "http://127.0.0.1:7860",
+    baseURL: process.env.ORIGINS_E2E_BASE_URL || "http://127.0.0.1:7860",
     trace: "on-first-retry",
   },
   projects: [{

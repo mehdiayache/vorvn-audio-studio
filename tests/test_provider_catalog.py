@@ -2,7 +2,7 @@
 
 import unittest
 
-from audio_studio.domain import provider_catalog
+from origins.domain import provider_catalog
 
 
 class ProviderCatalogTests(unittest.TestCase):

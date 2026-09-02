@@ -7,8 +7,9 @@ from uuid import uuid4
 
 import psycopg
 
-from audio_studio.config import settings
-from audio_studio.infrastructure.postgres.voices import VoiceRepository, voice_key
+from origins.config import settings
+from origins.infrastructure.postgres.voices import VoiceRepository, voice_key
+from origins.infrastructure.postgres.workspaces import WorkspaceRepository
 
 
 class VoiceRepositoryTests(unittest.TestCase):
@@ -35,6 +36,12 @@ class VoiceRepositoryTests(unittest.TestCase):
         second_reference_id = f"ref_repo_second_{marker}"
         second_provider_id = f"qwen-audio-3.0-tts-flash-repo-second-{marker}"
         metadata_id = f"qwen-audio-3.0-tts-plus-repo-{marker}"
+        workspace = WorkspaceRepository().create_workspace(
+            "Voice history Workspace", "Disposable voice regression fixture")
+        project = WorkspaceRepository().create_audiovisual_project(
+            workspace["id"], "Voice history Project", "", None)
+        if project is None:
+            self.fail("Could not create the canonical Project fixture")
         part_id = None
         preview_job_id = None
         try:
@@ -92,17 +99,13 @@ class VoiceRepositoryTests(unittest.TestCase):
                         INSERT INTO voices (id, image, favourite, name)
                         VALUES (%s, 'fixture.png', true, 'Fixture system voice')
                     """, (metadata_id,))
-                    cursor.execute("SELECT id FROM productions ORDER BY id LIMIT 1")
-                    production = cursor.fetchone()
-                    if not production:
-                        self.skipTest("No Production exists for canonical Clip fixture")
                     cursor.execute("""
-                        INSERT INTO production_parts
-                            (production_id, position, kind, script)
+                        INSERT INTO project_parts
+                            (project_id, position, kind, script)
                         VALUES (%s, (SELECT coalesce(max(position),-1)+1
-                                      FROM production_parts WHERE production_id=%s),
+                                      FROM project_parts WHERE project_id=%s),
                                 'speech', 'Fixture') RETURNING id
-                    """, (production[0], production[0]))
+                    """, (project["id"], project["id"]))
                     part_id = int(cursor.fetchone()[0])
                     cursor.execute("""
                         INSERT INTO clips
@@ -226,7 +229,7 @@ class VoiceRepositoryTests(unittest.TestCase):
                         cursor.execute("DELETE FROM jobs WHERE id=%s",
                                        (preview_job_id,))
                     if part_id:
-                        cursor.execute("DELETE FROM production_parts WHERE id = %s",
+                        cursor.execute("DELETE FROM project_parts WHERE id = %s",
                                        (part_id,))
                     cursor.execute("DELETE FROM voice_bindings WHERE identity_id = %s",
                                    (identity_id,))
@@ -237,6 +240,9 @@ class VoiceRepositoryTests(unittest.TestCase):
                     cursor.execute("DELETE FROM voices WHERE id = %s",
                                    (metadata_id,))
                 database.commit()
+            with psycopg.connect(settings.database_url) as database:
+                database.execute(
+                    "DELETE FROM workspaces WHERE id=%s", (workspace["id"],))
 
 
 if __name__ == "__main__":

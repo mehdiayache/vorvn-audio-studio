@@ -5,7 +5,7 @@ import { audibleAudioClips } from "./sound-scene-audibility"
 
 function scene(tracks: SoundSceneTrack[]): SoundScene {
   return {
-    production_id: 1,
+    project_id: 1,
     revision: 1,
     document: { version: 1, sequence_overrides: {}, tracks },
     can_undo: false,
@@ -27,11 +27,12 @@ function music(id: string, options: Partial<SoundSceneTrack> = {}): SoundSceneTr
   return {
     id,
     kind: "audio",
+    role: "music",
     name: id,
     volume: 1,
     muted: false,
     clips: [{
-      id: `${id}-clip`, asset_id: 1, duration_ms: 1_000,
+      id: `${id}-clip`, file_id: 1, duration_ms: 1_000,
       source_offset_ms: 0, gain: 1, fade_in_ms: 0, fade_out_ms: 0,
       loop: false, ducking: false, muted: false, locked: false, effects: [],
       anchor: { kind: "absolute", position_ms: 0 }, resolved_duration_ms: 1_000,

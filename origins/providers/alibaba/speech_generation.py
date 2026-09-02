@@ -1,0 +1,265 @@
+"""One Alibaba adapter for every Origins speech-producing capability."""
+
+from __future__ import annotations
+
+import json
+import os
+
+from origins.domain import delivery_tags, provider_catalog, speech_text, voice_routing
+from origins.providers.alibaba import audio_tts, config, cosyvoice, qwen_tts
+from origins.domain.provider_pricing import (
+    PRICE_VERSION,
+    cosyvoice_tts_cost,
+    qwen_audio_tts_cost,
+)
+
+from origins.domain.speech import (
+    DEFAULT_SPEECH_VOLUME,
+    PreparedSpeech,
+    SpeechSynthesisError,
+    SynthesizedSpeech,
+)
+from origins.providers.base import BaseTTSProvider
+
+
+def synthesize(plan, options, on_progress=None):
+    """Route speech through the Alibaba product selected by one voice route."""
+    if options.engine == "audio":
+        texts = [text for session in plan.sessions for text in session]
+    elif options.engine == "qwen_tts":
+        texts = list(plan.segments)
+    elif options.engine == "cosyvoice":
+        texts = [text for session in plan.sessions for text in session]
+    else:
+        raise ValueError(f"Unsupported Alibaba speech engine: {options.engine}")
+    if options.engine in {"qwen_tts", "cosyvoice"} and any(
+        tag.casefold() in delivery_tags.KNOWN_TAGS
+        for text in texts for tag in delivery_tags.TAG_RE.findall(text)
+    ):
+        raise ValueError(
+            f"{provider_catalog.CAPABILITIES[options.engine]['label']} "
+            "does not support inline delivery tags. Choose Raw or Spoken "
+            "text, or use a Qwen Audio voice."
+        )
+    if options.engine == "qwen_tts":
+        return qwen_tts.synthesize(
+            plan, options, on_progress=on_progress)
+    if options.engine == "cosyvoice":
+        return cosyvoice.synthesize(plan, options, on_progress=on_progress)
+    return audio_tts.synthesize(plan, options, on_progress=on_progress)
+
+
+def _plan(text: str, options):
+    if options.engine == "audio":
+        return audio_tts.plan(text)
+    if options.engine == "qwen_tts":
+        return qwen_tts.plan(text)
+    if options.engine == "cosyvoice":
+        return cosyvoice.plan(text, ssml=bool(options.enable_ssml))
+    raise ValueError(f"Unsupported Alibaba speech engine: {options.engine}")
+
+
+def _request_count(plan, engine: str) -> int:
+    if engine not in {"audio", "qwen_tts", "cosyvoice"}:
+        raise ValueError(f"Unsupported Alibaba speech engine: {engine}")
+    return int(plan.request_count)
+
+
+class _Options:
+    """Provider request values resolved exactly once before a paid call."""
+
+    def __init__(self, values: dict, bindings: list[dict], catalogue: list[dict],
+                 pronunciations: list[dict], preferences: dict):
+        language = values.get("language")
+        text = str(values.get("text") or "")
+        route = voice_routing.resolve(values, bindings, catalogue)
+        if route.engine in {"qwen_tts", "cosyvoice"} and not route.provider_voice_id:
+            raise ValueError(
+                f"Choose a ready {provider_catalog.CAPABILITIES[route.engine]['label']} cloned voice.")
+        self.language = None if language in (None, "", "Auto") else str(language)
+        self.voice_identity_id = route.identity_id
+        self.binding_id = route.binding_id
+        self.catalogue_voice_id = route.catalogue_voice_id
+        self.reference_id = route.reference_id
+        self.capability_id = route.capability_id
+        self.capability_name = route.capability_name
+        self.provider = route.provider
+        self.provider_region = route.region
+        self.voice = route.provider_voice_id or provider_catalog.AUDIO_DEFAULT_VOICES.get(
+            route.tier, provider_catalog.AUDIO_DEFAULT_VOICES["plus"])
+        self.engine = route.engine
+        self.model = route.tier
+        self.model_id = route.model_id
+        self.voice_route = {**route.payload(), "provider_voice_id": self.voice}
+        self.voice_name = route.voice_name
+        self.format = str(values.get("format") or "mp3")
+        instruction = str(values.get("instruction") or "").strip()
+        supports_instruction = bool(
+            provider_catalog.CAPABILITIES[route.engine]["instruction_control"])
+        # Keep authored direction intact in domain state. A route that does
+        # not support direction simply omits it from the provider request;
+        # supported routes must never receive silently truncated text.
+        self.instruction = (instruction or None) if supports_instruction else None
+        # Capability mode IDs are open provider metadata, not a closed
+        # exact/directed enum. Individual adapters may interpret known modes,
+        # but the chosen ID must survive unchanged into evidence and Clips.
+        self.speech_mode = str(values.get("speech_mode") or "exact")
+        self.rate = float(values.get("rate", 1))
+        self.pitch = float(values.get("pitch", 1))
+        self.volume = int(values.get("volume", DEFAULT_SPEECH_VOLUME))
+        self.seed = int(values.get("seed") or 0)
+        defaults = preferences.get("synth_flags") or {}
+        for flag in speech_text.SYNTH_FLAGS:
+            value = values.get(flag, defaults.get(flag))
+            setattr(self, flag, None if value is None else bool(value))
+        self.hot_fix = speech_text.build_hot_fix(pronunciations)
+        extra = values.get("extra_params", preferences.get("extra_params"))
+        if isinstance(extra, str) and extra.strip():
+            try:
+                extra = json.loads(extra)
+            except json.JSONDecodeError:
+                extra = None
+        self.extra_params = extra if isinstance(extra, dict) else None
+
+
+def _extension(output_format: str) -> str:
+    return "ogg" if output_format == "opus" else output_format.split("-")[0]
+
+
+def _guard_estimate(text: str, engine: str, tier: str) -> float:
+    if engine == "audio":
+        return qwen_audio_tts_cost(
+            len(text), config.region(), tier).catalog_cost
+    if engine == "cosyvoice":
+        return cosyvoice_tts_cost(len(text), config.region()).catalog_cost
+    rates = config.CAPABILITIES[engine]["estimate_rates_per_million_chars"]
+    return round(len(text) * rates[tier] / 1_000_000, 6)
+
+
+class AlibabaSpeechProvider(BaseTTSProvider):
+    @staticmethod
+    def is_configured() -> bool:
+        return bool(os.getenv("DASHSCOPE_API_KEY", "").strip())
+
+    def prepare(self, *, text: str, values: dict, bindings: list[dict],
+                catalogue: list[dict],
+                pronunciations: list[dict], preferences: dict) -> PreparedSpeech:
+        options = _Options(values, bindings, catalogue, pronunciations, preferences)
+        tagged = [tag for tag in delivery_tags.TAG_RE.findall(text)
+                  if tag.casefold() in delivery_tags.KNOWN_TAGS]
+        if options.engine in {"qwen_tts", "cosyvoice"} and tagged:
+            raise ValueError(
+                f"{provider_catalog.CAPABILITIES[options.engine]['label']} "
+                "does not support inline delivery tags. Choose Raw or Spoken "
+                "text, or use a Qwen Audio voice.")
+        spoken, applied = speech_text.apply_pronunciations(text, pronunciations)
+        rewrites: list = []
+        if preferences.get("fix_dates_phones", True):
+            spoken, rewrites = speech_text.normalise_ambiguous(
+                spoken, day_first=bool(preferences.get("day_first", True)))
+        options.synthesis_plan = _plan(spoken, options)
+        request_count = _request_count(options.synthesis_plan, options.engine)
+        return PreparedSpeech(
+            original_text=text, spoken_text=spoken, voice=options.voice,
+            voice_identity_id=options.voice_identity_id,
+            engine=options.engine, tier=options.model,
+            model_id=options.model_id, output_format=options.format,
+            extension=_extension(options.format), language=options.language,
+            instruction=options.instruction, speech_mode=options.speech_mode,
+            rate=options.rate, pitch=options.pitch, volume=options.volume,
+            seed=options.seed, request_count=request_count,
+            estimated_cost=_guard_estimate(spoken, options.engine, options.model),
+            voice_route=options.voice_route, pronunciations=applied,
+            rewrites=rewrites, context=options,
+            binding_id=options.binding_id,
+            catalogue_voice_id=options.catalogue_voice_id,
+            reference_id=options.reference_id,
+            capability_id=options.capability_id,
+            capability_name=options.capability_name,
+            provider=options.provider,
+            provider_region=options.provider_region,
+            voice_name=options.voice_name,
+        )
+
+    def synthesize(self, prepared: PreparedSpeech,
+                   on_progress=None) -> SynthesizedSpeech:
+        planned = getattr(
+            prepared.context, "synthesis_plan", prepared.spoken_text)
+        audio, failures, _transcripts, usage, request_ids, diagnostics = synthesize(
+            planned, prepared.context, on_progress=on_progress)
+        failure_rows = [item._asdict() for item in failures]
+        measured_usage = dict(usage or {})
+        if prepared.engine == "audio":
+            generated_characters = sum(
+                int(item.get("characters") or 0) for item in diagnostics
+                if item.get("status") == "accepted")
+            if not diagnostics and not failure_rows:
+                generated_characters = len(prepared.spoken_text)
+            measured_usage.update({
+                "submitted_characters": len(prepared.spoken_text),
+                "generated_characters": generated_characters,
+            })
+            priced = qwen_audio_tts_cost(
+                generated_characters, config.region(), prepared.tier)
+            cost, basis = priced.catalog_cost, priced.cost_basis
+            endpoint = config.websocket_base()
+            rate = priced.catalog_rate
+        elif prepared.engine == "cosyvoice":
+            generated_characters = sum(
+                int(item.get("characters") or 0) for item in diagnostics
+                if item.get("status") == "accepted")
+            if not diagnostics and not failure_rows:
+                generated_characters = len(prepared.spoken_text)
+            measured_usage.update({
+                "submitted_characters": len(prepared.spoken_text),
+                "generated_characters": generated_characters,
+            })
+            priced = cosyvoice_tts_cost(generated_characters, config.region())
+            cost, basis = priced.catalog_cost, priced.cost_basis
+            endpoint = config.websocket_base()
+            rate = priced.catalog_rate
+        else:
+            generated_characters = sum(
+                int(item.get("characters") or 0) for item in diagnostics
+                if item.get("status") == "accepted")
+            if not diagnostics and not failure_rows:
+                generated_characters = len(prepared.spoken_text)
+            measured_usage.update({
+                "submitted_characters": len(prepared.spoken_text),
+                "generated_characters": generated_characters,
+            })
+            rate = float(config.CAPABILITIES[prepared.engine]
+                         ["rates_per_million_chars"][prepared.tier])
+            cost = round(generated_characters * rate / 1_000_000, 6)
+            basis = "catalog_characters"
+            endpoint = config.regional_http_base()
+        if failure_rows:
+            first_error = str(failure_rows[0].get("error") or "").strip()
+            label = provider_catalog.CAPABILITIES[prepared.engine]["label"]
+            message = f"{label} could not complete every speech section."
+            if first_error:
+                message += f" {first_error}"
+            raise SpeechSynthesisError(
+                message,
+                {
+                    "cost": cost,
+                    "cost_basis": basis,
+                    "usage": measured_usage,
+                    "failures": failure_rows,
+                    "provider_diagnostics": diagnostics,
+                    "request_ids": request_ids,
+                    "provider_request_id": (request_ids[0]
+                                            if len(request_ids) == 1
+                                            else None),
+                    "provider_region": config.region(),
+                    "provider_endpoint": endpoint,
+                    "price_version": PRICE_VERSION,
+                },
+            )
+        return SynthesizedSpeech(
+            audio=audio, cost=cost, cost_basis=basis,
+            usage=measured_usage, failures=failure_rows,
+            provider_region=config.region(), provider_endpoint=endpoint,
+            price_version=PRICE_VERSION, catalog_rate=rate,
+            request_ids=request_ids, diagnostics=diagnostics,
+        )

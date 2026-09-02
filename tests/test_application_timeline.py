@@ -2,13 +2,13 @@
 
 import unittest
 
-from audio_studio.application.timeline import TimelineError, TimelineService
+from origins.application.timeline import TimelineError, TimelineService
 
 
 class Records:
     def __init__(self):
         self.parts = {7: {"id": 7, "kind": "audio", "filename": "part.mp3", "revision": 3}}
-        self.assets = {}
+        self.files = {}
         self.created = []
         self.inserted_assets = []
         self.replaced_assets = []
@@ -20,47 +20,47 @@ class Records:
         self.editorial_values = []
 
     @staticmethod
-    def production(production_id):
-        return {"id": production_id} if production_id in {6, 9} else None
+    def project(project_id):
+        return {"id": project_id} if project_id in {6, 9} else None
 
-    def part(self, production_id, part_id):
-        return self.parts.get(part_id) if production_id == 6 else None
+    def part(self, project_id, part_id):
+        return self.parts.get(part_id) if project_id == 6 else None
 
     @staticmethod
-    def reorder(_production_id, _order):
+    def reorder(_project_id, _order):
         return True
 
-    def set_enabled(self, production_id, part_id, enabled):
-        self.enabled_values.append((production_id, part_id, enabled))
+    def set_enabled(self, project_id, part_id, enabled):
+        self.enabled_values.append((project_id, part_id, enabled))
         return True
 
-    def create_part(self, production_id, values,
+    def create_part(self, project_id, values,
                     before_part_public_id=None):
-        self.created.append((production_id, values, before_part_public_id))
+        self.created.append((project_id, values, before_part_public_id))
         return 101
 
-    def asset(self, asset_id):
-        return self.assets.get(asset_id)
+    def file(self, file_id):
+        return self.files.get(file_id)
 
-    def asset_allowed(self, _production_id, _asset_id):
+    def file_allowed(self, _project_id, _file_id):
         return self.allow_asset
 
-    def insert_asset(self, production_id, asset_id,
+    def insert_file(self, project_id, file_id,
                      before_part_public_id=None):
         self.inserted_assets.append(
-            (production_id, asset_id, before_part_public_id))
+            (project_id, file_id, before_part_public_id))
         return 102
 
-    def replace_asset(self, production_id, part_id, asset_id):
-        self.replaced_assets.append((production_id, part_id, asset_id))
+    def replace_file(self, project_id, part_id, file_id):
+        self.replaced_assets.append((project_id, part_id, file_id))
         return True
 
-    def duplicate(self, production_id, part_id, filename):
-        self.duplicated.append((production_id, part_id, filename))
+    def duplicate(self, project_id, part_id, filename):
+        self.duplicated.append((project_id, part_id, filename))
         return self.duplicate_id
 
-    def delete(self, production_id, ids):
-        self.deleted.append((production_id, ids))
+    def delete(self, project_id, ids):
+        self.deleted.append((project_id, ids))
         return ["part.mp3"]
 
     @staticmethod
@@ -68,10 +68,10 @@ class Records:
         return True
 
     @staticmethod
-    def save_script(_production_id, _part_id, _script, _values=None):
+    def save_script(_project_id, _part_id, _script, _values=None):
         return True
 
-    def save_editorial(self, _production_id, _part_id, expected_revision, values):
+    def save_editorial(self, _project_id, _part_id, expected_revision, values):
         self.editorial_values.append(values)
         if expected_revision != 3:
             return {"status": "conflict", "revision": 3}
@@ -79,7 +79,7 @@ class Records:
                 "outdated": True, "values": values}
 
     @staticmethod
-    def save_draft(_production_id, _part_id, _values):
+    def save_draft(_project_id, _part_id, _values):
         return True
 
 
@@ -117,7 +117,7 @@ class TimelineServiceTests(unittest.TestCase):
             self.records, self.workspace, self.transcripts)
 
     def test_missing_production_and_part_fail_before_mutation(self):
-        with self.assertRaisesRegex(TimelineError, "Production"):
+        with self.assertRaisesRegex(TimelineError, "Project"):
             self.service.add_silence(404, 2)
         with self.assertRaisesRegex(TimelineError, "Part"):
             self.service.duplicate(6, 404)
@@ -157,35 +157,35 @@ class TimelineServiceTests(unittest.TestCase):
                          ("Rest now", "Night Guide", "spoken_2", True,
                           "voice-1", "draft", "part-before"))
 
-    def test_asset_classification_does_not_restrict_sequence_placement(self):
-        self.records.assets[55] = {"filename": "music.mp3", "kind": "music"}
-        self.assertEqual(self.service.insert_asset(6, 55), {"id": 102})
+    def test_file_classification_does_not_restrict_sequence_placement(self):
+        self.records.files[55] = {"filename": "music.mp3", "kind": "music"}
+        self.assertEqual(self.service.insert_file(6, 55), {"id": 102})
 
     def test_visual_assets_cannot_leak_into_audio_only_script_parts(self):
-        self.records.assets[55] = {
+        self.records.files[55] = {
             "filename": "story-frame.png", "media_type": "image",
         }
-        with self.assertRaisesRegex(TimelineError, "Only audio Assets"):
-            self.service.insert_asset(6, 55)
+        with self.assertRaisesRegex(TimelineError, "Only audio Files"):
+            self.service.insert_file(6, 55)
         self.assertFalse(self.records.inserted_assets)
 
     def test_public_part_anchor_is_the_stable_insertion_contract(self):
         self.service.add_silence(6, 2, "part-before")
         self.assertEqual(self.records.created[0][2], "part-before")
-        self.records.assets[55] = {
+        self.records.files[55] = {
             "filename": "intro.mp3", "context": {"collection": "Intros"}}
-        self.service.insert_asset(6, 55, "part-before")
+        self.service.insert_file(6, 55, "part-before")
         self.assertEqual(self.records.inserted_assets,
                          [(6, 55, "part-before")])
 
-    def test_asset_replacement_keeps_the_part_identity(self):
-        self.records.parts[7]["kind"] = "asset"
-        self.records.assets[55] = {"filename": "outro.mp3"}
-        self.assertEqual(self.service.replace_asset(6, 7, 55), {"id": 7})
+    def test_file_replacement_keeps_the_part_identity(self):
+        self.records.parts[7]["kind"] = "file"
+        self.records.files[55] = {"filename": "outro.mp3"}
+        self.assertEqual(self.service.replace_file(6, 7, 55), {"id": 7})
         self.assertEqual(self.records.replaced_assets, [(6, 7, 55)])
         self.records.parts[7]["kind"] = "speech"
-        with self.assertRaisesRegex(TimelineError, "not a Venture Asset"):
-            self.service.replace_asset(6, 7, 55)
+        with self.assertRaisesRegex(TimelineError, "not linked to a Workspace File"):
+            self.service.replace_file(6, 7, 55)
 
     def test_duplicate_database_failure_discards_new_file(self):
         self.records.duplicate_id = None

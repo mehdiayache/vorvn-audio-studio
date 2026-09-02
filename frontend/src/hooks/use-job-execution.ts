@@ -1,6 +1,6 @@
 import { useEffect, useSyncExternalStore } from "react"
 
-import { studioApi } from "@/lib/api"
+import { originsApi } from "@/lib/api"
 import { jobObserver } from "@/lib/job-observer"
 import type { DurableJob } from "@/types/domain"
 
@@ -12,7 +12,7 @@ export function useJobExecution<T>(jobId: string | null) {
   )
   useEffect(() => {
     if (!jobId) return
-    void jobObserver.observe<T>(jobId, studioApi.job<T>).catch(() => undefined)
+    void jobObserver.observe<T>(jobId, originsApi.job<T>).catch(() => undefined)
   }, [jobId])
   return snapshot
 }

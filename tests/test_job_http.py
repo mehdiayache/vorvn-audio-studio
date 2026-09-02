@@ -6,35 +6,32 @@ import unittest
 from fastapi.testclient import TestClient
 import psycopg
 
-from audio_studio.config import settings
-from audio_studio.http.app import app
-from audio_studio.infrastructure.postgres.jobs import JobRepository
+from origins.config import settings
+from origins.http.app import app
+from origins.infrastructure.postgres.jobs import JobRepository
+from origins.infrastructure.postgres.workspaces import WorkspaceRepository
 
 
 class JobHttpTests(unittest.TestCase):
-    def test_space_audio_creation_exposes_exact_job_ownership(self):
+    def test_workspace_audio_creation_exposes_exact_job_ownership(self):
         try:
             connection = psycopg.connect(settings.database_url)
         except psycopg.OperationalError as exc:
             self.skipTest(str(exc))
         job_id = None
+        workspace = WorkspaceRepository().create_workspace(
+            "HTTP audio Workspace", "Disposable Job HTTP fixture")
+        workspace_id = int(workspace["id"])
         client = TestClient(app)
         try:
-            with connection.cursor() as cursor:
-                cursor.execute("SELECT id FROM spaces ORDER BY id LIMIT 1")
-                owner = cursor.fetchone()
-            if not owner:
-                self.skipTest("No Space fixture is available")
-            space_id = int(owner[0])
-
             response = client.post(
                 "/api/v1/jobs/audio-generation",
-                headers={"Idempotency-Key": f"space-audio-http-{uuid4()}"},
+                headers={"Idempotency-Key": f"workspace-audio-http-{uuid4()}"},
                 json={
                     "capability": "sfx",
                     "prompt": "A short ceramic tap",
                     "seconds": 2,
-                    "space_id": space_id,
+                    "workspace_id": workspace_id,
                 },
             )
 
@@ -42,12 +39,13 @@ class JobHttpTests(unittest.TestCase):
             data = response.json()["data"]
             job = JobRepository().get(UUID(data["id"]))
             job_id = job.id
-            self.assertEqual(data["space_id"], space_id)
+            self.assertEqual(data["workspace_id"], workspace_id)
             self.assertEqual(data["creation_action_id"],
                              "generate-sound-effect")
             self.assertEqual(data["context"], {
-                "space_id": space_id,
-                "audiovisual_project_id": None,
+                "workspace_id": workspace_id,
+                "project_id": None,
+                "project_type": None,
             })
             self.assertEqual(data["output_file_ids"], [])
         finally:
@@ -60,6 +58,9 @@ class JobHttpTests(unittest.TestCase):
                     cursor.execute("DELETE FROM jobs WHERE id = %s", (job_id,))
                 connection.commit()
             connection.close()
+            with psycopg.connect(settings.database_url) as cleanup:
+                cleanup.execute(
+                    "DELETE FROM workspaces WHERE id=%s", (workspace_id,))
 
     def test_read_events_and_cancel_share_the_composed_service(self):
         try:

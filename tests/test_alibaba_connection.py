@@ -6,8 +6,8 @@ from types import SimpleNamespace
 import unittest
 from unittest.mock import patch
 
-from audio_studio.config import AlibabaEnvironment
-from audio_studio.providers.alibaba import connection
+from origins.config import AlibabaEnvironment
+from origins.providers.alibaba import connection
 
 
 class AlibabaConnectionTests(unittest.TestCase):

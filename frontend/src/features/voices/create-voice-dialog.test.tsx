@@ -2,10 +2,10 @@
 import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react"
 import { afterEach, describe, expect, it, vi } from "vitest"
 
-import { studioApi } from "@/lib/api"
+import { originsApi } from "@/lib/api"
 import { CreateVoiceDialog } from "./create-voice-dialog"
 
-vi.mock("@/lib/api", () => ({ studioApi: {
+vi.mock("@/lib/api", () => ({ originsApi: {
   createVoicePackage: vi.fn(),
   saveUploadedVoiceReferenceWindow: vi.fn(),
   uploadVoiceReference: vi.fn(),
@@ -27,19 +27,19 @@ const route = {
 
 describe("CreateVoiceDialog", () => {
   it("requires sex during identity setup and sends it with the new voice", async () => {
-    vi.mocked(studioApi.uploadVoiceReference).mockResolvedValue({ reference_id: "ref-new", name: "voice.wav", duration_ms: 15_000, sample_rate: 24_000, channels: 1 })
-    vi.mocked(studioApi.saveUploadedVoiceReferenceWindow).mockResolvedValue({
+    vi.mocked(originsApi.uploadVoiceReference).mockResolvedValue({ reference_id: "ref-new", name: "voice.wav", duration_ms: 15_000, sample_rate: 24_000, channels: 1 })
+    vi.mocked(originsApi.saveUploadedVoiceReferenceWindow).mockResolvedValue({
       id: "vwin-new", reference_id: "ref-new", provider_model_id: route.provider_model_id,
       start_ms: 0, duration_ms: 15_000, source_language: "en",
       transcript: "A faithful reference sentence.", enable_preprocess: null,
       derived_path: "", created_at: "", updated_at: "",
     })
-    vi.mocked(studioApi.voicePackagePreflight).mockResolvedValue({
+    vi.mocked(originsApi.voicePackagePreflight).mockResolvedValue({
       region: "intl", region_label: "Singapore", language: "en",
       package: "complete", routes: [route], available_routes: [route],
       packages: [], total_estimated_creation_cost: 0,
     })
-    vi.mocked(studioApi.createVoicePackage).mockResolvedValue({
+    vi.mocked(originsApi.createVoicePackage).mockResolvedValue({
       identity: {} as never, queued: 1,
       plan: { region: "intl", region_label: "Singapore", language: "en", package: "complete", routes: [route], available_routes: [route], packages: [], total_estimated_creation_cost: 0 },
     })
@@ -59,10 +59,10 @@ describe("CreateVoiceDialog", () => {
     await screen.findByText("1 recording methods are ready")
     fireEvent.click(screen.getByRole("button", { name: "Create voice" }))
 
-    await waitFor(() => expect(studioApi.createVoicePackage).toHaveBeenCalledWith(expect.objectContaining({
+    await waitFor(() => expect(originsApi.createVoicePackage).toHaveBeenCalledWith(expect.objectContaining({
       name: "New narrator", gender: "female", language: "en", reference_id: "ref-new",
       reference_window_ids: { [route.provider_model_id]: "vwin-new" },
     })))
-    expect(studioApi.saveUploadedVoiceReferenceWindow).toHaveBeenCalledWith("ref-new", expect.objectContaining({ transcript: "" }))
+    expect(originsApi.saveUploadedVoiceReferenceWindow).toHaveBeenCalledWith("ref-new", expect.objectContaining({ transcript: "" }))
   })
 })

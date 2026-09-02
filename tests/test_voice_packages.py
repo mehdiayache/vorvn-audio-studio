@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Pure cloned-voice planning contracts; no provider calls."""
 
-from audio_studio.domain import voice_packages
+from origins.domain import voice_packages
 
 
 methods = [

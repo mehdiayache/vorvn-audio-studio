@@ -2,7 +2,7 @@
 
 import unittest
 
-from audio_studio.application.subtitles import SubtitleCatalogueService
+from origins.application.subtitles import SubtitleCatalogueService
 
 
 SENTENCES = [{
@@ -20,8 +20,8 @@ class FakeRecords:
         self.limits = []
         self.deleted = []
 
-    def list(self, space_id, limit=40):
-        self.limits.append((space_id, limit))
+    def list(self, workspace_id, limit=40):
+        self.limits.append((workspace_id, limit))
         return [{"id": 7}]
 
     def get(self, transcript_id):

@@ -1,4 +1,4 @@
-"""Filesystem rollback checks for the Production render workspace."""
+"""Filesystem rollback checks for the Project render workspace."""
 
 from pathlib import Path
 import json
@@ -11,8 +11,8 @@ import unittest
 from unittest.mock import patch
 import wave
 
-from audio_studio.infrastructure import render_workspace
-from audio_studio.infrastructure.render_workspace import FFmpegRenderWorkspace
+from origins.infrastructure import render_workspace
+from origins.infrastructure.render_workspace import FFmpegRenderWorkspace
 
 
 class RenderWorkspaceTests(unittest.TestCase):
@@ -22,7 +22,7 @@ class RenderWorkspaceTests(unittest.TestCase):
             {"start_ms": 7_000, "duration_ms": 5_000},
         ]}]}}
         self.assertEqual(
-            render_workspace._production_timeline_duration_ms(scene, visual),
+            render_workspace._project_timeline_duration_ms(scene, visual),
             12_000,
         )
 
@@ -57,14 +57,14 @@ class RenderWorkspaceTests(unittest.TestCase):
                     "tracks": [
                         {"id": "image", "media_type": "image",
                          "visible": True, "clips": [{
-                             "asset_id": 1, "start_ms": 0,
+                             "file_id": 1, "start_ms": 0,
                              "duration_ms": 1000, "source_offset_ms": 0,
                              "fit": "contain", "position_x": 100,
                              "position_y": 50, "scale": .5,
                              "opacity": .5}]},
                         {"id": "video", "media_type": "video",
                          "visible": True, "clips": [{
-                             "asset_id": 2, "start_ms": 1000,
+                             "file_id": 2, "start_ms": 1000,
                              "duration_ms": 1000, "source_offset_ms": 0,
                              "fit": "cover"}]},
                     ],
@@ -134,7 +134,7 @@ class RenderWorkspaceTests(unittest.TestCase):
                         "tracks": [{
                             "id": "portrait", "media_type": "image",
                             "visible": True, "clips": [{
-                                "asset_id": 1, "start_ms": 0,
+                                "file_id": 1, "start_ms": 0,
                                 "duration_ms": 1000, "source_offset_ms": 0,
                                 "fit": fit, "position_x": 0,
                                 "position_y": 0, "scale": 1,
@@ -192,7 +192,7 @@ class RenderWorkspaceTests(unittest.TestCase):
             def render(name: str, **transform) -> Path:
                 target = root / f"{name}.mp4"
                 clip = {
-                    "asset_id": 1, "start_ms": 0, "duration_ms": 1000,
+                    "file_id": 1, "start_ms": 0, "duration_ms": 1000,
                     "source_offset_ms": 0, "fit": "cover",
                     "position_x": 0, "position_y": 0, "scale": 1,
                     "rotation_degrees": 0, "flip_horizontal": False,
@@ -405,7 +405,7 @@ class RenderWorkspaceTests(unittest.TestCase):
         with TemporaryDirectory() as folder:
             root = Path(folder).resolve()
 
-            def stem(_production_id, _parts, _signature):
+            def stem(_project_id, _parts, _signature):
                 (root / "sequence.mp3").write_bytes(b"sequence")
                 return {"filename": "sequence.mp3"}
 
@@ -450,7 +450,6 @@ class RenderWorkspaceTests(unittest.TestCase):
 
         with TemporaryDirectory() as folder:
             root = Path(folder).resolve()
-            (root / "voice-stem-6-legacy.mp3").write_bytes(b"legacy")
             with (
                 patch.object(render_workspace, "_output", return_value=root),
                 patch.object(render_workspace, "_sequence", side_effect=sequence),
@@ -463,7 +462,6 @@ class RenderWorkspaceTests(unittest.TestCase):
             stems = sorted(path.name for path in root.glob("sequence-stem-6-*.mp3"))
             self.assertEqual(len(stems), 3)
             self.assertNotIn("sequence-stem-6-one.mp3", stems)
-            self.assertFalse((root / "voice-stem-6-legacy.mp3").exists())
 
     def test_mix_applies_track_and_clip_gain_and_ducks_only_opted_in_audio(self):
         commands: list[list[str]] = []
@@ -870,13 +868,13 @@ class RenderWorkspaceTests(unittest.TestCase):
             root = Path(folder).resolve()
             (root / "music.mp3").write_bytes(b"music")
             with (
-                patch("audio_studio.infrastructure.render_workspace._output",
+                patch("origins.infrastructure.render_workspace._output",
                       return_value=root),
-                patch("audio_studio.infrastructure.render_workspace._name",
+                patch("origins.infrastructure.render_workspace._name",
                       return_value="final.mp3"),
-                patch("audio_studio.infrastructure.render_workspace._sequence",
+                patch("origins.infrastructure.render_workspace._sequence",
                       side_effect=sequence),
-                patch("audio_studio.infrastructure.render_workspace._mix_scene",
+                patch("origins.infrastructure.render_workspace._mix_scene",
                       side_effect=mix),
             ):
                 with self.assertRaisesRegex(OSError, "mix failed"):

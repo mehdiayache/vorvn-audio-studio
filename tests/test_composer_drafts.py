@@ -5,19 +5,19 @@ from uuid import uuid4
 
 import psycopg
 
-from audio_studio.application.composer_drafts import (
+from origins.application.composer_drafts import (
     ComposerDraftConflict,
     ComposerDraftService,
     context_key,
 )
-from audio_studio.http.routers.composer_drafts import (
+from origins.http.routers.composer_drafts import (
     ComposerState,
     DraftLookup,
     DraftWrite,
     _state,
 )
-from audio_studio.config import settings
-from audio_studio.infrastructure.postgres.composer_drafts import ComposerDraftRepository
+from origins.config import settings
+from origins.infrastructure.postgres.composer_drafts import ComposerDraftRepository
 
 
 class Store:
@@ -69,14 +69,14 @@ class ComposerDraftTests(unittest.TestCase):
     def test_context_keys_are_stable_and_insertion_specific(self):
         self.assertEqual(context_key({"kind": "standalone"}), "standalone")
         self.assertNotEqual(
-            context_key({"kind": "production", "production_id": 4,
+            context_key({"kind": "project", "project_id": 4,
                          "insert_before_part_id": str(uuid4())}),
-            context_key({"kind": "production", "production_id": 4,
+            context_key({"kind": "project", "project_id": 4,
                          "insert_before_part_id": None}))
 
     def test_contract_rejects_mixed_or_incomplete_routes_and_contexts(self):
         with self.assertRaises(ValueError):
-            DraftLookup(context={"kind": "production", "production_id": 4,
+            DraftLookup(context={"kind": "project", "project_id": 4,
                                  "part_id": 7,
                                  "insert_before_part_id": uuid4()})
         broken = state()
@@ -154,19 +154,32 @@ class ComposerDraftRepositoryTests(unittest.TestCase):
         try:
             with psycopg.connect(settings.database_url) as database:
                 row = database.execute("""
-                    SELECT production.id, part.id, part.public_id
-                      FROM productions production
-                      JOIN production_parts part
-                        ON part.production_id = production.id
-                     WHERE production.archived_at IS NULL
-                       AND part.archived_at IS NULL
-                     ORDER BY production.id, part.position LIMIT 1
+                    INSERT INTO workspaces (name, description)
+                    VALUES ('Composer Draft test', 'Disposable fixture')
+                    RETURNING id
                 """).fetchone()
+                cls.workspace_id = int(row[0])
+                cls.project_id = int(database.execute("""
+                    INSERT INTO projects
+                        (workspace_id, project_type, name, description, settings)
+                    VALUES (%s, 'audiovisual', 'Draft Project', '', '{}')
+                    RETURNING id
+                """, (cls.workspace_id,)).fetchone()[0])
+                part = database.execute("""
+                    INSERT INTO project_parts (project_id, position, title)
+                    VALUES (%s, 0, 'Draft Part') RETURNING id, public_id
+                """, (cls.project_id,)).fetchone()
+                cls.part_id, cls.part_public_id = part
+                database.commit()
         except psycopg.OperationalError as exc:
             raise unittest.SkipTest(str(exc)) from exc
-        if not row:
-            raise unittest.SkipTest("No Production Part fixture is available")
-        cls.production_id, cls.part_id, cls.part_public_id = row
+    @classmethod
+    def tearDownClass(cls):
+        if getattr(cls, "workspace_id", None):
+            with psycopg.connect(settings.database_url) as database:
+                database.execute(
+                    "DELETE FROM workspaces WHERE id=%s", (cls.workspace_id,))
+                database.commit()
 
     def setUp(self):
         self.repository = ComposerDraftRepository()
@@ -191,17 +204,17 @@ class ComposerDraftRepositoryTests(unittest.TestCase):
         self.assertEqual(second["version"], first["version"] + 1)
         self.assertTrue(self.repository.delete(self.key, second["version"]))
 
-    def test_production_anchor_and_part_are_validated(self):
-        production = {
-            "kind": "production", "production_id": self.production_id,
+    def test_project_anchor_and_part_are_validated(self):
+        project = {
+            "kind": "project", "project_id": self.project_id,
             "operation": "new_part", "part_id": None,
             "insert_before_part_id": str(self.part_public_id),
         }
-        key = context_key(production)
+        key = context_key(project)
         try:
-            written = self.repository.put(production, key, state(), None)
+            written = self.repository.put(project, key, state(), None)
             self.assertEqual(written["version"], 1)
-            invalid = {**production, "insert_before_part_id": str(uuid4())}
+            invalid = {**project, "insert_before_part_id": str(uuid4())}
             with self.assertRaisesRegex(ValueError, "insertion point"):
                 self.repository.put(invalid, context_key(invalid), state(), None)
         finally:

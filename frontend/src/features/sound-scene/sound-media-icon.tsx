@@ -2,7 +2,7 @@ export {
   AUDIO_FAMILY_LABELS,
   SOUND_MEDIA_LABELS,
   SoundMediaIcon,
-  audioAssetFamily,
+  audioFileFamily,
   audioFamily,
   audioTrackRole,
   audioUsageTags,

@@ -1,5 +1,0 @@
-.venture-mark { display: grid; place-items: center; overflow: hidden; line-height: 1; }
-.venture-mark img { width: 100%; height: 100%; object-fit: cover; }
-.venture-mark > span:not(.sr-only) { display: grid; place-items: center; }
-.venture-mark.compact { width: 24px; height: 24px; flex: 0 0 24px; border-radius: 7px; background: var(--venture-soft); font-size: var(--type-heading-sm); }
-.venture-mark.compact svg { width: 13px; }

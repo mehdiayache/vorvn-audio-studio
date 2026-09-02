@@ -27,8 +27,8 @@ export function contextWire(context: CompositionContext) {
     return { kind: "standalone" as const }
   }
   return {
-    kind: "production" as const,
-    production_id: context.productionId,
+    kind: "project" as const,
+    project_id: context.projectId,
     part_id: context.partId ?? null,
     insert_before_part_id: context.insertion?.partId ?? null,
   }

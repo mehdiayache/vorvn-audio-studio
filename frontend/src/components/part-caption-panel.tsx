@@ -11,7 +11,7 @@ import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import type { CaptionConfirmation } from "@/hooks/use-part-detail-data"
 import { useCaptionPresentation } from "@/lib/caption-presentation"
 import { formatDuration } from "@/lib/format"
-import { studioApi } from "@/lib/api"
+import { originsApi } from "@/lib/api"
 import type { CaptionLayout, CaptionMutationResult, DurableJob, Transcript, TranscriptSummary } from "@/types/domain"
 
 function downloadText(filename: string, body: string) {
@@ -70,7 +70,7 @@ export function PartCaptionPanel({ captions, transcript, languages, sourceLangua
     if (!transcript?.id) { setLayout(null); return }
     let current = true
     setLayoutBusy(true)
-    void studioApi.subtitleLayout(transcript.id, profile)
+    void originsApi.subtitleLayout(transcript.id, profile)
       .then((next) => { if (current) setLayout(next) })
       .catch(() => { if (current) setLayout(null) })
       .finally(() => { if (current) setLayoutBusy(false) })

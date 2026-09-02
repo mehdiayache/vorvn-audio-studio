@@ -2,7 +2,7 @@
 
 import unittest
 
-from audio_studio.http.app import app
+from origins.http.app import app
 
 
 class ContentContractTests(unittest.TestCase):
@@ -56,10 +56,12 @@ class ContentContractTests(unittest.TestCase):
                             "Successful JSON responses must name a Pydantic envelope.",
                         )
 
-    def test_work_timeline_and_settings_publish_nested_types(self):
+    def test_workspace_project_timeline_and_settings_publish_nested_types(self):
         components = self.schema["components"]["schemas"]
-        self.assertIn("metrics", components["HierarchyNodeResponse"]["required"])
-        self.assertIn("parts", components["ProductionEditorResponse"]["required"])
+        self.assertIn("workspace", components["WorkspaceOverviewResponse"]["required"])
+        self.assertIn("projects", components["WorkspaceOverviewResponse"]["required"])
+        self.assertIn("files", components["WorkspaceOverviewResponse"]["required"])
+        self.assertIn("parts", components["ProjectEditorResponse"]["required"])
         sound_scene = components["SoundSceneUpdateBody"]["properties"]
         self.assertTrue({"expected_revision", "document"}.issubset(sound_scene))
         self.assertIn("storage_settings",

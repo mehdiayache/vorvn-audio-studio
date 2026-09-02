@@ -7,20 +7,20 @@ from uuid import uuid4
 
 import psycopg
 
-from audio_studio.application.transcription import (
+from origins.application.transcription import (
     TranscriptionJobHandler,
     TranscriptionService,
 )
-from audio_studio.application.provider_operations import ProviderOperationService
-from audio_studio.config import settings
-from audio_studio.domain.jobs import Job, JobStatus
-from audio_studio.domain.transcription import (
+from origins.application.provider_operations import ProviderOperationService
+from origins.config import settings
+from origins.domain.jobs import Job, JobStatus
+from origins.domain.transcription import (
     PreparedAudio,
     ProviderTranscript,
     QWEN_MODEL,
 )
-from audio_studio.http.routers.jobs import TranscriptionJobCreate
-from audio_studio.infrastructure.postgres import transcripts as postgres_transcripts
+from origins.http.routers.jobs import TranscriptionJobCreate
+from origins.infrastructure.postgres import transcripts as postgres_transcripts
 from test_support import FakeProviderOperationsRepository
 
 
@@ -212,13 +212,13 @@ class TranscriptionTests(unittest.TestCase):
     def test_http_contract_requires_measured_upload_or_part_identity(self):
         uploaded = TranscriptionJobCreate(
             url="https://storage.test/audio.mp3", name="audio.mp3",
-            duration_ms=2000, space_id=12)
+            duration_ms=2000, workspace_id=12)
         self.assertEqual(uploaded.duration_ms, 2000)
         local = TranscriptionJobCreate(
-            file="audio.mp3", part_id=44, production_id=7)
+            file="audio.mp3", part_id=44, project_id=7)
         self.assertEqual(local.part_id, 44)
         unknown_duration = TranscriptionJobCreate(
-            url="https://storage.test/audio.mp3", name="audio.mp3", space_id=12)
+            url="https://storage.test/audio.mp3", name="audio.mp3", workspace_id=12)
         self.assertEqual(unknown_duration.duration_ms, 0)
         with self.assertRaises(ValueError):
             TranscriptionJobCreate(file="audio.mp3")
@@ -228,8 +228,8 @@ class TranscriptionTests(unittest.TestCase):
                 part_id=44)
 
     def test_legacy_execution_and_upload_routes_are_removed(self):
-        legacy = ROOT / "audio_studio/infrastructure/legacy_jobs.py"
-        worker = (ROOT / "audio_studio/worker.py").read_text()
+        legacy = ROOT / "origins/infrastructure/legacy_jobs.py"
+        worker = (ROOT / "origins/worker.py").read_text()
         self.assertFalse((ROOT / "server.py").exists())
         self.assertFalse(legacy.exists())
         self.assertIn('service.register("transcribe", TranscriptionJobHandler',
@@ -253,14 +253,14 @@ class TranscriptionTests(unittest.TestCase):
         try:
             with connection.cursor() as cursor:
                 cursor.execute("""
-                    INSERT INTO spaces (public_id, name)
+                    INSERT INTO workspaces (public_id, name)
                     VALUES (gen_random_uuid(), 'subtitle repository fixture')
                     RETURNING id
                 """)
-                space_id = int(cursor.fetchone()[0])
+                workspace_id = int(cursor.fetchone()[0])
             repository = postgres_transcripts.TranscriptRepository()
             transcript_id = repository.save({
-                "space_id": space_id,
+                "workspace_id": workspace_id,
                 "name": "native transcription fixture", "language": "English",
                 "duration_ms": 1000, "text": "Hello", "srt": "", "vtt": "",
                 "model": QWEN_MODEL, "provider_region": "intl",
@@ -271,7 +271,7 @@ class TranscriptionTests(unittest.TestCase):
             })
             self.assertEqual(repository.get(transcript_id)["text"], "Hello")
             self.assertIn(transcript_id,
-                          [item["id"] for item in repository.list(space_id, 200)])
+                          [item["id"] for item in repository.list(workspace_id, 200)])
             self.assertTrue(repository.delete(transcript_id))
             self.assertIsNone(repository.get(transcript_id))
         finally:

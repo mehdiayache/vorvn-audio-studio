@@ -10,7 +10,7 @@ function Harness({ openCommands }: { openCommands: () => void }) {
 }
 
 describe("usePlayerShortcuts", () => {
-  it("opens the Production command menu with Cmd/Ctrl+K even without player audio", () => {
+  it("opens the Project command menu with Cmd/Ctrl+K even without player audio", () => {
     const openCommands = vi.fn()
     render(<Harness openCommands={openCommands} />)
     const event = new KeyboardEvent("keydown", { key: "k", metaKey: true, bubbles: true, cancelable: true })

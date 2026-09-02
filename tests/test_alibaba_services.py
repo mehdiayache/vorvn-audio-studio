@@ -1,7 +1,7 @@
 """Contract checks for the installed exact-text Alibaba speech products."""
 
-from audio_studio.domain import voice_registry
-from audio_studio.providers.alibaba import config
+from origins.domain import voice_registry
+from origins.providers.alibaba import config
 
 
 def check(label, condition):

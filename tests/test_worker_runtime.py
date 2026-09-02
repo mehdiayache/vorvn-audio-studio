@@ -10,11 +10,11 @@ from unittest.mock import patch
 
 import psycopg
 
-from audio_studio.config import settings
-from audio_studio.infrastructure.postgres.worker_runtime import (
+from origins.config import settings
+from origins.infrastructure.postgres.worker_runtime import (
     WorkerRuntimeRepository,
 )
-from audio_studio.infrastructure.postgres import worker_runtime
+from origins.infrastructure.postgres import worker_runtime
 
 
 class CursorFake:
@@ -42,7 +42,7 @@ class WorkerRuntimeTests(unittest.TestCase):
         with patch.object(
                 worker_runtime, "read_only",
                 side_effect=lambda: read_only_row(row)), patch.dict(
-                    os.environ, {"AUDIO_STUDIO_RUNTIME_ID": "new-runtime"}):
+                    os.environ, {"ORIGINS_RUNTIME_ID": "new-runtime"}):
             status = WorkerRuntimeRepository().status()
         self.assertFalse(status["ready"])
         self.assertEqual(status["status"], "runtime_mismatch")

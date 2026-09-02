@@ -4,8 +4,8 @@ from __future__ import annotations
 
 import unittest
 
-from audio_studio.application.activity import ActivityService
-from audio_studio.application.system import SystemService
+from origins.application.activity import ActivityService
+from origins.application.system import SystemService
 
 
 class LedgerFake:

@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from "react"
 
-import { studioApi } from "@/lib/api"
-import type { ProductionPart, TextPassResult } from "@/types/domain"
+import { originsApi } from "@/lib/api"
+import type { ProjectPart, TextPassResult } from "@/types/domain"
 import { composerTextFromPart, type ComposerText, type SpokenProfile, type TextReviewReference } from "@/lib/composer-contract"
 
 export type TextView = "raw" | "shaped" | "tagged"
@@ -12,19 +12,19 @@ type PreparationOptions = {
   onReviewReferenceChange?: (reference: TextReviewReference | null, text?: ComposerText) => Promise<void> | void
 }
 
-function initial(part?: ProductionPart | null) {
+function initial(part?: ProjectPart | null) {
   const { active: _active, ...states } = composerTextFromPart(part)
   return states
 }
 
-function recordedSpokenProfile(part?: ProductionPart | null): SpokenProfile {
+function recordedSpokenProfile(part?: ProjectPart | null): SpokenProfile {
   const profile = part?.speech_job?.request?.spoken_profile || part?.spoken_profile
   return profile === "spoken_2" ? "spoken_2" : "spoken_1"
 }
 
 export function useComposerText(
-  part: ProductionPart | null | undefined,
-  productionId: number | undefined,
+  part: ProjectPart | null | undefined,
+  projectId: number | undefined,
   capabilityId: string | null,
   options: PreparationOptions = {},
 ) {
@@ -68,7 +68,7 @@ export function useComposerText(
     let active = true
     setBusy(activeReference.kind)
     setError("")
-    void studioApi.textPassResult(activeReference.jobId).then((result) => {
+    void originsApi.textPassResult(activeReference.jobId).then((result) => {
       if (!active) return
       if (result.needs_confirmation) {
         setPending({ kind: activeReference.kind, estimate: result.estimate || 0 })
@@ -117,9 +117,9 @@ export function useComposerText(
     if (!capabilityId) { setError("Choose an exact recording route first."); return }
     setBusy(kind); setError("")
     try {
-      const job = await studioApi.enqueueTextPass(kind, {
+      const job = await originsApi.enqueueTextPass(kind, {
         text: before,
-        ...(productionId ? { production_id: productionId } : {}),
+        ...(projectId ? { project_id: projectId } : {}),
         ...(part?.id ? { part_id: part.id } : {}),
         density,
         ...(kind === "shape" ? { spoken_profile: requestedProfile } : {}),
@@ -149,7 +149,7 @@ export function useComposerText(
     const nextText = { ...nextStates, active: nextView } satisfies ComposerText
     setBusy(accepted.kind); setError("")
     try {
-      if (part && productionId) await studioApi.saveTextStates(productionId, part.id, { text: after, text_raw: nextStates.raw || null, text_shaped: nextStates.shaped || null, text_tagged: nextStates.tagged || null, text_state: nextView })
+      if (part && projectId) await originsApi.saveTextStates(projectId, part.id, { text: after, text_raw: nextStates.raw || null, text_shaped: nextStates.shaped || null, text_tagged: nextStates.tagged || null, text_state: nextView })
       await referenceChangeRef.current?.(null, nextText)
       setStates(nextStates); setView(nextView); setReview(null); setActiveReference(null)
       if (accepted.kind === "shape") setSpokenProfile(accepted.result.spoken_profile === "spoken_2" ? "spoken_2" : "spoken_1")
@@ -175,7 +175,7 @@ export function useComposerText(
     if (!reference || !pending) return
     setBusy(reference.kind); setError(""); setPending(null)
     try {
-      const job = await studioApi.confirmJob<TextPassResult>(reference.jobId)
+      const job = await originsApi.confirmJob<TextPassResult>(reference.jobId)
       const continued = { jobId: job.id, kind: reference.kind } satisfies TextReviewReference
       setActiveReference(continued)
       await referenceChangeRef.current?.(continued)
