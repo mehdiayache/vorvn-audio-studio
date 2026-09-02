@@ -6,41 +6,7 @@ from typing import Any, Literal
 
 from pydantic import BaseModel, ConfigDict, Field
 
-
-class ProjectLibraryFileResponse(BaseModel):
-    model_config = ConfigDict(extra="allow")
-
-    id: int
-    public_id: str
-    workspace_id: int
-    folder_id: int | None = None
-    version_id: int | None = None
-    text: str | None = None
-    title: str | None = None
-    voice: str | None = None
-    duration_ms: int | None = None
-    filename: str | None = None
-    missing: bool | None = None
-    source: str
-    url: str | None = None
-    media_type: Literal["audio", "image", "video"] = "audio"
-    category: str | None = None
-    kind: str | None = None
-    tags: list[str] = Field(default_factory=list)
-    metadata: dict[str, Any] = Field(default_factory=dict)
-    audio_format: str | None = None
-    media_format: str | None = None
-    sample_rate: int | None = None
-    channels: int | None = None
-    width: int | None = None
-    height: int | None = None
-    video_codec: str | None = None
-    frame_rate: float | None = None
-    size_bytes: int | None = None
-    mime_type: str | None = None
-    version_metadata: dict[str, Any] = Field(default_factory=dict)
-    created_at: str | None = None
-    updated_at: str | None = None
+from origins.http.file_contracts import WorkspaceFileResponse, WorkspaceFolderResponse
 
 
 class WorkspaceFileOwnerResponse(BaseModel):
@@ -54,7 +20,8 @@ class WorkspaceFileOwnerResponse(BaseModel):
 
 class ProjectFileLibraryResponse(BaseModel):
     workspace: WorkspaceFileOwnerResponse
-    files: list[ProjectLibraryFileResponse]
+    folders: list[WorkspaceFolderResponse] = Field(default_factory=list)
+    files: list[WorkspaceFileResponse]
     project_file_ids: list[int] = Field(default_factory=list)
     library_file_ids: list[int] = Field(default_factory=list)
 

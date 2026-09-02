@@ -76,7 +76,7 @@
   z-index: 2;
   min-width: 0;
   display: grid;
-  grid-template-columns: minmax(280px, .9fr) minmax(190px, .48fr) minmax(320px, 1fr);
+  grid-template-columns: minmax(230px, .75fr) minmax(250px, .85fr) minmax(180px, .55fr) minmax(240px, .8fr);
   align-items: end;
   gap: 14px;
   padding: 14px 22px;
@@ -150,6 +150,7 @@
 }
 
 .creator-language-flag,
+.creator-model-mark,
 .creator-method-mark {
   flex: 0 0 auto;
   display: grid;
@@ -167,8 +168,14 @@
 
 .creator-method-mark {
   width: 18px;
+  height: 18px;
   color: var(--primary);
-  font-size: 10px;
+}
+
+.creator-model-mark {
+  width: 18px;
+  height: 18px;
+  color: var(--primary);
 }
 
 .creator-picker-popover {
@@ -182,6 +189,10 @@
 }
 
 .creator-method-popover {
+  width: min(520px, calc(100vw - 32px));
+}
+
+.creator-model-popover {
   width: min(520px, calc(100vw - 32px));
 }
 
@@ -650,7 +661,7 @@
 
 @media (max-width: 1180px) {
   .creator-recording-bar {
-    grid-template-columns: minmax(250px, .8fr) minmax(170px, .46fr) minmax(280px, 1fr);
+    grid-template-columns: repeat(2, minmax(0, 1fr));
     padding-inline: 16px;
   }
 
@@ -1075,16 +1086,20 @@
 .speech-creator-page .creator-surface.is-panel {
   min-height: 0;
   height: 100%;
-  display: block;
+  display: grid;
+  grid-template-rows: minmax(0, 1fr);
+  container-type: inline-size;
   overflow: hidden;
   border: 0;
   border-radius: 0;
   box-shadow: none;
 }
 
-.creator-surface.is-panel > .speech-capability-panel { min-height: 100%; }
+.creator-surface.is-panel > .speech-capability-panel { min-height: 0; height: 100%; }
 
 .speech-capability-body {
+  min-height: 0;
+  align-content: start;
   gap: 0;
   padding: 0;
 }
@@ -1099,8 +1114,10 @@
 
 .creator-surface.is-panel .script-section {
   height: auto;
-  min-height: 0;
-  grid-template-rows: auto auto auto auto;
+  min-height: 18rem;
+  display: flex;
+  flex-direction: column;
+  flex: none;
   padding: .8rem .75rem;
   border-top: 1px solid var(--border);
 }
@@ -1126,8 +1143,8 @@
 .creator-surface.is-panel .script-editor-shell,
 .creator-surface.is-panel .script-editor-shell textarea,
 .creator-surface.is-panel .tagged-script-editor {
-  height: 12rem;
-  min-height: 12rem;
+  height: 11rem;
+  min-height: 11rem;
 }
 .creator-surface.is-panel .script-editor-shell { flex: none; box-shadow: none; }
 .creator-surface.is-panel .script-section textarea { padding: 1rem; font-size: var(--type-body); line-height: 1.55; }
@@ -1160,6 +1177,12 @@
 .creator-surface.is-panel .creator-actions { width: 100%; }
 .creator-surface.is-panel .creator-actions > button:last-child { flex: 1; }
 .creator-surface.is-panel .creator-actions > button:only-child { width: 100%; }
+
+@container (min-width: 34rem) {
+  .creator-surface.is-panel .creator-recording-bar {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
 
 .creator-mobile-launcher {
   display: flex;

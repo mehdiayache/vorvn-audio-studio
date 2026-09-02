@@ -3251,61 +3251,6 @@ export interface components {
             /** Insert Before Part Id */
             insert_before_part_id?: string | null;
         };
-        /** FileResponse */
-        FileResponse: {
-            /** Created At */
-            created_at: string;
-            current_version: components["schemas"]["FileVersionResponse"];
-            /** Folder Id */
-            folder_id: number | null;
-            /** Id */
-            id: number;
-            /** Metadata */
-            metadata: {
-                [key: string]: unknown;
-            };
-            /** Name */
-            name: string;
-            /** Public Id */
-            public_id: string;
-            /** Source */
-            source: string;
-            /** Tags */
-            tags: string[];
-            /** Updated At */
-            updated_at: string;
-            /** Workspace Id */
-            workspace_id: number;
-        } & {
-            [key: string]: unknown;
-        };
-        /** FileVersionResponse */
-        FileVersionResponse: {
-            /** Duration Ms */
-            duration_ms: number | null;
-            /** Family */
-            family: string;
-            /** Filename */
-            filename: string;
-            /** Height */
-            height: number | null;
-            /** Id */
-            id: number;
-            /** Mime Type */
-            mime_type: string;
-            /** Public Id */
-            public_id: string;
-            /** Size Bytes */
-            size_bytes: number;
-            /** Storage Key */
-            storage_key: string;
-            /** Url */
-            url: string;
-            /** Version */
-            version: number;
-            /** Width */
-            width: number | null;
-        };
         /** FilterEffect */
         FilterEffect: {
             /**
@@ -3349,24 +3294,7 @@ export interface components {
         };
         /** FolderMutationEnvelope */
         FolderMutationEnvelope: {
-            data: components["schemas"]["FolderResponse"];
-        };
-        /** FolderResponse */
-        FolderResponse: {
-            /** Created At */
-            created_at: string;
-            /** Id */
-            id: number;
-            /** Name */
-            name: string;
-            /** Parent Id */
-            parent_id: number | null;
-            /** Public Id */
-            public_id: string;
-            /** Updated At */
-            updated_at: string;
-            /** Workspace Id */
-            workspace_id: number;
+            data: components["schemas"]["WorkspaceFolderResponse"];
         };
         /** FreesoundSettingsUpdate */
         FreesoundSettingsUpdate: {
@@ -4223,7 +4151,9 @@ export interface components {
         /** ProjectFileLibraryResponse */
         ProjectFileLibraryResponse: {
             /** Files */
-            files: components["schemas"]["ProjectLibraryFileResponse"][];
+            files: components["schemas"]["WorkspaceFileResponse"][];
+            /** Folders */
+            folders?: components["schemas"]["WorkspaceFolderResponse"][];
             /** Library File Ids */
             library_file_ids?: number[];
             /** Project File Ids */
@@ -4375,81 +4305,6 @@ export interface components {
         ProjectImportValidationResponse: {
             document: components["schemas"]["ProjectImportDocument"];
             summary: components["schemas"]["ProjectImportSummaryResponse"];
-        };
-        /** ProjectLibraryFileResponse */
-        ProjectLibraryFileResponse: {
-            /** Audio Format */
-            audio_format?: string | null;
-            /** Category */
-            category?: string | null;
-            /** Channels */
-            channels?: number | null;
-            /** Created At */
-            created_at?: string | null;
-            /** Duration Ms */
-            duration_ms?: number | null;
-            /** Filename */
-            filename?: string | null;
-            /** Folder Id */
-            folder_id?: number | null;
-            /** Frame Rate */
-            frame_rate?: number | null;
-            /** Height */
-            height?: number | null;
-            /** Id */
-            id: number;
-            /** Kind */
-            kind?: string | null;
-            /** Media Format */
-            media_format?: string | null;
-            /**
-             * Media Type
-             * @default audio
-             * @enum {string}
-             */
-            media_type: "audio" | "image" | "video";
-            /** Metadata */
-            metadata?: {
-                [key: string]: unknown;
-            };
-            /** Mime Type */
-            mime_type?: string | null;
-            /** Missing */
-            missing?: boolean | null;
-            /** Public Id */
-            public_id: string;
-            /** Sample Rate */
-            sample_rate?: number | null;
-            /** Size Bytes */
-            size_bytes?: number | null;
-            /** Source */
-            source: string;
-            /** Tags */
-            tags?: string[];
-            /** Text */
-            text?: string | null;
-            /** Title */
-            title?: string | null;
-            /** Updated At */
-            updated_at?: string | null;
-            /** Url */
-            url?: string | null;
-            /** Version Id */
-            version_id?: number | null;
-            /** Version Metadata */
-            version_metadata?: {
-                [key: string]: unknown;
-            };
-            /** Video Codec */
-            video_codec?: string | null;
-            /** Voice */
-            voice?: string | null;
-            /** Width */
-            width?: number | null;
-            /** Workspace Id */
-            workspace_id: number;
-        } & {
-            [key: string]: unknown;
         };
         /** ProjectMutationEnvelope */
         ProjectMutationEnvelope: {
@@ -7418,6 +7273,100 @@ export interface components {
             /** Updated At */
             updated_at: string;
         };
+        /** WorkspaceFileResponse */
+        WorkspaceFileResponse: {
+            /** Audio Format */
+            audio_format?: string | null;
+            /** Category */
+            category?: string | null;
+            /** Channels */
+            channels?: number | null;
+            /** Created At */
+            created_at?: string | null;
+            /** Duration Ms */
+            duration_ms?: number | null;
+            /** Filename */
+            filename?: string | null;
+            /** Folder Id */
+            folder_id?: number | null;
+            /** Frame Rate */
+            frame_rate?: number | null;
+            /** Height */
+            height?: number | null;
+            /** Id */
+            id: number;
+            /** Kind */
+            kind?: string | null;
+            /** Media Format */
+            media_format?: string | null;
+            /**
+             * Media Type
+             * @default other
+             * @enum {string}
+             */
+            media_type: "audio" | "image" | "video" | "subtitle" | "document" | "archive" | "data" | "other";
+            /** Metadata */
+            metadata?: {
+                [key: string]: unknown;
+            };
+            /** Mime Type */
+            mime_type?: string | null;
+            /** Missing */
+            missing?: boolean | null;
+            /** Name */
+            name: string;
+            /** Public Id */
+            public_id: string;
+            /** Sample Rate */
+            sample_rate?: number | null;
+            /** Size Bytes */
+            size_bytes?: number | null;
+            /** Source */
+            source: string;
+            /** Tags */
+            tags?: string[];
+            /** Text */
+            text?: string | null;
+            /** Title */
+            title?: string | null;
+            /** Updated At */
+            updated_at?: string | null;
+            /** Url */
+            url?: string | null;
+            /** Version Id */
+            version_id?: number | null;
+            /** Version Metadata */
+            version_metadata?: {
+                [key: string]: unknown;
+            };
+            /** Video Codec */
+            video_codec?: string | null;
+            /** Voice */
+            voice?: string | null;
+            /** Width */
+            width?: number | null;
+            /** Workspace Id */
+            workspace_id: number;
+        } & {
+            [key: string]: unknown;
+        };
+        /** WorkspaceFolderResponse */
+        WorkspaceFolderResponse: {
+            /** Created At */
+            created_at: string;
+            /** Id */
+            id: number;
+            /** Name */
+            name: string;
+            /** Parent Id */
+            parent_id?: number | null;
+            /** Public Id */
+            public_id: string;
+            /** Updated At */
+            updated_at: string;
+            /** Workspace Id */
+            workspace_id: number;
+        };
         /** WorkspaceListEnvelope */
         WorkspaceListEnvelope: {
             /** Data */
@@ -7434,9 +7383,9 @@ export interface components {
         /** WorkspaceOverviewResponse */
         WorkspaceOverviewResponse: {
             /** Files */
-            files: components["schemas"]["FileResponse"][];
+            files: components["schemas"]["WorkspaceFileResponse"][];
             /** Folders */
-            folders: components["schemas"]["FolderResponse"][];
+            folders: components["schemas"]["WorkspaceFolderResponse"][];
             /** Projects */
             projects: components["schemas"]["ProjectResponse"][];
             workspace: components["schemas"]["WorkspaceResponse"];

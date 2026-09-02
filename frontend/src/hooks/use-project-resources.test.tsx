@@ -15,16 +15,19 @@ afterEach(() => vi.clearAllMocks())
 describe("useProjectResources partial refreshes", () => {
   it("preserves the file library and exposes scoped file and voice errors", async () => {
     const files = [{ id: 1, name: "Music" }]
-    api.files.mockResolvedValueOnce({ files, project_file_ids: [1177], library_file_ids: [1188] })
+    const folders = [{ id: 9, name: "Narration" }]
+    api.files.mockResolvedValueOnce({ folders, files, project_file_ids: [1177], library_file_ids: [1188] })
     const { result } = renderHook(() => useProjectResources(7))
     expect(result.current.fileState.status).toBe("loading")
     await waitFor(() => expect(result.current.files).toEqual(files))
+    expect(result.current.folders).toEqual(folders)
     expect(result.current.fileState.status).toBe("ready")
 
     api.files.mockRejectedValueOnce(new Error("files offline"))
     await act(async () => { await expect(result.current.refreshFiles()).rejects.toThrow("files offline") })
 
     expect(result.current.files).toEqual(files)
+    expect(result.current.folders).toEqual(folders)
     expect(result.current.projectFileIds).toEqual([1177])
     expect(result.current.libraryFileIds).toEqual([1188])
     expect(result.current.fileState.status).toBe("error")

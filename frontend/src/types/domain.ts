@@ -327,7 +327,7 @@ export type VisualScene = {
   updated_at: string
 }
 
-export type WorkspaceFile = Partial<components["schemas"]["ProjectLibraryFileResponse"]> & {
+export type WorkspaceFile = Partial<components["schemas"]["WorkspaceFileResponse"]> & {
   id: number
   name?: string
   folder?: string
@@ -672,40 +672,11 @@ export type WorkspaceProject = {
   part_count: number
 }
 
-export type WorkspaceFileVersion = {
-  id: number
-  public_id: string
-  version: number
-  filename: string
-  storage_key: string
-  url: string
-  size_bytes: number
-  duration_ms: number | null
-  mime_type: string
-  family: string
-  width: number | null
-  height: number | null
-}
-
-export type WorkspaceFileSummary = {
-  id: number
-  public_id: string
-  workspace_id: number
-  folder_id: number | null
-  name: string
-  source: string
-  tags: string[]
-  metadata: Record<string, unknown>
-  created_at: string
-  updated_at: string
-  current_version: WorkspaceFileVersion
-}
-
 export type WorkspaceOverview = {
   workspace: WorkspaceSummary
   folders: WorkspaceFolder[]
   projects: WorkspaceProject[]
-  files: WorkspaceFileSummary[]
+  files: WorkspaceFile[]
 }
 
 export type CreationActionSummary = {

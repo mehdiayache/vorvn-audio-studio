@@ -9,6 +9,7 @@ import { ErrorState, PageLoading } from "@/components/state-panel"
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { AudioCreator } from "@/features/creator/audio/audio-creator"
 import { CreatorLibraryBrowser, type CreatorLibraryKind } from "@/features/creator/library/creator-library-browser"
+import { FilePreviewDialog } from "@/features/creator/library/file-preview-dialog"
 import { CreatorLibraryWorkspace } from "@/features/creator/library/creator-library-workspace"
 import { MediaCreator } from "@/features/creator/media/media-creator"
 import { WorkspaceExplorerPage } from "@/features/workspace/explorer/workspace-explorer-page"
@@ -16,7 +17,7 @@ import type { GeneratedKeepInput } from "@/features/workspace/library/audio-libr
 import "@/features/workspace/library/audio-library.css"
 import { useWorkspaceExplorer } from "@/hooks/use-workspace-explorer"
 import { originsApi, type CreatorContext } from "@/lib/api"
-import type { AudioFileCategory, WorkspaceFile, WorkspaceFileSummary } from "@/types/domain"
+import type { AudioFileCategory, WorkspaceFile } from "@/types/domain"
 
 import "./create-creator-page.css"
 
@@ -63,32 +64,6 @@ const creatorActions: Record<string, CreateCreatorAction> = {
   },
 }
 
-function editorFile(file: WorkspaceFileSummary): WorkspaceFile {
-  const version = file.current_version
-  return {
-    id: file.id,
-    public_id: file.public_id,
-    name: file.name,
-    title: file.name,
-    folder_id: file.folder_id,
-    source: file.source,
-    tags: file.tags,
-    metadata: file.metadata,
-    version_metadata: {},
-    created_at: file.created_at,
-    updated_at: file.updated_at,
-    version_id: version.id,
-    filename: version.filename,
-    url: version.url,
-    size_bytes: version.size_bytes,
-    duration_ms: version.duration_ms,
-    mime_type: version.mime_type,
-    media_type: version.family === "image" || version.family === "video" ? version.family : "audio",
-    width: version.width,
-    height: version.height,
-  }
-}
-
 export function CreateCreatorPage() {
   const { actionId = "" } = useParams()
   const [searchParams] = useSearchParams()
@@ -98,6 +73,7 @@ export function CreateCreatorPage() {
   const player = useGlobalPlayer()
   const uploadInputRef = useRef<HTMLInputElement>(null)
   const [uploadingFile, setUploadingFile] = useState(false)
+  const [previewFile, setPreviewFile] = useState<WorkspaceFile | null>(null)
   const folderId = Number(searchParams.get("folder_id") || 0) || null
   const context = useMemo<CreatorContext | null>(() => selectedWorkspaceId ? ({
     workspace_id: selectedWorkspaceId,
@@ -119,7 +95,7 @@ export function CreateCreatorPage() {
   const Icon = action.icon
   const isTool = action.capability === "subtitle"
   const workspaceName = overview.data?.workspace.name || workspaces.data?.find((workspace) => workspace.id === selectedWorkspaceId)?.name || "Current Workspace"
-  const libraryFiles = (overview.data?.files || []).map(editorFile)
+  const libraryFiles = overview.data?.files || []
 
   async function keepGeneratedFile(_folder: string, input: GeneratedKeepInput) {
     return originsApi.keepGeneratedAudioInWorkspace(input.candidateId, selectedWorkspaceId!, {
@@ -182,7 +158,7 @@ export function CreateCreatorPage() {
         libraryFiles={libraryFiles}
         onUploadReference={uploadReference}
         onGenerationOutputReady={refresh}
-        renderLibrary={() => <CreatorLibraryBrowser files={libraryFiles} folders={overview.data?.folders || []} initialKind="all" playingKey={player.source?.key} playerPlaying={player.state === "playing"} onPlay={(source) => void player.toggleSource(source)} onUpload={() => uploadInputRef.current?.click()} />}
+        renderLibrary={() => <CreatorLibraryBrowser files={libraryFiles} folders={overview.data?.folders || []} initialKind="all" selectedFileId={previewFile?.id} playingKey={player.source?.key} playerPlaying={player.state === "playing"} onSelect={setPreviewFile} onPlay={(source) => void player.toggleSource(source)} onUpload={() => uploadInputRef.current?.click()} />}
       /> : <CreatorLibraryWorkspace
         primaryLabel={isTool ? "Tool" : "Creator"}
         primaryAriaLabel={isTool ? "Subtitle tool" : "Creator"}
@@ -201,9 +177,10 @@ export function CreateCreatorPage() {
         onKeep={keepGeneratedFile}
         onKept={fileKept}
       />}
-        library={<CreatorLibraryBrowser files={libraryFiles} folders={overview.data?.folders || []} initialKind={action.capability as CreatorLibraryKind} playingKey={player.source?.key} playerPlaying={player.state === "playing"} onPlay={(source) => void player.toggleSource(source)} onUpload={() => uploadInputRef.current?.click()} />}
+        library={<CreatorLibraryBrowser files={libraryFiles} folders={overview.data?.folders || []} initialKind={action.capability as CreatorLibraryKind} selectedFileId={previewFile?.id} playingKey={player.source?.key} playerPlaying={player.state === "playing"} onSelect={setPreviewFile} onPlay={(source) => void player.toggleSource(source)} onUpload={() => uploadInputRef.current?.click()} />}
       />}
         </div>
+        <FilePreviewDialog file={previewFile} onOpenChange={(open) => { if (!open) setPreviewFile(null) }} />
       </DialogContent>
     </Dialog>
   </>

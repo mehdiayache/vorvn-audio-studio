@@ -6,6 +6,7 @@ import type { VoiceChoice } from "@/lib/voice-options"
 import type { StudioConfig } from "@/types/domain"
 import { CreatorLanguagePicker } from "./creator-language-picker"
 import { CreatorMethodPicker } from "./creator-method-picker"
+import { CreatorModelPicker } from "./creator-model-picker"
 
 beforeEach(() => {
   Element.prototype.scrollIntoView = vi.fn()
@@ -50,18 +51,22 @@ describe("Creator context pickers", () => {
     expect(onChange).toHaveBeenCalledWith("French")
   })
 
-  it("groups exact recording methods by provider without a closed vendor enum", async () => {
+  it("groups exact speech models by provider without a closed vendor enum", async () => {
     const onSelect = vi.fn()
-    render(<CreatorMethodPicker routes={[route]} availableRoutes={[route]} selectedRouteId="" selectedCapabilityId={null} language="English" customVoice config={config} onSelect={onSelect} />)
-    fireEvent.click(screen.getByRole("button", { name: "Recording method" }))
-    expect(await screen.findByText("Aurora Labs")).toBeTruthy()
+    render(<CreatorModelPicker routes={[route]} selectedRouteId="" selectedCapabilityId={null} config={config} onSelect={onSelect} />)
+    fireEvent.click(screen.getByRole("button", { name: "Speech model" }))
+    expect((await screen.findAllByText("Aurora Labs")).length).toBeGreaterThan(0)
     expect(screen.getByText("aurora-natural-v2")).toBeTruthy()
-    fireEvent.click(screen.getByRole("option", { name: /Directed speech/ }))
+    fireEvent.click(screen.getByRole("option", { name: /aurora-natural-v2/i }))
     expect(onSelect).toHaveBeenCalledWith(route, "directing")
   })
 
-  it("shows a restored single-capability route as the selected method", () => {
-    render(<CreatorMethodPicker routes={[route]} availableRoutes={[route]} selectedRouteId={route.id} selectedCapabilityId="directing" language="English" customVoice config={config} onSelect={vi.fn()} />)
-    expect(screen.getByRole("button", { name: "Recording method" }).textContent).toContain("Directed speech")
+  it("shows the recording modes of only the selected model", async () => {
+    const onSelect = vi.fn()
+    render(<CreatorMethodPicker route={route} selectedCapabilityId="directing" onSelect={onSelect} />)
+    expect(screen.getByRole("button", { name: "Recording mode" }).textContent).toContain("Directed speech")
+    fireEvent.click(screen.getByRole("button", { name: "Recording mode" }))
+    fireEvent.click(await screen.findByRole("option", { name: /Directed speech/ }))
+    expect(onSelect).toHaveBeenCalledWith(route, "directing")
   })
 })

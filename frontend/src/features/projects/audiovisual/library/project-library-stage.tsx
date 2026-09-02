@@ -11,12 +11,12 @@ import type { ConfirmAction } from "@/features/projects/audiovisual/support/proj
 import { CreatorCapabilityPicker, type CreatorCapabilityId } from "@/features/creator/panel/creator-capability-picker"
 import type { GeneratedKeepInput } from "@/features/workspace/library/audio-library"
 import { originsApi, type CreatorContext } from "@/lib/api"
-import type { AudioFileCategory, GeneratedKeepResult, WorkspaceFile } from "@/types/domain"
+import type { AudioFileCategory, GeneratedKeepResult, WorkspaceFile, WorkspaceFolder } from "@/types/domain"
 import { isVisualFile } from "./visual-files"
 import { MediaCreator } from "@/features/creator/media/media-creator"
 import { ProjectLibraryGallery } from "./project-library-gallery"
 import { ProjectLibraryDialog } from "./project-library-dialog"
-import { FilePreviewDialog } from "./file-preview-dialog"
+import { FilePreviewDialog } from "@/features/creator/library/file-preview-dialog"
 import type { ProjectLibraryUploadItem } from "./project-library-upload-card"
 import "./project-library-stage.css"
 
@@ -57,10 +57,11 @@ function ProjectAudioCreator({ capability, projectId, workspaceId, onKeep, onKep
   />
 }
 
-export function ProjectLibraryStage({ centerPaneRef, projectId, workspaceId, createOpen, onCreateOpenChange, files, libraryFileIds, usageCounts, playingFileId, onPlayAudio, onUpload, onRefresh, onAddToTimeline, onConfirmAction }: {
+export function ProjectLibraryStage({ centerPaneRef, projectId, workspaceId, createOpen, onCreateOpenChange, folders = [], files, libraryFileIds, usageCounts, playingFileId, onPlayAudio, onUpload, onRefresh, onAddToTimeline, onConfirmAction }: {
   centerPaneRef?: RefObject<HTMLElement | null>
   projectId: number
   workspaceId: number
+  folders?: WorkspaceFolder[]
   createOpen?: boolean
   onCreateOpenChange?: (open: boolean) => void
   files: WorkspaceFile[]
@@ -233,7 +234,7 @@ export function ProjectLibraryStage({ centerPaneRef, projectId, workspaceId, cre
       event.target.value = ""
     }} />
     {error && <div className="project-library-error" role="alert"><b>Library could not finish that action.</b><span>{error}</span></div>}
-    <ProjectLibraryGallery files={collected.filter(({ id }) => !generatedOutputIds.has(id))} uploads={uploads} creationItems={generationItems} usageCounts={usageCounts} pendingId={pendingId} playingFileId={playingFileId} onPlayAudio={onPlayAudio} onPreview={setPreviewFile} onAddToTimeline={onAddToTimeline ? (file) => {
+    <ProjectLibraryGallery folders={folders} files={collected.filter(({ id }) => !generatedOutputIds.has(id))} uploads={uploads} creationItems={generationItems} usageCounts={usageCounts} pendingId={pendingId} playingFileId={playingFileId} onPlayAudio={onPlayAudio} onPreview={setPreviewFile} onAddToTimeline={onAddToTimeline ? (file) => {
       setPendingId(file.id)
       void onAddToTimeline(file).catch((reason) => setError(reason instanceof Error ? reason.message : "The File could not be added to Timeline.")).finally(() => setPendingId(null))
     } : undefined} onRemove={(file) => {
@@ -294,8 +295,8 @@ export function ProjectLibraryStage({ centerPaneRef, projectId, workspaceId, cre
         : <ProjectAudioCreator key={creatorCapability} capability={creatorCapability} projectId={projectId} workspaceId={workspaceId} onKeep={keepGeneratedAudio} onKept={audioKept} />}
       library={projectLibrary()}
     />}
-    <ProjectLibraryDialog open={libraryOpen} files={available} usedFileIds={[...(usageCounts?.keys() || [])]} pendingId={pendingId} defaultSource="all" showProjectSource={false} onOpenChange={setLibraryOpen} onPreview={setPreviewFile} onAdd={(file) => void attach(file)} />
-    <FilePreviewDialog file={previewFile} pending={Boolean(previewFile && pendingId === previewFile.id)} onAddToTimeline={onAddToTimeline ? (file) => {
+    <ProjectLibraryDialog open={libraryOpen} folders={folders} files={available} usedFileIds={[...(usageCounts?.keys() || [])]} pendingId={pendingId} defaultSource="all" showProjectSource={false} onOpenChange={setLibraryOpen} onPreview={setPreviewFile} onAdd={(file) => void attach(file)} />
+    <FilePreviewDialog file={previewFile} pending={Boolean(previewFile && pendingId === previewFile.id)} primaryLabel="Add to Timeline" onPrimaryAction={onAddToTimeline ? (file) => {
       setPendingId(file.id)
       void onAddToTimeline(file).then(() => setPreviewFile(null)).catch((reason) => setError(reason instanceof Error ? reason.message : "The File could not be added to Timeline.")).finally(() => setPendingId(null))
     } : undefined} onOpenChange={(open) => { if (!open) setPreviewFile(null) }} />

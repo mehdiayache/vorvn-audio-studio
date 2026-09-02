@@ -4,7 +4,9 @@ from __future__ import annotations
 
 from typing import Any
 
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, Field
+
+from origins.http.file_contracts import WorkspaceFileResponse, WorkspaceFolderResponse
 
 
 class WorkspaceResponse(BaseModel):
@@ -15,16 +17,6 @@ class WorkspaceResponse(BaseModel):
     project_count: int = 0
     file_count: int = 0
     folder_count: int = 0
-    created_at: str
-    updated_at: str
-
-
-class FolderResponse(BaseModel):
-    id: int
-    public_id: str
-    workspace_id: int
-    parent_id: int | None
-    name: str
     created_at: str
     updated_at: str
 
@@ -44,42 +36,11 @@ class ProjectResponse(BaseModel):
     part_count: int = 0
 
 
-class FileVersionResponse(BaseModel):
-    id: int
-    public_id: str
-    version: int
-    filename: str
-    storage_key: str
-    url: str
-    size_bytes: int
-    duration_ms: int | None
-    mime_type: str
-    family: str
-    width: int | None
-    height: int | None
-
-
-class FileResponse(BaseModel):
-    model_config = ConfigDict(extra="allow")
-
-    id: int
-    public_id: str
-    workspace_id: int
-    folder_id: int | None
-    name: str
-    source: str
-    tags: list[str]
-    metadata: dict[str, Any]
-    created_at: str
-    updated_at: str
-    current_version: FileVersionResponse
-
-
 class WorkspaceOverviewResponse(BaseModel):
     workspace: WorkspaceResponse
-    folders: list[FolderResponse]
+    folders: list[WorkspaceFolderResponse]
     projects: list[ProjectResponse]
-    files: list[FileResponse]
+    files: list[WorkspaceFileResponse]
 
 
 class WorkspaceListEnvelope(BaseModel):
@@ -111,7 +72,7 @@ class WorkspaceMutationEnvelope(BaseModel):
 
 
 class FolderMutationEnvelope(BaseModel):
-    data: FolderResponse
+    data: WorkspaceFolderResponse
 
 
 class ProjectMutationEnvelope(BaseModel):

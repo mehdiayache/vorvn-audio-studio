@@ -33,7 +33,7 @@ function AudiovisualProjectWorkspace({ projectId }: { projectId: number }) {
     {data && visualScene.status === "error" && <InlineResourceError message={`Visual timeline unavailable: ${visualScene.error}`} retry={() => void refresh()} />}
     {data && resources.fileError && resources.fileState.data && <InlineResourceError message={`File library refresh failed: ${resources.fileError}`} retry={() => void resources.refreshFiles().catch(() => undefined)} />}
     {data && resources.voiceError && <InlineResourceError message="Voice directory refresh failed. Existing voice data is preserved." retry={() => void resources.refreshVoices()} />}
-    {data && soundScene.data && visualScene.data && <LazyRoute label="Loading Project workspace"><AudiovisualProjectPage project={data} soundScene={soundScene.data} visualScene={visualScene.data} files={resources.files} projectFileIds={resources.projectFileIds} libraryFileIds={resources.libraryFileIds} fileState={resources.fileState} config={resources.config} directory={resources.voiceDirectory} refresh={refresh} refreshFiles={resources.refreshFiles} /></LazyRoute>}
+    {data && soundScene.data && visualScene.data && <LazyRoute label="Loading Project workspace"><AudiovisualProjectPage project={data} soundScene={soundScene.data} visualScene={visualScene.data} folders={resources.folders} files={resources.files} projectFileIds={resources.projectFileIds} libraryFileIds={resources.libraryFileIds} fileState={resources.fileState} config={resources.config} directory={resources.voiceDirectory} refresh={refresh} refreshFiles={resources.refreshFiles} /></LazyRoute>}
   </>
 }
 

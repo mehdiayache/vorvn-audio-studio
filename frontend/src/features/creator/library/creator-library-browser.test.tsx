@@ -11,6 +11,7 @@ const files: WorkspaceFile[] = [
   { id: 3, name: "Door slam", media_type: "audio", category: "sfx", filename: "door.wav", tags: [] },
   { id: 4, name: "Portrait", media_type: "image", filename: "portrait.png", tags: [] },
   { id: 5, name: "English captions", media_type: "audio", filename: "english.srt", mime_type: "application/x-subrip", tags: [] },
+  { id: 6, name: "Uploaded interview", media_type: "audio", filename: "interview.wav", tags: [] },
 ]
 
 afterEach(cleanup)
@@ -19,6 +20,7 @@ describe("CreatorLibraryBrowser", () => {
   it("keeps Speech as a human audio kind while preserving technical format separately", () => {
     expect(creatorLibraryKind(files[0]!)).toBe("speech")
     expect(creatorLibraryKind(files[4]!)).toBe("subtitle")
+    expect(creatorLibraryKind(files[5]!)).toBe("audio")
   })
 
   it("offers one reusable human filter grammar across creation capabilities", () => {
@@ -30,5 +32,8 @@ describe("CreatorLibraryBrowser", () => {
     expect(screen.queryByText("Narration")).toBeNull()
     fireEvent.click(screen.getByRole("radio", { name: "Subtitles" }))
     expect(screen.getByText("English captions")).toBeTruthy()
+    fireEvent.click(screen.getByRole("radio", { name: "Audio" }))
+    expect(screen.getByText("Uploaded interview")).toBeTruthy()
+    expect(screen.queryByText("Narration")).toBeNull()
   })
 })

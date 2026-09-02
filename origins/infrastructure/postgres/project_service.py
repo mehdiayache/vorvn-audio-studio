@@ -36,6 +36,9 @@ class PostgresProjectRecords:
     def workspace(self, workspace_id: int) -> dict | None:
         return self.workspace_records.workspace(workspace_id)
 
+    def folders(self, workspace_id: int) -> list[dict]:
+        return self.workspace_records.folders(workspace_id)
+
     def project_file_usages(self, project_id: int) -> list[dict]:
         return self.file_records.list_for_project(project_id)
 

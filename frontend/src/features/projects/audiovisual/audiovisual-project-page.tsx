@@ -29,7 +29,7 @@ import { loadPartCaptionTracks, loadProjectCaptionTracks } from "@/lib/project-c
 import { originsApi } from "@/lib/api"
 import type {
   DurableJob, GeneratePayload, GenerateResult, LoadState, PlayerCaptionTrack,
-  PlayerSource, Project, ProjectPart, SoundScene, StudioConfig, WorkspaceFile, VisualScene, VoiceDirectory,
+  PlayerSource, Project, ProjectPart, SoundScene, StudioConfig, WorkspaceFile, WorkspaceFolder, VisualScene, VoiceDirectory,
 } from "@/types/domain"
 import { workstationPartState, type SequenceInsertKind, type WorkstationPartActions } from "./workstation-sequence"
 import { WorkstationPartInspector } from "./workstation-part-inspector"
@@ -69,10 +69,11 @@ function partDeletionLabel(part: ProjectPart) {
   return `Part ${number} · ${formatAuthoredRole(part.authored_role) || part.voice_name || part.voice || "Speech"}`
 }
 
-export function AudiovisualProjectPage({ project, soundScene, visualScene, files, projectFileIds, libraryFileIds, fileState, config, directory, refresh, refreshFiles }: {
+export function AudiovisualProjectPage({ project, soundScene, visualScene, folders, files, projectFileIds, libraryFileIds, fileState, config, directory, refresh, refreshFiles }: {
   project: Project
   soundScene: SoundScene
   visualScene: VisualScene
+  folders: WorkspaceFolder[]
   files: WorkspaceFile[]
   projectFileIds: number[]
   libraryFileIds: number[]
@@ -423,6 +424,7 @@ export function AudiovisualProjectPage({ project, soundScene, visualScene, files
           centerPaneRef={centerPaneRef}
           projectId={project.id}
           workspaceId={project.workspace_id}
+          folders={folders}
           createOpen={libraryCreatorOpen}
           onCreateOpenChange={setLibraryCreatorOpen}
           files={files}

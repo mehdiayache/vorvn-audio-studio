@@ -11,6 +11,7 @@ class ProjectRecords(Protocol):
     def resolve_project_id(self, identifier: str) -> int | None: ...
     def project(self, project_id: int) -> dict | None: ...
     def workspace(self, workspace_id: int) -> dict | None: ...
+    def folders(self, workspace_id: int) -> list[dict]: ...
     def project_file_usages(self, project_id: int) -> list[dict]: ...
     def library_file_ids(self, project_id: int) -> list[int]: ...
     def project_file_ids(self, project_id: int) -> list[int]: ...
@@ -50,6 +51,7 @@ class ProjectService:
             return None
         return {
             "workspace": workspace,
+            "folders": self.records.folders(int(project["workspace_id"])),
             "files": self.records.project_file_usages(project_id),
             "project_file_ids": self.records.project_file_ids(project_id),
             "library_file_ids": self.records.library_file_ids(project_id),
@@ -64,7 +66,7 @@ class ProjectService:
         attached = self.records.attach_library_file(project_id, file_id)
         if attached is None:
             raise DomainValidation(
-                "The Project Library accepts image and video Files from this Workspace.")
+                "The Project Library accepts Files from this Workspace.")
         return {"file_id": file_id, "attached": True}
 
     def detach_library_file(

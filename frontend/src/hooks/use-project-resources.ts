@@ -1,16 +1,18 @@
 import { useCallback, useEffect, useState } from "react"
 
 import { originsApi } from "@/lib/api"
-import type { LoadState, WorkspaceFile } from "@/types/domain"
+import type { LoadState, WorkspaceFile, WorkspaceFolder } from "@/types/domain"
 import { useVoiceDirectory } from "@/hooks/use-voice-directory"
 
 export type ProjectFileResources = {
+  folders: WorkspaceFolder[]
   files: WorkspaceFile[]
   projectFileIds: number[]
   libraryFileIds: number[]
 }
 
 const EMPTY_FILES: WorkspaceFile[] = []
+const EMPTY_FOLDERS: WorkspaceFolder[] = []
 const EMPTY_IDS: number[] = []
 
 export function useProjectResources(projectId: number) {
@@ -24,6 +26,7 @@ export function useProjectResources(projectId: number) {
       setFileState({
         status: "ready",
         data: {
+          folders: result.folders || [],
           files: result.files || [],
           projectFileIds: result.project_file_ids || [],
           libraryFileIds: result.library_file_ids || [],
@@ -41,6 +44,7 @@ export function useProjectResources(projectId: number) {
   }, [refreshFiles])
 
   return {
+    folders: fileState.data?.folders || EMPTY_FOLDERS,
     files: fileState.data?.files || EMPTY_FILES,
     projectFileIds: fileState.data?.projectFileIds || EMPTY_IDS,
     libraryFileIds: fileState.data?.libraryFileIds || EMPTY_IDS,

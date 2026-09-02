@@ -12,11 +12,13 @@
 .creator-library-browser-tools [data-slot="toggle-group-item"][data-state="on"] { color: var(--primary); background: var(--primary-soft); }
 .creator-library-browser-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(11rem, 1fr)); align-content: start; gap: .65rem; padding: .8rem; }
 .creator-library-file-card { min-width: 0; display: grid; overflow: hidden; border: 1px solid var(--border); border-radius: var(--radius-lg); background: var(--surface-raised); }
+.creator-library-file-card.is-selected { border-color: var(--primary); box-shadow: 0 0 0 1px var(--primary); }
+.creator-library-file-card > button { min-width: 0; display: grid; padding: 0; border: 0; color: inherit; background: transparent; text-align: left; cursor: pointer; }
 .creator-library-file-preview { aspect-ratio: 4 / 3; display: grid; place-items: center; overflow: hidden; color: var(--primary); background: var(--surface-subtle); }
 .creator-library-file-preview img,
 .creator-library-file-preview video { width: 100%; height: 100%; display: block; object-fit: cover; }
 .creator-library-file-preview > svg { width: 1.35rem; }
-.creator-library-file-card > div:last-child { min-width: 0; display: grid; gap: .1rem; padding: .6rem; }
+.creator-library-file-copy { min-width: 0; display: grid; gap: .1rem; padding: .6rem; }
 .creator-library-file-card b { overflow: hidden; font-size: var(--type-small); font-weight: var(--weight-label); text-overflow: ellipsis; white-space: nowrap; }
 .creator-library-file-card small { color: var(--muted-foreground); font-size: var(--type-caption); }
 .creator-library-browser-empty { min-height: 18rem; display: grid; place-content: center; justify-items: center; gap: .35rem; padding: 2rem; color: var(--muted-foreground); text-align: center; }

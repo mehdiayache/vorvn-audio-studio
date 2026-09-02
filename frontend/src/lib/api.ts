@@ -285,7 +285,7 @@ export const originsApi = {
     request<{ data: { id: number; type: "project"; deleted: boolean } }>(`/api/v1/projects/${id}`, { method: "DELETE" }).then((response) => response.data),
   soundScene: (id: number) => v1<SoundScene>(`/api/v1/projects/${id}/sound-scene`),
   visualScene: (id: number) => v1<VisualScene>(`/api/v1/projects/${id}/visual-scene`),
-  files: (id: number) => v1<{ files?: WorkspaceFile[]; project_file_ids?: number[]; library_file_ids?: number[] }>(`/api/v1/projects/${id}/files`),
+  files: (id: number) => v1<{ folders?: WorkspaceFolder[]; files?: WorkspaceFile[]; project_file_ids?: number[]; library_file_ids?: number[] }>(`/api/v1/projects/${id}/files`),
   attachProjectLibraryFile: (projectId: number, fileId: number) => request<LibraryFileEnvelope>(
     `/api/v1/projects/${projectId}/library-files`, {
       method: "POST",

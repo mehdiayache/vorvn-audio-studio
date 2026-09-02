@@ -55,3 +55,27 @@ test("opens an audiovisual Project and renders Timeline and Creator Library with
 
   expect(browserIssues, browserIssues.join("\n")).toEqual([])
 })
+
+test("opens standalone Speech in the shared Creator Library grammar", async ({ page }) => {
+  const browserIssues: string[] = []
+  page.on("console", (message) => {
+    if (message.type() === "warning" || message.type() === "error") browserIssues.push(`${message.type()}: ${message.text()}`)
+  })
+  page.on("pageerror", (error) => browserIssues.push(`pageerror: ${error.message}`))
+
+  await page.goto("/origins/create/generate-speech")
+
+  await expect(page.getByRole("dialog", { name: "Create speech" })).toBeVisible()
+  await expect(page.getByRole("region", { name: "Creator Library" })).toBeVisible()
+  await expect(page.getByRole("complementary", { name: "Creator" })).toBeVisible()
+  await expect(page.getByRole("main", { name: "Library" })).toBeVisible()
+  const modelPicker = page.getByRole("button", { name: "Speech model" })
+  await expect(modelPicker).toBeVisible()
+  await expect(modelPicker).toBeDisabled()
+  await page.getByRole("button", { name: "Choose a voice" }).click()
+  await page.locator(".voice-picker-select").first().click()
+  await expect(modelPicker).toBeEnabled()
+  await expect(page.getByRole("radiogroup", { name: "Library file type" })).toBeVisible()
+
+  expect(browserIssues, browserIssues.join("\n")).toEqual([])
+})

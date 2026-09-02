@@ -1,0 +1,27 @@
+.creator-library-preview-dialog { width: min(84rem, calc(100vw - 2.5rem)); max-width: 84rem; max-height: min(88vh, 58rem); grid-template-rows: auto minmax(0, 1fr); }
+.creator-library-preview-layout { min-height: 0; display: grid; grid-template-columns: minmax(0, 1fr) minmax(16rem, 20rem); gap: 1.25rem; }
+.creator-library-preview-media { min-height: 24rem; max-height: 72vh; display: grid; place-items: center; overflow: hidden; border-radius: .55rem; color: var(--surface-raised); background: var(--surface-inverse); }
+.creator-library-preview-media img,
+.creator-library-preview-media video { max-width: 100%; max-height: 72vh; display: block; object-fit: contain; }
+.creator-library-preview-media > span { display: grid; place-items: center; gap: .65rem; color: var(--surface-raised); }
+.creator-library-preview-media > span > svg { width: 2.25rem; height: 2.25rem; }
+.creator-library-preview-media > span b { font-size: var(--type-heading-sm); font-weight: var(--weight-title); }
+.creator-library-preview-media > span small { display: inline-flex; align-items: center; gap: .35rem; color: var(--surface-raised); opacity: .72; }
+.creator-library-preview-media > span small svg { width: .9rem; }
+.creator-library-preview-media audio { width: min(26rem, calc(100% - 2rem)); margin-top: .5rem; }
+.creator-library-preview-details { min-height: 0; display: grid; align-content: start; gap: 1rem; overflow: auto; padding-right: .2rem; }
+.creator-library-preview-action { width: 100%; }
+.creator-library-preview-details section { display: grid; gap: .55rem; }
+.creator-library-preview-details h3 { margin: 0; font-size: var(--type-small); font-weight: var(--weight-label); }
+.creator-library-preview-details dl { display: grid; gap: .5rem; margin: 0; }
+.creator-library-preview-details dl > div { display: grid; grid-template-columns: minmax(5rem, .7fr) minmax(0, 1fr); gap: .65rem; font-size: var(--type-caption); }
+.creator-library-preview-details dt { color: var(--muted-foreground); }
+.creator-library-preview-details dd { min-width: 0; margin: 0; overflow-wrap: anywhere; text-align: right; }
+.creator-library-preview-tags { display: flex; flex-wrap: wrap; gap: .35rem; }
+.creator-library-preview-tags span { padding: .2rem .4rem; border-radius: var(--radius-sm); color: var(--muted-foreground); background: var(--surface-subtle); font-size: var(--type-caption); }
+
+@media (max-width: 48rem) {
+  .creator-library-preview-dialog { width: calc(100vw - 1rem); }
+  .creator-library-preview-layout { grid-template-columns: 1fr; overflow: auto; }
+  .creator-library-preview-media { min-height: 16rem; }
+}

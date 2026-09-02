@@ -27,7 +27,9 @@ describe("VisualClipInspector", () => {
     render(<VisualClipInspector clipRef={{ trackId: "track", clipId: "clip" }} track={track} clip={clip} file={file} session={session} saving={false} />)
 
     expect(screen.getByText("Evening shore")).toBeTruthy()
-    expect(screen.getByText("AAC · Stereo · 48 kHz")).toBeTruthy()
+    expect(screen.getByText("AAC")).toBeTruthy()
+    expect(screen.getByText("Stereo")).toBeTruthy()
+    expect(screen.getByText("48 kHz")).toBeTruthy()
     expect(screen.getByText("8.5s")).toBeTruthy()
     expect(screen.queryByText("Fill and crop")).toBeNull()
     expect(screen.getByRole("button", { name: "Fill" })).toBeTruthy()

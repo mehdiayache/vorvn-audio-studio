@@ -21,7 +21,7 @@ import { useWorkspaceExplorer } from "@/hooks/use-workspace-explorer"
 import { originsApi } from "@/lib/api"
 import { formatDuration, formatUpdated } from "@/lib/format"
 import { cn } from "@/lib/utils"
-import type { CreationActionSummary, WorkspaceFileSummary, WorkspaceOverview, WorkspaceProject } from "@/types/domain"
+import type { CreationActionSummary, WorkspaceFile, WorkspaceOverview, WorkspaceProject } from "@/types/domain"
 import "./workspace-explorer.css"
 
 export type WorkspaceExplorerView = "create" | "projects" | "files"
@@ -80,17 +80,17 @@ function ProjectRow({ project }: { project: WorkspaceProject }) {
   </article>
 }
 
-function FileTile({ file }: { file: WorkspaceFileSummary }) {
-  const version = file.current_version
-  const FileIcon = fileIcons[version.family] || FileText
-  const visual = version.family === "image"
-    ? <img src={version.url} alt="" />
-    : version.family === "video"
-      ? <video src={version.url} muted preload="metadata" />
+function FileTile({ file }: { file: WorkspaceFile }) {
+  const family = file.media_type || "other"
+  const FileIcon = fileIcons[family] || FileText
+  const visual = family === "image"
+    ? <img src={file.url || ""} alt="" />
+    : family === "video"
+      ? <video src={file.url || ""} muted preload="metadata" />
       : <span className="workspace-file-art"><FileIcon /></span>
-  return <article className={cn("workspace-file-tile", `is-${version.family}`)}>
+  return <article className={cn("workspace-file-tile", `is-${family}`)}>
     <div className="workspace-file-preview">{visual}<span className="workspace-file-source">{file.source}</span></div>
-    <div><b title={file.name}>{file.name}</b><small>{version.family}{version.duration_ms ? ` · ${formatDuration(version.duration_ms / 1000)}` : ""}</small></div>
+    <div><b title={file.name}>{file.name}</b><small>{family}{file.duration_ms ? ` · ${formatDuration(file.duration_ms / 1000)}` : ""}</small></div>
   </article>
 }
 
@@ -113,7 +113,7 @@ function ExplorerContent({ workspaceOverview, view, actions, actionsError, onRet
     && (!normalizedQuery || project.name.toLowerCase().includes(normalizedQuery)))
   const files = workspaceOverview.files.filter((file) =>
     (selectedFolderId === null || file.folder_id === selectedFolderId)
-    && (!normalizedQuery || `${file.name} ${file.source} ${file.tags.join(" ")}`.toLowerCase().includes(normalizedQuery)))
+    && (!normalizedQuery || `${file.name} ${file.source} ${(file.tags || []).join(" ")}`.toLowerCase().includes(normalizedQuery)))
   const showProjects = view !== "files"
   const showFiles = view !== "projects"
 

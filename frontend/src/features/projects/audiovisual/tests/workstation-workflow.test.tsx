@@ -24,7 +24,7 @@ afterEach(() => {
 })
 
 import { ProjectLibraryStage } from "../library/project-library-stage"
-import { FilePreviewDialog } from "../library/file-preview-dialog"
+import { FilePreviewDialog } from "@/features/creator/library/file-preview-dialog"
 import { visualFileDetails, visualFilePlaybackUrl, visualFilePosterUrl, visualFileIssue } from "../library/visual-files"
 import { VisualFileCard } from "../library/visual-file-card"
 import { WORKSTATION_STAGES } from "../workstation-workflow"

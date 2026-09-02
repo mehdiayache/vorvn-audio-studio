@@ -98,8 +98,7 @@ class WorkspaceRepositoryTests(unittest.TestCase):
             project["id"], created["id"]))
         overview = self.service.overview(workspace_id)
         self.assertEqual(overview["files"][0]["id"], created["id"])
-        self.assertEqual(overview["files"][0]["current_version"]["family"],
-                         "image")
+        self.assertEqual(overview["files"][0]["media_type"], "image")
         self.assertEqual(overview["projects"][0]["file_count"], 1)
 
     def test_generated_file_lookup_never_crosses_space_ownership(self):
@@ -127,6 +126,29 @@ class WorkspaceRepositoryTests(unittest.TestCase):
                     "DELETE FROM workspaces WHERE id=%s", (other_space["id"],))
                 database.commit()
 
+    def test_audio_category_survives_workspace_and_project_library_reads(self):
+        workspace_id = int(self.workspace["id"])
+        project = self.service.create_audiovisual_project(
+            workspace_id, "Sound design project")
+        files = FileRepository()
+        created = files.create_workspace_file(
+            workspace_id, name="Door slam", filename="door-slam.wav",
+            path="/tmp/door-slam.wav", size_bytes=256,
+            duration_ms=800, audio_format="wav", mime_type="audio/wav",
+            media_type="audio", category="sfx", tags=("door", "impact"))
+
+        self.assertEqual(created["category"], "sfx")
+        self.assertTrue(files.attach_to_project_library(
+            project["id"], created["id"]))
+        overview_file = next(
+            item for item in self.service.overview(workspace_id)["files"]
+            if item["id"] == created["id"])
+        project_file = next(
+            item for item in files.list_for_project(project["id"])
+            if item["id"] == created["id"])
+        self.assertEqual(overview_file["category"], "sfx")
+        self.assertEqual(project_file["category"], "sfx")
+
     def test_direct_document_upload_commits_one_file_version_without_a_job(self):
         with TemporaryDirectory() as directory:
             root = Path(directory)
@@ -149,9 +171,8 @@ class WorkspaceRepositoryTests(unittest.TestCase):
             file = next(item for item in overview["files"]
                         if item["id"] == created["id"])
             self.assertEqual(file["source"], "uploaded")
-            self.assertEqual(file["current_version"]["family"], "document")
-            self.assertEqual(file["current_version"]["mime_type"],
-                             "application/pdf")
+            self.assertEqual(file["media_type"], "document")
+            self.assertEqual(file["mime_type"], "application/pdf")
             with psycopg.connect(settings.database_url) as database:
                 self.assertEqual(database.execute(
                     "SELECT count(*) FROM jobs WHERE %s=ANY(output_file_ids)",

@@ -117,7 +117,6 @@ class FileRepository:
                   JOIN files file ON file.id=usage.file_id
                  WHERE usage.project_id=%s
                    AND usage.purpose='library'
-                   AND file.media_type IN ('image','video')
                  ORDER BY usage.file_id
             """, (project_id,))
             return [int(row[0]) for row in cursor.fetchall()]
@@ -147,8 +146,7 @@ class FileRepository:
             return cursor.fetchone() is not None
 
     def attach_to_project_library(self, project_id: int, file_id: int) -> bool | None:
-        file = self.get(file_id)
-        if not file or file["media_type"] not in {"image", "video"}:
+        if not self.allowed_for_project(project_id, file_id):
             return None
         return self.attach_to_project(project_id, file_id, "library")
 

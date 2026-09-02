@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from origins.domain.files import file_family
+from origins.infrastructure.postgres.files import FileRepository
 from origins.infrastructure.postgres.session import read_only, transaction
 
 
@@ -93,48 +93,7 @@ class WorkspaceRepository:
             } for row in cursor.fetchall()]
 
     def files(self, workspace_id: int) -> list[dict]:
-        with read_only() as cursor:
-            cursor.execute("""
-                SELECT file.id, file.public_id, file.folder_id, file.name,
-                       file.source, file.tags, file.metadata,
-                       file.created_at, file.updated_at,
-                       version.id, version.public_id, version.version,
-                       version.filename, version.storage_key,
-                       version.size_bytes, version.duration_ms,
-                       version.mime_type, version.width, version.height
-                  FROM files file
-                  JOIN LATERAL (
-                       SELECT item.* FROM file_versions item
-                        WHERE item.file_id = file.id
-                        ORDER BY item.version DESC, item.id DESC LIMIT 1
-                  ) version ON true
-                 WHERE file.workspace_id = %s
-                 ORDER BY file.updated_at DESC, file.id DESC
-            """, (workspace_id,))
-            files = []
-            for row in cursor.fetchall():
-                files.append({
-                    "id": int(row[0]), "public_id": str(row[1]),
-                    "workspace_id": workspace_id, "folder_id": row[2], "name": row[3],
-                    "source": row[4], "tags": row[5] or [],
-                    "metadata": row[6] or {},
-                    "created_at": row[7].isoformat(),
-                    "updated_at": row[8].isoformat(),
-                    "current_version": {
-                        "id": int(row[9]), "public_id": str(row[10]),
-                        "version": int(row[11]), "filename": row[12],
-                        "storage_key": row[13], "size_bytes": int(row[14]),
-                        "duration_ms": row[15], "mime_type": row[16],
-                        "family": file_family(row[16]),
-                        "url": (
-                            f"/audio/{row[12]}"
-                            if file_family(row[16]) == "audio"
-                            else f"/media/{row[12]}"
-                        ),
-                        "width": row[17], "height": row[18],
-                    },
-                })
-            return files
+        return FileRepository().list_for_workspace(workspace_id)
 
     def create_workspace(self, name: str, description: str) -> dict:
         with transaction() as cursor:
