@@ -36,24 +36,39 @@ The Board-approved product grammar is authoritative:
 ```text
 Workspace owns everything.
 Explorer places.
+Add brings in.
 Library finds.
 Creator creates.
+Tools transform.
 Files exist.
 Objects organize knowledge.
 Projects organize work.
-Capabilities extend Creator.
+Links associate.
+Placements mean actual use.
 ```
 
 - **Workspace** is the sole ownership root for Folders, Files, Objects and Projects.
 - **Explorer** is Folder navigation only. It answers where something is placed.
+- **Add** brings an existing resource into the Workspace through Upload or
+  Import. FreeSound is an Import provider, not a Creator Capability.
 - **Library** browses existing Workspace resources. It never creates or duplicates
   a File merely to display it.
-- **Creator** is the one universal creation surface formerly called Composer.
-  New product and code vocabulary must use Creator; do not introduce a second
-  implementation or a compatibility facade.
+- **Creator** is one shared `CreatorHost` with contextual Capabilities. The host
+  owns capability navigation, model selection, execution state, candidates and
+  keeping results. Each Capability owns only its specialized controls. New
+  product and code vocabulary must use Creator; do not introduce a second
+  implementation, a surface-specific clone, or a compatibility facade.
+- Human-facing Creator Capabilities are Image, Video, Speech, Music and Sound
+  Effect. `Media` may be an internal adapter shared by Image and Video, but it
+  is never a human-facing Capability or navigation choice.
+- **Tools** transform existing Workspace Files. Subtitles, Upscale, Remove
+  Background, Convert, Extract Audio and similar actions belong to Tools, not
+  Creator. A Tool may use an ExecutionEngine and Job, and its kept output is a
+  new canonical File related to its input through `FileRelation`.
 - **Create** is a human launcher/verb that may open Creator, Upload, Import, or
-  directly create a Folder, Object or Project. It is not a technical parent type.
-- **Capability** is what Creator can produce or transform, for example
+  a Tool, or directly create a Folder, Object or Project. It is not a technical
+  parent type and does not justify shortcut-specific product implementations.
+- A Creator **Capability** is what Creator can produce, for example
   `image.generate`, `video.generate`, `speech.generate`, `music.generate` and
   `sfx.generate`. **ExecutionEngine** remains an internal implementation detail.
 - **Upload** brings a local File. **Import** brings a File from an external source.
@@ -62,6 +77,9 @@ Capabilities extend Creator.
   filters. Audiovisual exposes Script, Timeline, Library, Preview and Export.
 - The Audiovisual **Library** module replaces the old Visuals module. It may show
   Creator and Library panes together, but they retain separate responsibilities.
+- All Library hosts use one query and filter contract. Context changes the
+  initial scope and available actions; it must not fork Library into standalone,
+  Project, Creator-reference and picker implementations.
 - Timeline “Add media” opens Library only. Script “Generate speech” opens Creator
   in Speech mode with Script context. Workspace “Create image” opens Creator with
   Library available for references.
@@ -69,6 +87,11 @@ Capabilities extend Creator.
   Citizen. Its associated resources remain canonical Workspace Files.
 - A kept Creator, Upload or Import result becomes one canonical Workspace File;
   Projects and Objects reference that File rather than copying it.
+- `ProjectFileLink` and `ObjectFileLink` associate canonical Files without
+  implying use. A Project-Type-owned Placement records actual use, such as
+  `TimelinePlacement` for Audiovisual. Do not use the word `Usage` for links.
+- Audiovisual is the first consumer of the platform grammar, not its ownership
+  root and not the generic implementation of Creator, Library, Add or Tools.
 
 ---
 
