@@ -1,12 +1,23 @@
-# Origins core constitution
+# Origins canonical product model
 
-Origins is the application's creative core. Development data is disposable;
-the target architecture is authoritative and does not preserve superseded
-paths.
+This document is the Board-approved constitution for Origins. It defines the
+product grammar and the boundaries that code, APIs and interface labels must
+converge on.
 
-## Workspace is the ownership root
+```text
+Explorer places.
+Library finds.
+Creator creates.
+Files exist.
+Objects organize knowledge.
+Projects organize work.
+Capabilities extend Creator.
+Workspace owns everything.
+```
 
-`Workspace` is the sole business root:
+## Workspace owns the world
+
+`Workspace` is the sole business and ownership root:
 
 ```text
 Workspace
@@ -16,51 +27,106 @@ Workspace
 └── Projects
 ```
 
-The persistent user-facing concepts are:
+There is no Space above or below it. A File, Object or Project belongs to one
+Workspace and may have an optional `folder_id`. A null `folder_id` means the
+Workspace root. Moving something changes only its Explorer placement; it never
+changes its identity, content or uses.
 
-- **Workspace** — the boundary in which Files, Objects and Projects are reused.
-- **Folder** — optional human organization inside a Workspace.
-- **Project** — typed, editable work with a specialized interface.
-- **Object** — reusable structured identity such as a Brand or Product.
-- **File** — one durable logical result, independent of location and uses.
-- **FileVersion** — one immutable physical representation of a File.
-- **Job** — the existing durable execution record.
+## Explorer places
 
-Every File, Object and Project has a required `workspace_id` and an optional
-`folder_id`. Moving it changes only `folder_id`.
+Explorer answers one question: **where is this thing placed?**
 
-## Explorer and Library
+Explorer displays the Workspace root and its freely named Folder hierarchy.
+Files, Objects and Projects may appear together in any Folder. Explorer does
+not classify media, generate content, own Files or define a Project's behavior.
 
-Explorer answers “Where is it?” and owns the human Folder hierarchy. Library
-answers “What can I use?” by querying the whole Workspace. Library is a view;
-it never owns or duplicates Files.
+## Files exist
 
-Library may filter by Files, Objects, Projects, Folders, media family, source
-and relationships such as Brand → Files or Project → Files.
+A `File` is one durable logical Workspace resource. A `FileVersion` is one
+immutable physical representation of it. PNG, SVG, MP3, WAV, MP4, SRT, JSON,
+PDF, TXT, CSV and future formats all follow the same rule.
 
-## Create is an interface, not a domain parent
+A File can arrive through:
 
-`Create` may present heterogeneous choices together:
+- **Creator** — generate or transform something;
+- **Upload** — bring a local File;
+- **Import** — bring a File from an external provider such as FreeSound.
 
-- create a Folder, Object or typed Project directly;
-- upload a File directly;
-- launch image, video, speech, music, sound-effect or subtitle creation.
+The top-level provenance families are `generated`, `uploaded` and `imported`.
+Provider identity such as `freesound` is preserved as provenance detail under
+`imported`, not promoted to another top-level family.
 
-Only durable execution work uses the creation registry:
+Keeping a result creates one canonical File and FileVersion. Projects and
+Objects reference that File; they do not copy it. `ProjectFileUsage` associates
+a File with a Project. `TimelinePlacement` separately places a used File in
+time. Association never implies Timeline placement.
 
-`CreationAction → optional CreationPreset → ExecutionEngine → Job → candidate`
+## Library finds
 
-Creating a Project, Object or Folder never passes through an Engine or Job.
-Uploading a File uses a Job only when durable processing is actually required.
+Library answers: **what can I use?** It is a contextual view over existing
+Workspace truth and never an ownership container.
 
-## Universal Composer
+Context scopes may include:
 
-Composer is one surface driven by model capabilities. It begins with the
-operator's intended output and then exposes only the selected model's supported
-operations, inputs, references, ratios, resolutions, durations, frame rates
-and parameters.
+```text
+This Project
+Current Folder
+Workspace
+Brands
+Products
+Citizens
+Voices
+Other Projects
+```
 
-Composer receives one explicit `ComposerContext`:
+Resource filters may include:
+
+```text
+All
+Images
+Videos
+Audio
+Documents
+Data
+```
+
+Provenance filters are:
+
+```text
+Generated
+Uploaded
+Imported
+```
+
+Library may run by itself when the intent is to pick something. Timeline
+“Add media” therefore opens Library only.
+
+## Creator creates
+
+`Creator` is the one universal creation machine, evolved from the mature
+Director Composer. `Composer` is no longer the canonical product or code name.
+There must not be parallel media, speech or audio creation systems hidden behind
+different product surfaces.
+
+Creator begins with intent:
+
+```text
+Image
+Video
+Speech
+Music
+Sound Effect
+```
+
+Future intents such as Silence, JSON, 3D, Animation, Voice transformation,
+structured data or Citizen definition extend the same Creator.
+
+Creator may appear in a Project, in Library, in Script, from Explorer or in a
+modal. Presentation can change; the Creator implementation and contracts do
+not fork. Library may be docked beside Creator to select existing references,
+but their responsibilities remain separate.
+
+Creator receives explicit context:
 
 ```text
 workspace_id   required
@@ -71,68 +137,162 @@ object_id      optional
 selection      optional
 ```
 
-Context filters capabilities and controls where a kept result is linked. It
-does not fork Composer into separate implementations.
+Context constrains available Capabilities, supplies current selections and
+controls where a kept File is placed or referenced.
 
-## Creation contracts
+## Capabilities extend Creator
 
-A `CreationAction` declares a launchable operation, accepted inputs, parameters,
-possible output MIME types, Execution Engine and supported context. The visible
-actions are not a closed technical enum.
+A `Capability` is something Creator knows how to produce or transform:
 
-A `CreationPreset` applies named defaults and constraints to one Action. It
-does not own an Engine, Job or File. Jobs snapshot resolved preset values so a
-later Preset edit never rewrites history.
+```text
+image.generate
+video.generate
+speech.generate
+music.generate
+sfx.generate
+```
 
-An `ExecutionEngine` is the internal adapter that performs an Action through a
-provider, internal service, FFmpeg, workflow or agent. It is not a marketplace
-or public plugin SDK.
+Later Capabilities may include:
 
-Simple Action schemas may use shared controls. Complex Actions keep focused
-controls without creating another Composer.
+```text
+silence.create
+subtitle.create
+image.edit
+video.extend
+audio.clean
+json.generate
+citizen.generate
+```
 
-## Files and usage
+Models declare which Capabilities they support. Creator reads those declarations
+to expose compatible inputs, references, operations, ratios, resolutions,
+durations, frame rates and parameters.
 
-MIME type is technical truth. Audio, image, video, subtitle, document, archive
-and data are presentation families derived from MIME type.
+`ExecutionEngine` is internal provider-neutral execution machinery. Provider
+adapters translate only vendor details. The operator chooses a Capability and,
+when useful, a Model—not an Engine.
 
-A successful run first produces a temporary candidate. Keeping it creates one
-canonical File and FileVersion in the Workspace. Context may place the File in
-the current Folder and link it through `ProjectFileUsage` or, later,
-`ObjectFileUsage`.
+The existing technical records remain lean:
 
-A Project association never places a File on a Timeline. Timeline placement is
-a separate `TimelinePlacement` command.
+```text
+Capability / CreationAction
+optional CreationPreset
+ExecutionEngine
+Job
+temporary candidate
+kept File + FileVersion
+```
 
-## Typed Projects
+`CreationAction` is a launchable internal action for a Capability; it is not a
+second product concept. `CreationPreset` supplies named defaults. Jobs snapshot
+resolved values. Direct creation of a Folder, Object or Project does not pass
+through an Engine or Job.
 
-The first Project type is `audiovisual`. Its mature Script, Sequence, Timeline,
-playback, speech, Visuals, captions, Preview and Export behavior is a protected
-baseline owned under `projects/audiovisual`.
+## Create is a human launcher
 
-A Project Type config declares its modules and allowed Composer capabilities.
-Origins contributes contextual Create and Library entries to every Project.
-Additional Project Types reuse Workspaces, Files, Jobs, Composer and creation
-contracts without forcing their specialized editors into a generic SDK.
+`Create` can mix choices in the interface without merging them in the domain:
 
-## Architecture rules
+- launch Creator for Image, Video, Speech, Music or Sound Effect;
+- Upload a local File;
+- Import from FreeSound or another external provider;
+- create a Folder, Object or typed Project directly.
 
-- Development rows may be reset instead of backfilled.
-- Preserve mature capabilities and invariants under canonical Origins names.
-- Do not add compatibility aliases, routes, rows or parallel domain models.
-- Adapters may translate external provider and storage details only.
-- Generated, Uploaded, Images, Video and Audio are smart views, not automatic
-  Folders.
-- Origins opens on the current Workspace with Create dominant and Recent,
-  Projects, Files and Folders available around it.
+Create is a verb and navigation entry, not a persistence entity or universal
+technical operation.
 
-## Implementation order
+## Objects organize knowledge
 
-1. Canonical vocabulary in DB, backend, API, frontend, files and tests.
-2. Workspace, Explorer, Folder and File truth.
-3. Universal Composer and explicit context.
-4. Audiovisual as the first typed Project.
-5. Project modules and contextual rail.
-6. Universal Library.
-7. Objects.
-8. Additional Project Types proven one at a time.
+An `Object` is a durable structured identity. Initial Object Types include:
+
+```text
+Brand
+Product
+Voice
+Citizen
+```
+
+Objects describe meaning and roles while their media and documents remain
+canonical Workspace Files. A Brand can identify its primary logo and guidelines;
+a Product can identify its images and data; a Voice can identify its source
+recording, portrait and notes; a Citizen can identify its profile, voice and
+references.
+
+Library exposes Object-centered paths so a Project can find related Files
+without forcing the operator to remember their Folder locations.
+
+## Projects organize work
+
+A `Project` is a typed, rich working environment. It belongs to the Workspace
+and has an Explorer placement. A `ProjectType` selects its modules, Creator
+Capabilities, Library filters and domain behaviors.
+
+Examples include Audiovisual, Merch, Slides and Book. Project Type does not
+create another ownership root or duplicate generic Workspace services.
+
+### Audiovisual
+
+The canonical modules are:
+
+```text
+Script
+Timeline
+Library
+Preview
+Export
+```
+
+Its Creator Capabilities are Image, Video, Speech, Music and Sound Effect.
+The former `Visuals` module becomes `Library`; images and videos are media
+filters inside Library, not the module's identity.
+
+The full Project Library surface may compose two panes:
+
+```text
+┌──────────────────────┬──────────────────────┐
+│       Creator        │       Library        │
+│                      │                      │
+│ Image                │ This Project         │
+│ Video                │ Current Folder       │
+│ Speech               │ Workspace            │
+│ Music                │ Brands               │
+│ Sound Effect         │ Products             │
+│                      │ Other Projects       │
+└──────────────────────┴──────────────────────┘
+```
+
+Contextual actions preserve intent:
+
+```text
+Timeline → Add media       = Library picker
+Script → Generate speech   = Creator, Speech mode, current Script target
+Workspace → Create image   = Creator, Image mode, Library for references
+```
+
+## Non-negotiable architecture rules
+
+- No Space entity, legacy compatibility layer or parallel persistence model.
+- No automatic Folder taxonomy for Generated, Uploaded or Imported resources.
+- No duplicate File when another Project or Object uses the same resource.
+- No Creator behavior inside Library; Library may host the Creator pane but
+  still only browses existing truth.
+- No provider name as a top-level provenance family.
+- No Project creation through the Capability/Engine/Job pipeline.
+- No automatic deletion of user-created development Files or Projects. The
+  pre-production rule permits clean schema evolution; it is not authorization
+  to erase shared QA material.
+- Preserve mature Audiovisual behavior while changing its module vocabulary and
+  resource architecture.
+
+## Implementation convergence
+
+The codebase must now converge in this order:
+
+1. Preserve Workspace, Folder, File and Project ownership already implemented.
+2. Rename the universal Composer contract and code to Creator without a bridge.
+3. Normalize provenance to Generated, Uploaded and Imported while retaining
+   provider detail such as FreeSound.
+4. Replace the Audiovisual Visuals module with contextual Library.
+5. Bring Speech, Music and Sound Effect into the same Creator capability system.
+6. Make standalone and Project Library share one query/filter grammar.
+7. Introduce Object and ObjectFileUsage for Brand, Product, Voice and Citizen.
+8. Add Project Types only when a real end-to-end workflow requires them.

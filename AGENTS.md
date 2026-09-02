@@ -21,6 +21,55 @@ Follow these strict rules on every file, function, and architecture you generate
 
 **Treat all such state as non-authoritative and replaceable. Optimize for correctness, simplicity, maintainability, and the intended final architecture—not for preservation of development history or temporary test state.**
 
+**Disposable architecture does not mean disposable operator work. Never delete,
+reset, replace, or regenerate Files, uploads, generated media, Projects, Objects,
+or other development resources created by the user merely because the product is
+in pre-production. Those resources are shared QA material for the user and the
+team. A destructive data reset requires an explicit user request or a strictly
+necessary schema reset whose exact scope has been explained and authorized first.
+When existing resources can exercise a scenario, preserve and reuse them.**
+
+### 1.2 ORIGINS CANONICAL PRODUCT MODEL
+
+The Board-approved product grammar is authoritative:
+
+```text
+Workspace owns everything.
+Explorer places.
+Library finds.
+Creator creates.
+Files exist.
+Objects organize knowledge.
+Projects organize work.
+Capabilities extend Creator.
+```
+
+- **Workspace** is the sole ownership root for Folders, Files, Objects and Projects.
+- **Explorer** is Folder navigation only. It answers where something is placed.
+- **Library** browses existing Workspace resources. It never creates or duplicates
+  a File merely to display it.
+- **Creator** is the one universal creation surface formerly called Composer.
+  New product and code vocabulary must use Creator; do not introduce a second
+  implementation or a compatibility facade.
+- **Create** is a human launcher/verb that may open Creator, Upload, Import, or
+  directly create a Folder, Object or Project. It is not a technical parent type.
+- **Capability** is what Creator can produce or transform, for example
+  `image.generate`, `video.generate`, `speech.generate`, `music.generate` and
+  `sfx.generate`. **ExecutionEngine** remains an internal implementation detail.
+- **Upload** brings a local File. **Import** brings a File from an external source.
+  FreeSound is an Import provider, not a top-level provenance family.
+- **Project Type** selects Project modules, Creator Capabilities and Library
+  filters. Audiovisual exposes Script, Timeline, Library, Preview and Export.
+- The Audiovisual **Library** module replaces the old Visuals module. It may show
+  Creator and Library panes together, but they retain separate responsibilities.
+- Timeline “Add media” opens Library only. Script “Generate speech” opens Creator
+  in Speech mode with Script context. Workspace “Create image” opens Creator with
+  Library available for references.
+- **Object** is a durable structured identity such as Brand, Product, Voice or
+  Citizen. Its associated resources remain canonical Workspace Files.
+- A kept Creator, Upload or Import result becomes one canonical Workspace File;
+  Projects and Objects reference that File rather than copying it.
+
 ---
 
 ### 2. HUMAN-FIRST UX & STATE PHILOSOPHY
@@ -67,7 +116,7 @@ Follow these strict rules on every file, function, and architecture you generate
 
 ---
 
-## 6. PRODUCT DESIGN DIRECTIVE — CREATOR-FIRST AUDIO SOFTWARE
+## 6. PRODUCT DESIGN DIRECTIVE — CREATOR-FIRST CREATIVE SOFTWARE
 
 For every Origins UI/UX task, use the installed
 `$origins-product-design` skill.
@@ -79,7 +128,7 @@ For every Origins UI/UX task, use the installed
 - Before frontend changes, run and explore the real application, map the
   operator's jobs and affected states, and propose three structurally different
   architectures for a major redesign. Implement only the approved direction.
-- Build a professional creative audio workspace: dominant creative content,
+- Build a professional creative workspace: dominant creative content,
   thin chrome, contextual controls, temporary inspectors, command palette,
   direct manipulation, progressive disclosure, predictable global playback,
   and low pointer travel.
@@ -106,7 +155,7 @@ For every Origins UI/UX task, use the installed
   tools; they are informed defaults rather than product constraints.
 - Retire VORVN UI imports and tokens as redesigned surfaces replace them. Never
   use VORVN as the new visual reference.
-- Composer and timing workflows must expose their required creative controls,
+- Creator and timing workflows must expose their required creative controls,
   durable states and playback relationships coherently. Their spatial
   architecture, geometry and presentation are product-design decisions made
   after inspecting the real application and receiving approval; this file does
