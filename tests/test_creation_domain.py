@@ -26,11 +26,11 @@ class CreationDomainTests(unittest.TestCase):
             label="Generate music",
             description="Create music from a prompt.",
             engine_id="stable-audio",
+            capability_id="music.generate",
             inputs=(CreationField("prompt", "Prompt", "text", True),),
             parameters=(CreationField("duration", "Duration", "number", True),),
             output_mime_types=("audio/wav",),
             supported_contexts=("workspace", "audiovisual-project"),
-            composer="music",
         )
 
     def test_registry_resolves_action_preset_and_engine(self):

@@ -34,17 +34,19 @@ class CreationAction:
     label: str
     description: str
     engine_id: str
+    capability_id: str
     inputs: tuple[CreationField, ...] = ()
     parameters: tuple[CreationField, ...] = ()
     output_mime_types: tuple[str, ...] = ()
     supported_contexts: tuple[str, ...] = ("workspace",)
-    composer: str | None = None
 
     def __post_init__(self) -> None:
         if not self.id.strip() or not self.label.strip():
             raise ValueError("Creation actions require an ID and label.")
         if not self.engine_id.strip():
             raise ValueError("Creation actions require an execution Engine.")
+        if not self.capability_id.strip():
+            raise ValueError("Creation actions require a Capability ID.")
         if not self.output_mime_types:
             raise ValueError("Creation actions require at least one output MIME type.")
         if not self.supported_contexts:

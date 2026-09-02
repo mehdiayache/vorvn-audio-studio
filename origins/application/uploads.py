@@ -96,8 +96,8 @@ class UploadRecords(Protocol):
         tags: tuple[str, ...] = (),
         metadata: dict | None = None, folder_id: int | None = None,
     ) -> dict | None: ...
-    def create_workspace_catalog_file(
-        self, workspace_id: int, *, origin: str, external_id: str,
+    def create_imported_workspace_file(
+        self, workspace_id: int, *, provider_id: str, external_id: str,
         name: str, stored: StoredFileVersion, size_bytes: int,
         category: FileCategory | None = None,
         tags: tuple[str, ...] = (),
@@ -110,8 +110,8 @@ class UploadRecords(Protocol):
         tags: tuple[str, ...] = (),
         metadata: dict | None = None, folder_id: int | None = None,
     ) -> tuple[dict | None, bool]: ...
-    def catalog_file(
-        self, *, workspace_id: int, origin: str, external_id: str,
+    def imported_file(
+        self, *, workspace_id: int, provider_id: str, external_id: str,
     ) -> dict | None: ...
     def generated_workspace_file(
         self, *, workspace_id: int, candidate_id: str,
@@ -237,15 +237,15 @@ class UploadService:
             raise RuntimeError("That Workspace no longer exists.")
         return {**created, "url": self._file_url(stored)}
 
-    def save_workspace_catalog_file(
+    def save_imported_workspace_file(
         self, workspace_id: int, source: Path, size_bytes: int, *,
-        origin: str, external_id: str, details: FileUploadDetails,
+        provider_id: str, external_id: str, details: FileUploadDetails,
         folder_id: int | None = None,
     ) -> dict:
         stored = self._store_workspace_file(workspace_id, source, size_bytes, details)
         try:
-            file, duplicate = self.records.create_workspace_catalog_file(
-                workspace_id, origin=origin, external_id=external_id,
+            file, duplicate = self.records.create_imported_workspace_file(
+                workspace_id, provider_id=provider_id, external_id=external_id,
                 name=details.name, stored=stored, size_bytes=size_bytes,
                 category=details.category,
                 tags=details.tags, metadata=details.metadata,
@@ -405,11 +405,12 @@ class UploadService:
             raise UploadError("That File no longer exists.")
         return updated
 
-    def catalog_file(
-        self, *, workspace_id: int, origin: str, external_id: str,
+    def imported_file(
+        self, *, workspace_id: int, provider_id: str, external_id: str,
     ) -> dict | None:
-        return self.records.catalog_file(
-            workspace_id=workspace_id, origin=origin, external_id=external_id)
+        return self.records.imported_file(
+            workspace_id=workspace_id, provider_id=provider_id,
+            external_id=external_id)
 
     def generated_workspace_file(
         self, *, workspace_id: int, candidate_id: str,

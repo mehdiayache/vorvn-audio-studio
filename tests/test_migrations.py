@@ -39,7 +39,7 @@ class MigrationTests(unittest.TestCase):
                     "files", "file_versions", "project_file_usages",
                     "objects", "object_file_usages", "jobs", "job_events",
                     "sound_scenes", "sound_scene_history", "visual_scenes",
-                    "exports", "composer_working_drafts",
+                    "exports", "creator_working_drafts",
                     "saved_visual_references", "saved_visual_reference_files",
                     "schema_migrations",
                 }.issubset(tables))

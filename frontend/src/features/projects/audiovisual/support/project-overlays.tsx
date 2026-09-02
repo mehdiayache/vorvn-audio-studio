@@ -2,7 +2,7 @@ import { useState } from "react"
 
 import { ProjectToolDialog, type ProjectToolKind } from "@/features/projects/audiovisual/project-tools"
 import type { FileUpdateInput, FileUploadInput, CatalogKeepInput, GeneratedKeepInput } from "@/features/workspace/library/audio-library"
-import { ProjectComposerDialog } from "@/features/composer/project-composer-host"
+import { ProjectCreatorDialog } from "@/features/creator/project-creator-host"
 import { DeleteConfirmationDialog } from "@/components/delete-confirmation-dialog"
 import { ActionButton } from "@/components/operator-action"
 import { Button } from "@/components/ui/button"
@@ -13,13 +13,13 @@ import type { CatalogKeepResult, DurableJob, GeneratePayload, GenerateResult, Ge
 
 export type ConfirmAction = { title: string; description: string; action: () => void | Promise<void>; confirmLabel?: string; kind?: "confirm" | "delete"; variant?: "default" | "destructive" }
 
-export default function ProjectOverlays({ tool, project, nextPartNumber, insertAt, insertBeforePartId, composerPart, replacingFileId, initialAudioFileId, config, directory, files, fileState, usedFileIds, playingKey, playerPlaying, confirmAction, onCloseTool, onSaveDraft, onUpdateEditorial, onGenerate, onAddSilence, onInsertFile, onPlaceAudio, onUploadFile, onUpdateFile, onKeepFile, onKeepGenerated, onImported, onPlay, onConfirmAction, onRetryFiles }: {
+export default function ProjectOverlays({ tool, project, nextPartNumber, insertAt, insertBeforePartId, creatorPart, replacingFileId, initialAudioFileId, config, directory, files, fileState, usedFileIds, playingKey, playerPlaying, confirmAction, onCloseTool, onSaveDraft, onUpdateEditorial, onGenerate, onAddSilence, onInsertFile, onPlaceAudio, onUploadFile, onUpdateFile, onKeepFile, onKeepGenerated, onImported, onPlay, onConfirmAction, onRetryFiles }: {
   tool: ProjectToolKind
   project: Project
   nextPartNumber: number
   insertAt: number | null
   insertBeforePartId: string | null
-  composerPart: ProjectPart | null
+  creatorPart: ProjectPart | null
   replacingFileId?: number | null
   initialAudioFileId?: number | null
   config: StudioConfig | null
@@ -61,14 +61,14 @@ export default function ProjectOverlays({ tool, project, nextPartNumber, insertA
     }
   }
   return <>
-    {tool === "speech" && <ProjectComposerDialog
-      title={composerPart ? `Edit ${formatAuthoredRole(composerPart.authored_role) || "speech"} · Part ${formatPartNumber(composerPart.position ?? 0)}` : "Add speech"}
-      description={composerPart?.clip_id ? "Change the words, Voice or delivery, then generate again to replace the current audio." : composerPart ? "Finish this Draft and generate its first recording." : insertBeforePartId ? "Insert at the selected Script position." : `Add as Part ${nextPartNumber}.`}
+    {tool === "speech" && <ProjectCreatorDialog
+      title={creatorPart ? `Edit ${formatAuthoredRole(creatorPart.authored_role) || "speech"} · Part ${formatPartNumber(creatorPart.position ?? 0)}` : "Add speech"}
+      description={creatorPart?.clip_id ? "Change the words, Voice or delivery, then generate again to replace the current audio." : creatorPart ? "Finish this Draft and generate its first recording." : insertBeforePartId ? "Insert at the selected Script position." : `Add as Part ${nextPartNumber}.`}
       projectId={projectId}
       nextPartNumber={nextPartNumber}
       insertAt={insertAt}
       insertBeforePartId={insertBeforePartId}
-      part={composerPart}
+      part={creatorPart}
       config={config}
       directory={directory}
       playingKey={playingKey}

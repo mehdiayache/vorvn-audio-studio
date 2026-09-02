@@ -131,7 +131,7 @@ class ProviderOperationTests(unittest.TestCase):
         job, _ = self.jobs.enqueue(
             "media_generate", {"preset": {"prompt": "harbor"}},
             idempotency_key=f"media-resume-{uuid4()}",
-            source_tool="composer", operation_label="Create visual")
+            source_tool="creator", operation_label="Create visual")
         self.job_ids.append(job.id)
         attempt = self.records.begin_attempt(
             job.id, "media_generate",
@@ -177,7 +177,7 @@ class ProviderOperationTests(unittest.TestCase):
         job, _ = self.jobs.enqueue(
             "media_generate", {"preset": {"prompt": "harbor"}},
             idempotency_key=f"media-callback-{uuid4()}",
-            source_tool="composer", operation_label="Create visual")
+            source_tool="creator", operation_label="Create visual")
         self.job_ids.append(job.id)
         attempt = self.records.begin_attempt(
             job.id, "media_generate",
@@ -209,7 +209,7 @@ class ProviderOperationTests(unittest.TestCase):
         job, _ = self.jobs.enqueue(
             "media_generate", {"preset": {"prompt": "harbor"}},
             idempotency_key=f"media-ingest-{uuid4()}",
-            source_tool="composer", operation_label="Create visual")
+            source_tool="creator", operation_label="Create visual")
         self.job_ids.append(job.id)
         reservation = self.service.authorize(
             job.id, "media_generate", .35,

@@ -16,7 +16,7 @@ describe("SpeechRouteLabel", () => {
     expect(screen.getByText("Arabic")).toBeTruthy()
   })
 
-  it("supports a resolved Composer route without treating its tier as a model ID", () => {
+  it("supports a resolved Creator route without treating its tier as a model ID", () => {
     render(<SpeechRouteLabel route={{
       engine: "qwen_tts", model: "vc", model_id: "qwen3-tts-vc-2026-01-22",
     }} />)

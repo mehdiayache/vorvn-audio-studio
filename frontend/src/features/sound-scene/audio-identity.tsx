@@ -9,15 +9,14 @@ import "./audio-identity.css"
 
 export const AUDIO_SOURCE_LABELS: Record<FileSource, string> = {
   generated: FILE_SOURCE_PRESENTATION.generated.badgeLabel,
-  freesound: FILE_SOURCE_PRESENTATION.freesound.badgeLabel,
   uploaded: FILE_SOURCE_PRESENTATION.uploaded.badgeLabel,
-  library: FILE_SOURCE_PRESENTATION.library.badgeLabel,
+  imported: FILE_SOURCE_PRESENTATION.imported.badgeLabel,
 }
 
 export { FileSourceIcon as AudioSourceIcon, FreesoundMark } from "@/components/file-source-indicator"
 
-export function AudioSourceBadge({ source, detail, className }: { source: FileSource; detail?: string; className?: string }) {
-  return <FileSourceIndicator source={source} detail={detail} className={cn("audio-source-badge", className)} showLabel />
+export function AudioSourceBadge({ source, providerId, detail, className }: { source: FileSource; providerId?: string; detail?: string; className?: string }) {
+  return <FileSourceIndicator source={source} providerId={providerId} detail={detail} className={cn("audio-source-badge", className)} showLabel />
 }
 
 export function AudioFamilyBadge({ family, suggested = false, className }: { family: AudioFamily; suggested?: boolean; className?: string }) {

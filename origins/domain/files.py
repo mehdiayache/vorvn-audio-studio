@@ -13,6 +13,7 @@ FileFamily = Literal[
     "audio", "image", "video", "subtitle", "document", "archive", "data",
     "other",
 ]
+FileSource = Literal["generated", "uploaded", "imported"]
 FILE_FAMILIES = frozenset({
     "audio", "image", "video", "subtitle", "document", "archive", "data",
     "other",
@@ -112,11 +113,15 @@ class File:
     name: str
     current_version_id: int | None = None
     folder_id: int | None = None
-    source: str = "uploaded"
+    source: FileSource = "uploaded"
     tags: tuple[str, ...] = ()
     metadata: dict[str, Any] = field(default_factory=dict)
     created_at: datetime | None = None
     updated_at: datetime | None = None
+
+    def __post_init__(self) -> None:
+        if self.source not in {"generated", "uploaded", "imported"}:
+            raise ValueError("File provenance must be generated, uploaded or imported.")
 
     def __post_init__(self) -> None:
         if self.id < 1 or self.workspace_id < 1:

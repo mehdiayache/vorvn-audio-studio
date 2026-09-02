@@ -22,7 +22,7 @@ class MediaGenerationFiles(Protocol):
     def list_for_project(self, project_id: int) -> list[dict]: ...
     def list_for_workspace(self, workspace_id: int) -> list[dict]: ...
     def output_workspace_for_project(self, project_id: int) -> int | None: ...
-    def attach_to_visuals(
+    def attach_to_project_library(
         self, project_id: int, file_id: int,
     ) -> bool | None: ...
 
@@ -85,13 +85,13 @@ class MediaGenerationHandler:
         actual_cost = 0.0
         usage: dict[str, Any] = {}
         try:
-            progress.progress(job.id, 0, 4, "Preparing Composer references")
+            progress.progress(job.id, 0, 4, "Preparing Creator references")
             materialized = []
             for item in preset.get("inputs") or []:
                 file = available.get(int(item.get("file_id") or 0))
                 if not file:
                     raise JobFailed(
-                        "A Composer reference is no longer available.")
+                        "A Creator reference is no longer available.")
                 materialized.append(self.materializer.materialize(
                     file, job_id=str(job.public_id), role=str(item["role"])))
             provider_parameters = (
@@ -118,7 +118,7 @@ class MediaGenerationHandler:
                             file = available.get(int(file_id_value))
                             if not file:
                                 raise JobFailed(
-                                    "A Composer subject reference is no longer available.")
+                                    "A Creator subject reference is no longer available.")
                             next_group[output_key].append(
                                 self.materializer.materialize(
                                     file, job_id=str(job.public_id),
@@ -338,7 +338,8 @@ class MediaGenerationHandler:
                             "folder_id"))
                     file_id = int(kept["file"]["id"])
                     if project_id is not None:
-                        self.files.attach_to_visuals(int(project_id), file_id)
+                        self.files.attach_to_project_library(
+                            int(project_id), file_id)
                     output_ids.append(file_id)
                     self.operations.repository.record_artifact(
                         attempt_id, {"output_file_ids": output_ids})

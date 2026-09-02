@@ -94,7 +94,8 @@ class WorkspaceRepositoryTests(unittest.TestCase):
         self.assertEqual(
             [item["id"] for item in files.list_for_project(project["id"])],
             [created["id"]])
-        self.assertTrue(files.attach_to_visuals(project["id"], created["id"]))
+        self.assertTrue(files.attach_to_project_library(
+            project["id"], created["id"]))
         overview = self.service.overview(workspace_id)
         self.assertEqual(overview["files"][0]["id"], created["id"])
         self.assertEqual(overview["files"][0]["current_version"]["family"],

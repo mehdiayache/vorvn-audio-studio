@@ -12,10 +12,10 @@ class ProjectRecords(Protocol):
     def project(self, project_id: int) -> dict | None: ...
     def workspace(self, workspace_id: int) -> dict | None: ...
     def project_file_usages(self, project_id: int) -> list[dict]: ...
-    def visual_file_ids(self, project_id: int) -> list[int]: ...
+    def library_file_ids(self, project_id: int) -> list[int]: ...
     def project_file_ids(self, project_id: int) -> list[int]: ...
-    def attach_visual_file(self, project_id: int, file_id: int) -> bool | None: ...
-    def detach_visual_file(self, project_id: int, file_id: int) -> bool | None: ...
+    def attach_library_file(self, project_id: int, file_id: int) -> bool | None: ...
+    def detach_library_file(self, project_id: int, file_id: int) -> bool | None: ...
     def parts(self, project_id: int) -> list[dict]: ...
     def exports(self, project_id: int) -> list[dict]: ...
     def latest_render_job(self, project_id: int, operation: str) -> dict | None: ...
@@ -52,28 +52,28 @@ class ProjectService:
             "workspace": workspace,
             "files": self.records.project_file_usages(project_id),
             "project_file_ids": self.records.project_file_ids(project_id),
-            "visual_file_ids": self.records.visual_file_ids(project_id),
+            "library_file_ids": self.records.library_file_ids(project_id),
         }
 
-    def attach_visual_file(
+    def attach_library_file(
         self, identifier: int | str, file_id: int,
     ) -> dict[str, Any] | None:
         project_id = self._project_id(identifier)
         if project_id is None:
             return None
-        attached = self.records.attach_visual_file(project_id, file_id)
+        attached = self.records.attach_library_file(project_id, file_id)
         if attached is None:
             raise DomainValidation(
-                "Visuals accepts image and video Files from this Workspace.")
+                "The Project Library accepts image and video Files from this Workspace.")
         return {"file_id": file_id, "attached": True}
 
-    def detach_visual_file(
+    def detach_library_file(
         self, identifier: int | str, file_id: int,
     ) -> dict[str, Any] | None:
         project_id = self._project_id(identifier)
         if project_id is None:
             return None
-        detached = self.records.detach_visual_file(project_id, file_id)
+        detached = self.records.detach_library_file(project_id, file_id)
         return ({"file_id": file_id, "attached": False}
                 if detached is not None else None)
 

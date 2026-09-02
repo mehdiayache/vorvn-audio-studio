@@ -89,7 +89,7 @@ class FakeFiles:
     def output_workspace_for_project(self, project_id):
         return 4
 
-    def attach_to_visuals(self, project_id, file_id):
+    def attach_to_project_library(self, project_id, file_id):
         self.attached.append((project_id, file_id))
 
 

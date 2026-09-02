@@ -115,7 +115,7 @@ class AudioGenerationService:
                 "project_id": project_id,
                 "project_type": "audiovisual" if project_id else None,
             },
-            source_tool="create" if workspace_id and not project_id
+            source_tool="creator" if workspace_id and not project_id
             else "audio-library",
             operation_label=("Generate sound effect" if capability == "sfx"
                              else "Generate music"),

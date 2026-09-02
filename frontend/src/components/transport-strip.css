@@ -33,7 +33,7 @@
 .transport-strip-error { position: absolute; right: var(--space-3); bottom: calc(100% + var(--space-2)); margin: 0; padding: var(--space-2) var(--space-3); color: var(--destructive-foreground); background: var(--destructive); border-radius: var(--radius-sm); box-shadow: var(--shadow-xs); }
 .studio-app-shell:has(.transport-strip) .origins-viewport { padding-bottom: calc(var(--transport-height) + var(--safe-bottom) + var(--space-6)); }
 .studio-app-shell:has(.transport-strip.has-caption-dock) .origins-viewport { padding-bottom: calc(var(--transport-height) + 3.5rem + var(--safe-bottom) + var(--space-6)); }
-.transport-strip.is-composer { position: static; width: 100%; border-right: 0; border-bottom: 0; border-left: 0; border-radius: 0; box-shadow: none; }
+.transport-strip.is-creator { position: static; width: 100%; border-right: 0; border-bottom: 0; border-left: 0; border-radius: 0; box-shadow: none; }
 .transport-strip.is-library {
   position: static;
   z-index: auto;
@@ -135,7 +135,7 @@
 .transport-strip.is-project .transport-caption-modes { background: var(--muted); }
 .transport-strip.is-project .transport-caption-modes [data-slot="toggle-group-item"] { color: var(--transport-muted); }
 .transport-strip.is-project .transport-caption-modes [data-slot="toggle-group-item"][data-state="on"] { color: var(--transport-ink); background: var(--transport-raised); }
-.transport-strip.is-composer .transport-caption-panel { border-radius: 0; }
+.transport-strip.is-creator .transport-caption-panel { border-radius: 0; }
 .transport-caption-reader { min-width: 0; display: flex; align-items: center; gap: var(--space-2); }
 .transport-caption-reader > svg { width: 1rem; flex: none; color: var(--info); }
 .transport-caption-text { min-width: 0; flex: 1; display: -webkit-box; overflow: hidden; -webkit-box-orient: vertical; -webkit-line-clamp: 2; color: var(--foreground); font-size: var(--type-body); }
@@ -188,5 +188,5 @@ button.transport-caption-text:hover { color: var(--info); text-decoration: under
   .transport-strip-copy small { display: none; }
   .studio-app-shell:has(.transport-strip) .origins-viewport { padding-bottom: calc(var(--transport-mobile-height) + var(--safe-bottom) + var(--space-4)); }
   .studio-app-shell:has(.transport-strip.has-caption-dock) .origins-viewport { padding-bottom: calc(var(--transport-mobile-height) + 7rem + var(--safe-bottom) + var(--space-4)); }
-  .composer-mobile-transport { flex: 0 0 auto; padding-bottom: var(--safe-bottom); background: var(--surface-raised); }
+  .creator-mobile-transport { flex: 0 0 auto; padding-bottom: var(--safe-bottom); background: var(--surface-raised); }
 }

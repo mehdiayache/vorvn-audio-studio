@@ -24,12 +24,12 @@ class OriginsArchitectureTests(unittest.TestCase):
             "/api/v1/projects/{project_identifier}",
             "/api/v1/projects/{project_id}/editor",
             "/api/v1/projects/{project_id}/files",
-            "/api/v1/projects/{project_id}/visual-files",
+            "/api/v1/projects/{project_id}/library-files",
             "/api/v1/projects/{project_id}/files/upload",
-            "/api/v1/composer/capabilities",
-            "/api/v1/composer/models",
-            "/api/v1/composer/input-compatibility",
-            "/api/v1/composer/generations",
+            "/api/v1/creator/capabilities",
+            "/api/v1/creator/models",
+            "/api/v1/creator/input-compatibility",
+            "/api/v1/creator/generations",
         }
         self.assertTrue(expected.issubset(paths), expected - set(paths))
 
@@ -63,9 +63,9 @@ class OriginsArchitectureTests(unittest.TestCase):
         for relative in obsolete:
             self.assertFalse((ROOT / relative).exists(), relative)
 
-    def test_composer_context_uses_canonical_ownership(self):
+    def test_creator_context_uses_canonical_ownership(self):
         schemas = app.openapi()["components"]["schemas"]
-        context = schemas["ComposerContext"]["properties"]
+        context = schemas["CreatorContext"]["properties"]
         self.assertIn("workspace_id", context)
         self.assertIn("project_id", context)
         self.assertIn("project_type", context)

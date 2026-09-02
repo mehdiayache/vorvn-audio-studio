@@ -122,7 +122,7 @@ export function WorkstationPartInspector({ projectId, part, directory, playingKe
             <div className="ws-inspector-waveform"><AudioWaveform url={part.filename ? audioUrl(part.filename) : undefined} bars={96} /><OperatorTooltip label={currentPlaying ? "Pause recording" : "Play recording"}><button aria-label={currentPlaying ? "Pause recording" : "Play recording"} onClick={() => onPlay(source)}>{currentPlaying ? <Pause /> : <Play />}</button></OperatorTooltip><span><b>{facts.durationLabel}</b><small>{wording.label} input</small></span></div>
             <div className="ws-inspector-section-heading"><div><span>Words used for this recording</span><b>{wording.label}</b></div><CopyTextButton text={wording.text} /></div>
             <div className="ws-inspector-script" dir={textDirection(wording.text)}>{wording.text ? wording.label === "Tagged" ? <InlineDeliveryTags text={wording.text} /> : wording.text : "This historical recording does not contain a reliable wording snapshot."}</div>
-          </> : <div className="ws-inspector-empty"><Mic2 /><h3>Not recorded yet</h3><p>The script is ready to open in Composer.</p></div>}
+          </> : <div className="ws-inspector-empty"><Mic2 /><h3>Not recorded yet</h3><p>The script is ready to open in Creator.</p></div>}
         </TabsContent>
 
         <TabsContent value="captions" className="ws-inspector-tab">
@@ -161,7 +161,7 @@ export function WorkstationPartInspector({ projectId, part, directory, playingKe
 
     {data.message && <p className="ws-inspector-message" role="status">{data.message}</p>}
     <footer className="ws-inspector-footer">
-      {part.kind !== "silence" && part.kind !== "file" && <Button onClick={() => onEdit(part)}><Pencil /> Edit in Composer</Button>}
+      {part.kind !== "silence" && part.kind !== "file" && <Button onClick={() => onEdit(part)}><Pencil /> Edit in Creator</Button>}
       {part.kind === "file" && <Button onClick={() => onReplaceFile(part)}><FileAudio /> Replace source</Button>}
       <Button variant="outline" onClick={() => onDuplicate(part)}><Copy /> Duplicate</Button>
       <OperatorIconButton label="Delete selected Part" detail="Permanently removes this Part and its creative content." size="icon" className="is-danger" onClick={() => onDelete(part)}><Trash2 /></OperatorIconButton>

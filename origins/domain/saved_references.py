@@ -1,4 +1,4 @@
-"""Small Workspace-owned reference sets for Composer."""
+"""Small Workspace-owned reference sets for Creator."""
 
 from __future__ import annotations
 

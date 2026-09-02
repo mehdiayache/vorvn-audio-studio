@@ -22,7 +22,7 @@ describe("voice-first routing", () => {
     expect(identities.filter((item) => item.name === "Lingxin")).toHaveLength(1)
   })
 
-  it("preserves complete route capability data for the Composer", () => {
+  it("preserves complete route capability data for the Creator", () => {
     const mehdi = getVoiceIdentities(registry).find((item) => item.name === "Mehdi")!
     expect(mehdi.routes[0]).toMatchObject({
       provider: "alibaba", region: "intl", adapterKey: "qwen_tts",

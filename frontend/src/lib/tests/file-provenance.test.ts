@@ -15,14 +15,15 @@ describe("canonical File provenance", () => {
     expect(fileSource(value)).toBe("generated")
   })
 
-  it("classifies Freesound from its canonical origin", () => {
-    expect(fileSource(file({ origin: "freesound" }))).toBe("freesound")
+  it("classifies Freesound as imported provider detail", () => {
+    expect(fileSource(file({ origin: "imported", provider_id: "freesound" }))).toBe("imported")
+    expect(fileSourceLine(file({ origin: "imported", provider_id: "freesound", creator: "Field Recordist" }))).toBe("Imported · Freesound · Field Recordist")
   })
 
-  it("distinguishes uploads from Files without invented provenance", () => {
+  it("uses uploaded as the safe canonical default", () => {
     expect(fileSource(file({ origin: "uploaded" }))).toBe("uploaded")
-    expect(fileSource(file())).toBe("library")
-    expect(fileSourceLine(file())).toBe("Existing File")
+    expect(fileSource(file())).toBe("uploaded")
+    expect(fileSourceLine(file())).toBe("Uploaded")
   })
 
   it("uses immutable version metadata when presenting generated model identity", () => {

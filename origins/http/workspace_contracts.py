@@ -134,7 +134,7 @@ class CreationActionResponse(BaseModel):
     parameters: list[CreationFieldResponse]
     output_mime_types: list[str]
     supported_contexts: list[str]
-    composer: str | None
+    capability_id: str
 
 
 class CreationActionListEnvelope(BaseModel):

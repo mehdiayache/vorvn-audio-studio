@@ -1,4 +1,4 @@
-"""KIE model request translation; Composer remains provider-neutral."""
+"""KIE model request translation; Creator remains provider-neutral."""
 
 from __future__ import annotations
 

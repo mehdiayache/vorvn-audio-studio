@@ -5,7 +5,7 @@ import { OperatorIconButton } from "@/components/operator-action"
 import { OperatorTooltip } from "@/components/operator-tooltip"
 import { AudioFamilyBadge, AudioSourceBadge } from "@/features/sound-scene/audio-identity"
 import { audioFileCategory, audioUsageTags } from "@/features/sound-scene/audio-presentation"
-import { fileSource, fileSourceLine } from "@/lib/file-provenance"
+import { fileProvenance } from "@/lib/file-provenance"
 import { formatDuration } from "@/lib/format"
 import { cn } from "@/lib/utils"
 import type { CatalogSound, WorkspaceFile } from "@/types/domain"
@@ -60,11 +60,11 @@ export function AudioFileCard({ file, selected, used, playing, actionLabel = "Ad
   const category = audioFileCategory(file)
   const title = audioFileTitle(file)
   const usage = audioUsageTags(file)
-  const source = fileSource(file)
+  const provenance = fileProvenance(file)
   const replacing = actionLabel.toLocaleLowerCase().includes("replace")
   return <article className={cn("audio-file-card", `is-${category || "unclassified"}`, selected && "is-selected")}>
     {used && <OperatorTooltip label="Used in Timeline" detail="This audio already has a placement in the current Project." side="bottom"><span className="audio-file-card-used" tabIndex={0} aria-label="Used in Timeline"><CircleCheck /></span></OperatorTooltip>}
-    <header className="audio-file-card-identity"><AudioSourceBadge source={source} detail={fileSourceLine(file)} />{category && <AudioFamilyBadge family={category} />}</header>
+    <header className="audio-file-card-identity"><AudioSourceBadge source={provenance.source} providerId={provenance.provider} detail={provenance.detail} />{category && <AudioFamilyBadge family={category} />}</header>
     <AudioCardMain title={title} selected={selected} onSelect={onSelect} />
     <AudioCardTags tags={usage} />
     <div className="audio-file-card-actions">
@@ -81,7 +81,7 @@ export function AudioCatalogCard({ result, selected, playing, kept, busy, onSele
   const tags = [...new Set(result.tags.map((tag) => tag.trim().toLocaleLowerCase()).filter(Boolean))]
   return <article className={cn("audio-file-card", "is-unclassified", selected && "is-selected")}>
     {kept && <OperatorTooltip label="Saved File" detail="This Freesound result is already saved as a reusable File." side="bottom"><span className="audio-file-card-used" tabIndex={0} aria-label="Saved File"><CircleCheck /></span></OperatorTooltip>}
-    <header className="audio-file-card-identity"><AudioSourceBadge source="freesound" detail={`Freesound · ${result.creator}`} /></header>
+    <header className="audio-file-card-identity"><AudioSourceBadge source="imported" providerId="freesound" detail={`Imported · Freesound · ${result.creator}`} /></header>
     <AudioCardMain title={result.name} selected={selected} onSelect={onSelect} />
     <AudioCardTags tags={tags} />
     <div className="audio-file-card-actions">

@@ -29,7 +29,7 @@ KIE_CREDIT_USD = 0.005
 # - snapshot: Origins operator-verified KIE Kling O3 rate matrix. The public page
 #   exposes the $0.07/s floor but not every matrix cell, so each value remains
 #   covered by tests and must be rechecked before changing or enabling a model.
-# Provider-owned prices never leak into the Composer domain or React contract.
+# Provider-owned prices never leak into the Creator domain or React contract.
 KLING_OMNI_USD_PER_SECOND = {
     ("720p", False): 0.07,
     ("720p", True): 0.10,

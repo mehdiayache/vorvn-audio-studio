@@ -29,8 +29,8 @@ import type {
 import type { components, paths } from "@/types/api.generated"
 import { ApiError } from "@/lib/api-error"
 import { jobObserver, observeJob } from "@/lib/job-observer"
-import { contextWire, draftFromWire, draftWire, type ComposerDraftRecord, type ComposerDraftWireRecord } from "@/lib/composer-draft-persistence"
-import type { CompositionContext, RecoverableCompositionDraft } from "@/lib/composer-contract"
+import { contextWire, draftFromWire, draftWire, type CreatorDraftRecord, type CreatorDraftWireRecord } from "@/lib/creator-draft-persistence"
+import type { CompositionContext, RecoverableCompositionDraft } from "@/lib/creator-contract"
 
 type GeneratedJob = paths["/api/v1/jobs/{job_id}"]["get"]["responses"][200]["content"]["application/json"]["data"]
 type UploadedImage = paths["/api/v1/project-covers/upload"]["post"]["responses"][200]["content"]["application/json"]["data"]
@@ -93,15 +93,15 @@ type PronunciationSaveEnvelope = paths["/api/v1/settings/pronunciations"]["post"
 type PronunciationSaveBody = paths["/api/v1/settings/pronunciations"]["post"]["requestBody"]["content"]["application/json"]
 type PronunciationDeleteEnvelope = paths["/api/v1/settings/pronunciations/{item_id}"]["delete"]["responses"][200]["content"]["application/json"]
 type PronunciationPreviewEnvelope = paths["/api/v1/settings/pronunciations/preview"]["get"]["responses"][200]["content"]["application/json"]
-type VisualFileBody = paths["/api/v1/projects/{project_id}/visual-files"]["post"]["requestBody"]["content"]["application/json"]
-type VisualFileEnvelope = paths["/api/v1/projects/{project_id}/visual-files"]["post"]["responses"][200]["content"]["application/json"]
-type VisualFileDeleteEnvelope = paths["/api/v1/projects/{project_id}/visual-files/{file_id}"]["delete"]["responses"][200]["content"]["application/json"]
-type ComposerCapabilitiesEnvelope = paths["/api/v1/composer/capabilities"]["get"]["responses"][200]["content"]["application/json"]
-type MediaModelsEnvelope = paths["/api/v1/composer/models"]["get"]["responses"][200]["content"]["application/json"]
-type MediaGenerationListEnvelope = paths["/api/v1/composer/generations"]["get"]["responses"][200]["content"]["application/json"]
-type MediaGenerationEnvelope = paths["/api/v1/composer/generations"]["post"]["responses"][202]["content"]["application/json"]
-type MediaGenerationBody = paths["/api/v1/composer/generations"]["post"]["requestBody"]["content"]["application/json"]
-export type ComposerContext = components["schemas"]["ComposerContext"]
+type LibraryFileBody = paths["/api/v1/projects/{project_id}/library-files"]["post"]["requestBody"]["content"]["application/json"]
+type LibraryFileEnvelope = paths["/api/v1/projects/{project_id}/library-files"]["post"]["responses"][200]["content"]["application/json"]
+type LibraryFileDeleteEnvelope = paths["/api/v1/projects/{project_id}/library-files/{file_id}"]["delete"]["responses"][200]["content"]["application/json"]
+type CreatorCapabilitiesEnvelope = paths["/api/v1/creator/capabilities"]["get"]["responses"][200]["content"]["application/json"]
+type MediaModelsEnvelope = paths["/api/v1/creator/models"]["get"]["responses"][200]["content"]["application/json"]
+type MediaGenerationListEnvelope = paths["/api/v1/creator/generations"]["get"]["responses"][200]["content"]["application/json"]
+type MediaGenerationEnvelope = paths["/api/v1/creator/generations"]["post"]["responses"][202]["content"]["application/json"]
+type MediaGenerationBody = paths["/api/v1/creator/generations"]["post"]["requestBody"]["content"]["application/json"]
+export type CreatorContext = components["schemas"]["CreatorContext"]
 type TimelineReorderEnvelope = paths["/api/v1/projects/{project_id}/parts/reorder"]["post"]["responses"][200]["content"]["application/json"]
 type TimelinePartEnvelope = paths["/api/v1/projects/{project_id}/parts/silence"]["post"]["responses"][200]["content"]["application/json"]
 type TimelineDeleteEnvelope = paths["/api/v1/projects/{project_id}/parts"]["delete"]["responses"][200]["content"]["application/json"]
@@ -285,15 +285,15 @@ export const originsApi = {
     request<{ data: { id: number; type: "project"; deleted: boolean } }>(`/api/v1/projects/${id}`, { method: "DELETE" }).then((response) => response.data),
   soundScene: (id: number) => v1<SoundScene>(`/api/v1/projects/${id}/sound-scene`),
   visualScene: (id: number) => v1<VisualScene>(`/api/v1/projects/${id}/visual-scene`),
-  files: (id: number) => v1<{ files?: WorkspaceFile[]; project_file_ids?: number[]; visual_file_ids?: number[] }>(`/api/v1/projects/${id}/files`),
-  attachVisualFile: (projectId: number, fileId: number) => request<VisualFileEnvelope>(
-    `/api/v1/projects/${projectId}/visual-files`, {
+  files: (id: number) => v1<{ files?: WorkspaceFile[]; project_file_ids?: number[]; library_file_ids?: number[] }>(`/api/v1/projects/${id}/files`),
+  attachProjectLibraryFile: (projectId: number, fileId: number) => request<LibraryFileEnvelope>(
+    `/api/v1/projects/${projectId}/library-files`, {
       method: "POST",
-      body: JSON.stringify({ file_id: fileId } satisfies VisualFileBody),
+      body: JSON.stringify({ file_id: fileId } satisfies LibraryFileBody),
     },
   ).then((response) => response.data),
-  detachVisualFile: (projectId: number, fileId: number) => request<VisualFileDeleteEnvelope>(
-    `/api/v1/projects/${projectId}/visual-files/${fileId}`, { method: "DELETE" },
+  detachProjectLibraryFile: (projectId: number, fileId: number) => request<LibraryFileDeleteEnvelope>(
+    `/api/v1/projects/${projectId}/library-files/${fileId}`, { method: "DELETE" },
   ).then((response) => response.data),
   preview: async (id: number) => {
     const response = await request<{ data: DurableJob<PreviewResult> }>("/api/v1/jobs/render", { method: "POST", headers: { "Idempotency-Key": `preview-${id}-${crypto.randomUUID()}` }, body: JSON.stringify({ project_id: id, operation: "preview" }) })
@@ -380,12 +380,12 @@ export const originsApi = {
     const result = await jobObserver.completion<GenerateResult>(job.id)
     return { ...result, job_id: job.id }
   },
-  recordingHistory: (workspaceId: number) => v1<RecordingHistory>(`/api/v1/speak/recordings?workspace_id=${workspaceId}`),
-  composerDraft: (context: CompositionContext) => postV1<ComposerDraftWireRecord | null>("/api/v1/composer-drafts/resolve", { context: contextWire(context) }).then((record) => record ? draftFromWire(record) : null),
-  saveComposerDraft: (context: CompositionContext, state: RecoverableCompositionDraft, expectedVersion: number | null) =>
-    request<{ data: ComposerDraftWireRecord }>("/api/v1/composer-drafts", { method: "PUT", body: JSON.stringify({ context: contextWire(context), state: draftWire(state), expected_version: expectedVersion }) }).then((response) => draftFromWire(response.data) as ComposerDraftRecord),
-  deleteComposerDraft: (context: CompositionContext, expectedVersion: number | null) =>
-    request<{ data: { deleted: boolean } }>("/api/v1/composer-drafts", { method: "DELETE", body: JSON.stringify({ context: contextWire(context), expected_version: expectedVersion }) }).then((response) => response.data),
+  recordingHistory: (workspaceId: number) => v1<RecordingHistory>(`/api/v1/creator/recordings?workspace_id=${workspaceId}`),
+  creatorDraft: (context: CompositionContext) => postV1<CreatorDraftWireRecord | null>("/api/v1/creator-drafts/resolve", { context: contextWire(context) }).then((record) => record ? draftFromWire(record) : null),
+  saveCreatorDraft: (context: CompositionContext, state: RecoverableCompositionDraft, expectedVersion: number | null) =>
+    request<{ data: CreatorDraftWireRecord }>("/api/v1/creator-drafts", { method: "PUT", body: JSON.stringify({ context: contextWire(context), state: draftWire(state), expected_version: expectedVersion }) }).then((response) => draftFromWire(response.data) as CreatorDraftRecord),
+  deleteCreatorDraft: (context: CompositionContext, expectedVersion: number | null) =>
+    request<{ data: { deleted: boolean } }>("/api/v1/creator-drafts", { method: "DELETE", body: JSON.stringify({ context: contextWire(context), expected_version: expectedVersion }) }).then((response) => response.data),
   enqueueTextPass: async (kind: "shape" | "tag", payload: { text: string; project_id?: number; part_id?: number; density?: "none" | "light" | "normal" | "heavy"; spoken_profile?: "spoken_1" | "spoken_2"; capability_id: string; confirmed?: boolean }) => {
     const response = await request<{ data: DurableJob<TextPassResult> }>("/api/v1/jobs/text", { method: "POST", headers: { "Idempotency-Key": `rewrite-${kind}-${crypto.randomUUID()}` }, body: JSON.stringify({ ...payload, operation: kind }) })
     return registerJob(response.data)
@@ -460,10 +460,10 @@ export const originsApi = {
   }) => request<{ data: WorkspaceFile }>(`/api/v1/files/${fileId}`, {
     method: "PATCH", body: JSON.stringify(details),
   }).then((response) => response.data),
-  mediaGenerationCapabilities: () => request<ComposerCapabilitiesEnvelope>("/api/v1/composer/capabilities").then((response) => response.data),
-  mediaModels: () => request<MediaModelsEnvelope>("/api/v1/composer/models").then((response) => response.data),
+  mediaGenerationCapabilities: () => request<CreatorCapabilitiesEnvelope>("/api/v1/creator/capabilities").then((response) => response.data),
+  mediaModels: () => request<MediaModelsEnvelope>("/api/v1/creator/models").then((response) => response.data),
   mediaInputCompatibility: async (
-    context: ComposerContext,
+    context: CreatorContext,
     payload: { model_id: string; operation: string; file_ids: number[] } & MediaCompatibilityTarget,
     signal?: AbortSignal,
   ): Promise<MediaCompatibilityResult[]> => {
@@ -473,26 +473,26 @@ export const originsApi = {
       (_, index) => payload.file_ids.slice(index * 500, (index + 1) * 500),
     )
     const results = await Promise.all(batches.map((file_ids) => request<{ data: MediaCompatibilityResult[] }>(
-      "/api/v1/composer/input-compatibility",
+      "/api/v1/creator/input-compatibility",
       { method: "POST", signal, body: JSON.stringify({ ...payload, context, file_ids }) },
     ).then((response) => response.data)))
     return results.flat()
   },
-  mediaGenerations: (context: ComposerContext) => {
+  mediaGenerations: (context: CreatorContext) => {
     const query = new URLSearchParams({ workspace_id: String(context.workspace_id) })
     if (context.project_id) query.set("project_id", String(context.project_id))
-    return request<MediaGenerationListEnvelope>(`/api/v1/composer/generations?${query}`).then((response) => response.data)
+    return request<MediaGenerationListEnvelope>(`/api/v1/creator/generations?${query}`).then((response) => response.data)
   },
-  createMediaGeneration: (payload: MediaGenerationBody) => request<MediaGenerationEnvelope>("/api/v1/composer/generations", {
+  createMediaGeneration: (payload: MediaGenerationBody) => request<MediaGenerationEnvelope>("/api/v1/creator/generations", {
     method: "POST",
     headers: { "Idempotency-Key": `media-generation-${crypto.randomUUID()}` },
     body: JSON.stringify(payload),
   }).then((response) => response.data),
-  cancelMediaGeneration: (context: ComposerContext, jobId: string) => request<MediaGenerationEnvelope>(`/api/v1/composer/generations/${jobId}/cancel`, {
+  cancelMediaGeneration: (context: CreatorContext, jobId: string) => request<MediaGenerationEnvelope>(`/api/v1/creator/generations/${jobId}/cancel`, {
     method: "POST",
     body: JSON.stringify(context),
   }).then((response) => response.data),
-  retryMediaGenerationIngestion: (context: ComposerContext, jobId: string) => request<MediaGenerationEnvelope>(`/api/v1/composer/generations/${jobId}/retry-ingestion`, {
+  retryMediaGenerationIngestion: (context: CreatorContext, jobId: string) => request<MediaGenerationEnvelope>(`/api/v1/creator/generations/${jobId}/retry-ingestion`, {
     method: "POST",
     body: JSON.stringify(context),
   }).then((response) => response.data),

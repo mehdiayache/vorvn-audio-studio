@@ -1870,7 +1870,208 @@
         "title": "CollectionMetaResponse",
         "type": "object"
       },
-      "ComposerCapabilities": {
+      "CompressorEffect": {
+        "additionalProperties": false,
+        "properties": {
+          "attack_ms": {
+            "default": 12,
+            "maximum": 1000.0,
+            "minimum": 0.1,
+            "title": "Attack Ms",
+            "type": "number"
+          },
+          "enabled": {
+            "default": true,
+            "title": "Enabled",
+            "type": "boolean"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "makeup_db": {
+            "default": 0,
+            "maximum": 24.0,
+            "minimum": 0.0,
+            "title": "Makeup Db",
+            "type": "number"
+          },
+          "ratio": {
+            "default": 4,
+            "maximum": 20.0,
+            "minimum": 1.0,
+            "title": "Ratio",
+            "type": "number"
+          },
+          "release_ms": {
+            "default": 180,
+            "maximum": 3000.0,
+            "minimum": 10.0,
+            "title": "Release Ms",
+            "type": "number"
+          },
+          "threshold_db": {
+            "default": -18,
+            "maximum": 0.0,
+            "minimum": -60.0,
+            "title": "Threshold Db",
+            "type": "number"
+          },
+          "type": {
+            "const": "compressor",
+            "title": "Type",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "type"
+        ],
+        "title": "CompressorEffect",
+        "type": "object"
+      },
+      "CostBasisResponse": {
+        "properties": {
+          "basis": {
+            "title": "Basis",
+            "type": "string"
+          },
+          "cost": {
+            "title": "Cost",
+            "type": "number"
+          },
+          "raw_basis": {
+            "title": "Raw Basis",
+            "type": "string"
+          },
+          "runs": {
+            "title": "Runs",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "basis",
+          "raw_basis",
+          "runs",
+          "cost"
+        ],
+        "title": "CostBasisResponse",
+        "type": "object"
+      },
+      "CreationActionListEnvelope": {
+        "properties": {
+          "data": {
+            "items": {
+              "$ref": "#/components/schemas/CreationActionResponse"
+            },
+            "title": "Data",
+            "type": "array"
+          }
+        },
+        "required": [
+          "data"
+        ],
+        "title": "CreationActionListEnvelope",
+        "type": "object"
+      },
+      "CreationActionResponse": {
+        "properties": {
+          "capability_id": {
+            "title": "Capability Id",
+            "type": "string"
+          },
+          "description": {
+            "title": "Description",
+            "type": "string"
+          },
+          "id": {
+            "title": "Id",
+            "type": "string"
+          },
+          "inputs": {
+            "items": {
+              "$ref": "#/components/schemas/CreationFieldResponse"
+            },
+            "title": "Inputs",
+            "type": "array"
+          },
+          "label": {
+            "title": "Label",
+            "type": "string"
+          },
+          "output_mime_types": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Output Mime Types",
+            "type": "array"
+          },
+          "parameters": {
+            "items": {
+              "$ref": "#/components/schemas/CreationFieldResponse"
+            },
+            "title": "Parameters",
+            "type": "array"
+          },
+          "supported_contexts": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Supported Contexts",
+            "type": "array"
+          }
+        },
+        "required": [
+          "id",
+          "label",
+          "description",
+          "inputs",
+          "parameters",
+          "output_mime_types",
+          "supported_contexts",
+          "capability_id"
+        ],
+        "title": "CreationActionResponse",
+        "type": "object"
+      },
+      "CreationFieldResponse": {
+        "properties": {
+          "choices": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Choices",
+            "type": "array"
+          },
+          "id": {
+            "title": "Id",
+            "type": "string"
+          },
+          "label": {
+            "title": "Label",
+            "type": "string"
+          },
+          "required": {
+            "title": "Required",
+            "type": "boolean"
+          },
+          "type": {
+            "title": "Type",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "label",
+          "type",
+          "required",
+          "choices"
+        ],
+        "title": "CreationFieldResponse",
+        "type": "object"
+      },
+      "CreatorCapabilities": {
         "properties": {
           "models": {
             "items": {
@@ -1881,7 +2082,7 @@
           },
           "operations": {
             "items": {
-              "$ref": "#/components/schemas/ComposerOperationInfo"
+              "$ref": "#/components/schemas/CreatorOperationInfo"
             },
             "title": "Operations",
             "type": "array"
@@ -1902,22 +2103,22 @@
           "operations",
           "models"
         ],
-        "title": "ComposerCapabilities",
+        "title": "CreatorCapabilities",
         "type": "object"
       },
-      "ComposerCapabilitiesEnvelope": {
+      "CreatorCapabilitiesEnvelope": {
         "properties": {
           "data": {
-            "$ref": "#/components/schemas/ComposerCapabilities"
+            "$ref": "#/components/schemas/CreatorCapabilities"
           }
         },
         "required": [
           "data"
         ],
-        "title": "ComposerCapabilitiesEnvelope",
+        "title": "CreatorCapabilitiesEnvelope",
         "type": "object"
       },
-      "ComposerContext": {
+      "CreatorContext": {
         "additionalProperties": false,
         "properties": {
           "folder_id": {
@@ -1983,10 +2184,10 @@
         "required": [
           "workspace_id"
         ],
-        "title": "ComposerContext",
+        "title": "CreatorContext",
         "type": "object"
       },
-      "ComposerControlRule": {
+      "CreatorControlRule": {
         "properties": {
           "default": {
             "title": "Default",
@@ -2009,10 +2210,10 @@
           "values",
           "default"
         ],
-        "title": "ComposerControlRule",
+        "title": "CreatorControlRule",
         "type": "object"
       },
-      "ComposerDurationRange": {
+      "CreatorDurationRange": {
         "properties": {
           "default": {
             "title": "Default",
@@ -2037,14 +2238,14 @@
           "step",
           "default"
         ],
-        "title": "ComposerDurationRange",
+        "title": "CreatorDurationRange",
         "type": "object"
       },
-      "ComposerGenerationRequest": {
+      "CreatorGenerationRequest": {
         "additionalProperties": false,
         "properties": {
           "context": {
-            "$ref": "#/components/schemas/ComposerContext"
+            "$ref": "#/components/schemas/CreatorContext"
           },
           "preset": {
             "$ref": "#/components/schemas/MediaGenerationPreset"
@@ -2054,14 +2255,14 @@
           "context",
           "preset"
         ],
-        "title": "ComposerGenerationRequest",
+        "title": "CreatorGenerationRequest",
         "type": "object"
       },
-      "ComposerInputCompatibilityEnvelope": {
+      "CreatorInputCompatibilityEnvelope": {
         "properties": {
           "data": {
             "items": {
-              "$ref": "#/components/schemas/ComposerInputCompatibilityResponse"
+              "$ref": "#/components/schemas/CreatorInputCompatibilityResponse"
             },
             "title": "Data",
             "type": "array"
@@ -2070,10 +2271,10 @@
         "required": [
           "data"
         ],
-        "title": "ComposerInputCompatibilityEnvelope",
+        "title": "CreatorInputCompatibilityEnvelope",
         "type": "object"
       },
-      "ComposerInputCompatibilityRequest": {
+      "CreatorInputCompatibilityRequest": {
         "additionalProperties": false,
         "properties": {
           "audio": {
@@ -2082,7 +2283,7 @@
             "type": "boolean"
           },
           "context": {
-            "$ref": "#/components/schemas/ComposerContext"
+            "$ref": "#/components/schemas/CreatorContext"
           },
           "file_ids": {
             "items": {
@@ -2150,10 +2351,10 @@
           "operation",
           "file_ids"
         ],
-        "title": "ComposerInputCompatibilityRequest",
+        "title": "CreatorInputCompatibilityRequest",
         "type": "object"
       },
-      "ComposerInputCompatibilityResponse": {
+      "CreatorInputCompatibilityResponse": {
         "properties": {
           "file_id": {
             "title": "File Id",
@@ -2181,10 +2382,10 @@
           "state",
           "reasons"
         ],
-        "title": "ComposerInputCompatibilityResponse",
+        "title": "CreatorInputCompatibilityResponse",
         "type": "object"
       },
-      "ComposerInputSlot": {
+      "CreatorInputSlot": {
         "properties": {
           "aspect_ratio_max": {
             "anyOf": [
@@ -2361,15 +2562,15 @@
           "media_types",
           "max"
         ],
-        "title": "ComposerInputSlot",
+        "title": "CreatorInputSlot",
         "type": "object"
       },
-      "ComposerOperationCapability": {
+      "CreatorOperationCapability": {
         "properties": {
           "duration_range": {
             "anyOf": [
               {
-                "$ref": "#/components/schemas/ComposerDurationRange"
+                "$ref": "#/components/schemas/CreatorDurationRange"
               },
               {
                 "type": "null"
@@ -2407,7 +2608,7 @@
           },
           "inputs": {
             "items": {
-              "$ref": "#/components/schemas/ComposerInputSlot"
+              "$ref": "#/components/schemas/CreatorInputSlot"
             },
             "title": "Inputs",
             "type": "array"
@@ -2417,7 +2618,7 @@
             "type": "string"
           },
           "output": {
-            "$ref": "#/components/schemas/ComposerOutputCapability"
+            "$ref": "#/components/schemas/CreatorOutputCapability"
           },
           "output_media_type": {
             "enum": [
@@ -2429,17 +2630,17 @@
           },
           "parameters": {
             "items": {
-              "$ref": "#/components/schemas/ComposerParameterCapability"
+              "$ref": "#/components/schemas/CreatorParameterCapability"
             },
             "title": "Parameters",
             "type": "array"
           },
           "prompt": {
-            "$ref": "#/components/schemas/ComposerPromptCapability"
+            "$ref": "#/components/schemas/CreatorPromptCapability"
           },
           "ratio_rules": {
             "items": {
-              "$ref": "#/components/schemas/ComposerControlRule"
+              "$ref": "#/components/schemas/CreatorControlRule"
             },
             "title": "Ratio Rules",
             "type": "array"
@@ -2490,10 +2691,10 @@
           "supports_cancel",
           "output"
         ],
-        "title": "ComposerOperationCapability",
+        "title": "CreatorOperationCapability",
         "type": "object"
       },
-      "ComposerOperationInfo": {
+      "CreatorOperationInfo": {
         "properties": {
           "detail": {
             "title": "Detail",
@@ -2521,10 +2722,10 @@
           "detail",
           "presentation"
         ],
-        "title": "ComposerOperationInfo",
+        "title": "CreatorOperationInfo",
         "type": "object"
       },
-      "ComposerOutputCapability": {
+      "CreatorOutputCapability": {
         "properties": {
           "extension": {
             "title": "Extension",
@@ -2539,10 +2740,10 @@
           "mime_type",
           "extension"
         ],
-        "title": "ComposerOutputCapability",
+        "title": "CreatorOutputCapability",
         "type": "object"
       },
-      "ComposerParameterCapability": {
+      "CreatorParameterCapability": {
         "additionalProperties": false,
         "properties": {
           "conflicts_with": {
@@ -2656,10 +2857,10 @@
           "type",
           "label"
         ],
-        "title": "ComposerParameterCapability",
+        "title": "CreatorParameterCapability",
         "type": "object"
       },
-      "ComposerPromptCapability": {
+      "CreatorPromptCapability": {
         "properties": {
           "max_length": {
             "default": 20000,
@@ -2684,10 +2885,10 @@
           "required",
           "negative_prompt"
         ],
-        "title": "ComposerPromptCapability",
+        "title": "CreatorPromptCapability",
         "type": "object"
       },
-      "ComposerState": {
+      "CreatorState": {
         "additionalProperties": false,
         "properties": {
           "authored_role": {
@@ -2741,215 +2942,7 @@
           "delivery",
           "output"
         ],
-        "title": "ComposerState",
-        "type": "object"
-      },
-      "CompressorEffect": {
-        "additionalProperties": false,
-        "properties": {
-          "attack_ms": {
-            "default": 12,
-            "maximum": 1000.0,
-            "minimum": 0.1,
-            "title": "Attack Ms",
-            "type": "number"
-          },
-          "enabled": {
-            "default": true,
-            "title": "Enabled",
-            "type": "boolean"
-          },
-          "id": {
-            "format": "uuid",
-            "title": "Id",
-            "type": "string"
-          },
-          "makeup_db": {
-            "default": 0,
-            "maximum": 24.0,
-            "minimum": 0.0,
-            "title": "Makeup Db",
-            "type": "number"
-          },
-          "ratio": {
-            "default": 4,
-            "maximum": 20.0,
-            "minimum": 1.0,
-            "title": "Ratio",
-            "type": "number"
-          },
-          "release_ms": {
-            "default": 180,
-            "maximum": 3000.0,
-            "minimum": 10.0,
-            "title": "Release Ms",
-            "type": "number"
-          },
-          "threshold_db": {
-            "default": -18,
-            "maximum": 0.0,
-            "minimum": -60.0,
-            "title": "Threshold Db",
-            "type": "number"
-          },
-          "type": {
-            "const": "compressor",
-            "title": "Type",
-            "type": "string"
-          }
-        },
-        "required": [
-          "id",
-          "type"
-        ],
-        "title": "CompressorEffect",
-        "type": "object"
-      },
-      "CostBasisResponse": {
-        "properties": {
-          "basis": {
-            "title": "Basis",
-            "type": "string"
-          },
-          "cost": {
-            "title": "Cost",
-            "type": "number"
-          },
-          "raw_basis": {
-            "title": "Raw Basis",
-            "type": "string"
-          },
-          "runs": {
-            "title": "Runs",
-            "type": "integer"
-          }
-        },
-        "required": [
-          "basis",
-          "raw_basis",
-          "runs",
-          "cost"
-        ],
-        "title": "CostBasisResponse",
-        "type": "object"
-      },
-      "CreationActionListEnvelope": {
-        "properties": {
-          "data": {
-            "items": {
-              "$ref": "#/components/schemas/CreationActionResponse"
-            },
-            "title": "Data",
-            "type": "array"
-          }
-        },
-        "required": [
-          "data"
-        ],
-        "title": "CreationActionListEnvelope",
-        "type": "object"
-      },
-      "CreationActionResponse": {
-        "properties": {
-          "composer": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Composer"
-          },
-          "description": {
-            "title": "Description",
-            "type": "string"
-          },
-          "id": {
-            "title": "Id",
-            "type": "string"
-          },
-          "inputs": {
-            "items": {
-              "$ref": "#/components/schemas/CreationFieldResponse"
-            },
-            "title": "Inputs",
-            "type": "array"
-          },
-          "label": {
-            "title": "Label",
-            "type": "string"
-          },
-          "output_mime_types": {
-            "items": {
-              "type": "string"
-            },
-            "title": "Output Mime Types",
-            "type": "array"
-          },
-          "parameters": {
-            "items": {
-              "$ref": "#/components/schemas/CreationFieldResponse"
-            },
-            "title": "Parameters",
-            "type": "array"
-          },
-          "supported_contexts": {
-            "items": {
-              "type": "string"
-            },
-            "title": "Supported Contexts",
-            "type": "array"
-          }
-        },
-        "required": [
-          "id",
-          "label",
-          "description",
-          "inputs",
-          "parameters",
-          "output_mime_types",
-          "supported_contexts",
-          "composer"
-        ],
-        "title": "CreationActionResponse",
-        "type": "object"
-      },
-      "CreationFieldResponse": {
-        "properties": {
-          "choices": {
-            "items": {
-              "type": "string"
-            },
-            "title": "Choices",
-            "type": "array"
-          },
-          "id": {
-            "title": "Id",
-            "type": "string"
-          },
-          "label": {
-            "title": "Label",
-            "type": "string"
-          },
-          "required": {
-            "title": "Required",
-            "type": "boolean"
-          },
-          "type": {
-            "title": "Type",
-            "type": "string"
-          }
-        },
-        "required": [
-          "id",
-          "label",
-          "type",
-          "required",
-          "choices"
-        ],
-        "title": "CreationFieldResponse",
+        "title": "CreatorState",
         "type": "object"
       },
       "DeleteBody": {
@@ -3506,7 +3499,7 @@
             "type": "string"
           },
           "state": {
-            "$ref": "#/components/schemas/ComposerState"
+            "$ref": "#/components/schemas/CreatorState"
           },
           "updated_at": {
             "format": "date-time",
@@ -3561,7 +3554,7 @@
             "title": "Expected Version"
           },
           "state": {
-            "$ref": "#/components/schemas/ComposerState"
+            "$ref": "#/components/schemas/CreatorState"
           }
         },
         "required": [
@@ -4607,6 +4600,50 @@
         "title": "KeepGeneratedBody",
         "type": "object"
       },
+      "LibraryFileMutationEnvelope": {
+        "properties": {
+          "data": {
+            "$ref": "#/components/schemas/LibraryFileMutationResponse"
+          }
+        },
+        "required": [
+          "data"
+        ],
+        "title": "LibraryFileMutationEnvelope",
+        "type": "object"
+      },
+      "LibraryFileMutationRequest": {
+        "properties": {
+          "file_id": {
+            "exclusiveMinimum": 0.0,
+            "title": "File Id",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "file_id"
+        ],
+        "title": "LibraryFileMutationRequest",
+        "type": "object"
+      },
+      "LibraryFileMutationResponse": {
+        "properties": {
+          "attached": {
+            "title": "Attached",
+            "type": "boolean"
+          },
+          "file_id": {
+            "title": "File Id",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "file_id",
+          "attached"
+        ],
+        "title": "LibraryFileMutationResponse",
+        "type": "object"
+      },
       "LinkedVisualAudioClipSettings": {
         "additionalProperties": false,
         "properties": {
@@ -5263,7 +5300,7 @@
           },
           "operations": {
             "items": {
-              "$ref": "#/components/schemas/ComposerOperationCapability"
+              "$ref": "#/components/schemas/CreatorOperationCapability"
             },
             "title": "Operations",
             "type": "array"
@@ -6192,18 +6229,18 @@
             "title": "Files",
             "type": "array"
           },
+          "library_file_ids": {
+            "items": {
+              "type": "integer"
+            },
+            "title": "Library File Ids",
+            "type": "array"
+          },
           "project_file_ids": {
             "items": {
               "type": "integer"
             },
             "title": "Project File Ids",
-            "type": "array"
-          },
-          "visual_file_ids": {
-            "items": {
-              "type": "integer"
-            },
-            "title": "Visual File Ids",
             "type": "array"
           },
           "workspace": {
@@ -12557,50 +12594,6 @@
         "title": "ValidationError",
         "type": "object"
       },
-      "VisualFileMutationEnvelope": {
-        "properties": {
-          "data": {
-            "$ref": "#/components/schemas/VisualFileMutationResponse"
-          }
-        },
-        "required": [
-          "data"
-        ],
-        "title": "VisualFileMutationEnvelope",
-        "type": "object"
-      },
-      "VisualFileMutationRequest": {
-        "properties": {
-          "file_id": {
-            "exclusiveMinimum": 0.0,
-            "title": "File Id",
-            "type": "integer"
-          }
-        },
-        "required": [
-          "file_id"
-        ],
-        "title": "VisualFileMutationRequest",
-        "type": "object"
-      },
-      "VisualFileMutationResponse": {
-        "properties": {
-          "attached": {
-            "title": "Attached",
-            "type": "boolean"
-          },
-          "file_id": {
-            "title": "File Id",
-            "type": "integer"
-          }
-        },
-        "required": [
-          "file_id",
-          "attached"
-        ],
-        "title": "VisualFileMutationResponse",
-        "type": "object"
-      },
       "VisualSceneCanvasDocument": {
         "additionalProperties": false,
         "properties": {
@@ -16338,9 +16331,74 @@
         ]
       }
     },
-    "/api/v1/composer-drafts": {
+    "/api/v1/config": {
+      "get": {
+        "operationId": "getStudioConfig",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/StudioConfigEnvelope"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Get Config",
+        "tags": [
+          "catalog"
+        ]
+      }
+    },
+    "/api/v1/creation-actions": {
+      "get": {
+        "operationId": "listCreationActions",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "context",
+            "required": false,
+            "schema": {
+              "default": "workspace",
+              "maxLength": 120,
+              "title": "Context",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CreationActionListEnvelope"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "List Creation Actions",
+        "tags": [
+          "Workspaces"
+        ]
+      }
+    },
+    "/api/v1/creator-drafts": {
       "delete": {
-        "operationId": "deleteComposerDraft",
+        "operationId": "deleteCreatorDraft",
         "requestBody": {
           "content": {
             "application/json": {
@@ -16375,11 +16433,11 @@
         },
         "summary": "Delete Draft",
         "tags": [
-          "composer"
+          "creator"
         ]
       },
       "put": {
-        "operationId": "saveComposerDraft",
+        "operationId": "saveCreatorDraft",
         "requestBody": {
           "content": {
             "application/json": {
@@ -16414,13 +16472,13 @@
         },
         "summary": "Save Draft",
         "tags": [
-          "composer"
+          "creator"
         ]
       }
     },
-    "/api/v1/composer-drafts/resolve": {
+    "/api/v1/creator-drafts/resolve": {
       "post": {
-        "operationId": "resolveComposerDraft",
+        "operationId": "resolveCreatorDraft",
         "requestBody": {
           "content": {
             "application/json": {
@@ -16455,11 +16513,11 @@
         },
         "summary": "Resolve Draft",
         "tags": [
-          "composer"
+          "creator"
         ]
       }
     },
-    "/api/v1/composer/capabilities": {
+    "/api/v1/creator/capabilities": {
       "get": {
         "operationId": "getMediaGenerationCapabilities",
         "responses": {
@@ -16467,20 +16525,20 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/ComposerCapabilitiesEnvelope"
+                  "$ref": "#/components/schemas/CreatorCapabilitiesEnvelope"
                 }
               }
             },
             "description": "Successful Response"
           }
         },
-        "summary": "Composer Capabilities",
+        "summary": "Creator Capabilities",
         "tags": [
           "media-generations"
         ]
       }
     },
-    "/api/v1/composer/generations": {
+    "/api/v1/creator/generations": {
       "get": {
         "operationId": "listMediaGenerations",
         "parameters": [
@@ -16564,7 +16622,7 @@
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/ComposerGenerationRequest"
+                "$ref": "#/components/schemas/CreatorGenerationRequest"
               }
             }
           },
@@ -16598,7 +16656,7 @@
         ]
       }
     },
-    "/api/v1/composer/generations/{job_id}/cancel": {
+    "/api/v1/creator/generations/{job_id}/cancel": {
       "post": {
         "operationId": "cancelMediaGeneration",
         "parameters": [
@@ -16617,7 +16675,7 @@
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/ComposerContext"
+                "$ref": "#/components/schemas/CreatorContext"
               }
             }
           },
@@ -16651,7 +16709,7 @@
         ]
       }
     },
-    "/api/v1/composer/generations/{job_id}/retry-ingestion": {
+    "/api/v1/creator/generations/{job_id}/retry-ingestion": {
       "post": {
         "operationId": "retryMediaGenerationIngestion",
         "parameters": [
@@ -16670,7 +16728,7 @@
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/ComposerContext"
+                "$ref": "#/components/schemas/CreatorContext"
               }
             }
           },
@@ -16704,14 +16762,14 @@
         ]
       }
     },
-    "/api/v1/composer/input-compatibility": {
+    "/api/v1/creator/input-compatibility": {
       "post": {
-        "operationId": "checkComposerInputCompatibility",
+        "operationId": "checkCreatorInputCompatibility",
         "requestBody": {
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/ComposerInputCompatibilityRequest"
+                "$ref": "#/components/schemas/CreatorInputCompatibilityRequest"
               }
             }
           },
@@ -16722,7 +16780,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/ComposerInputCompatibilityEnvelope"
+                  "$ref": "#/components/schemas/CreatorInputCompatibilityEnvelope"
                 }
               }
             },
@@ -16739,22 +16797,22 @@
             "description": "Validation Error"
           }
         },
-        "summary": "Check Composer Input Compatibility",
+        "summary": "Check Creator Input Compatibility",
         "tags": [
           "media-generations"
         ]
       }
     },
-    "/api/v1/composer/models": {
+    "/api/v1/creator/models": {
       "get": {
-        "description": "Canonical model catalogue consumed by Composer and external clients.",
+        "description": "Canonical model catalogue consumed by Creator and external clients.",
         "operationId": "getMediaModels",
         "responses": {
           "200": {
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/ComposerCapabilitiesEnvelope"
+                  "$ref": "#/components/schemas/CreatorCapabilitiesEnvelope"
                 }
               }
             },
@@ -16767,40 +16825,18 @@
         ]
       }
     },
-    "/api/v1/config": {
+    "/api/v1/creator/recordings": {
       "get": {
-        "operationId": "getStudioConfig",
-        "responses": {
-          "200": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/StudioConfigEnvelope"
-                }
-              }
-            },
-            "description": "Successful Response"
-          }
-        },
-        "summary": "Get Config",
-        "tags": [
-          "catalog"
-        ]
-      }
-    },
-    "/api/v1/creation-actions": {
-      "get": {
-        "operationId": "listCreationActions",
+        "operationId": "getCreatorRecordingHistory",
         "parameters": [
           {
             "in": "query",
-            "name": "context",
-            "required": false,
+            "name": "workspace_id",
+            "required": true,
             "schema": {
-              "default": "workspace",
-              "maxLength": 120,
-              "title": "Context",
-              "type": "string"
+              "exclusiveMinimum": 0,
+              "title": "Workspace Id",
+              "type": "integer"
             }
           }
         ],
@@ -16809,7 +16845,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/CreationActionListEnvelope"
+                  "$ref": "#/components/schemas/RecordingHistoryEnvelope"
                 }
               }
             },
@@ -16826,9 +16862,9 @@
             "description": "Validation Error"
           }
         },
-        "summary": "List Creation Actions",
+        "summary": "Get Recording History",
         "tags": [
-          "Workspaces"
+          "Creator"
         ]
       }
     },
@@ -18128,6 +18164,109 @@
         ]
       }
     },
+    "/api/v1/projects/{project_id}/library-files": {
+      "post": {
+        "operationId": "attachProjectLibraryFile",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "project_id",
+            "required": true,
+            "schema": {
+              "title": "Project Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/LibraryFileMutationRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LibraryFileMutationEnvelope"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Attach Project Library File",
+        "tags": [
+          "Projects"
+        ]
+      }
+    },
+    "/api/v1/projects/{project_id}/library-files/{file_id}": {
+      "delete": {
+        "operationId": "detachProjectLibraryFile",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "project_id",
+            "required": true,
+            "schema": {
+              "title": "Project Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "file_id",
+            "required": true,
+            "schema": {
+              "title": "File Id",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LibraryFileMutationEnvelope"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Detach Project Library File",
+        "tags": [
+          "Projects"
+        ]
+      }
+    },
     "/api/v1/projects/{project_id}/parts": {
       "delete": {
         "operationId": "deleteProjectParts",
@@ -19065,109 +19204,6 @@
         ]
       }
     },
-    "/api/v1/projects/{project_id}/visual-files": {
-      "post": {
-        "operationId": "attachProjectVisualFile",
-        "parameters": [
-          {
-            "in": "path",
-            "name": "project_id",
-            "required": true,
-            "schema": {
-              "title": "Project Id",
-              "type": "string"
-            }
-          }
-        ],
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/VisualFileMutationRequest"
-              }
-            }
-          },
-          "required": true
-        },
-        "responses": {
-          "200": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/VisualFileMutationEnvelope"
-                }
-              }
-            },
-            "description": "Successful Response"
-          },
-          "422": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
-              }
-            },
-            "description": "Validation Error"
-          }
-        },
-        "summary": "Attach Project Visual File",
-        "tags": [
-          "Projects"
-        ]
-      }
-    },
-    "/api/v1/projects/{project_id}/visual-files/{file_id}": {
-      "delete": {
-        "operationId": "detachProjectVisualFile",
-        "parameters": [
-          {
-            "in": "path",
-            "name": "project_id",
-            "required": true,
-            "schema": {
-              "title": "Project Id",
-              "type": "string"
-            }
-          },
-          {
-            "in": "path",
-            "name": "file_id",
-            "required": true,
-            "schema": {
-              "title": "File Id",
-              "type": "integer"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/VisualFileMutationEnvelope"
-                }
-              }
-            },
-            "description": "Successful Response"
-          },
-          "422": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
-              }
-            },
-            "description": "Validation Error"
-          }
-        },
-        "summary": "Detach Project Visual File",
-        "tags": [
-          "Projects"
-        ]
-      }
-    },
     "/api/v1/projects/{project_id}/visual-scene": {
       "get": {
         "operationId": "getProjectVisualScene",
@@ -19853,49 +19889,6 @@
         "summary": "Test Storage",
         "tags": [
           "settings"
-        ]
-      }
-    },
-    "/api/v1/speak/recordings": {
-      "get": {
-        "operationId": "getStandaloneRecordingHistory",
-        "parameters": [
-          {
-            "in": "query",
-            "name": "workspace_id",
-            "required": true,
-            "schema": {
-              "exclusiveMinimum": 0,
-              "title": "Workspace Id",
-              "type": "integer"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/RecordingHistoryEnvelope"
-                }
-              }
-            },
-            "description": "Successful Response"
-          },
-          "422": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
-              }
-            },
-            "description": "Validation Error"
-          }
-        },
-        "summary": "Get Recording History",
-        "tags": [
-          "speak"
         ]
       }
     },

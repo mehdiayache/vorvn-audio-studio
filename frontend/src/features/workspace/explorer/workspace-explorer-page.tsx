@@ -1,8 +1,8 @@
 import { useMemo, useState } from "react"
 import {
   Captions, ChevronRight, Clapperboard, FileAudio2, FileImage, FileText,
-  FileVideo2, Folder, FolderPlus, Image, Mic2, Music2, Plus, Search,
-  Sparkles, Upload, Video, WandSparkles, Waves,
+  FileVideo2, Folder, FolderPlus, Mic2, Music2, Plus, Search,
+  Sparkles, Upload, WandSparkles, Waves,
 } from "lucide-react"
 import type { LucideIcon } from "lucide-react"
 import { Link, useNavigate } from "react-router-dom"
@@ -30,9 +30,24 @@ const actionPresentation: Record<string, { icon: LucideIcon; href?: string; tone
   "generate-speech": { icon: Mic2, href: "/origins/create/generate-speech", tone: "speech" },
   "generate-music": { icon: Music2, href: "/origins/create/generate-music", tone: "music" },
   "generate-sound-effect": { icon: Waves, href: "/origins/create/generate-sound-effect", tone: "sound" },
-  "generate-image": { icon: Image, href: "/origins/create/generate-image", tone: "image" },
-  "generate-video": { icon: Video, href: "/origins/create/generate-video", tone: "video" },
+  "generate-media": { icon: WandSparkles, href: "/origins/create/generate-media", tone: "media" },
   "create-subtitles": { icon: Captions, href: "/origins/create/create-subtitles", tone: "subtitle" },
+}
+
+type CreateShortcut = Pick<CreationActionSummary, "id" | "label" | "description">
+
+function createShortcuts(actions: CreationActionSummary[]): CreateShortcut[] {
+  const byId = new Map(actions.map((action) => [action.id, action]))
+  const ordered: CreateShortcut[] = ["generate-speech", "generate-music", "generate-sound-effect", "create-subtitles"]
+    .flatMap((id) => byId.get(id) ? [byId.get(id)!] : [])
+  if (byId.has("generate-image") || byId.has("generate-video")) {
+    ordered.splice(Math.min(3, ordered.length), 0, {
+      id: "generate-media",
+      label: "Generate media",
+      description: "Create images or videos with any compatible model from one Creator.",
+    })
+  }
+  return ordered
 }
 
 const fileIcons: Record<string, LucideIcon> = {
@@ -44,7 +59,7 @@ const fileIcons: Record<string, LucideIcon> = {
 }
 
 function CreateActionButton({ action, folderId }: {
-  action: CreationActionSummary
+  action: CreateShortcut
   folderId: number | null
 }) {
   const presentation = actionPresentation[action.id] || { icon: Sparkles, tone: "other" }
@@ -108,9 +123,9 @@ function ExplorerContent({ workspaceOverview, view, actions, actionsError, onRet
       <h1 id="workspace-create-title">What do you want to create?</h1>
       <p>Start with an idea or open an audiovisual Project. Files stay reusable across this Workspace.</p>
       <div className="workspace-create-action-catalog" role="list">
-        <Button className="workspace-create-action is-project" variant="ghost" onClick={onNewProject}><span className="workspace-create-action-icon"><Clapperboard /></span><span><b>New audiovisual project</b><small>Script, Timeline, Visuals, Preview and Export in one Project.</small></span><ChevronRight /></Button>
+        <Button className="workspace-create-action is-project" variant="ghost" onClick={onNewProject}><span className="workspace-create-action-icon"><Clapperboard /></span><span><b>New audiovisual project</b><small>Script, Timeline, Library, Preview and Export in one Project.</small></span><ChevronRight /></Button>
         <Button className="workspace-create-action is-upload" variant="ghost" onClick={onUploadFile}><span className="workspace-create-action-icon"><Upload /></span><span><b>Upload a File</b><small>Add an existing file directly to this Workspace.</small></span><ChevronRight /></Button>
-        {actions.map((action) => <CreateActionButton action={action} folderId={selectedFolderId} key={action.id} />)}
+        {createShortcuts(actions).map((action) => <CreateActionButton action={action} folderId={selectedFolderId} key={action.id} />)}
       </div>
       {actionsError && <div className="workspace-create-inline-error" role="alert"><span>{actionsError}</span><Button variant="ghost" size="sm" onClick={onRetryActions}>Try again</Button></div>}
     </section>}

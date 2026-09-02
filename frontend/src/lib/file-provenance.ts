@@ -1,6 +1,6 @@
 import type { WorkspaceFile } from "@/types/domain"
 
-export type FileSource = "generated" | "freesound" | "uploaded" | "library"
+export type FileSource = "generated" | "uploaded" | "imported"
 export type FileSourceIconName = "sparkles" | "freesound" | "upload" | "archive"
 export type FileDetail = { label: string; value: string; href?: string }
 
@@ -29,9 +29,8 @@ export type FileProvenance = {
 
 export const FILE_SOURCE_PRESENTATION: Record<FileSource, FileSourcePresentation> = {
   generated: { key: "generated", label: "Generated", badgeLabel: "AI", icon: "sparkles" },
-  freesound: { key: "freesound", label: "Freesound", badgeLabel: "Freesound", icon: "freesound" },
   uploaded: { key: "uploaded", label: "Uploaded", badgeLabel: "Upload", icon: "upload" },
-  library: { key: "library", label: "Existing File", badgeLabel: "Existing", icon: "archive" },
+  imported: { key: "imported", label: "Imported", badgeLabel: "Import", icon: "archive" },
 }
 
 function text(value: unknown) {
@@ -69,11 +68,11 @@ export function fileMetadata(file: WorkspaceFile) {
 
 export function fileSource(file: WorkspaceFile): FileSource {
   const metadata = fileMetadata(file)
-  const origin = text(metadata.origin).toLocaleLowerCase().replaceAll("_", "-")
+  const origin = (text(file.source) || text(metadata.origin)).toLocaleLowerCase().replaceAll("_", "-")
   if (origin === "generated") return "generated"
-  if (origin === "freesound") return "freesound"
+  if (origin === "imported" || origin === "freesound") return "imported"
   if (origin === "uploaded") return "uploaded"
-  return "library"
+  return "uploaded"
 }
 
 export function fileSourcePresentation(source: FileSource) {
@@ -88,17 +87,20 @@ export function fileProvenance(file: WorkspaceFile): FileProvenance {
   const model = text(metadata.provider_model_id) || text(metadata.model)
   const creator = text(metadata.creator)
   const originalFilename = text(metadata.original_filename)
+  const importedPresentation = source === "imported" && provider.toLowerCase() === "freesound"
+    ? { ...presentation, icon: "freesound" as const }
+    : presentation
   const qualifiers = source === "generated"
     ? [provider, model ? compactModelName(model) : ""]
-    : source === "freesound"
-      ? [creator]
+    : source === "imported"
+      ? [provider ? provider[0]!.toUpperCase() + provider.slice(1) : "", creator]
       : source === "uploaded"
         ? [originalFilename]
         : []
   const detail = [presentation.label, ...qualifiers.filter(Boolean)].join(" · ")
   return {
     source,
-    presentation,
+    presentation: importedPresentation,
     metadata,
     detail,
     provider,
@@ -126,7 +128,8 @@ export function fileProvenanceDetails(file: WorkspaceFile): FileDetail[] {
     if (provenance.generatedAt) details.push({ label: "Created", value: provenance.generatedAt })
     if (provenance.prompt) details.push({ label: "Prompt", value: provenance.prompt })
     if (provenance.seed !== null) details.push({ label: "Seed", value: String(provenance.seed) })
-  } else if (provenance.source === "freesound") {
+  } else if (provenance.source === "imported") {
+    if (provenance.provider) details.push({ label: "Provider", value: provenance.provider })
     if (provenance.creator) details.push({ label: "Creator", value: provenance.creator })
     if (provenance.license) details.push({ label: "License", value: provenance.license.toUpperCase() })
     if (provenance.sourceUrl) details.push({ label: "Original", value: "Open on Freesound", href: provenance.sourceUrl })

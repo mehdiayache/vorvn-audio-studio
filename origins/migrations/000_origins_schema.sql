@@ -239,10 +239,10 @@ COMMENT ON TABLE public.clips IS 'The single recording File attached to a Speech
 
 
 --
--- Name: composer_working_drafts; Type: TABLE; Schema: public; Owner: -
+-- Name: creator_working_drafts; Type: TABLE; Schema: public; Owner: -
 --
 
-CREATE TABLE public.composer_working_drafts (
+CREATE TABLE public.creator_working_drafts (
     id bigint NOT NULL,
     public_id uuid DEFAULT gen_random_uuid() NOT NULL,
     context_key text NOT NULL,
@@ -255,17 +255,17 @@ CREATE TABLE public.composer_working_drafts (
     version integer DEFAULT 1 NOT NULL,
     created_at timestamp with time zone DEFAULT now() NOT NULL,
     updated_at timestamp with time zone DEFAULT now() NOT NULL,
-    CONSTRAINT composer_working_drafts_context_check CHECK ((((context_kind = 'standalone'::text) AND (session_id IS NOT NULL) AND (project_id IS NULL) AND (part_id IS NULL) AND (insert_before_part_public_id IS NULL)) OR ((context_kind = 'project'::text) AND (session_id IS NULL) AND (project_id IS NOT NULL) AND ((part_id IS NULL) OR (insert_before_part_public_id IS NULL))))),
-    CONSTRAINT composer_working_drafts_context_kind_check CHECK ((context_kind = ANY (ARRAY['standalone'::text, 'project'::text]))),
-    CONSTRAINT composer_working_drafts_version_check CHECK ((version > 0))
+    CONSTRAINT creator_working_drafts_context_check CHECK ((((context_kind = 'standalone'::text) AND (session_id IS NOT NULL) AND (project_id IS NULL) AND (part_id IS NULL) AND (insert_before_part_public_id IS NULL)) OR ((context_kind = 'project'::text) AND (session_id IS NULL) AND (project_id IS NOT NULL) AND ((part_id IS NULL) OR (insert_before_part_public_id IS NULL))))),
+    CONSTRAINT creator_working_drafts_context_kind_check CHECK ((context_kind = ANY (ARRAY['standalone'::text, 'project'::text]))),
+    CONSTRAINT creator_working_drafts_version_check CHECK ((version > 0))
 );
 
 
 --
--- Name: composer_working_drafts_id_seq; Type: SEQUENCE; Schema: public; Owner: -
+-- Name: creator_working_drafts_id_seq; Type: SEQUENCE; Schema: public; Owner: -
 --
 
-CREATE SEQUENCE public.composer_working_drafts_id_seq
+CREATE SEQUENCE public.creator_working_drafts_id_seq
     START WITH 1
     INCREMENT BY 1
     NO MINVALUE
@@ -274,10 +274,10 @@ CREATE SEQUENCE public.composer_working_drafts_id_seq
 
 
 --
--- Name: composer_working_drafts_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: -
+-- Name: creator_working_drafts_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: -
 --
 
-ALTER SEQUENCE public.composer_working_drafts_id_seq OWNED BY public.composer_working_drafts.id;
+ALTER SEQUENCE public.creator_working_drafts_id_seq OWNED BY public.creator_working_drafts.id;
 
 
 --
@@ -422,7 +422,8 @@ CREATE TABLE public.files (
     workspace_id bigint NOT NULL,
     folder_id bigint,
     source text DEFAULT 'uploaded'::text NOT NULL,
-    CONSTRAINT files_category_check CHECK (((category IS NULL) OR (category = ANY (ARRAY['music'::text, 'sfx'::text, 'ambience'::text]))))
+    CONSTRAINT files_category_check CHECK (((category IS NULL) OR (category = ANY (ARRAY['music'::text, 'sfx'::text, 'ambience'::text])))),
+    CONSTRAINT files_source_check CHECK ((source = ANY (ARRAY['generated'::text, 'uploaded'::text, 'imported'::text])))
 );
 
 
@@ -1356,10 +1357,10 @@ ALTER TABLE ONLY public.clips ALTER COLUMN id SET DEFAULT nextval('public.clips_
 
 
 --
--- Name: composer_working_drafts id; Type: DEFAULT; Schema: public; Owner: -
+-- Name: creator_working_drafts id; Type: DEFAULT; Schema: public; Owner: -
 --
 
-ALTER TABLE ONLY public.composer_working_drafts ALTER COLUMN id SET DEFAULT nextval('public.composer_working_drafts_id_seq'::regclass);
+ALTER TABLE ONLY public.creator_working_drafts ALTER COLUMN id SET DEFAULT nextval('public.creator_working_drafts_id_seq'::regclass);
 
 
 --
@@ -1555,27 +1556,27 @@ ALTER TABLE ONLY public.clips
 
 
 --
--- Name: composer_working_drafts composer_working_drafts_context_key_key; Type: CONSTRAINT; Schema: public; Owner: -
+-- Name: creator_working_drafts creator_working_drafts_context_key_key; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
-ALTER TABLE ONLY public.composer_working_drafts
-    ADD CONSTRAINT composer_working_drafts_context_key_key UNIQUE (context_key);
-
-
---
--- Name: composer_working_drafts composer_working_drafts_pkey; Type: CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.composer_working_drafts
-    ADD CONSTRAINT composer_working_drafts_pkey PRIMARY KEY (id);
+ALTER TABLE ONLY public.creator_working_drafts
+    ADD CONSTRAINT creator_working_drafts_context_key_key UNIQUE (context_key);
 
 
 --
--- Name: composer_working_drafts composer_working_drafts_public_id_key; Type: CONSTRAINT; Schema: public; Owner: -
+-- Name: creator_working_drafts creator_working_drafts_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
-ALTER TABLE ONLY public.composer_working_drafts
-    ADD CONSTRAINT composer_working_drafts_public_id_key UNIQUE (public_id);
+ALTER TABLE ONLY public.creator_working_drafts
+    ADD CONSTRAINT creator_working_drafts_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: creator_working_drafts creator_working_drafts_public_id_key; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.creator_working_drafts
+    ADD CONSTRAINT creator_working_drafts_public_id_key UNIQUE (public_id);
 
 
 --
@@ -1982,10 +1983,10 @@ CREATE INDEX clips_part_idx ON public.clips USING btree (part_id, created_at DES
 
 
 --
--- Name: composer_working_drafts_project_idx; Type: INDEX; Schema: public; Owner: -
+-- Name: creator_working_drafts_project_idx; Type: INDEX; Schema: public; Owner: -
 --
 
-CREATE INDEX composer_working_drafts_project_idx ON public.composer_working_drafts USING btree (project_id, updated_at DESC);
+CREATE INDEX creator_working_drafts_project_idx ON public.creator_working_drafts USING btree (project_id, updated_at DESC);
 
 
 --
@@ -2136,10 +2137,10 @@ CREATE INDEX jobs_workspace_created_idx ON public.jobs USING btree (workspace_id
 
 
 --
--- Name: jobs_speak_session_idx; Type: INDEX; Schema: public; Owner: -
+-- Name: jobs_creator_session_idx; Type: INDEX; Schema: public; Owner: -
 --
 
-CREATE INDEX jobs_speak_session_idx ON public.jobs USING btree (((payload ->> 'session_id'::text)), created_at DESC) WHERE ((kind = 'speech'::text) AND (source_tool = 'speak'::text) AND (project_id IS NULL));
+CREATE INDEX jobs_creator_session_idx ON public.jobs USING btree (((payload ->> 'session_id'::text)), created_at DESC) WHERE ((kind = 'speech'::text) AND (source_tool = 'creator'::text) AND (project_id IS NULL));
 
 
 --
@@ -2396,19 +2397,19 @@ ALTER TABLE ONLY public.clips
 
 
 --
--- Name: composer_working_drafts composer_working_drafts_part_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+-- Name: creator_working_drafts creator_working_drafts_part_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
-ALTER TABLE ONLY public.composer_working_drafts
-    ADD CONSTRAINT composer_working_drafts_part_id_fkey FOREIGN KEY (part_id) REFERENCES public.project_parts(id) ON DELETE CASCADE;
+ALTER TABLE ONLY public.creator_working_drafts
+    ADD CONSTRAINT creator_working_drafts_part_id_fkey FOREIGN KEY (part_id) REFERENCES public.project_parts(id) ON DELETE CASCADE;
 
 
 --
--- Name: composer_working_drafts composer_working_drafts_project_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+-- Name: creator_working_drafts creator_working_drafts_project_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
-ALTER TABLE ONLY public.composer_working_drafts
-    ADD CONSTRAINT composer_working_drafts_project_id_fkey FOREIGN KEY (project_id) REFERENCES public.projects(id) ON DELETE CASCADE;
+ALTER TABLE ONLY public.creator_working_drafts
+    ADD CONSTRAINT creator_working_drafts_project_id_fkey FOREIGN KEY (project_id) REFERENCES public.projects(id) ON DELETE CASCADE;
 
 
 --

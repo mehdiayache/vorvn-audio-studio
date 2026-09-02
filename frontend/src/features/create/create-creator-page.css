@@ -1,0 +1,50 @@
+.create-creator-page {
+  min-width: 0;
+  min-height: 100%;
+  height: 100dvh;
+  display: grid;
+  grid-template-rows: 3.75rem minmax(0, 1fr);
+  padding: 0.75rem;
+  background: var(--workspace-background);
+}
+
+.create-creator-header {
+  min-width: 0;
+  display: grid;
+  grid-template-columns: auto 2.25rem minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0 0.5rem;
+}
+
+.create-creator-header > a { justify-self: start; }
+.create-creator-icon { width: 2.25rem; height: 2.25rem; display: grid; place-items: center; border-radius: var(--radius-md); }
+.create-creator-icon svg { width: 1rem; height: 1rem; }
+.create-creator-icon.is-music { color: var(--audio-music); background: var(--audio-music-soft); }
+.create-creator-icon.is-sfx { color: var(--audio-sfx); background: var(--audio-sfx-soft); }
+.create-creator-icon.is-media { color: var(--primary); background: var(--primary-soft); }
+.create-creator-icon.is-speech,
+.create-creator-icon.is-subtitle { color: var(--primary); background: var(--primary-soft); }
+.create-creator-header > div { min-width: 0; display: grid; gap: 0.125rem; }
+.create-creator-header h1 { margin: 0; font-size: var(--type-heading-md); font-weight: var(--weight-title); letter-spacing: -0.02em; }
+.create-creator-header p { overflow: hidden; margin: 0; color: var(--muted-foreground); font-size: var(--type-caption); text-overflow: ellipsis; white-space: nowrap; }
+.create-creator-destination { min-width: 0; display: grid; justify-items: end; gap: 0.125rem; }
+.create-creator-destination small { color: var(--muted-foreground); font-size: 0.625rem; }
+.create-creator-destination b { max-width: 14rem; overflow: hidden; font-size: var(--type-caption); text-overflow: ellipsis; white-space: nowrap; }
+
+.create-creator-workspace {
+  min-width: 0;
+  min-height: 0;
+  overflow: hidden;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  background: var(--surface-raised);
+  box-shadow: var(--shadow-xs);
+}
+
+@media (max-width: 48rem) {
+  .create-creator-page { height: auto; min-height: 100dvh; padding: 0; grid-template-rows: auto minmax(42rem, 1fr); }
+  .create-creator-header { grid-template-columns: auto 2.25rem minmax(0, 1fr); padding: 0.75rem; border-bottom: 1px solid var(--border); }
+  .create-creator-destination { grid-column: 2 / -1; justify-items: start; }
+  .create-creator-workspace { border: 0; border-radius: 0; }
+}

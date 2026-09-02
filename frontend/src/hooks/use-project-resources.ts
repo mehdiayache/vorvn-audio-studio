@@ -7,7 +7,7 @@ import { useVoiceDirectory } from "@/hooks/use-voice-directory"
 export type ProjectFileResources = {
   files: WorkspaceFile[]
   projectFileIds: number[]
-  visualFileIds: number[]
+  libraryFileIds: number[]
 }
 
 const EMPTY_FILES: WorkspaceFile[] = []
@@ -26,7 +26,7 @@ export function useProjectResources(projectId: number) {
         data: {
           files: result.files || [],
           projectFileIds: result.project_file_ids || [],
-          visualFileIds: result.visual_file_ids || [],
+          libraryFileIds: result.library_file_ids || [],
         },
       })
     } catch (error) {
@@ -43,7 +43,7 @@ export function useProjectResources(projectId: number) {
   return {
     files: fileState.data?.files || EMPTY_FILES,
     projectFileIds: fileState.data?.projectFileIds || EMPTY_IDS,
-    visualFileIds: fileState.data?.visualFileIds || EMPTY_IDS,
+    libraryFileIds: fileState.data?.libraryFileIds || EMPTY_IDS,
     fileState,
     fileError: fileState.status === "error" ? fileState.error || "The file library is unavailable." : null,
     voiceError: voices.error || null,

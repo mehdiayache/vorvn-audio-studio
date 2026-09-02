@@ -32,15 +32,15 @@ from origins.http.routers.media import router as media_router
 from origins.http.routers.timeline import router as timeline_router
 from origins.http.routers.voices import router as voices_router
 from origins.http.routers.uploads import router as uploads_router
-from origins.http.routers.speak import router as speak_router
-from origins.http.routers.composer_drafts import router as composer_drafts_router
+from origins.http.routers.creator_recordings import router as creator_recordings_router
+from origins.http.routers.creator_drafts import router as creator_drafts_router
 from origins.http.routers.audio_projects import router as audio_projects_router
 from origins.http.routers.sound_scenes import router as sound_scenes_router
 from origins.http.routers.visual_scenes import router as visual_scenes_router
 from origins.http.routers.audio_catalogs import router as audio_catalogs_router
 from origins.http.routers.audio_generations import router as audio_generations_router
 from origins.http.routers.project_imports import router as project_imports_router
-from origins.http.routers.composer import router as composer_router
+from origins.http.routers.creator import router as creator_router
 from origins.http.routers.provider_callbacks import router as provider_callbacks_router
 from origins.http.routers.saved_references import router as saved_references_router
 from origins.migrations import run as run_migrations
@@ -81,15 +81,15 @@ app.include_router(media_router)
 app.include_router(timeline_router)
 app.include_router(voices_router)
 app.include_router(uploads_router)
-app.include_router(speak_router)
-app.include_router(composer_drafts_router)
+app.include_router(creator_recordings_router)
+app.include_router(creator_drafts_router)
 app.include_router(audio_projects_router)
 app.include_router(sound_scenes_router)
 app.include_router(visual_scenes_router)
 app.include_router(audio_catalogs_router)
 app.include_router(audio_generations_router)
 app.include_router(project_imports_router)
-app.include_router(composer_router)
+app.include_router(creator_router)
 app.include_router(provider_callbacks_router)
 app.include_router(saved_references_router)
 

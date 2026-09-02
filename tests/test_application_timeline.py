@@ -140,7 +140,7 @@ class TimelineServiceTests(unittest.TestCase):
         self.assertEqual(self.records.enabled_values, [(6, 7, False)])
         self.assertIn(7, self.records.parts)
 
-    def test_draft_preserves_composer_settings_without_provider_work(self):
+    def test_draft_preserves_creator_settings_without_provider_work(self):
         self.service.add_draft(6, {
             "text": "  Rest now  ", "voice": "custom:serenity",
             "authored_role": "  Night   Guide  ",

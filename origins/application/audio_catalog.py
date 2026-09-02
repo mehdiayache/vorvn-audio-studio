@@ -52,8 +52,8 @@ class AudioCatalogService:
     def keep(self, *, workspace_id: int, external_id: str, name: str,
              category: FileCategory | None,
              tags: tuple[str, ...], folder_id: int | None = None) -> dict:
-        existing = self.uploads.catalog_file(
-            workspace_id=workspace_id, origin="freesound",
+        existing = self.uploads.imported_file(
+            workspace_id=workspace_id, provider_id="freesound",
             external_id=external_id)
         if existing:
             return {"file": existing, "duplicate": True}
@@ -75,8 +75,8 @@ class AudioCatalogService:
             target = Path(directory) / "source.download"
             downloaded = self.catalog.download(sound, target)
             provenance = {
-                "origin": "freesound",
-                "provider": "freesound",
+                "origin": "imported",
+                "provider_id": "freesound",
                 "external_id": sound.external_id,
                 "creator": sound.creator,
                 "source_url": sound.source_url,
@@ -96,8 +96,8 @@ class AudioCatalogService:
                 category=category,
                 encoded_tags=None, supplied_tags=tags,
                 metadata=provenance)
-            result = self.uploads.save_workspace_catalog_file(
+            result = self.uploads.save_imported_workspace_file(
                 workspace_id, Path(downloaded.path), downloaded.size_bytes,
-                origin="freesound", external_id=sound.external_id,
+                provider_id="freesound", external_id=sound.external_id,
                 details=details, folder_id=folder_id)
         return result

@@ -155,7 +155,7 @@
   --studio-local-chrome-height: 0rem;
   --transport-height: 4.25rem;
   --transport-mobile-height: 5.5rem;
-  --composer-mobile-actions-height: 9rem;
+  --creator-mobile-actions-height: 9rem;
   --safe-bottom: env(safe-area-inset-bottom, 0px);
   --shadow-color: 28 16% 12%;
   --shadow-xs: 0 1px 2px rgb(var(--shadow-color) / 5%);

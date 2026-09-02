@@ -226,147 +226,6 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/v1/composer-drafts": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        /** Save Draft */
-        put: operations["saveComposerDraft"];
-        post?: never;
-        /** Delete Draft */
-        delete: operations["deleteComposerDraft"];
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/composer-drafts/resolve": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /** Resolve Draft */
-        post: operations["resolveComposerDraft"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/composer/capabilities": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** Composer Capabilities */
-        get: operations["getMediaGenerationCapabilities"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/composer/generations": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** List Generations */
-        get: operations["listMediaGenerations"];
-        put?: never;
-        /** Create Generation */
-        post: operations["createMediaGeneration"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/composer/generations/{job_id}/cancel": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /** Cancel Generation */
-        post: operations["cancelMediaGeneration"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/composer/generations/{job_id}/retry-ingestion": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /** Retry Generation Ingestion */
-        post: operations["retryMediaGenerationIngestion"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/composer/input-compatibility": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /** Check Composer Input Compatibility */
-        post: operations["checkComposerInputCompatibility"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/composer/models": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * Media Models
-         * @description Canonical model catalogue consumed by Composer and external clients.
-         */
-        get: operations["getMediaModels"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
     "/api/v1/config": {
         parameters: {
             query?: never;
@@ -393,6 +252,164 @@ export interface paths {
         };
         /** List Creation Actions */
         get: operations["listCreationActions"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/creator-drafts": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /** Save Draft */
+        put: operations["saveCreatorDraft"];
+        post?: never;
+        /** Delete Draft */
+        delete: operations["deleteCreatorDraft"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/creator-drafts/resolve": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Resolve Draft */
+        post: operations["resolveCreatorDraft"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/creator/capabilities": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Creator Capabilities */
+        get: operations["getMediaGenerationCapabilities"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/creator/generations": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List Generations */
+        get: operations["listMediaGenerations"];
+        put?: never;
+        /** Create Generation */
+        post: operations["createMediaGeneration"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/creator/generations/{job_id}/cancel": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Cancel Generation */
+        post: operations["cancelMediaGeneration"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/creator/generations/{job_id}/retry-ingestion": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Retry Generation Ingestion */
+        post: operations["retryMediaGenerationIngestion"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/creator/input-compatibility": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Check Creator Input Compatibility */
+        post: operations["checkCreatorInputCompatibility"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/creator/models": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Media Models
+         * @description Canonical model catalogue consumed by Creator and external clients.
+         */
+        get: operations["getMediaModels"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/creator/recordings": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Recording History */
+        get: operations["getCreatorRecordingHistory"];
         put?: never;
         post?: never;
         delete?: never;
@@ -810,6 +827,40 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/projects/{project_id}/library-files": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Attach Project Library File */
+        post: operations["attachProjectLibraryFile"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/projects/{project_id}/library-files/{file_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /** Detach Project Library File */
+        delete: operations["detachProjectLibraryFile"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/projects/{project_id}/parts": {
         parameters: {
             query?: never;
@@ -1095,40 +1146,6 @@ export interface paths {
         /** Undo Sound Scene */
         post: operations["undoProjectSoundScene"];
         delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/projects/{project_id}/visual-files": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /** Attach Project Visual File */
-        post: operations["attachProjectVisualFile"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/projects/{project_id}/visual-files/{file_id}": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        post?: never;
-        /** Detach Project Visual File */
-        delete: operations["detachProjectVisualFile"];
         options?: never;
         head?: never;
         patch?: never;
@@ -1420,23 +1437,6 @@ export interface paths {
         put?: never;
         /** Test Storage */
         post: operations["testStorageSettings"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/speak/recordings": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** Get Recording History */
-        get: operations["getStandaloneRecordingHistory"];
-        put?: never;
-        post?: never;
         delete?: never;
         options?: never;
         head?: never;
@@ -2588,272 +2588,6 @@ export interface components {
             /** Total */
             total: number;
         };
-        /** ComposerCapabilities */
-        ComposerCapabilities: {
-            /** Models */
-            models: components["schemas"]["MediaModelCapability"][];
-            /** Operations */
-            operations: components["schemas"]["ComposerOperationInfo"][];
-            /** Providers */
-            providers: {
-                [key: string]: string;
-            }[];
-        };
-        /** ComposerCapabilitiesEnvelope */
-        ComposerCapabilitiesEnvelope: {
-            data: components["schemas"]["ComposerCapabilities"];
-        };
-        /** ComposerContext */
-        ComposerContext: {
-            /** Folder Id */
-            folder_id?: number | null;
-            /** Object Id */
-            object_id?: number | null;
-            /** Project Id */
-            project_id?: number | null;
-            /** Project Type */
-            project_type?: string | null;
-            /** Selection */
-            selection?: {
-                [key: string]: unknown;
-            };
-            /** Workspace Id */
-            workspace_id: number;
-        };
-        /** ComposerControlRule */
-        ComposerControlRule: {
-            /** Default */
-            default: string;
-            /** Values */
-            values: string[];
-            /** When */
-            when?: {
-                [key: string]: unknown;
-            };
-        };
-        /** ComposerDurationRange */
-        ComposerDurationRange: {
-            /** Default */
-            default: number;
-            /** Max */
-            max: number;
-            /** Min */
-            min: number;
-            /** Step */
-            step: number;
-        };
-        /** ComposerGenerationRequest */
-        ComposerGenerationRequest: {
-            context: components["schemas"]["ComposerContext"];
-            preset: components["schemas"]["MediaGenerationPreset"];
-        };
-        /** ComposerInputCompatibilityEnvelope */
-        ComposerInputCompatibilityEnvelope: {
-            /** Data */
-            data: components["schemas"]["ComposerInputCompatibilityResponse"][];
-        };
-        /** ComposerInputCompatibilityRequest */
-        ComposerInputCompatibilityRequest: {
-            /**
-             * Audio
-             * @default false
-             */
-            audio: boolean;
-            context: components["schemas"]["ComposerContext"];
-            /** File Ids */
-            file_ids: number[];
-            /** Model Id */
-            model_id: string;
-            /** Operation */
-            operation: string;
-            /** Parameter Key */
-            parameter_key?: string | null;
-            /** Role */
-            role?: string | null;
-            /** Variant Id */
-            variant_id?: string | null;
-        };
-        /** ComposerInputCompatibilityResponse */
-        ComposerInputCompatibilityResponse: {
-            /** File Id */
-            file_id: number;
-            /** Reasons */
-            reasons: string[];
-            /**
-             * State
-             * @enum {string}
-             */
-            state: "compatible" | "incompatible" | "unknown";
-        };
-        /** ComposerInputSlot */
-        ComposerInputSlot: {
-            /** Aspect Ratio Max */
-            aspect_ratio_max?: number | null;
-            /** Aspect Ratio Min */
-            aspect_ratio_min?: number | null;
-            /** Duration Max Ms */
-            duration_max_ms?: number | null;
-            /** Duration Min Ms */
-            duration_min_ms?: number | null;
-            /** Fps Max */
-            fps_max?: number | null;
-            /** Fps Min */
-            fps_min?: number | null;
-            /** Label */
-            label: string;
-            /** Max */
-            max: number;
-            /** Max Bytes */
-            max_bytes?: number | null;
-            /** Max Height */
-            max_height?: number | null;
-            /** Max Pixels */
-            max_pixels?: number | null;
-            /** Max Width */
-            max_width?: number | null;
-            /** Media Types */
-            media_types: ("image" | "video" | "audio")[];
-            /** Mime Types */
-            mime_types?: string[];
-            /** Min Height */
-            min_height?: number | null;
-            /** Min Width */
-            min_width?: number | null;
-            /** Required */
-            required: boolean;
-            /** Role */
-            role: string;
-        };
-        /** ComposerOperationCapability */
-        ComposerOperationCapability: {
-            duration_range?: components["schemas"]["ComposerDurationRange"] | null;
-            /** Durations */
-            durations: number[];
-            /** Fps */
-            fps: number[];
-            /** Input Modes */
-            input_modes?: {
-                [key: string]: unknown;
-            }[];
-            /** Input Order */
-            input_order?: string[];
-            /** Inputs */
-            inputs: components["schemas"]["ComposerInputSlot"][];
-            /** Operation */
-            operation: string;
-            output: components["schemas"]["ComposerOutputCapability"];
-            /**
-             * Output Media Type
-             * @enum {string}
-             */
-            output_media_type: "image" | "video";
-            /** Parameters */
-            parameters?: components["schemas"]["ComposerParameterCapability"][];
-            prompt: components["schemas"]["ComposerPromptCapability"];
-            /** Ratio Rules */
-            ratio_rules?: components["schemas"]["ComposerControlRule"][];
-            /** Ratios */
-            ratios: string[];
-            /** Required Any Of */
-            required_any_of?: string[][];
-            /** Resolutions */
-            resolutions: string[];
-            /** Supports Cancel */
-            supports_cancel: boolean;
-            /** Supports Seed */
-            supports_seed: boolean;
-        };
-        /** ComposerOperationInfo */
-        ComposerOperationInfo: {
-            /** Detail */
-            detail: string;
-            /** Id */
-            id: string;
-            /** Label */
-            label: string;
-            /** Presentation */
-            presentation: {
-                [key: string]: string;
-            };
-        };
-        /** ComposerOutputCapability */
-        ComposerOutputCapability: {
-            /** Extension */
-            extension: string;
-            /** Mime Type */
-            mime_type: string;
-        };
-        /** ComposerParameterCapability */
-        ComposerParameterCapability: {
-            /** Conflicts With */
-            conflicts_with?: string[];
-            /** Default */
-            default?: unknown;
-            /**
-             * Exposure
-             * @default advanced
-             * @enum {string}
-             */
-            exposure: "primary" | "advanced";
-            /** Item */
-            item?: {
-                [key: string]: unknown;
-            };
-            /** Key */
-            key: string;
-            /** Label */
-            label: string;
-            /** Max */
-            max?: number | null;
-            /** Max Length */
-            max_length?: number | null;
-            /** Min */
-            min?: number | null;
-            /** Options */
-            options?: unknown[];
-            /**
-             * Required
-             * @default false
-             */
-            required: boolean;
-            /** Step */
-            step?: number | null;
-            /**
-             * Type
-             * @enum {string}
-             */
-            type: "boolean" | "integer" | "number" | "select" | "text" | "textarea" | "file_list" | "structured_shots";
-            /** Visible When */
-            visible_when?: {
-                [key: string]: unknown;
-            };
-        };
-        /** ComposerPromptCapability */
-        ComposerPromptCapability: {
-            /**
-             * Max Length
-             * @default 20000
-             */
-            max_length: number;
-            /** Negative Prompt */
-            negative_prompt: boolean;
-            /** Required */
-            required: boolean;
-            /** Supported */
-            supported: boolean;
-        };
-        /** ComposerState */
-        ComposerState: {
-            /** Authored Role */
-            authored_role?: string | null;
-            delivery: components["schemas"]["DeliveryState"];
-            output: components["schemas"]["OutputState"];
-            route?: components["schemas"]["RouteState"] | null;
-            text: components["schemas"]["TextState"];
-            text_preparation?: components["schemas"]["TextPreparationState"];
-            /** Voice Identity Id */
-            voice_identity_id?: string | null;
-        };
         /** CompressorEffect */
         CompressorEffect: {
             /**
@@ -2915,8 +2649,8 @@ export interface components {
         };
         /** CreationActionResponse */
         CreationActionResponse: {
-            /** Composer */
-            composer: string | null;
+            /** Capability Id */
+            capability_id: string;
             /** Description */
             description: string;
             /** Id */
@@ -2944,6 +2678,272 @@ export interface components {
             required: boolean;
             /** Type */
             type: string;
+        };
+        /** CreatorCapabilities */
+        CreatorCapabilities: {
+            /** Models */
+            models: components["schemas"]["MediaModelCapability"][];
+            /** Operations */
+            operations: components["schemas"]["CreatorOperationInfo"][];
+            /** Providers */
+            providers: {
+                [key: string]: string;
+            }[];
+        };
+        /** CreatorCapabilitiesEnvelope */
+        CreatorCapabilitiesEnvelope: {
+            data: components["schemas"]["CreatorCapabilities"];
+        };
+        /** CreatorContext */
+        CreatorContext: {
+            /** Folder Id */
+            folder_id?: number | null;
+            /** Object Id */
+            object_id?: number | null;
+            /** Project Id */
+            project_id?: number | null;
+            /** Project Type */
+            project_type?: string | null;
+            /** Selection */
+            selection?: {
+                [key: string]: unknown;
+            };
+            /** Workspace Id */
+            workspace_id: number;
+        };
+        /** CreatorControlRule */
+        CreatorControlRule: {
+            /** Default */
+            default: string;
+            /** Values */
+            values: string[];
+            /** When */
+            when?: {
+                [key: string]: unknown;
+            };
+        };
+        /** CreatorDurationRange */
+        CreatorDurationRange: {
+            /** Default */
+            default: number;
+            /** Max */
+            max: number;
+            /** Min */
+            min: number;
+            /** Step */
+            step: number;
+        };
+        /** CreatorGenerationRequest */
+        CreatorGenerationRequest: {
+            context: components["schemas"]["CreatorContext"];
+            preset: components["schemas"]["MediaGenerationPreset"];
+        };
+        /** CreatorInputCompatibilityEnvelope */
+        CreatorInputCompatibilityEnvelope: {
+            /** Data */
+            data: components["schemas"]["CreatorInputCompatibilityResponse"][];
+        };
+        /** CreatorInputCompatibilityRequest */
+        CreatorInputCompatibilityRequest: {
+            /**
+             * Audio
+             * @default false
+             */
+            audio: boolean;
+            context: components["schemas"]["CreatorContext"];
+            /** File Ids */
+            file_ids: number[];
+            /** Model Id */
+            model_id: string;
+            /** Operation */
+            operation: string;
+            /** Parameter Key */
+            parameter_key?: string | null;
+            /** Role */
+            role?: string | null;
+            /** Variant Id */
+            variant_id?: string | null;
+        };
+        /** CreatorInputCompatibilityResponse */
+        CreatorInputCompatibilityResponse: {
+            /** File Id */
+            file_id: number;
+            /** Reasons */
+            reasons: string[];
+            /**
+             * State
+             * @enum {string}
+             */
+            state: "compatible" | "incompatible" | "unknown";
+        };
+        /** CreatorInputSlot */
+        CreatorInputSlot: {
+            /** Aspect Ratio Max */
+            aspect_ratio_max?: number | null;
+            /** Aspect Ratio Min */
+            aspect_ratio_min?: number | null;
+            /** Duration Max Ms */
+            duration_max_ms?: number | null;
+            /** Duration Min Ms */
+            duration_min_ms?: number | null;
+            /** Fps Max */
+            fps_max?: number | null;
+            /** Fps Min */
+            fps_min?: number | null;
+            /** Label */
+            label: string;
+            /** Max */
+            max: number;
+            /** Max Bytes */
+            max_bytes?: number | null;
+            /** Max Height */
+            max_height?: number | null;
+            /** Max Pixels */
+            max_pixels?: number | null;
+            /** Max Width */
+            max_width?: number | null;
+            /** Media Types */
+            media_types: ("image" | "video" | "audio")[];
+            /** Mime Types */
+            mime_types?: string[];
+            /** Min Height */
+            min_height?: number | null;
+            /** Min Width */
+            min_width?: number | null;
+            /** Required */
+            required: boolean;
+            /** Role */
+            role: string;
+        };
+        /** CreatorOperationCapability */
+        CreatorOperationCapability: {
+            duration_range?: components["schemas"]["CreatorDurationRange"] | null;
+            /** Durations */
+            durations: number[];
+            /** Fps */
+            fps: number[];
+            /** Input Modes */
+            input_modes?: {
+                [key: string]: unknown;
+            }[];
+            /** Input Order */
+            input_order?: string[];
+            /** Inputs */
+            inputs: components["schemas"]["CreatorInputSlot"][];
+            /** Operation */
+            operation: string;
+            output: components["schemas"]["CreatorOutputCapability"];
+            /**
+             * Output Media Type
+             * @enum {string}
+             */
+            output_media_type: "image" | "video";
+            /** Parameters */
+            parameters?: components["schemas"]["CreatorParameterCapability"][];
+            prompt: components["schemas"]["CreatorPromptCapability"];
+            /** Ratio Rules */
+            ratio_rules?: components["schemas"]["CreatorControlRule"][];
+            /** Ratios */
+            ratios: string[];
+            /** Required Any Of */
+            required_any_of?: string[][];
+            /** Resolutions */
+            resolutions: string[];
+            /** Supports Cancel */
+            supports_cancel: boolean;
+            /** Supports Seed */
+            supports_seed: boolean;
+        };
+        /** CreatorOperationInfo */
+        CreatorOperationInfo: {
+            /** Detail */
+            detail: string;
+            /** Id */
+            id: string;
+            /** Label */
+            label: string;
+            /** Presentation */
+            presentation: {
+                [key: string]: string;
+            };
+        };
+        /** CreatorOutputCapability */
+        CreatorOutputCapability: {
+            /** Extension */
+            extension: string;
+            /** Mime Type */
+            mime_type: string;
+        };
+        /** CreatorParameterCapability */
+        CreatorParameterCapability: {
+            /** Conflicts With */
+            conflicts_with?: string[];
+            /** Default */
+            default?: unknown;
+            /**
+             * Exposure
+             * @default advanced
+             * @enum {string}
+             */
+            exposure: "primary" | "advanced";
+            /** Item */
+            item?: {
+                [key: string]: unknown;
+            };
+            /** Key */
+            key: string;
+            /** Label */
+            label: string;
+            /** Max */
+            max?: number | null;
+            /** Max Length */
+            max_length?: number | null;
+            /** Min */
+            min?: number | null;
+            /** Options */
+            options?: unknown[];
+            /**
+             * Required
+             * @default false
+             */
+            required: boolean;
+            /** Step */
+            step?: number | null;
+            /**
+             * Type
+             * @enum {string}
+             */
+            type: "boolean" | "integer" | "number" | "select" | "text" | "textarea" | "file_list" | "structured_shots";
+            /** Visible When */
+            visible_when?: {
+                [key: string]: unknown;
+            };
+        };
+        /** CreatorPromptCapability */
+        CreatorPromptCapability: {
+            /**
+             * Max Length
+             * @default 20000
+             */
+            max_length: number;
+            /** Negative Prompt */
+            negative_prompt: boolean;
+            /** Required */
+            required: boolean;
+            /** Supported */
+            supported: boolean;
+        };
+        /** CreatorState */
+        CreatorState: {
+            /** Authored Role */
+            authored_role?: string | null;
+            delivery: components["schemas"]["DeliveryState"];
+            output: components["schemas"]["OutputState"];
+            route?: components["schemas"]["RouteState"] | null;
+            text: components["schemas"]["TextState"];
+            text_preparation?: components["schemas"]["TextPreparationState"];
+            /** Voice Identity Id */
+            voice_identity_id?: string | null;
         };
         /** DeleteBody */
         DeleteBody: {
@@ -3180,7 +3180,7 @@ export interface components {
              * Format: uuid
              */
             id: string;
-            state: components["schemas"]["ComposerState"];
+            state: components["schemas"]["CreatorState"];
             /**
              * Updated At
              * Format: date-time
@@ -3195,7 +3195,7 @@ export interface components {
             context: components["schemas"]["StandaloneContext"] | components["schemas"]["ProjectContext"];
             /** Expected Version */
             expected_version?: number | null;
-            state: components["schemas"]["ComposerState"];
+            state: components["schemas"]["CreatorState"];
         };
         /** EchoEffect */
         EchoEffect: {
@@ -3584,6 +3584,22 @@ export interface components {
             /** Tags */
             tags?: string[];
         };
+        /** LibraryFileMutationEnvelope */
+        LibraryFileMutationEnvelope: {
+            data: components["schemas"]["LibraryFileMutationResponse"];
+        };
+        /** LibraryFileMutationRequest */
+        LibraryFileMutationRequest: {
+            /** File Id */
+            file_id: number;
+        };
+        /** LibraryFileMutationResponse */
+        LibraryFileMutationResponse: {
+            /** Attached */
+            attached: boolean;
+            /** File Id */
+            file_id: number;
+        };
         /** LinkedVisualAudioClipSettings */
         LinkedVisualAudioClipSettings: {
             /**
@@ -3849,7 +3865,7 @@ export interface components {
             /** Label */
             label: string;
             /** Operations */
-            operations: components["schemas"]["ComposerOperationCapability"][];
+            operations: components["schemas"]["CreatorOperationCapability"][];
             /** Presentation */
             presentation?: {
                 [key: string]: string;
@@ -4208,10 +4224,10 @@ export interface components {
         ProjectFileLibraryResponse: {
             /** Files */
             files: components["schemas"]["ProjectLibraryFileResponse"][];
+            /** Library File Ids */
+            library_file_ids?: number[];
             /** Project File Ids */
             project_file_ids?: number[];
-            /** Visual File Ids */
-            visual_file_ids?: number[];
             workspace: components["schemas"]["WorkspaceFileOwnerResponse"];
         };
         /**
@@ -6420,22 +6436,6 @@ export interface components {
             /** Error Type */
             type: string;
         };
-        /** VisualFileMutationEnvelope */
-        VisualFileMutationEnvelope: {
-            data: components["schemas"]["VisualFileMutationResponse"];
-        };
-        /** VisualFileMutationRequest */
-        VisualFileMutationRequest: {
-            /** File Id */
-            file_id: number;
-        };
-        /** VisualFileMutationResponse */
-        VisualFileMutationResponse: {
-            /** Attached */
-            attached: boolean;
-            /** File Id */
-            file_id: number;
-        };
         /** VisualSceneCanvasDocument */
         VisualSceneCanvasDocument: {
             /**
@@ -7925,7 +7925,58 @@ export interface operations {
             };
         };
     };
-    saveComposerDraft: {
+    getStudioConfig: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["StudioConfigEnvelope"];
+                };
+            };
+        };
+    };
+    listCreationActions: {
+        parameters: {
+            query?: {
+                context?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CreationActionListEnvelope"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    saveCreatorDraft: {
         parameters: {
             query?: never;
             header?: never;
@@ -7958,7 +8009,7 @@ export interface operations {
             };
         };
     };
-    deleteComposerDraft: {
+    deleteCreatorDraft: {
         parameters: {
             query?: never;
             header?: never;
@@ -7991,7 +8042,7 @@ export interface operations {
             };
         };
     };
-    resolveComposerDraft: {
+    resolveCreatorDraft: {
         parameters: {
             query?: never;
             header?: never;
@@ -8039,7 +8090,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["ComposerCapabilitiesEnvelope"];
+                    "application/json": components["schemas"]["CreatorCapabilitiesEnvelope"];
                 };
             };
         };
@@ -8088,7 +8139,7 @@ export interface operations {
         };
         requestBody: {
             content: {
-                "application/json": components["schemas"]["ComposerGenerationRequest"];
+                "application/json": components["schemas"]["CreatorGenerationRequest"];
             };
         };
         responses: {
@@ -8123,7 +8174,7 @@ export interface operations {
         };
         requestBody: {
             content: {
-                "application/json": components["schemas"]["ComposerContext"];
+                "application/json": components["schemas"]["CreatorContext"];
             };
         };
         responses: {
@@ -8158,7 +8209,7 @@ export interface operations {
         };
         requestBody: {
             content: {
-                "application/json": components["schemas"]["ComposerContext"];
+                "application/json": components["schemas"]["CreatorContext"];
             };
         };
         responses: {
@@ -8182,7 +8233,7 @@ export interface operations {
             };
         };
     };
-    checkComposerInputCompatibility: {
+    checkCreatorInputCompatibility: {
         parameters: {
             query?: never;
             header?: never;
@@ -8191,7 +8242,7 @@ export interface operations {
         };
         requestBody: {
             content: {
-                "application/json": components["schemas"]["ComposerInputCompatibilityRequest"];
+                "application/json": components["schemas"]["CreatorInputCompatibilityRequest"];
             };
         };
         responses: {
@@ -8201,7 +8252,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["ComposerInputCompatibilityEnvelope"];
+                    "application/json": components["schemas"]["CreatorInputCompatibilityEnvelope"];
                 };
             };
             /** @description Validation Error */
@@ -8230,35 +8281,15 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["ComposerCapabilitiesEnvelope"];
+                    "application/json": components["schemas"]["CreatorCapabilitiesEnvelope"];
                 };
             };
         };
     };
-    getStudioConfig: {
+    getCreatorRecordingHistory: {
         parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["StudioConfigEnvelope"];
-                };
-            };
-        };
-    };
-    listCreationActions: {
-        parameters: {
-            query?: {
-                context?: string;
+            query: {
+                workspace_id: number;
             };
             header?: never;
             path?: never;
@@ -8272,7 +8303,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["CreationActionListEnvelope"];
+                    "application/json": components["schemas"]["RecordingHistoryEnvelope"];
                 };
             };
             /** @description Validation Error */
@@ -9116,6 +9147,73 @@ export interface operations {
             };
         };
     };
+    attachProjectLibraryFile: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                project_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["LibraryFileMutationRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LibraryFileMutationEnvelope"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    detachProjectLibraryFile: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                project_id: string;
+                file_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LibraryFileMutationEnvelope"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     deleteProjectParts: {
         parameters: {
             query?: never;
@@ -9729,73 +9827,6 @@ export interface operations {
             };
         };
     };
-    attachProjectVisualFile: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                project_id: string;
-            };
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["VisualFileMutationRequest"];
-            };
-        };
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["VisualFileMutationEnvelope"];
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    detachProjectVisualFile: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                project_id: string;
-                file_id: number;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["VisualFileMutationEnvelope"];
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
     getProjectVisualScene: {
         parameters: {
             query?: never;
@@ -10351,37 +10382,6 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["StorageTestEnvelope"];
-                };
-            };
-        };
-    };
-    getStandaloneRecordingHistory: {
-        parameters: {
-            query: {
-                workspace_id: number;
-            };
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["RecordingHistoryEnvelope"];
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
                 };
             };
         };

@@ -67,7 +67,7 @@ export function SavedAudioInspector({ file, title, error, onSave }: {
     finally { setSaving(false) }
   }
   return <aside className="file-inspector audio-library-inspector" aria-label="Selected File details">
-    <header className="audio-inspector-header"><div><span className="audio-inspector-source"><AudioSourceBadge source={source} detail={provenance.detail} />{category && <AudioFamilyBadge family={category} />}</span><h3>{title}</h3></div>{file.filename && <AudioDownloadButton url={audioUrl(file.filename)} label={title} compact />}</header>
+    <header className="audio-inspector-header"><div><span className="audio-inspector-source"><AudioSourceBadge source={source} providerId={provenance.provider} detail={provenance.detail} />{category && <AudioFamilyBadge family={category} />}</span><h3>{title}</h3></div>{file.filename && <AudioDownloadButton url={audioUrl(file.filename)} label={title} compact />}</header>
     <section className="audio-inspector-classify"><h4>Library details</h4><div className="file-inspector-form"><label className="file-field"><span>Name</span><Input value={draftName} maxLength={120} onChange={(event) => setDraftName(event.target.value)} /></label><FileCategorySelect value={draftCategory} onChange={setDraftCategory} /><FileTagEditor tags={draftTags} onChange={setDraftTags} onError={setEditError} /><ActionButton busy={saving} busyLabel="Saving…" disabled={!draftName.trim()} onClick={() => void save()}>Save changes</ActionButton></div></section>
     {sourceTags.length > 0 && <TagsDisclosure tags={sourceTags} label="Source tags" />}
     <DetailGroup title="Origin" rows={sourceRows} />
@@ -84,7 +84,7 @@ export function FreesoundAudioInspector({ result, category, error, onCategory }:
   onCategory: (value: AudioFileCategory | null) => void
 }) {
   return <aside className="file-inspector file-form-inspector audio-library-inspector" aria-label="Selected Freesound details">
-    <header className="audio-inspector-header"><div><span className="audio-inspector-source"><AudioSourceBadge source="freesound" detail={`Freesound · ${result.creator}`} /></span><h3>{result.name}</h3></div></header>
+    <header className="audio-inspector-header"><div><span className="audio-inspector-source"><AudioSourceBadge source="imported" providerId="freesound" detail={`Imported · Freesound · ${result.creator}`} /></span><h3>{result.name}</h3></div></header>
     <TagsDisclosure tags={result.tags} label="Freesound tags" />
     <DetailGroup title="Origin" rows={[{ label: "Creator", value: result.creator }, { label: "License", value: LICENSE_LABELS[result.license] }, ...(result.provider_category ? [{ label: "Freesound class", value: [result.provider_category, result.provider_subcategory].filter(Boolean).join(" · ") }] : []), { label: "Original", value: "Open on Freesound", href: result.source_url }]} />
     <DetailGroup title="File" rows={[{ label: "Duration", value: formatDuration(result.duration_ms / 1000) }, { label: "Format", value: result.original_format.toUpperCase() }]} />

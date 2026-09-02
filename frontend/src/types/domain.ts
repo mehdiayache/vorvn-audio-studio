@@ -712,7 +712,7 @@ export type CreationActionSummary = {
   description: string
   output_mime_types: string[]
   supported_contexts: string[]
-  composer: string | null
+  capability_id: string
 }
 
 export type PlayerSource = {

@@ -1,6 +1,6 @@
-import { Clapperboard, ScrollText, Sparkles, type LucideIcon } from "lucide-react"
+import { Clapperboard, Library, ScrollText, type LucideIcon } from "lucide-react"
 
-export type WorkstationStage = "sequence" | "sound" | "visuals"
+export type WorkstationStage = "sequence" | "sound" | "library"
 
 export type WorkstationStageDefinition = {
   id: WorkstationStage
@@ -12,5 +12,5 @@ export type WorkstationStageDefinition = {
 export const WORKSTATION_STAGES: readonly WorkstationStageDefinition[] = [
   { id: "sequence", label: "Script", description: "Write and record the story", icon: ScrollText },
   { id: "sound", label: "Timeline", description: "Assemble audio and visuals", icon: Clapperboard },
-  { id: "visuals", label: "Visuals", description: "Create and collect visuals", icon: Sparkles },
+  { id: "library", label: "Library", description: "Find and collect reusable Files", icon: Library },
 ]

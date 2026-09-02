@@ -72,7 +72,7 @@ function renderQueryWorkspace(path: string, queryKey: "subtitle-job") {
     <MemoryRouter initialEntries={[path]}>
       <TooltipProvider><ProductReadinessProvider><GlobalPlayerProvider><Routes>
           <Route path="/origins" element={<AppShell />}>
-            <Route path="subtitles" element={<QueryWorkspace queryKey={queryKey} />} />
+            <Route path="create/create-subtitles" element={<QueryWorkspace queryKey={queryKey} />} />
           </Route>
         </Routes></GlobalPlayerProvider></ProductReadinessProvider></TooltipProvider>
     </MemoryRouter>,
@@ -81,8 +81,8 @@ function renderQueryWorkspace(path: string, queryKey: "subtitle-job") {
 
 describe("Origins shell", () => {
   it("derives one honest destination from tool and Work resource routes", () => {
-    expect(activeOriginsDestination("/origins/speak")).toBe("Create")
-    expect(activeOriginsDestination("/origins/subtitles")).toBe("Create")
+    expect(activeOriginsDestination("/origins/create/generate-speech")).toBe("Create")
+    expect(activeOriginsDestination("/origins/create/create-subtitles")).toBe("Create")
     expect(activeOriginsDestination("/origins/projects/audiovisual/project-id")).toBe("Projects")
   })
   it("renders one standalone identity and the Studio-owned navigation", async () => {
@@ -147,7 +147,7 @@ describe("Origins shell", () => {
 
   it("keeps the Subtitles workspace mounted when its durable Job query changes", () => {
     const queryKey = "subtitle-job" as const
-    renderQueryWorkspace("/origins/subtitles", queryKey)
+    renderQueryWorkspace("/origins/create/create-subtitles", queryKey)
     const input = screen.getByRole("textbox", { name: `${queryKey} workspace value` })
     fireEvent.change(input, { target: { value: "operator state" } })
     fireEvent.click(screen.getByRole("button", { name: "Persist Job in URL" }))

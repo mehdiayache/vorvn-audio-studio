@@ -53,15 +53,16 @@ class PostgresUploadRecords:
         except psycopg.OperationalError as exc:
             raise RuntimeError("The database could not save that File.") from exc
 
-    def create_workspace_catalog_file(
-        self, workspace_id: int, *, origin: str, external_id: str,
+    def create_imported_workspace_file(
+        self, workspace_id: int, *, provider_id: str, external_id: str,
         name: str, stored: StoredFileVersion, size_bytes: int,
         category: FileCategory | None = None,
         tags: tuple[str, ...] = (),
         metadata: dict | None = None, folder_id: int | None = None,
     ) -> tuple[dict | None, bool]:
-        return self.files.create_workspace_catalog_file(
-            workspace_id, origin=origin, external_id=external_id, name=name,
+        return self.files.create_imported_workspace_file(
+            workspace_id, provider_id=provider_id, external_id=external_id,
+            name=name,
             size_bytes=size_bytes, category=category, tags=tags,
             metadata=metadata or {}, folder_id=folder_id,
             **self._stored_values(stored))
@@ -84,10 +85,11 @@ class PostgresUploadRecords:
         return self.files.generated_workspace_file(
             workspace_id=workspace_id, candidate_id=candidate_id)
 
-    def catalog_file(self, *, workspace_id: int, origin: str,
-                     external_id: str) -> dict | None:
-        return self.files.catalog_file(
-            workspace_id=workspace_id, origin=origin, external_id=external_id)
+    def imported_file(self, *, workspace_id: int, provider_id: str,
+                      external_id: str) -> dict | None:
+        return self.files.imported_file(
+            workspace_id=workspace_id, provider_id=provider_id,
+            external_id=external_id)
 
     def update_file_details(
         self, file_id: int, *, name: str,

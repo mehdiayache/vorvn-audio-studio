@@ -18,11 +18,9 @@ import { productIdentity } from "@/lib/product-identity"
 const VoicesPage = lazy(() => import("@/features/voices/voices-page").then((module) => ({ default: module.VoicesPage })))
 const ActivityPage = lazy(() => import("@/features/activity/activity-page").then((module) => ({ default: module.ActivityPage })))
 const SettingsPage = lazy(() => import("@/features/settings/settings-page").then((module) => ({ default: module.SettingsPage })))
-const SpeakPage = lazy(() => import("@/features/speak/speak-page").then((module) => ({ default: module.SpeakPage })))
-const SubtitlesPage = lazy(() => import("@/features/subtitles/subtitles-page").then((module) => ({ default: module.SubtitlesPage })))
 const AudiovisualProjectPage = lazy(() => import("@/features/projects/audiovisual/audiovisual-project-page").then((module) => ({ default: module.AudiovisualProjectPage })))
 const WorkspaceExplorerPage = lazy(() => import("@/features/workspace/explorer/workspace-explorer-page").then((module) => ({ default: module.WorkspaceExplorerPage })))
-const CreateComposerPage = lazy(() => import("@/features/create/create-composer-page").then((module) => ({ default: module.CreateComposerPage })))
+const CreateCreatorPage = lazy(() => import("@/features/create/create-creator-page").then((module) => ({ default: module.CreateCreatorPage })))
 
 function AudiovisualProjectWorkspace({ projectId }: { projectId: number }) {
   const { project, soundScene, visualScene, refresh } = useProject(projectId)
@@ -35,7 +33,7 @@ function AudiovisualProjectWorkspace({ projectId }: { projectId: number }) {
     {data && visualScene.status === "error" && <InlineResourceError message={`Visual timeline unavailable: ${visualScene.error}`} retry={() => void refresh()} />}
     {data && resources.fileError && resources.fileState.data && <InlineResourceError message={`File library refresh failed: ${resources.fileError}`} retry={() => void resources.refreshFiles().catch(() => undefined)} />}
     {data && resources.voiceError && <InlineResourceError message="Voice directory refresh failed. Existing voice data is preserved." retry={() => void resources.refreshVoices()} />}
-    {data && soundScene.data && visualScene.data && <LazyRoute label="Loading Project workspace"><AudiovisualProjectPage project={data} soundScene={soundScene.data} visualScene={visualScene.data} files={resources.files} projectFileIds={resources.projectFileIds} visualFileIds={resources.visualFileIds} fileState={resources.fileState} config={resources.config} directory={resources.voiceDirectory} refresh={refresh} refreshFiles={resources.refreshFiles} /></LazyRoute>}
+    {data && soundScene.data && visualScene.data && <LazyRoute label="Loading Project workspace"><AudiovisualProjectPage project={data} soundScene={soundScene.data} visualScene={visualScene.data} files={resources.files} projectFileIds={resources.projectFileIds} libraryFileIds={resources.libraryFileIds} fileState={resources.fileState} config={resources.config} directory={resources.voiceDirectory} refresh={refresh} refreshFiles={resources.refreshFiles} /></LazyRoute>}
   </>
 }
 
@@ -71,13 +69,11 @@ function OriginsRoutes({ mode }: { mode: OriginsMountMode }) {
       <Route path="/origins" element={<AppShell mode={mode} />}>
         <Route index element={<WorkspaceExplorerRoute />} />
         <Route path="create" element={<WorkspaceExplorerRoute />} />
-        <Route path="create/:actionId" element={<LazyRoute label="Opening Create"><CreateComposerPage /></LazyRoute>} />
+        <Route path="create/:actionId" element={<LazyRoute label="Opening Create"><CreateCreatorPage /></LazyRoute>} />
         <Route path="projects" element={<WorkspaceExplorerRoute view="projects" />} />
         <Route path="projects/audiovisual/:identifier" element={<AudiovisualProjectRoute />} />
         <Route path="files" element={<WorkspaceExplorerRoute view="files" />} />
-        <Route path="speak" element={<LazyRoute label="Loading Speak"><SpeakPage /></LazyRoute>} />
         <Route path="voices" element={<LazyRoute label="Loading voices"><VoicesPage /></LazyRoute>} />
-        <Route path="subtitles" element={<LazyRoute label="Loading Subtitles"><SubtitlesPage /></LazyRoute>} />
         <Route path="activity" element={<LazyRoute label="Loading activity"><ActivityPage /></LazyRoute>} />
         <Route path="settings" element={<LazyRoute label="Loading settings"><SettingsPage /></LazyRoute>} />
         <Route path="*" element={<ErrorState title="Page unavailable" message={`That ${productIdentity.name} destination does not exist.`} retry={() => window.history.back()} />} />

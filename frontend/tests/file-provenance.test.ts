@@ -27,8 +27,9 @@ describe("File provenance", () => {
   })
 
   it("keeps Freesound and upload truth explicit", () => {
-    expect(fileSourceLine(file({ origin: "freesound", creator: "Ana" })))
-      .toBe("Freesound · Ana")
+    expect(fileSourceLine(file({
+      origin: "imported", provider_id: "freesound", creator: "Ana",
+    }))).toBe("Imported · Freesound · Ana")
     expect(fileDetails(file({ origin: "uploaded", original_filename: "room.wav" })))
       .toContainEqual({ label: "Original file", value: "room.wav" })
   })

@@ -1,4 +1,4 @@
-"""Use cases for reusable Composer references."""
+"""Use cases for reusable Creator references."""
 
 from __future__ import annotations
 

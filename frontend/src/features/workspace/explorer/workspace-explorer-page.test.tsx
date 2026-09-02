@@ -34,9 +34,11 @@ beforeEach(() => {
   vi.mocked(originsApi.workspaces).mockResolvedValue(workspaces)
   vi.mocked(originsApi.workspace).mockResolvedValue(overview)
   vi.mocked(originsApi.creationActions).mockResolvedValue([
-    { id: "generate-speech", label: "Generate speech", description: "Turn text into speech.", output_mime_types: ["audio/wav"], supported_contexts: ["workspace"], composer: "speech" },
-    { id: "generate-music", label: "Generate music", description: "Create a music File.", output_mime_types: ["audio/wav"], supported_contexts: ["workspace"], composer: "audio-generation" },
-    { id: "generate-sound-effect", label: "Generate sound effect", description: "Create an SFX File.", output_mime_types: ["audio/wav"], supported_contexts: ["workspace"], composer: "audio-generation" },
+    { id: "generate-speech", label: "Generate speech", description: "Turn text into speech.", output_mime_types: ["audio/wav"], supported_contexts: ["workspace"], capability_id: "speech.generate" },
+    { id: "generate-music", label: "Generate music", description: "Create a music File.", output_mime_types: ["audio/wav"], supported_contexts: ["workspace"], capability_id: "music.generate" },
+    { id: "generate-sound-effect", label: "Generate sound effect", description: "Create an SFX File.", output_mime_types: ["audio/wav"], supported_contexts: ["workspace"], capability_id: "sfx.generate" },
+    { id: "generate-image", label: "Generate image", description: "Create an image.", output_mime_types: ["image/png"], supported_contexts: ["workspace"], capability_id: "image.generate" },
+    { id: "generate-video", label: "Generate video", description: "Create a video.", output_mime_types: ["video/mp4"], supported_contexts: ["workspace"], capability_id: "video.generate" },
   ])
 })
 afterEach(() => { cleanup(); vi.clearAllMocks() })
@@ -48,6 +50,9 @@ describe("WorkspaceExplorerPage", () => {
     expect(screen.getByRole("link", { name: /Generate speech/ }).getAttribute("href")).toBe("/origins/create/generate-speech")
     expect(screen.getByRole("link", { name: /Generate music/ }).getAttribute("href")).toBe("/origins/create/generate-music")
     expect(screen.getByRole("link", { name: /Generate sound effect/ }).getAttribute("href")).toBe("/origins/create/generate-sound-effect")
+    expect(screen.getByRole("link", { name: /Generate media/ }).getAttribute("href")).toBe("/origins/create/generate-media")
+    expect(screen.queryByRole("link", { name: /Generate image/ })).toBeNull()
+    expect(screen.queryByRole("link", { name: /Generate video/ })).toBeNull()
     expect(screen.getByRole("link", { name: "Open Launch film" }).getAttribute("href")).toBe("/origins/projects/audiovisual/project-8")
     expect(screen.getByText("Score.wav")).toBeTruthy()
   })

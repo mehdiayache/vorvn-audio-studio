@@ -109,14 +109,14 @@ class FileRepository:
             )
         """, (project_id,))
 
-    def visual_file_ids(self, project_id: int) -> list[int]:
+    def library_file_ids(self, project_id: int) -> list[int]:
         with read_only() as cursor:
             cursor.execute("""
                 SELECT DISTINCT usage.file_id
                   FROM project_file_usages usage
                   JOIN files file ON file.id=usage.file_id
                  WHERE usage.project_id=%s
-                   AND usage.purpose='visual'
+                   AND usage.purpose='library'
                    AND file.media_type IN ('image','video')
                  ORDER BY usage.file_id
             """, (project_id,))
@@ -146,19 +146,19 @@ class FileRepository:
             """, (purpose, file_id, project_id))
             return cursor.fetchone() is not None
 
-    def attach_to_visuals(self, project_id: int, file_id: int) -> bool | None:
+    def attach_to_project_library(self, project_id: int, file_id: int) -> bool | None:
         file = self.get(file_id)
         if not file or file["media_type"] not in {"image", "video"}:
             return None
-        return self.attach_to_project(project_id, file_id, "visual")
+        return self.attach_to_project(project_id, file_id, "library")
 
-    def detach_from_visuals(self, project_id: int, file_id: int) -> bool | None:
+    def detach_from_project_library(self, project_id: int, file_id: int) -> bool | None:
         if not self.project_exists(project_id):
             return None
         with transaction() as cursor:
             cursor.execute("""
                 DELETE FROM project_file_usages
-                 WHERE project_id=%s AND file_id=%s AND purpose='visual'
+                 WHERE project_id=%s AND file_id=%s AND purpose='library'
             """, (project_id, file_id))
         return True
 
@@ -185,13 +185,14 @@ class FileRepository:
         """, (workspace_id, candidate_id))
         return items[0] if items else None
 
-    def catalog_file(
-        self, *, workspace_id: int, origin: str, external_id: str,
+    def imported_file(
+        self, *, workspace_id: int, provider_id: str, external_id: str,
     ) -> dict | None:
         items = self._listed("""
-            file.workspace_id=%s AND file.source=%s
+            file.workspace_id=%s AND file.source='imported'
+            AND file.metadata->>'provider_id'=%s
             AND file.metadata->>'external_id'=%s
-        """, (workspace_id, origin, external_id))
+        """, (workspace_id, provider_id, external_id))
         return items[0] if items else None
 
     def create_workspace_file(
@@ -229,16 +230,17 @@ class FileRepository:
             )
         return self.get(int(created["id"]))
 
-    def create_workspace_catalog_file(
-        self, workspace_id: int, *, origin: str, external_id: str, **values,
+    def create_imported_workspace_file(
+        self, workspace_id: int, *, provider_id: str, external_id: str, **values,
     ) -> tuple[dict | None, bool]:
         with transaction() as cursor:
             cursor.execute(
                 "SELECT pg_advisory_xact_lock(%s)",
-                (self._identity_lock(workspace_id, origin, external_id),),
+                (self._identity_lock(workspace_id, provider_id, external_id),),
             )
-            existing = self.catalog_file(
-                workspace_id=workspace_id, origin=origin, external_id=external_id)
+            existing = self.imported_file(
+                workspace_id=workspace_id, provider_id=provider_id,
+                external_id=external_id)
             if existing:
                 return existing, True
             folder_id = values.pop("folder_id", None)
@@ -250,20 +252,42 @@ class FileRepository:
                 if not cursor.fetchone():
                     return None, False
             metadata = {**(values.pop("metadata", None) or {}),
-                        "origin": origin, "external_id": external_id}
+                        "origin": "imported", "provider_id": provider_id,
+                        "external_id": external_id}
             values["metadata"] = metadata
             created = self._create_file(
                 cursor, workspace_id=workspace_id, folder_id=folder_id,
-                source=origin, **values)
+                source="imported", **values)
             file_id = int(created["id"])
         return self.get(file_id), False
 
     def create_generated_workspace_file(
         self, workspace_id: int, *, candidate_id: str, **values,
     ) -> tuple[dict | None, bool]:
-        return self.create_workspace_catalog_file(
-            workspace_id, origin="generated", external_id=candidate_id,
-            **values)
+        with transaction() as cursor:
+            cursor.execute(
+                "SELECT pg_advisory_xact_lock(%s)",
+                (self._identity_lock(workspace_id, "generated", candidate_id),),
+            )
+            existing = self.generated_workspace_file(
+                workspace_id=workspace_id, candidate_id=candidate_id)
+            if existing:
+                return existing, True
+            folder_id = values.pop("folder_id", None)
+            if folder_id is not None:
+                cursor.execute(
+                    "SELECT 1 FROM folders WHERE id=%s AND workspace_id=%s",
+                    (folder_id, workspace_id),
+                )
+                if not cursor.fetchone():
+                    return None, False
+            metadata = {**(values.pop("metadata", None) or {}),
+                        "origin": "generated", "external_id": candidate_id}
+            created = self._create_file(
+                cursor, workspace_id=workspace_id, folder_id=folder_id,
+                source="generated", metadata=metadata, **values)
+            file_id = int(created["id"])
+        return self.get(file_id), False
 
     def update_details(
         self, file_id: int, *, name: str, category: FileCategory | None,
@@ -304,6 +328,8 @@ class FileRepository:
         if category is not None and category not in FILE_CATEGORIES:
             raise ValueError("File category is not supported.")
         origin = source or str((metadata or {}).get("origin") or "uploaded")
+        if origin not in {"generated", "uploaded", "imported"}:
+            raise ValueError("File provenance must be generated, uploaded or imported.")
         cursor.execute("""
             INSERT INTO files
                 (workspace_id, folder_id, name, kind, media_type, category,

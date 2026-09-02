@@ -51,9 +51,8 @@ describe("AudioLibrary", () => {
     expect(screen.getByRole("combobox", { name: "Sort files" }).textContent).toContain("Recently added")
     fireEvent.click(screen.getByRole("combobox", { name: "File source" }))
     expect(screen.getByRole("option", { name: "AI" })).toBeTruthy()
-    expect(screen.getByRole("option", { name: "Freesound" })).toBeTruthy()
+    expect(screen.getByRole("option", { name: "Import" })).toBeTruthy()
     expect(screen.getByRole("option", { name: "Upload" })).toBeTruthy()
-    expect(screen.getByRole("option", { name: "Existing" })).toBeTruthy()
     expect(container.querySelector(".file-source-rail")).toBeNull()
   })
 

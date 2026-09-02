@@ -26,7 +26,7 @@ class MediaInputMaterializer:
             path,
             content_type=str(file.get("mime_type")
                              or "application/octet-stream"),
-            kind="composer-inputs",
+            kind="creator-inputs",
             object_id=f"{job_id}-{int(file['id'])}",
             retention="temporary",
         )

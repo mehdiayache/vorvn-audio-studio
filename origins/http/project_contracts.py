@@ -56,24 +56,24 @@ class ProjectFileLibraryResponse(BaseModel):
     workspace: WorkspaceFileOwnerResponse
     files: list[ProjectLibraryFileResponse]
     project_file_ids: list[int] = Field(default_factory=list)
-    visual_file_ids: list[int] = Field(default_factory=list)
+    library_file_ids: list[int] = Field(default_factory=list)
 
 
 class ProjectFileLibraryEnvelope(BaseModel):
     data: ProjectFileLibraryResponse
 
 
-class VisualFileMutationRequest(BaseModel):
+class LibraryFileMutationRequest(BaseModel):
     file_id: int = Field(gt=0)
 
 
-class VisualFileMutationResponse(BaseModel):
+class LibraryFileMutationResponse(BaseModel):
     file_id: int
     attached: bool
 
 
-class VisualFileMutationEnvelope(BaseModel):
-    data: VisualFileMutationResponse
+class LibraryFileMutationEnvelope(BaseModel):
+    data: LibraryFileMutationResponse
 
 
 class PartSpeechJobResponse(BaseModel):

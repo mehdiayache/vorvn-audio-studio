@@ -1,17 +1,17 @@
 import { useMemo, useState, type ComponentProps, type RefObject } from "react"
 
 import { TimelineWorkspace } from "./timeline-workspace"
-import { VisualsLibraryDialog } from "../visuals/visuals-library-dialog"
-import { VisualsPreviewDialog } from "../visuals/visuals-preview-dialog"
+import { ProjectLibraryDialog } from "../library/project-library-dialog"
+import { FilePreviewDialog } from "../library/file-preview-dialog"
 import type { WorkspaceFile } from "@/types/domain"
 
 type TimelineStageProps = ComponentProps<typeof TimelineWorkspace> & {
   centerPaneRef: RefObject<HTMLElement | null>
   projectFileIds: number[]
-  visualFileIds: number[]
+  libraryFileIds: number[]
 }
 
-export function TimelineStage({ centerPaneRef, projectFileIds, visualFileIds, ...workspaceProps }: TimelineStageProps) {
+export function TimelineStage({ centerPaneRef, projectFileIds, libraryFileIds, ...workspaceProps }: TimelineStageProps) {
   const [targetTrackId, setTargetTrackId] = useState<string | null | undefined>(undefined)
   const [previewFile, setPreviewFile] = useState<WorkspaceFile | null>(null)
   const [pendingId, setPendingId] = useState<number | null>(null)
@@ -27,10 +27,10 @@ export function TimelineStage({ centerPaneRef, projectFileIds, visualFileIds, ..
   const workspaceVisual = visual ? { ...visual, onAddVisual: (trackId?: string) => setTargetTrackId(trackId || null) } : undefined
   return <main className="ws-center-pane" ref={centerPaneRef}>
     <TimelineWorkspace {...workspaceProps} visual={workspaceVisual} projectFileIds={projectFileIds} />
-    {visual && <VisualsLibraryDialog open={targetTrackId !== undefined} files={availableVisuals} projectFileIds={visualFileIds} usedFileIds={usedVisualFileIds} defaultSource="project" pendingId={pendingId} title={targetMediaType ? `Add ${targetMediaType} to Timeline` : "Add media to Timeline"} description={targetMediaType ? `Choose a ${targetMediaType} from this Project or Workspace Library. It will be placed on this ${targetMediaType === "video" ? "Video" : "Image"} track at the playhead.` : "Choose an image or video from this Project or Workspace Library. A matching track will be used or created at the playhead."} emptyDescription={`Add ${targetMediaType ? `a ${targetMediaType}` : "an image or video"} to Visuals first.`} addLabel={targetTrackId ? "Add to track" : "Add at playhead"} onOpenChange={(open) => { if (!open) setTargetTrackId(undefined) }} onPreview={setPreviewFile} onAdd={(file) => {
+    {visual && <ProjectLibraryDialog open={targetTrackId !== undefined} files={availableVisuals} projectFileIds={libraryFileIds} usedFileIds={usedVisualFileIds} defaultSource="project" pendingId={pendingId} title={targetMediaType ? `Add ${targetMediaType} to Timeline` : "Add media to Timeline"} description={targetMediaType ? `Choose a ${targetMediaType} from this Project or Workspace Library. It will be placed on this ${targetMediaType === "video" ? "Video" : "Image"} track at the playhead.` : "Choose an image or video from this Project or Workspace Library. A matching track will be used or created at the playhead."} emptyDescription={`Add ${targetMediaType ? `a ${targetMediaType}` : "an image or video"} to the Project Library first.`} addLabel={targetTrackId ? "Add to track" : "Add at playhead"} onOpenChange={(open) => { if (!open) setTargetTrackId(undefined) }} onPreview={setPreviewFile} onAdd={(file) => {
       setPendingId(file.id)
       void visual.session.addVisual(file, workspaceProps.session.snapshot().playhead * 1000, targetTrackId || undefined).then(() => setTargetTrackId(undefined)).finally(() => setPendingId(null))
     }} />}
-    <VisualsPreviewDialog file={previewFile} onOpenChange={(open) => { if (!open) setPreviewFile(null) }} />
+    <FilePreviewDialog file={previewFile} onOpenChange={(open) => { if (!open) setPreviewFile(null) }} />
   </main>
 }

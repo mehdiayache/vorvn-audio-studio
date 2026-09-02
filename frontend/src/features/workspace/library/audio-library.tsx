@@ -21,7 +21,7 @@ import type { AudioFileCategory, CatalogKeepResult, CatalogLicense, CatalogSound
 
 import { FILE_CATEGORIES, FileCategorySelect, FileTagEditor } from "./file-library-controls"
 import { FreesoundAudioInspector, SavedAudioInspector } from "./audio-library-inspector"
-import { AudioComposer } from "@/features/composer/audio/audio-composer"
+import { AudioCreator } from "@/features/creator/audio/audio-creator"
 
 export type AudioLibraryMode = "sequence" | "sound"
 export type FileUploadInput = { file: File; name: string; category: AudioFileCategory | null; tags: string[] }
@@ -246,7 +246,7 @@ export function AudioLibrary({ files, loading = false, refreshing = false, resou
           return <AudioCatalogCard key={result.external_id} result={result} selected={isSelected} playing={active} kept={Boolean(kept[result.external_id])} busy={keepingId === result.external_id} onSelect={() => selectCatalog(result)} onPlay={() => { selectCatalog(result); onPlay({ key: sourceKey, url: result.preview_url!, title: result.name, sourceLabel: "Freesound preview", subtitle: result.creator, kind: "file", downloadable: false }) }} onKeep={() => { if (!isSelected) selectCatalog(result); void keep(result, isSelected ? keepCategory : null) }} />
         }) : catalogQuery.trim().length >= 2 ? <div className="file-empty"><FreesoundMark /><b>No matching sounds</b><p>Try another phrase or broaden the filters.</p></div> : <section className="freesound-welcome"><header><span className="file-generation-provider"><FreesoundMark />Freesound</span><h2>What do you want to find?</h2><p>Search millions of community sounds, audition them immediately, then keep only what belongs in your Library.</p></header><div><b>Try a sound</b><span>{["city room tone", "soft transition", "wooden door", "crowd applause"].map((example) => <Button key={example} variant="outline" onClick={() => setCatalogQuery(example)}>{example}</Button>)}</span></div></section>}</div></ScrollArea>
         {selectedCatalog ? <FreesoundAudioInspector result={selectedCatalog} category={keepCategory} error={catalogActionError} onCategory={setKeepCategory} /> : <aside className="file-inspector file-form-inspector"><div className="file-inspector-empty"><FreesoundMark /><b>{catalogQuery.trim().length >= 2 ? "Select a result" : "Search Freesound"}</b><p>{catalogQuery.trim().length >= 2 ? "Review origin, license and source facts. Category stays yours to decide." : "Results are temporary candidates until you keep one."}</p>{catalogError && <p className="file-inspector-error" role="alert">{catalogError}</p>}</div></aside>}
-      </section> : onKeepGenerated ? <AudioComposer mode={mode} projectId={projectId} playingKey={playingKey} playerPlaying={playerPlaying} onPlay={onPlay} onKeep={onKeepGenerated} onKept={async (file, keptCategory, place) => { setSelectedId(file.id); setCategory(keptCategory); if (place) await onChoose(file); else setView("library") }} /> : null}
+      </section> : onKeepGenerated ? <AudioCreator mode={mode} projectId={projectId} playingKey={playingKey} playerPlaying={playerPlaying} onPlay={onPlay} onKeep={onKeepGenerated} onKept={async (file, keptCategory, place) => { setSelectedId(file.id); setCategory(keptCategory); if (place) await onChoose(file); else setView("library") }} /> : null}
     </div>
     {transport && <div className="file-library-transport">{transport}</div>}
     {dragging && <div className="file-drop-overlay"><Upload /><b>Drop to prepare this audio</b><span>Nothing is saved until you confirm.</span></div>}

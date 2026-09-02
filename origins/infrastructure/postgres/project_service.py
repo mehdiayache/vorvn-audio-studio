@@ -39,17 +39,17 @@ class PostgresProjectRecords:
     def project_file_usages(self, project_id: int) -> list[dict]:
         return self.file_records.list_for_project(project_id)
 
-    def visual_file_ids(self, project_id: int) -> list[int]:
-        return self.file_records.visual_file_ids(project_id)
+    def library_file_ids(self, project_id: int) -> list[int]:
+        return self.file_records.library_file_ids(project_id)
 
     def project_file_ids(self, project_id: int) -> list[int]:
         return self.file_records.project_file_ids(project_id)
 
-    def attach_visual_file(self, project_id: int, file_id: int) -> bool | None:
-        return self.file_records.attach_to_visuals(project_id, file_id)
+    def attach_library_file(self, project_id: int, file_id: int) -> bool | None:
+        return self.file_records.attach_to_project_library(project_id, file_id)
 
-    def detach_visual_file(self, project_id: int, file_id: int) -> bool | None:
-        return self.file_records.detach_from_visuals(project_id, file_id)
+    def detach_library_file(self, project_id: int, file_id: int) -> bool | None:
+        return self.file_records.detach_from_project_library(project_id, file_id)
 
     def parts(self, project_id: int) -> list[dict]:
         return self.documents.parts(project_id)

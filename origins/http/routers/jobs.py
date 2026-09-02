@@ -321,7 +321,7 @@ def create_speech_job(payload: SpeechJobCreate,
             workspace_id=payload.workspace_id,
             creation_action_id="generate-speech",
             creation_context={"workspace_id": payload.workspace_id},
-            source_tool="create", operation_label="Generate speech")
+            source_tool="creator", operation_label="Generate speech")
     return {"data": _payload(job), "meta": {"created": created}}
 
 
@@ -403,7 +403,7 @@ def create_sound_preset_normalization_job(
             "project_id": payload.project_id,
             "project_type": "audiovisual" if payload.project_id else None,
         },
-        source_tool="create" if workspace_id and not payload.project_id
+        source_tool="creator" if workspace_id and not payload.project_id
         else "project",
         operation_label="Understand Sound Preset",
     )
@@ -441,7 +441,7 @@ def create_transcription_job(payload: TranscriptionJobCreate,
             "project_id": payload.project_id,
             "project_type": "audiovisual" if payload.project_id else None,
         },
-        source_tool="project" if payload.project_id else "create",
+        source_tool="project" if payload.project_id else "creator",
         operation_label="Create subtitles",
     )
     return {"data": _payload(job), "meta": {"created": created}}
@@ -467,7 +467,7 @@ def create_translation_job(payload: TranslationJobCreate,
         workspace_id=int(workspace_id),
         creation_context={"workspace_id": int(workspace_id),
                           "source_transcript_id": payload.transcript_id},
-        source_tool="subtitles", operation_label="Translate subtitles",
+        source_tool="creator", operation_label="Translate subtitles",
     )
     return {"data": _payload(job), "meta": {"created": created}}
 
@@ -482,7 +482,7 @@ def create_text_job(payload: TextJobCreate,
         "rewrite", values,
         idempotency_key=(idempotency_key or f"rewrite-{uuid4()}")[:200],
         project_id=payload.project_id,
-        source_tool="project" if payload.project_id else "speak",
+        source_tool="project" if payload.project_id else "creator",
         operation_label="Prepare spoken text" if payload.operation == "shape" else "Add delivery tags",
     )
     return {"data": _payload(job), "meta": {"created": created}}

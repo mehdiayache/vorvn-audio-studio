@@ -1,6 +1,6 @@
 """Versioned Media model manifests owned by the backend.
 
-The Composer UI renders these declarations. Provider request shapes stay in
+The Creator UI renders these declarations. Provider request shapes stay in
 model adapters and never leak into React.
 """
 

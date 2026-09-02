@@ -52,7 +52,7 @@ class JobRepositoryTests(unittest.TestCase):
                 workspace_id=workspace_id,
                 creation_action_id="generate-music",
                 creation_context={"workspace_id": workspace_id},
-                source_tool="create",
+                source_tool="creator",
                 operation_label="Generate music")
             job_id = created.id
 
@@ -425,7 +425,7 @@ class JobRepositoryTests(unittest.TestCase):
             blocked, _ = repository.enqueue(
                 "fixture_confirm", {"confirmed": False, "value": 7},
                 idempotency_key=f"confirm-source-{uuid4()}",
-                source_tool="speak", operation_label="Paid fixture")
+                source_tool="creator", operation_label="Paid fixture")
             job_ids.append(blocked.id)
             self.assertEqual(repository.claim_next(["fixture_confirm"]).id,
                              blocked.id)
@@ -456,7 +456,7 @@ class JobRepositoryTests(unittest.TestCase):
                            operation_label FROM jobs WHERE id=%s
                 """, (confirmed.id,))
                 self.assertEqual(cursor.fetchone(), (
-                    blocked.id, None, "speak", "Paid fixture"))
+                    blocked.id, None, "creator", "Paid fixture"))
                 cursor.execute("""
                     SELECT kind FROM job_events WHERE job_id=%s ORDER BY id
                 """, (blocked.id,))
@@ -552,13 +552,13 @@ class JobRepositoryTests(unittest.TestCase):
         try:
             job, created = jobs_module.JobRepository().enqueue(
                 "speech", {"text": "test", "voice": "Cherry", "engine": "audio", "model": "plus"},
-                idempotency_key=f"rollback-test-{uuid4()}", source_tool="speak",
+                idempotency_key=f"rollback-test-{uuid4()}", source_tool="creator",
                 operation_label="Generate speech",
             )
             self.assertTrue(created)
             with connection.cursor() as cursor:
                 cursor.execute("SELECT actor_id, organization_id, source_tool, operation_label, model FROM jobs WHERE id = %s", (job.id,))
-                self.assertEqual(cursor.fetchone(), ("local-owner", "local-studio", "speak", "Generate speech", "qwen-audio-3.0-tts-plus"))
+                self.assertEqual(cursor.fetchone(), ("local-owner", "local-studio", "creator", "Generate speech", "qwen-audio-3.0-tts-plus"))
                 cursor.execute("SELECT action FROM audit_records WHERE resource_type = 'job' AND resource_id = %s", (str(job.id),))
                 self.assertEqual(cursor.fetchone()[0], "job.enqueued")
                 cursor.execute("""

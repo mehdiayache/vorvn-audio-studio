@@ -73,8 +73,6 @@ export function activeOriginsDestination(pathname: string) {
       ? pathname === "/origins" || pathname === "/origins/"
         || pathname === "/origins/create"
         || pathname.startsWith("/origins/create/")
-        || pathname.startsWith("/origins/speak")
-        || pathname.startsWith("/origins/subtitles")
       : item.id === "projects"
         ? pathname === item.href || pathname.startsWith("/origins/projects/")
       : pathname === item.href || pathname.startsWith(`${item.href}/`)

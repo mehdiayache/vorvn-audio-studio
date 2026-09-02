@@ -102,5 +102,5 @@ def list_creation_actions(
         } for field in action.parameters],
         "output_mime_types": list(action.output_mime_types),
         "supported_contexts": list(action.supported_contexts),
-        "composer": action.composer,
+        "capability_id": action.capability_id,
     } for action in creation_registry.actions(context)]}

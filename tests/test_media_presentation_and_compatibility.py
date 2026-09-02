@@ -25,7 +25,7 @@ class _Files:
         return self.files if workspace_id == 4 else []
 
 
-class ComposerCompatibilityTest(unittest.TestCase):
+class CreatorCompatibilityTest(unittest.TestCase):
     @staticmethod
     def slot(model_id, operation, role):
         _, selected = model_capability(model_id, operation)
@@ -158,7 +158,7 @@ class ComposerCompatibilityTest(unittest.TestCase):
         self.assertIn("shorter", audio_result[0]["reasons"][0])
 
 
-class ComposerPresentationTest(unittest.TestCase):
+class CreatorPresentationTest(unittest.TestCase):
     def test_operation_modes_are_explicit_for_current_and_future_routes(self):
         presentation = {
             item["id"]: item["presentation"]["mode_label"]

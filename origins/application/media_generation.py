@@ -78,7 +78,7 @@ class MediaGenerationService:
             idempotency_key=idempotency_key, workspace_id=workspace_id,
             project_id=int(project_id) if project_id is not None else None,
             creation_context=context,
-            source_tool="composer", operation_label=preset["operation"],
+            source_tool="creator", operation_label=preset["operation"],
         )
         return self.project(job), created
 
@@ -120,7 +120,7 @@ class MediaGenerationService:
             file = files.get(int(file_id))
             result = (input_file_compatibility(slot, file) if file else {
                 "state": "incompatible",
-                "reasons": ["This File is not available in this Composer context."],
+                "reasons": ["This File is not available in this Creator context."],
             })
             results.append({"file_id": int(file_id), **result})
         return results

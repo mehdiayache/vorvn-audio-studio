@@ -1,4 +1,4 @@
-"""Saved Composer references remain small Workspace-owned groupings."""
+"""Saved Creator references remain small Workspace-owned groupings."""
 
 import unittest
 

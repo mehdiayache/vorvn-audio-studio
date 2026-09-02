@@ -1,4 +1,4 @@
-"""Workspace-owned saved Composer references."""
+"""Workspace-owned saved Creator references."""
 
 from typing import Literal
 

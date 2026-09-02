@@ -239,7 +239,7 @@ class FakeRecords:
     def workspace(self, workspace_id):
         return {"id": workspace_id} if workspace_id == 4 else None
 
-    def catalog_file(self, *, workspace_id, origin, external_id):
+    def imported_file(self, *, workspace_id, provider_id, external_id):
         return self.existing
 
     def create_workspace_file(self, workspace_id, **values):
@@ -259,8 +259,8 @@ class FakeRecords:
             "version_metadata": stored.metadata,
         }
 
-    def create_workspace_catalog_file(
-            self, workspace_id, *, origin, external_id, **values):
+    def create_imported_workspace_file(
+            self, workspace_id, *, provider_id, external_id, **values):
         if self.fail_create:
             raise RuntimeError("database unavailable")
         if self.competing_existing:
@@ -337,7 +337,8 @@ class AudioCatalogApplicationTests(unittest.TestCase):
         self.assertEqual(created["category"], "ambience")
         self.assertEqual(created["tags"], ("door", "interior"))
         self.assertEqual(created["folder_id"], 12)
-        self.assertEqual(created["metadata"]["origin"], "freesound")
+        self.assertEqual(created["metadata"]["origin"], "imported")
+        self.assertEqual(created["metadata"]["provider_id"], "freesound")
         self.assertEqual(created["metadata"]["external_id"], "931")
         self.assertEqual(created["metadata"]["license"], "cc-by-nc")
         self.assertTrue(created["metadata"]["attribution_required"])

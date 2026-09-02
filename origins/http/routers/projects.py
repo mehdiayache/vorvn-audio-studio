@@ -10,8 +10,8 @@ from origins.http.project_contracts import (
     ArchivedResourceEnvelope,
     ProjectEditorEnvelope,
     ProjectFileLibraryEnvelope,
-    VisualFileMutationEnvelope,
-    VisualFileMutationRequest,
+    LibraryFileMutationEnvelope,
+    LibraryFileMutationRequest,
 )
 from origins.http.workspace_contracts import ProjectMutationEnvelope
 
@@ -44,29 +44,29 @@ def list_project_files(project_id: str) -> dict:
 
 
 @router.post(
-    "/projects/{project_id}/visual-files",
-    operation_id="attachProjectVisualFile",
-    response_model=VisualFileMutationEnvelope,
+    "/projects/{project_id}/library-files",
+    operation_id="attachProjectLibraryFile",
+    response_model=LibraryFileMutationEnvelope,
 )
-def attach_project_visual_file(
-    project_id: str, payload: VisualFileMutationRequest,
+def attach_project_library_file(
+    project_id: str, payload: LibraryFileMutationRequest,
 ) -> dict:
     try:
-        result = project_service.attach_visual_file(project_id, payload.file_id)
+        result = project_service.attach_library_file(project_id, payload.file_id)
     except DomainValidation as exc:
-        raise ApiProblem(400, "invalid_visual_file", str(exc)) from exc
+        raise ApiProblem(400, "invalid_library_file", str(exc)) from exc
     if not result:
         raise ApiProblem(404, "project_not_found", "That Project does not exist.")
     return {"data": result}
 
 
 @router.delete(
-    "/projects/{project_id}/visual-files/{file_id}",
-    operation_id="detachProjectVisualFile",
-    response_model=VisualFileMutationEnvelope,
+    "/projects/{project_id}/library-files/{file_id}",
+    operation_id="detachProjectLibraryFile",
+    response_model=LibraryFileMutationEnvelope,
 )
-def detach_project_visual_file(project_id: str, file_id: int) -> dict:
-    result = project_service.detach_visual_file(project_id, file_id)
+def detach_project_library_file(project_id: str, file_id: int) -> dict:
+    result = project_service.detach_library_file(project_id, file_id)
     if not result:
         raise ApiProblem(404, "project_not_found", "That Project does not exist.")
     return {"data": result}

@@ -1,4 +1,4 @@
-"""Provider-neutral Composer preset validation."""
+"""Provider-neutral Creator preset validation."""
 
 from __future__ import annotations
 
@@ -60,13 +60,13 @@ def file_list_compatibility_contract(
 ) -> dict[str, Any]:
     """Resolve one nested file-list target to the canonical media contract."""
     if field.get("type") != "file_list":
-        raise ValueError("That Composer parameter is not a media list.")
+        raise ValueError("That Creator parameter is not a media list.")
     item = field.get("item") or {}
     if audio:
         contract = item.get("audio") or {}
         if not contract.get("media_types") or not int(
                 contract.get("max_files") or 0):
-            raise ValueError("That Composer parameter has no audio input.")
+            raise ValueError("That Creator parameter has no audio input.")
         return {"label": "Reference audio", **contract}
     variant = next((candidate for candidate in item.get("variants", [])
                     if candidate.get("id") == variant_id), None)
@@ -234,7 +234,7 @@ def _validate_parameter(
     if field_type == "file_list":
         _validate_file_list(field, value, files)
         return
-    raise ValueError(f"Unsupported Composer field type: {field_type}.")
+    raise ValueError(f"Unsupported Creator field type: {field_type}.")
 
 
 def input_file_compatibility(
@@ -362,7 +362,7 @@ def validate_preset(preset: dict[str, Any], files: dict[int, dict[str, Any]]) ->
         file = files.get(file_id)
         if not file:
             raise ValueError(
-                "Every Composer reference must be a canonical File.")
+                "Every Creator reference must be a canonical File.")
         media_type = str(file.get("media_type") or "")
         if media_type not in slot["media_types"]:
             raise ValueError(
@@ -381,7 +381,7 @@ def validate_preset(preset: dict[str, Any], files: dict[int, dict[str, Any]]) ->
                 f"{slot['label']} accepts at most {slot['max']} item(s).")
         if int(item.get("position", position)) != position:
             raise ValueError(
-                "Composer input positions must be contiguous and ordered.")
+                "Creator input positions must be contiguous and ordered.")
     missing = [slot["label"] for slot in selected["inputs"]
                if slot["required"] and counts[slot["role"]] == 0]
     if missing:
@@ -397,7 +397,7 @@ def validate_preset(preset: dict[str, Any], files: dict[int, dict[str, Any]]) ->
                   for item in inputs]
         if actual != sorted(actual):
             raise ValueError(
-                "Composer references are not in their semantic order. "
+                "Creator references are not in their semantic order. "
                 "Place the Start frame before the End frame.")
 
     controls = preset.get("controls") or {}

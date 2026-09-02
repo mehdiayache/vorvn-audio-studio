@@ -6,7 +6,7 @@ import { DeleteProjectDialog } from "@/features/projects/audiovisual/delete-proj
 import { OperatorIconButton } from "@/components/operator-action"
 import { PartCaptionsDialog } from "@/features/projects/audiovisual/support/part-captions-dialog"
 import { MovePartPositionDialog } from "@/features/projects/audiovisual/support/move-part-position-dialog"
-import { ProjectComposerStage } from "@/features/composer/project-composer-host"
+import { ProjectCreatorStage } from "@/features/creator/project-creator-host"
 import { AudioClipInspector } from "@/features/sound-scene/inspector/music-inspector"
 import { SequenceMixInspector } from "@/features/sound-scene/inspector/sequence-mix-inspector"
 import { SoundSceneSession, soundTrackDisplayName, useSoundSceneSession, type SoundScenePersistence } from "@/features/sound-scene/engine/sound-scene-session"
@@ -33,7 +33,7 @@ import type {
 } from "@/types/domain"
 import { workstationPartState, type SequenceInsertKind, type WorkstationPartActions } from "./workstation-sequence"
 import { WorkstationPartInspector } from "./workstation-part-inspector"
-import { VisualsStage } from "./visuals/visuals-stage"
+import { ProjectLibraryStage } from "./library/project-library-stage"
 import { ExportDialog } from "./export/export-stage"
 import { ScriptStage } from "./script/script-stage"
 import { TimelineStage } from "./timeline/timeline-stage"
@@ -69,13 +69,13 @@ function partDeletionLabel(part: ProjectPart) {
   return `Part ${number} · ${formatAuthoredRole(part.authored_role) || part.voice_name || part.voice || "Speech"}`
 }
 
-export function AudiovisualProjectPage({ project, soundScene, visualScene, files, projectFileIds, visualFileIds, fileState, config, directory, refresh, refreshFiles }: {
+export function AudiovisualProjectPage({ project, soundScene, visualScene, files, projectFileIds, libraryFileIds, fileState, config, directory, refresh, refreshFiles }: {
   project: Project
   soundScene: SoundScene
   visualScene: VisualScene
   files: WorkspaceFile[]
   projectFileIds: number[]
-  visualFileIds: number[]
+  libraryFileIds: number[]
   fileState: LoadState<ProjectFileResources>
   config: StudioConfig | null
   directory: VoiceDirectory
@@ -86,10 +86,10 @@ export function AudiovisualProjectPage({ project, soundScene, visualScene, files
   const player = useGlobalPlayer()
   const [stage, setStage] = useState<WorkstationStage>("sequence")
   const [outlineOpen, setOutlineOpen] = useState(true)
-  const [visualsCreateOpen, setVisualsCreateOpen] = useState(true)
+  const [libraryCreatorOpen, setLibraryCreatorOpen] = useState(false)
   const [selectedId, setSelectedId] = useState<number | null>(() => initialSelection(project))
-  const [composerOpen, setComposerOpen] = useState(false)
-  const [composerPartId, setComposerPartId] = useState<number | null>(null)
+  const [creatorOpen, setCreatorOpen] = useState(false)
+  const [creatorPartId, setCreatorPartId] = useState<number | null>(null)
   const [exportOpen, setExportOpen] = useState(false)
   const [tool, setTool] = useState<ProjectToolKind>(null)
   const [audioTarget, setAudioTarget] = useState<AudioTarget | null>(null)
@@ -106,7 +106,7 @@ export function AudiovisualProjectPage({ project, soundScene, visualScene, files
   const activeSourceParts = useMemo(() => sourceParts.filter((part) => part.enabled !== false), [sourceParts])
   const pendingDraftCount = useMemo(() => activeSourceParts.filter((part) => part.kind === "draft").length, [activeSourceParts])
   const selectedPart = selectedId ? sourceParts.find((part) => part.id === selectedId) || null : null
-  const composerPart = composerPartId ? sourceParts.find((part) => part.id === composerPartId) || null : null
+  const creatorPart = creatorPartId ? sourceParts.find((part) => part.id === creatorPartId) || null : null
   const captionPart = captionPartId ? sourceParts.find((part) => part.id === captionPartId) || null : null
   const liveJobs = useProjectSpeechJobs(project.parts, refresh)
   const captionTrackCache = useRef(new Map<string, Promise<PlayerCaptionTrack[]>>())
@@ -214,21 +214,21 @@ export function AudiovisualProjectPage({ project, soundScene, visualScene, files
 
   const selectPart = useCallback((part: ProjectPart) => {
     setSelectedId(part.id)
-    setComposerOpen(false)
-    setComposerPartId(null)
+    setCreatorOpen(false)
+    setCreatorPartId(null)
   }, [])
   const editPart = useCallback((part: ProjectPart) => {
     setStage("sequence")
     setSelectedId(part.id)
-    setComposerPartId(part.id)
-    setComposerOpen(true)
+    setCreatorPartId(part.id)
+    setCreatorOpen(true)
   }, [])
   const openNewSpeech = useCallback((before?: ProjectPart | null) => {
     setStage("sequence")
     setSelectedId(before?.id || selectedId)
     setInsertBeforePartId(before?.public_id || null)
-    setComposerPartId(null)
-    setComposerOpen(true)
+    setCreatorPartId(null)
+    setCreatorOpen(true)
     setTool(null)
   }, [selectedId])
   const openSequenceInsert = useCallback((kind: SequenceInsertKind, before?: ProjectPart | null) => {
@@ -236,20 +236,20 @@ export function AudiovisualProjectPage({ project, soundScene, visualScene, files
     setStage("sequence")
     setSelectedId(before?.id || selectedId)
     setInsertBeforePartId(before?.public_id || null)
-    setComposerPartId(null)
-    setComposerOpen(false)
+    setCreatorPartId(null)
+    setCreatorOpen(false)
     setTool(kind)
   }, [openNewSpeech, selectedId])
-  const closeComposer = useCallback(() => { setComposerOpen(false); setComposerPartId(null); setInsertBeforePartId(null) }, [])
+  const closeCreator = useCallback(() => { setCreatorOpen(false); setCreatorPartId(null); setInsertBeforePartId(null) }, [])
   const changeStage = useCallback((next: WorkstationStage) => {
     if (next !== "sound") soundSession.pause()
     setStage(next)
-    closeComposer()
-  }, [closeComposer, soundSession])
+    closeCreator()
+  }, [closeCreator, soundSession])
   const queueRender = useCallback((payload: GeneratePayload) => {
-    const request = composerPart ? actions.recordPendingPart(composerPart, payload) : actions.generatePart(payload)
-    return request.then((job) => { closeComposer(); void refresh().catch(() => undefined); return job })
-  }, [actions, closeComposer, composerPart, refresh])
+    const request = creatorPart ? actions.recordPendingPart(creatorPart, payload) : actions.generatePart(payload)
+    return request.then((job) => { closeCreator(); void refresh().catch(() => undefined); return job })
+  }, [actions, closeCreator, creatorPart, refresh])
   const requestPartDeletion = useCallback((part: ProjectPart) => setConfirmAction({
     title: `Delete “${partDeletionLabel(part)}” permanently?`,
     description: part.kind === "file"
@@ -344,19 +344,19 @@ export function AudiovisualProjectPage({ project, soundScene, visualScene, files
   const playingPart = actions.playerPlaying && player.source?.key.startsWith("part:")
     ? sourceParts.find((part) => part.id === Number(player.source?.key.slice(5))) || null
     : null
-  const inspectorTitle = composerOpen ? (composerPart ? `Edit Part ${formatPartNumber(composerPart.position ?? 0)}` : "New speech")
+  const inspectorTitle = creatorOpen ? (creatorPart ? `Edit Part ${formatPartNumber(creatorPart.position ?? 0)}` : "New speech")
     : stage === "sequence" && selectedPart ? `Part ${formatPartNumber(selectedPart.position ?? 0)} · ${formatAuthoredRole(selectedPart.authored_role) || partKindLabel(selectedPart)}`
       : stage === "sound" && visualClip ? `${visualTrack?.media_type === "video" ? "Video" : "Image"} clip`
         : stage === "sound" && soundSelection?.kind === "clip" ? audioClipTitle
         : stage === "sound" && soundSelection?.kind === "clips" ? `${soundSelection.clips.length} audio clips`
           : stage === "sound" && soundSpan ? `${soundSpan.role || soundSpan.voice_name || "Script Part"} · Mix` : "Inspector"
-  const composerInsertAt = insertBeforePartId ? Math.max(0, sourceParts.findIndex((part) => part.public_id === insertBeforePartId)) : null
+  const creatorInsertAt = insertBeforePartId ? Math.max(0, sourceParts.findIndex((part) => part.public_id === insertBeforePartId)) : null
 
-  const inspector = composerOpen ? <ProjectComposerStage
-    projectId={project.id} nextPartNumber={sourceParts.length + 1} insertAt={composerInsertAt} insertBeforePartId={insertBeforePartId}
-    part={composerPart} config={config} directory={directory} playingKey={player.source?.key} playerPlaying={actions.playerPlaying}
-    onSave={async (payload) => { await actions.saveDraft(payload); closeComposer() }}
-    onUpdateEditorial={async (values) => { if (!composerPart) throw new Error("That Part is no longer open."); await actions.updatePartEditorial(composerPart, values) }}
+  const inspector = creatorOpen ? <ProjectCreatorStage
+    projectId={project.id} nextPartNumber={sourceParts.length + 1} insertAt={creatorInsertAt} insertBeforePartId={insertBeforePartId}
+    part={creatorPart} config={config} directory={directory} playingKey={player.source?.key} playerPlaying={actions.playerPlaying}
+    onSave={async (payload) => { await actions.saveDraft(payload); closeCreator() }}
+    onUpdateEditorial={async (values) => { if (!creatorPart) throw new Error("That Part is no longer open."); await actions.updatePartEditorial(creatorPart, values) }}
     onGenerate={queueRender} onPlay={(source) => void playSource(source)}
   /> : stage === "sequence" && selectedPart ? <WorkstationPartInspector
     projectId={project.id} part={selectedPart} directory={directory} playingKey={player.source?.key} playerPlaying={actions.playerPlaying}
@@ -379,14 +379,14 @@ export function AudiovisualProjectPage({ project, soundScene, visualScene, files
   /> : stage === "sound" && soundSelection?.kind === "clips" ? <AudioGroupInspector count={soundSelection.clips.length} />
     : <EmptyInspector stage={stage} />
 
-  const inspectorOpen = composerOpen || stage === "sequence" && Boolean(selectedPart) || stage === "sound" && Boolean(soundSelection || visualSelection)
+  const inspectorOpen = creatorOpen || stage === "sequence" && Boolean(selectedPart) || stage === "sound" && Boolean(soundSelection || visualSelection)
   const collapsedPart = playingPart || (stage === "sequence" ? selectedPart : null)
   const collapsedState = collapsedPart ? workstationPartState(collapsedPart) : issues.length || staleOverrides.length ? "issue" : sourceParts.some((part) => workstationPartState(part) === "draft") ? "draft" : "ready"
   const collapsedNumber = collapsedPart
     ? formatPartNumber(collapsedPart.position ?? sourceParts.indexOf(collapsedPart))
     : String(stage === "sequence" ? sourceParts.length : issues.length + staleOverrides.length)
   const closeInspector = () => {
-    if (composerOpen) { closeComposer(); return }
+    if (creatorOpen) { closeCreator(); return }
     if (stage === "sequence") setSelectedId(null)
     else if (stage === "sound") { soundSession.select(null); visualSession.select(null) }
   }
@@ -396,11 +396,11 @@ export function AudiovisualProjectPage({ project, soundScene, visualScene, files
     { hasSource: Boolean(player.source), currentTime: player.currentTime, toggle: player.toggle, seek: player.seek },
     () => {
       setTool(null); setConfirmAction(null); setCaptionPartId(null); setMovePositionPart(null); setReplacingFile(null)
-      if (composerOpen) closeComposer()
+      if (creatorOpen) closeCreator()
     }, undefined, stage !== "sound",
   )
   return <>
-    <section className="audiovisual-project" data-stage={stage} data-outline-open={(stage === "visuals" ? visualsCreateOpen : outlineOpen) ? "true" : "false"} data-inspector-open={inspectorOpen && stage !== "sound" ? "true" : "false"} data-inspector-expanded={composerOpen ? "true" : "false"}>
+    <section className="audiovisual-project" data-stage={stage} data-outline-open={(stage === "library" ? libraryCreatorOpen : outlineOpen) ? "true" : "false"} data-inspector-open={inspectorOpen && stage !== "sound" ? "true" : "false"} data-inspector-expanded={creatorOpen ? "true" : "false"}>
       <WorkstationHeader project={project} duration={duration} stage={stage} issueCount={issues.length + staleOverrides.length} previewing={stage === "sound" ? soundState.playback === "preparing" : actions.previewing} playing={stage === "sound" ? soundState.playback === "playing" : actions.projectPlaying} mutationStatus={actions.mutationStatus} onStage={changeStage} onPreview={() => { if (stage === "sound") void soundSession.togglePlayback(); else void actions.toggleProject() }} onExport={() => setExportOpen(true)} onAdd={openTool} onDelete={() => setDeleteProjectOpen(true)} onRename={renameProject} />
       <div className="ws-body">
         {stage === "sequence" && <ScriptStage
@@ -419,14 +419,14 @@ export function AudiovisualProjectPage({ project, soundScene, visualScene, files
           onOutlineOpenChange={setOutlineOpen}
           onAddEnd={(kind) => openSequenceInsert(kind)}
         />}
-        {stage === "visuals" && <VisualsStage
+        {stage === "library" && <ProjectLibraryStage
           centerPaneRef={centerPaneRef}
           projectId={project.id}
           workspaceId={project.workspace_id}
-          createOpen={visualsCreateOpen}
-          onCreateOpenChange={setVisualsCreateOpen}
+          createOpen={libraryCreatorOpen}
+          onCreateOpenChange={setLibraryCreatorOpen}
           files={files}
-          visualFileIds={visualFileIds}
+          libraryFileIds={libraryFileIds}
           usageCounts={visualUsageCounts}
           onRefresh={refreshFiles}
           onConfirmAction={setConfirmAction}
@@ -447,7 +447,7 @@ export function AudiovisualProjectPage({ project, soundScene, visualScene, files
         {stage === "sound" && <TimelineStage
           centerPaneRef={centerPaneRef}
           projectFileIds={projectFileIds}
-          visualFileIds={visualFileIds}
+          libraryFileIds={libraryFileIds}
           session={soundSession}
           inspector={inspectorOpen ? inspector : undefined}
           inspectorTitle={inspectorTitle}
@@ -526,8 +526,8 @@ export function AudiovisualProjectPage({ project, soundScene, visualScene, files
     <PartCaptionsDialog projectId={project.id} part={captionPart} directory={directory} onOpenChange={(open) => { if (!open) setCaptionPartId(null) }} onChanged={async () => { actions.invalidatePreview(); await refresh() }} />
     <MovePartPositionDialog part={movePositionPart} count={sourceParts.length} onClose={() => setMovePositionPart(null)} onMove={actions.movePartToPosition} />
     {overlaysOpen && <ProjectOverlays
-      tool={tool} project={project} nextPartNumber={sourceParts.length + 1} insertAt={composerInsertAt} insertBeforePartId={insertBeforePartId}
-      composerPart={null} replacingFileId={replacingFile?.file_id} initialAudioFileId={audioClip?.file_id} config={config} directory={directory} files={files} fileState={fileState} usedFileIds={usedFileIds}
+      tool={tool} project={project} nextPartNumber={sourceParts.length + 1} insertAt={creatorInsertAt} insertBeforePartId={insertBeforePartId}
+      creatorPart={null} replacingFileId={replacingFile?.file_id} initialAudioFileId={audioClip?.file_id} config={config} directory={directory} files={files} fileState={fileState} usedFileIds={usedFileIds}
       playingKey={player.source?.key} playerPlaying={actions.playerPlaying} confirmAction={confirmAction}
       onCloseTool={() => { setTool(null); setReplacingFile(null); setAudioTarget(null) }} onSaveDraft={actions.saveDraft} onUpdateEditorial={async () => undefined} onGenerate={queueRender}
       onAddSilence={async (seconds) => { await actions.addSilence(seconds, insertBeforePartId); setTool(null) }}
