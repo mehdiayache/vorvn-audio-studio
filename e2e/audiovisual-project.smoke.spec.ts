@@ -28,9 +28,12 @@ test("opens an audiovisual Project and renders Timeline and Creator Library with
 
   await page.getByRole("button", { name: "Creator Library · Create and collect reusable Files" }).click()
   await expect(page.getByRole("heading", { name: "No media collected yet" })).toBeVisible()
-  await page.getByRole("button", { name: "Show Creator" }).click()
   await expect(page.getByRole("textbox", { name: "Media prompt" })).toBeVisible()
   await expect(page.getByRole("combobox", { name: "Choose generation model" })).toBeVisible()
+  await page.getByRole("button", { name: "Hide Creator" }).click()
+  await expect(page.getByRole("button", { name: "Show Creator" })).toBeVisible()
+  await page.getByRole("button", { name: "Show Creator" }).click()
+  await expect(page.getByRole("textbox", { name: "Media prompt" })).toBeVisible()
 
   expect(browserIssues, browserIssues.join("\n")).toEqual([])
 })
