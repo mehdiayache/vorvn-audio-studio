@@ -63,7 +63,6 @@
 .audiovisual-project[data-inspector-open="true"] .ws-body { grid-template-columns: var(--ws-left-current) minmax(28rem, 1fr) var(--ws-right); }
 .audiovisual-project[data-stage="sound"] .ws-body { grid-template-columns: minmax(38rem, 1fr); }
 .audiovisual-project[data-stage="sound"] .ws-body { padding-bottom: .75rem; }
-.audiovisual-project[data-stage="library"] .ws-body { grid-template-columns: minmax(28rem, 1fr); }
 .ws-left-pane, .ws-center-pane, .ws-right-pane { min-width: 0; min-height: 0; overflow: hidden; }
 .ws-left-pane, .ws-center-pane, .ws-right-pane { border: 1px solid var(--border); border-radius: .82rem; background: var(--surface-raised); box-shadow: 0 8px 24px rgb(var(--shadow-color) / 4%); }
 .ws-left-pane { background: white; }

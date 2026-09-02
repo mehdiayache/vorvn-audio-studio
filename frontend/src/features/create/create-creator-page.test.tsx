@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react"
 import { MemoryRouter, Route, Routes } from "react-router-dom"
-import { afterEach, describe, expect, it, vi } from "vitest"
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
 
 import { originsApi } from "@/lib/api"
 import { CreateCreatorPage } from "./create-creator-page"
@@ -10,9 +10,13 @@ const refresh = vi.fn(async () => undefined)
 
 vi.mock("@/hooks/use-workspace-explorer", () => ({ useWorkspaceExplorer: () => ({
   workspaces: { status: "ready", data: [{ id: 4, name: "Sandbox" }] },
-  overview: { status: "ready", data: { workspace: { id: 4, name: "Sandbox" }, files: [] } },
+  overview: { status: "ready", data: { workspace: { id: 4, name: "Sandbox", description: "Test Workspace" }, files: [], projects: [], folders: [] } },
+  actions: { status: "ready", data: [] },
   selectedWorkspaceId: 4,
+  setSelectedWorkspaceId: vi.fn(),
   refresh,
+  refreshWorkspaces: refresh,
+  refreshActions: refresh,
 }) }))
 
 vi.mock("@/components/global-player-provider", () => ({ useGlobalPlayer: () => ({
@@ -50,15 +54,16 @@ vi.mock("@/lib/api", () => ({ originsApi: {
   keepGeneratedAudioInWorkspace: vi.fn(async () => ({ file: { id: 9 }, duplicate: false })),
 } }))
 
-afterEach(() => { cleanup(); vi.clearAllMocks() })
+beforeEach(() => vi.stubGlobal("ResizeObserver", class { observe() {}; unobserve() {}; disconnect() {} }))
+afterEach(() => { cleanup(); vi.clearAllMocks(); vi.unstubAllGlobals() })
 
 describe("CreateCreatorPage", () => {
   it("runs music creation directly in the current Workspace and keeps a File", async () => {
     render(<MemoryRouter initialEntries={["/origins/create/generate-music?folder_id=27"]}><Routes><Route path="/origins/create/:actionId" element={<CreateCreatorPage />} /></Routes></MemoryRouter>)
 
-    expect(screen.getByRole("heading", { name: "Creator Library" })).toBeTruthy()
+    expect(screen.getByRole("dialog", { name: "Create music" })).toBeTruthy()
     expect(screen.getAllByText(/Create music/).length).toBeGreaterThan(0)
-    expect(screen.getByText("Sandbox")).toBeTruthy()
+    expect(screen.getAllByText("Sandbox").length).toBeGreaterThan(0)
     const workspace = screen.getByRole("button", { name: "Keep generated file" })
     expect(workspace.getAttribute("data-workspace-id")).toBe("4")
     expect(workspace.getAttribute("data-capability")).toBe("music")
@@ -72,12 +77,12 @@ describe("CreateCreatorPage", () => {
   })
 
   it.each([
-    ["generate-speech", "Create speech", "speech-creator", "Creator Library"],
-    ["create-subtitles", "Create subtitles", "subtitle-creator", "Subtitles Tool"],
-  ])("keeps %s inside the canonical creation route", async (actionId, title, testId, heading) => {
+    ["generate-speech", "Create speech", "speech-creator"],
+    ["create-subtitles", "Create subtitles", "subtitle-creator"],
+  ])("keeps %s inside the canonical creation route", async (actionId, title, testId) => {
     render(<MemoryRouter initialEntries={[`/origins/create/${actionId}`]}><Routes><Route path="/origins/create/:actionId" element={<CreateCreatorPage />} /></Routes></MemoryRouter>)
 
-    expect(screen.getByRole("heading", { name: heading })).toBeTruthy()
+    expect(screen.getByRole("dialog", { name: title })).toBeTruthy()
     expect(screen.getAllByText(new RegExp(title)).length).toBeGreaterThan(0)
     const panel = await screen.findByTestId(testId)
     expect(panel.getAttribute("data-embedded")).toBe("true")

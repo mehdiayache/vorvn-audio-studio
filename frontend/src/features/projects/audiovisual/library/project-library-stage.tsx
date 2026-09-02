@@ -1,4 +1,4 @@
-import type { RefObject } from "react"
+import type { ComponentPropsWithoutRef, RefObject } from "react"
 import { lazy, Suspense, useEffect, useMemo, useRef, useState } from "react"
 import { ImagePlus } from "lucide-react"
 import { toast } from "sonner"
@@ -227,6 +227,11 @@ export function ProjectLibraryStage({ centerPaneRef, projectId, workspaceId, cre
   const uploadLabel = activeUploads.length === 1 ? "Uploading File…" : `Uploading ${activeUploads.length} Files…`
   const capabilityPicker = <CreatorCapabilityPicker value={creatorCapability} onChange={setCreatorCapability} />
   const projectLibrary = (generatedOutputIds: Set<number> = new Set(), generationItems: Parameters<typeof ProjectLibraryGallery>[0]["creationItems"] = []) => <>
+    {dragging && <div className="project-library-drop-overlay" aria-hidden="true"><ImagePlus /><strong>Drop Files into the Project Library</strong><span>They become reusable Workspace Files and are collected in this Project.</span></div>}
+    <input ref={inputRef} hidden multiple type="file" accept={projectFileAccept} onChange={(event) => {
+      if (event.target.files) void upload(Array.from(event.target.files))
+      event.target.value = ""
+    }} />
     {error && <div className="project-library-error" role="alert"><b>Library could not finish that action.</b><span>{error}</span></div>}
     <ProjectLibraryGallery files={collected.filter(({ id }) => !generatedOutputIds.has(id))} uploads={uploads} creationItems={generationItems} usageCounts={usageCounts} pendingId={pendingId} playingFileId={playingFileId} onPlayAudio={onPlayAudio} onPreview={setPreviewFile} onAddToTimeline={onAddToTimeline ? (file) => {
       setPendingId(file.id)
@@ -241,44 +246,44 @@ export function ProjectLibraryStage({ centerPaneRef, projectId, workspaceId, cre
       })
     }} onRetryUpload={retryUpload} onDismissUpload={releaseUpload} onUpload={() => inputRef.current?.click()} onOpenLibrary={() => setLibraryOpen(true)} />
   </>
-  return <main
-    className="project-library-stage"
-    ref={centerPaneRef}
-    onDragEnter={(event) => {
+  const libraryPaneProps: ComponentPropsWithoutRef<"main"> = {
+    onDragEnter: (event) => {
       if (!Array.from(event.dataTransfer.types).includes("Files")) return
       event.preventDefault()
       dragDepth.current += 1
       setDragging(true)
-    }}
-    onDragOver={(event) => {
+    },
+    onDragOver: (event) => {
       if (!Array.from(event.dataTransfer.types).includes("Files")) return
       event.preventDefault()
       event.dataTransfer.dropEffect = "copy"
-    }}
-    onDragLeave={(event) => {
+    },
+    onDragLeave: (event) => {
       event.preventDefault()
       dragDepth.current = Math.max(0, dragDepth.current - 1)
       if (dragDepth.current === 0) setDragging(false)
-    }}
-    onDrop={(event) => {
+    },
+    onDrop: (event) => {
       event.preventDefault()
       dragDepth.current = 0
       setDragging(false)
       upload(Array.from(event.dataTransfer.files))
-    }}
-  >
-    {dragging && <div className="project-library-drop-overlay" aria-hidden="true"><ImagePlus /><strong>Drop Files into the Project Library</strong><span>They become reusable Workspace Files and are collected in this Project.</span></div>}
-    <input ref={inputRef} hidden multiple type="file" accept={projectFileAccept} onChange={(event) => {
-      if (event.target.files) void upload(Array.from(event.target.files))
-      event.target.value = ""
-    }} />
+    },
+  }
+  return <>
     {creatorCapability === "media" ? <MediaCreator
       context={creatorContext} createOpen={panelOpen} onCreateOpenChange={setPanelOpen} creatorNavigation={capabilityPicker} uploading={Boolean(activeUploads.length)} uploadLabel={uploadLabel}
       libraryFiles={files} recentFileIds={[...libraryFileIds].reverse()} usageCounts={usageCounts} onUploadReference={uploadReference}
       onGenerationOutputReady={onRefresh} onPreviewGenerated={setPreviewFile}
       onAddGeneratedToTimeline={onAddToTimeline}
+      workspacePresentation="workstation"
+      libraryPaneRef={centerPaneRef}
+      libraryPaneProps={libraryPaneProps}
       renderLibrary={projectLibrary}
     /> : <CreatorLibraryWorkspace
+      presentation="workstation"
+      libraryPaneRef={centerPaneRef}
+      libraryPaneProps={libraryPaneProps}
       creatorOpen={panelOpen}
       onCreatorOpenChange={setPanelOpen}
       creatorNavigation={capabilityPicker}
@@ -294,5 +299,5 @@ export function ProjectLibraryStage({ centerPaneRef, projectId, workspaceId, cre
       setPendingId(file.id)
       void onAddToTimeline(file).then(() => setPreviewFile(null)).catch((reason) => setError(reason instanceof Error ? reason.message : "The File could not be added to Timeline.")).finally(() => setPendingId(null))
     } : undefined} onOpenChange={(open) => { if (!open) setPreviewFile(null) }} />
-  </main>
+  </>
 }

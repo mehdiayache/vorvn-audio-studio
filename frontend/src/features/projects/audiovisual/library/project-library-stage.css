@@ -1,18 +1,6 @@
-.project-library-stage {
-  position: relative;
-  min-width: 0;
-  min-height: 100%;
-  overflow: hidden;
-  background: transparent;
-}
-
-.project-library-stage > * { width: 100%; }
-
-.project-library-stage > .project-library-drop-overlay {
+.project-library-drop-overlay {
   position: absolute;
   inset: .75rem;
-  width: auto;
-  min-height: calc(100% - 1.5rem);
   z-index: 20;
   display: grid;
   align-content: center;

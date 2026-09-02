@@ -1,6 +1,31 @@
-import { expect, test } from "@playwright/test"
+import { expect, test, type APIRequestContext } from "@playwright/test"
 
 type Resource = { id: number; public_id: string; name: string }
+type WorkspaceResource = Resource & { description?: string }
+type WorkspaceOverview = { projects: Resource[] }
+
+async function reusableBrowserFixture(request: APIRequestContext) {
+  const listedResponse = await request.get("/api/v1/workspaces")
+  expect(listedResponse.ok()).toBe(true)
+  const listed = (await listedResponse.json()).data as WorkspaceResource[]
+  let workspace = listed.find(({ description }) => description === "Disposable browser CI fixture")
+  if (!workspace) {
+    const workspaceResponse = await request.post("/api/v1/workspaces", { data: { name: "Browser Smoke Workspace", description: "Disposable browser CI fixture" } })
+    expect(workspaceResponse.ok()).toBe(true)
+    workspace = (await workspaceResponse.json()).data as WorkspaceResource
+  }
+
+  const overviewResponse = await request.get(`/api/v1/workspaces/${workspace.id}`)
+  expect(overviewResponse.ok()).toBe(true)
+  const overview = (await overviewResponse.json()).data as WorkspaceOverview
+  let project = overview.projects[0]
+  if (!project) {
+    const projectResponse = await request.post(`/api/v1/workspaces/${workspace.id}/projects/audiovisual`, { data: { name: "Browser Smoke Audiovisual Project", description: "" } })
+    expect(projectResponse.ok()).toBe(true)
+    project = (await projectResponse.json()).data as Resource
+  }
+  return project
+}
 
 test("opens an audiovisual Project and renders Timeline and Creator Library without browser warnings", async ({ page, request }) => {
   const browserIssues: string[] = []
@@ -9,14 +34,7 @@ test("opens an audiovisual Project and renders Timeline and Creator Library with
   })
   page.on("pageerror", (error) => browserIssues.push(`pageerror: ${error.message}`))
 
-  const marker = `${Date.now()}-${test.info().workerIndex}`
-  const workspaceResponse = await request.post("/api/v1/workspaces", { data: { name: `Browser Smoke Workspace ${marker}`, description: "Disposable browser CI fixture" } })
-  expect(workspaceResponse.ok()).toBe(true)
-  const workspace = (await workspaceResponse.json()).data as Resource
-
-  const projectResponse = await request.post(`/api/v1/workspaces/${workspace.id}/projects/audiovisual`, { data: { name: `Browser Smoke Project ${marker}`, description: "" } })
-  expect(projectResponse.ok()).toBe(true)
-  const project = (await projectResponse.json()).data as Resource
+  const project = await reusableBrowserFixture(request)
 
   await page.goto(`/origins/projects/audiovisual/${project.public_id}`)
   await expect(page.getByRole("heading", { name: `Rename Project ${project.name}` })).toBeVisible()

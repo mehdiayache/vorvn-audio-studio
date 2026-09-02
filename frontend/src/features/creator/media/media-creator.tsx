@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState, type ReactNode } from "react"
+import { useEffect, useMemo, useRef, useState, type ComponentPropsWithoutRef, type ReactNode, type Ref } from "react"
 
 import { CreatorLibraryWorkspace } from "../library/creator-library-workspace"
 import { originsApi, type CreatorContext } from "@/lib/api"
@@ -61,7 +61,7 @@ function initialHiddenRequests(context: CreatorContext) {
   }
 }
 
-export function MediaCreator({ context, createOpen, onCreateOpenChange, creatorNavigation, uploading, uploadLabel, libraryFiles, recentFileIds = [], usageCounts, onUploadReference, onGenerationOutputReady, onPreviewGenerated, onAddGeneratedToTimeline, renderLibrary }: {
+export function MediaCreator({ context, createOpen, onCreateOpenChange, creatorNavigation, uploading, uploadLabel, libraryFiles, recentFileIds = [], usageCounts, onUploadReference, onGenerationOutputReady, onPreviewGenerated, onAddGeneratedToTimeline, renderLibrary, workspacePresentation = "workspace", libraryPaneRef, libraryPaneProps }: {
   context: CreatorContext
   createOpen?: boolean
   onCreateOpenChange?: (open: boolean) => void
@@ -76,6 +76,9 @@ export function MediaCreator({ context, createOpen, onCreateOpenChange, creatorN
   onPreviewGenerated?: (file: WorkspaceFile) => void
   onAddGeneratedToTimeline?: (file: WorkspaceFile) => Promise<void>
   renderLibrary?: (generatedOutputIds: Set<number>, generationItems: ProjectLibraryCreationItem[]) => ReactNode
+  workspacePresentation?: "workspace" | "workstation"
+  libraryPaneRef?: Ref<HTMLElement>
+  libraryPaneProps?: Omit<ComponentPropsWithoutRef<"main">, "children" | "className">
 }) {
   const workspaceId = context.workspace_id
   const preferredOutputType = context.selection?.output_media_type === "image" || context.selection?.output_media_type === "video"
@@ -550,6 +553,9 @@ export function MediaCreator({ context, createOpen, onCreateOpenChange, creatorN
 
   if (preferredOutputUnavailable || !catalog || !model || !capability) return <CreatorLibraryWorkspace
     className="media-creator-workspace"
+    presentation={workspacePresentation}
+    libraryPaneRef={libraryPaneRef}
+    libraryPaneProps={libraryPaneProps}
     creatorOpen={panelOpen}
     onCreatorOpenChange={setPanelOpen}
     creatorNavigation={creatorNavigation}
@@ -569,6 +575,9 @@ export function MediaCreator({ context, createOpen, onCreateOpenChange, creatorN
   return <>
     <CreatorLibraryWorkspace
       className="media-creator-workspace"
+      presentation={workspacePresentation}
+      libraryPaneRef={libraryPaneRef}
+      libraryPaneProps={libraryPaneProps}
       creatorOpen={panelOpen}
       onCreatorOpenChange={setPanelOpen}
       creatorNavigation={creatorNavigation}

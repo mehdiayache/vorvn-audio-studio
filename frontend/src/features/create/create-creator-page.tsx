@@ -1,16 +1,17 @@
-import { ArrowLeft, Captions, Mic2, Music2, WandSparkles, Waves } from "lucide-react"
+import { Captions, Mic2, Music2, WandSparkles, Waves } from "lucide-react"
 import type { LucideIcon } from "lucide-react"
 import { lazy, Suspense, useMemo, useRef, useState } from "react"
-import { Link, Navigate, useParams, useSearchParams } from "react-router-dom"
+import { Navigate, useNavigate, useParams, useSearchParams } from "react-router-dom"
 import { toast } from "sonner"
 
 import { useGlobalPlayer } from "@/components/global-player-provider"
 import { ErrorState, PageLoading } from "@/components/state-panel"
-import { Button } from "@/components/ui/button"
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { AudioCreator } from "@/features/creator/audio/audio-creator"
 import { CreatorLibraryBrowser, type CreatorLibraryKind } from "@/features/creator/library/creator-library-browser"
 import { CreatorLibraryWorkspace } from "@/features/creator/library/creator-library-workspace"
 import { MediaCreator } from "@/features/creator/media/media-creator"
+import { WorkspaceExplorerPage } from "@/features/workspace/explorer/workspace-explorer-page"
 import type { GeneratedKeepInput } from "@/features/workspace/library/audio-library"
 import "@/features/workspace/library/audio-library.css"
 import { useWorkspaceExplorer } from "@/hooks/use-workspace-explorer"
@@ -91,6 +92,7 @@ function editorFile(file: WorkspaceFileSummary): WorkspaceFile {
 export function CreateCreatorPage() {
   const { actionId = "" } = useParams()
   const [searchParams] = useSearchParams()
+  const navigate = useNavigate()
   const action = creatorActions[actionId]
   const { workspaces, overview, selectedWorkspaceId, refresh } = useWorkspaceExplorer()
   const player = useGlobalPlayer()
@@ -161,15 +163,17 @@ export function CreateCreatorPage() {
   }
 
   const audioCapability = action.capability === "music" || action.capability === "sfx" ? action.capability : null
-  return <section className="create-creator-page">
+  return <>
+    <WorkspaceExplorerPage view="create" />
     <input ref={uploadInputRef} hidden type="file" accept="image/*,video/*,audio/*,.srt,.vtt,.txt,.md,.pdf,.json,.csv,.zip" disabled={uploadingFile} onChange={(event) => { const file = event.target.files?.[0]; if (file) void uploadLibraryFile(file); event.target.value = "" }} />
-    <header className="create-creator-header">
-      <Button asChild variant="ghost" size="sm"><Link to="/origins/"><ArrowLeft />Create</Link></Button>
-      <span className={`create-creator-icon is-${action.capability}`}><Icon /></span>
-      <div><h1>{isTool ? "Subtitles Tool" : "Creator Library"}</h1><p>{action.title} · {action.description}</p></div>
-      <span className="create-creator-destination"><small>Saving to</small><b>{workspaceName}</b></span>
-    </header>
-    <div className="create-creator-workspace">
+    <Dialog open onOpenChange={(open) => { if (!open) navigate("/origins/") }}>
+      <DialogContent className="create-creator-dialog">
+        <DialogHeader className="create-creator-header">
+          <span className={`create-creator-icon is-${action.capability}`}><Icon /></span>
+          <span className="create-creator-heading"><DialogTitle>{action.title}</DialogTitle><DialogDescription>{action.description}</DialogDescription></span>
+          <span className="create-creator-destination"><small>Saving to</small><b>{workspaceName}</b></span>
+        </DialogHeader>
+        <div className="create-creator-workspace">
       {action.capability === "media" ? <MediaCreator
         key={action.capability}
         context={context!}
@@ -199,6 +203,8 @@ export function CreateCreatorPage() {
       />}
         library={<CreatorLibraryBrowser files={libraryFiles} folders={overview.data?.folders || []} initialKind={action.capability as CreatorLibraryKind} playingKey={player.source?.key} playerPlaying={player.state === "playing"} onPlay={(source) => void player.toggleSource(source)} onUpload={() => uploadInputRef.current?.click()} />}
       />}
-    </div>
-  </section>
+        </div>
+      </DialogContent>
+    </Dialog>
+  </>
 }

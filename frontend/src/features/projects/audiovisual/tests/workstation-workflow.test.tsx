@@ -41,6 +41,8 @@ describe("Project workflow", () => {
   it("starts the Project Library with Creator open and the four creation capabilities", async () => {
     render(<ProjectLibraryStage projectId={7} workspaceId={1} files={[]} libraryFileIds={[]} onUpload={vi.fn()} onRefresh={vi.fn()} />)
 
+    expect(screen.getByRole("complementary", { name: "Creator" }).classList.contains("ws-left-pane")).toBe(true)
+    expect(screen.getByRole("main", { name: "Library" }).classList.contains("ws-center-pane")).toBe(true)
     expect(screen.getByRole("heading", { name: "No media collected yet" })).toBeTruthy()
     expect(await screen.findByRole("textbox", { name: "Media prompt" })).toBeTruthy()
     expect(screen.getByRole("navigation", { name: "Creation capability" })).toBeTruthy()

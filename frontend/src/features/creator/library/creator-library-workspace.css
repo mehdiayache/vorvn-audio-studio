@@ -1,7 +1,7 @@
 .creator-library-workspace { width: 100%; height: 100%; min-width: 0; min-height: 0; display: grid; grid-template-columns: minmax(36rem, 44rem) minmax(0, 1fr); gap: .75rem; overflow: hidden; padding: .75rem; background: var(--workspace-background); transition: grid-template-columns 180ms ease; }
 .creator-library-workspace.is-creator-collapsed { grid-template-columns: 3.25rem minmax(0, 1fr); }
 .creator-library-creator,
-.creator-library-library { min-width: 0; min-height: 0; display: grid; grid-template-rows: auto minmax(0, 1fr); overflow: hidden; }
+.creator-library-library { position: relative; min-width: 0; min-height: 0; display: grid; grid-template-rows: auto minmax(0, 1fr); overflow: hidden; }
 .creator-library-creator:has(> .creator-capability-picker) { grid-template-rows: auto auto minmax(0, 1fr); }
 .creator-library-creator,
 .creator-library-library { overflow: hidden; border: 1px solid var(--border); border-radius: .82rem; background: var(--surface-raised); box-shadow: 0 8px 24px rgb(var(--shadow-color) / 4%); }
