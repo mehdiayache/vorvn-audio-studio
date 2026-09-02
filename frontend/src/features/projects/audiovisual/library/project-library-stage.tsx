@@ -6,9 +6,8 @@ import { toast } from "sonner"
 import { useGlobalPlayer } from "@/components/global-player-provider"
 import { PageLoading } from "@/components/state-panel"
 import { AudioCreator } from "@/features/creator/audio/audio-creator"
-import { CreatorLibraryWorkspace } from "@/features/creator/library/creator-library-workspace"
+import { CreatorHost, type CreatorCapabilityId } from "@/features/creator/creator-host"
 import type { ConfirmAction } from "@/features/projects/audiovisual/support/project-overlays"
-import { CreatorCapabilityPicker, type CreatorCapabilityId } from "@/features/creator/panel/creator-capability-picker"
 import type { GeneratedKeepInput } from "@/features/workspace/library/audio-library"
 import { originsApi, type CreatorContext } from "@/lib/api"
 import type { AudioFileCategory, GeneratedKeepResult, WorkspaceFile, WorkspaceFolder } from "@/types/domain"
@@ -30,7 +29,8 @@ function projectFileIssue(file: File) {
   return null
 }
 const creatorDetails: Record<CreatorCapabilityId, string> = {
-  media: "Image and video",
+  image: "Image",
+  video: "Video",
   speech: "Speech",
   music: "Music",
   sfx: "Sound effects",
@@ -75,7 +75,6 @@ export function ProjectLibraryStage({ centerPaneRef, projectId, workspaceId, cre
   onConfirmAction?: (action: ConfirmAction) => void
 }) {
   const [internalCreatorOpen, setInternalCreatorOpen] = useState(true)
-  const [creatorCapability, setCreatorCapability] = useState<CreatorCapabilityId>("media")
   const inputRef = useRef<HTMLInputElement>(null)
   const [libraryOpen, setLibraryOpen] = useState(false)
   const [previewFile, setPreviewFile] = useState<WorkspaceFile | null>(null)
@@ -226,7 +225,6 @@ export function ProjectLibraryStage({ centerPaneRef, projectId, workspaceId, cre
 
   const activeUploads = uploads.filter((item) => item.status !== "failed")
   const uploadLabel = activeUploads.length === 1 ? "Uploading File…" : `Uploading ${activeUploads.length} Files…`
-  const capabilityPicker = <CreatorCapabilityPicker value={creatorCapability} onChange={setCreatorCapability} />
   const projectLibrary = (generatedOutputIds: Set<number> = new Set(), generationItems: Parameters<typeof ProjectLibraryGallery>[0]["creationItems"] = []) => <>
     {dragging && <div className="project-library-drop-overlay" aria-hidden="true"><ImagePlus /><strong>Drop Files into the Project Library</strong><span>They become reusable Workspace Files and are collected in this Project.</span></div>}
     <input ref={inputRef} hidden multiple type="file" accept={projectFileAccept} onChange={(event) => {
@@ -272,29 +270,36 @@ export function ProjectLibraryStage({ centerPaneRef, projectId, workspaceId, cre
     },
   }
   return <>
-    {creatorCapability === "media" ? <MediaCreator
-      context={creatorContext} createOpen={panelOpen} onCreateOpenChange={setPanelOpen} creatorNavigation={capabilityPicker} uploading={Boolean(activeUploads.length)} uploadLabel={uploadLabel}
-      libraryFiles={files} recentFileIds={[...libraryFileIds].reverse()} usageCounts={usageCounts} onUploadReference={uploadReference}
-      onGenerationOutputReady={onRefresh} onPreviewGenerated={setPreviewFile}
-      onAddGeneratedToTimeline={onAddToTimeline}
-      workspacePresentation="workstation"
-      libraryPaneRef={centerPaneRef}
-      libraryPaneProps={libraryPaneProps}
-      renderLibrary={projectLibrary}
-    /> : <CreatorLibraryWorkspace
+    <CreatorHost
+      context={creatorContext}
+      initialCapability="video"
       presentation="workstation"
       libraryPaneRef={centerPaneRef}
       libraryPaneProps={libraryPaneProps}
       creatorOpen={panelOpen}
       onCreatorOpenChange={setPanelOpen}
-      creatorNavigation={capabilityPicker}
-      creatorDetail={creatorDetails[creatorCapability]}
-      libraryDetail={`${collected.length} Project File${collected.length === 1 ? "" : "s"}`}
-      creator={creatorCapability === "speech"
-        ? <Suspense fallback={<PageLoading label="Opening speech controls" />}><SpeechCreator embedded panelOnly onCreatedFiles={attachCreatedFiles} /></Suspense>
-        : <ProjectAudioCreator key={creatorCapability} capability={creatorCapability} projectId={projectId} workspaceId={workspaceId} onKeep={keepGeneratedAudio} onKept={audioKept} />}
-      library={projectLibrary()}
-    />}
+    >{({ capability, context, renderWorkspace }) => capability === "image" || capability === "video" ? <MediaCreator
+        key={capability}
+        context={context}
+        uploading={Boolean(activeUploads.length)}
+        uploadLabel={uploadLabel}
+        libraryFiles={files}
+        recentFileIds={[...libraryFileIds].reverse()}
+        usageCounts={usageCounts}
+        onUploadReference={uploadReference}
+        onGenerationOutputReady={onRefresh}
+        onPreviewGenerated={setPreviewFile}
+        onAddGeneratedToTimeline={onAddToTimeline}
+        renderLibrary={projectLibrary}
+        renderWorkspace={renderWorkspace}
+      /> : renderWorkspace({
+        creatorDetail: creatorDetails[capability],
+        libraryDetail: `${collected.length} Project File${collected.length === 1 ? "" : "s"}`,
+        creator: capability === "speech"
+          ? <Suspense fallback={<PageLoading label="Opening speech controls" />}><SpeechCreator embedded panelOnly onCreatedFiles={attachCreatedFiles} /></Suspense>
+          : <ProjectAudioCreator key={capability} capability={capability} projectId={projectId} workspaceId={workspaceId} onKeep={keepGeneratedAudio} onKept={audioKept} />,
+        library: projectLibrary(),
+      })}</CreatorHost>
     <ProjectLibraryDialog open={libraryOpen} folders={folders} files={available} usedFileIds={[...(usageCounts?.keys() || [])]} pendingId={pendingId} defaultSource="all" showProjectSource={false} onOpenChange={setLibraryOpen} onPreview={setPreviewFile} onAdd={(file) => void attach(file)} />
     <FilePreviewDialog file={previewFile} pending={Boolean(previewFile && pendingId === previewFile.id)} primaryLabel="Add to Timeline" onPrimaryAction={onAddToTimeline ? (file) => {
       setPendingId(file.id)

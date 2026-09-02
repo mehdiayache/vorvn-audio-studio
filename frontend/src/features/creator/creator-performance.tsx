@@ -4,7 +4,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Slider } from "@/components/ui/slider"
 import { Textarea } from "@/components/ui/textarea"
 import { DEFAULT_RECORDING_VOLUME } from "@/lib/creator-contract"
-import { useCreator } from "./creator-controller"
+import { useSpeechCreator } from "./speech/speech-creator-controller"
 
 function modeLabel(mode: string) {
   if (mode === "exact") return "Keep the script"
@@ -13,7 +13,7 @@ function modeLabel(mode: string) {
 }
 
 export function CreatorPerformance() {
-  const creator = useCreator()
+  const creator = useSpeechCreator()
   const controls = creator.capabilityControls
   const selectedPreset = creator.performancePresets.find((preset) => preset.instruction === creator.instruction)
   return <section className="creator-section">

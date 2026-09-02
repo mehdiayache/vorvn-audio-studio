@@ -1,4 +1,4 @@
-import { Captions, Mic2, Music2, WandSparkles, Waves } from "lucide-react"
+import { Captions, FileImage, FileVideo, Mic2, Music2, Waves } from "lucide-react"
 import type { LucideIcon } from "lucide-react"
 import { lazy, Suspense, useMemo, useRef, useState } from "react"
 import { Navigate, useNavigate, useParams, useSearchParams } from "react-router-dom"
@@ -8,6 +8,7 @@ import { useGlobalPlayer } from "@/components/global-player-provider"
 import { ErrorState, PageLoading } from "@/components/state-panel"
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { AudioCreator } from "@/features/creator/audio/audio-creator"
+import { CreatorHost, type CreatorCapabilityId } from "@/features/creator/creator-host"
 import { CreatorLibraryBrowser, type CreatorLibraryKind } from "@/features/creator/library/creator-library-browser"
 import { FilePreviewDialog } from "@/features/creator/library/file-preview-dialog"
 import { CreatorLibraryWorkspace } from "@/features/creator/library/creator-library-workspace"
@@ -25,7 +26,7 @@ const SpeechCreator = lazy(() => import("@/features/creator/speech/speech-creato
 const SubtitleCreator = lazy(() => import("@/features/creator/subtitles/subtitle-creator-page").then((module) => ({ default: module.SubtitleCreatorPage })))
 
 type CreateCreatorAction = {
-  capability: "speech" | "music" | "sfx" | "media" | "subtitle"
+  capability: CreatorCapabilityId | "subtitle"
   icon: LucideIcon
   title: string
   description: string
@@ -50,11 +51,17 @@ const creatorActions: Record<string, CreateCreatorAction> = {
     title: "Create a sound effect",
     description: "Create Foley, ambience, impacts or transitions.",
   },
-  "generate-media": {
-    capability: "media",
-    icon: WandSparkles,
-    title: "Create media",
-    description: "Create images or videos with one model-aware Creator.",
+  "generate-image": {
+    capability: "image",
+    icon: FileImage,
+    title: "Create image",
+    description: "Create a reusable image File in this Workspace.",
+  },
+  "generate-video": {
+    capability: "video",
+    icon: FileVideo,
+    title: "Create video",
+    description: "Create a reusable video File in this Workspace.",
   },
   "create-subtitles": {
     capability: "subtitle",
@@ -78,7 +85,7 @@ export function CreateCreatorPage() {
   const context = useMemo<CreatorContext | null>(() => selectedWorkspaceId ? ({
     workspace_id: selectedWorkspaceId,
     folder_id: folderId,
-    selection: action && action.capability !== "media" ? { capability: action.capability } : {},
+    selection: action ? { capability: action.capability } : {},
   }) : null, [action, folderId, selectedWorkspaceId])
 
   if (!action) return <Navigate replace to="/origins/" />
@@ -93,7 +100,8 @@ export function CreateCreatorPage() {
   }
 
   const Icon = action.icon
-  const isTool = action.capability === "subtitle"
+  const creatorCapability = action.capability === "subtitle" ? null : action.capability
+  const isTool = creatorCapability === null
   const workspaceName = overview.data?.workspace.name || workspaces.data?.find((workspace) => workspace.id === selectedWorkspaceId)?.name || "Current Workspace"
   const libraryFiles = overview.data?.files || []
 
@@ -138,7 +146,6 @@ export function CreateCreatorPage() {
     } finally { setUploadingFile(false) }
   }
 
-  const audioCapability = action.capability === "music" || action.capability === "sfx" ? action.capability : null
   return <>
     <WorkspaceExplorerPage view="create" />
     <input ref={uploadInputRef} hidden type="file" accept="image/*,video/*,audio/*,.srt,.vtt,.txt,.md,.pdf,.json,.csv,.zip" disabled={uploadingFile} onChange={(event) => { const file = event.target.files?.[0]; if (file) void uploadLibraryFile(file); event.target.value = "" }} />
@@ -150,35 +157,45 @@ export function CreateCreatorPage() {
           <span className="create-creator-destination"><small>Saving to</small><b>{workspaceName}</b></span>
         </DialogHeader>
         <div className="create-creator-workspace">
-      {action.capability === "media" ? <MediaCreator
-        key={action.capability}
-        context={context!}
-        uploading={false}
-        uploadLabel=""
-        libraryFiles={libraryFiles}
-        onUploadReference={uploadReference}
-        onGenerationOutputReady={refresh}
-        renderLibrary={() => <CreatorLibraryBrowser files={libraryFiles} folders={overview.data?.folders || []} initialKind="all" selectedFileId={previewFile?.id} playingKey={player.source?.key} playerPlaying={player.state === "playing"} onSelect={setPreviewFile} onPlay={(source) => void player.toggleSource(source)} onUpload={() => uploadInputRef.current?.click()} />}
-      /> : <CreatorLibraryWorkspace
+      {isTool ? <CreatorLibraryWorkspace
         primaryLabel={isTool ? "Tool" : "Creator"}
         primaryAriaLabel={isTool ? "Subtitle tool" : "Creator"}
         workspaceLabel={isTool ? "Subtitle Tool and Library" : "Creator Library"}
         creatorDetail={action.title}
         libraryDetail={`${libraryFiles.length} reusable File${libraryFiles.length === 1 ? "" : "s"} · ${workspaceName}`}
-        creator={action.capability === "speech" ? <Suspense fallback={<PageLoading label="Opening speech controls" />}><SpeechCreator embedded panelOnly onLibraryChange={refresh} /></Suspense> : action.capability === "subtitle" ? <Suspense fallback={<PageLoading label="Opening subtitle controls" />}><SubtitleCreator embedded panelOnly onLibraryChange={refresh} /></Suspense> : <AudioCreator
-        key={action.capability}
-        mode="sound"
-        workspaceId={selectedWorkspaceId}
-        fixedCapability={audioCapability!}
-        allowPlacement={false}
-        playingKey={player.source?.key}
-        playerPlaying={player.state === "playing"}
-        onPlay={(source) => void player.toggleSource(source)}
-        onKeep={keepGeneratedFile}
-        onKept={fileKept}
-      />}
+        creator={<Suspense fallback={<PageLoading label="Opening subtitle controls" />}><SubtitleCreator embedded panelOnly onLibraryChange={refresh} /></Suspense>}
         library={<CreatorLibraryBrowser files={libraryFiles} folders={overview.data?.folders || []} initialKind={action.capability as CreatorLibraryKind} selectedFileId={previewFile?.id} playingKey={player.source?.key} playerPlaying={player.state === "playing"} onSelect={setPreviewFile} onPlay={(source) => void player.toggleSource(source)} onUpload={() => uploadInputRef.current?.click()} />}
-      />}
+      /> : <CreatorHost context={context!} initialCapability={creatorCapability}>
+        {({ capability, context: activeContext, renderWorkspace }) => capability === "image" || capability === "video" ? <MediaCreator
+          key={capability}
+          context={activeContext}
+          uploading={false}
+          uploadLabel=""
+          libraryFiles={libraryFiles}
+          onUploadReference={uploadReference}
+          onGenerationOutputReady={refresh}
+          renderLibrary={() => <CreatorLibraryBrowser files={libraryFiles} folders={overview.data?.folders || []} initialKind={capability} selectedFileId={previewFile?.id} playingKey={player.source?.key} playerPlaying={player.state === "playing"} onSelect={setPreviewFile} onPlay={(source) => void player.toggleSource(source)} onUpload={() => uploadInputRef.current?.click()} />}
+          renderWorkspace={renderWorkspace}
+        /> : renderWorkspace({
+          creatorDetail: capability === "speech" ? "Speech" : capability === "music" ? "Music" : "Sound effects",
+          libraryDetail: `${libraryFiles.length} reusable File${libraryFiles.length === 1 ? "" : "s"} · ${workspaceName}`,
+          creator: capability === "speech"
+            ? <Suspense fallback={<PageLoading label="Opening speech controls" />}><SpeechCreator embedded panelOnly onLibraryChange={refresh} /></Suspense>
+            : <AudioCreator
+              key={capability}
+              mode="sound"
+              workspaceId={selectedWorkspaceId}
+              fixedCapability={capability}
+              allowPlacement={false}
+              playingKey={player.source?.key}
+              playerPlaying={player.state === "playing"}
+              onPlay={(source) => void player.toggleSource(source)}
+              onKeep={keepGeneratedFile}
+              onKept={fileKept}
+            />,
+          library: <CreatorLibraryBrowser files={libraryFiles} folders={overview.data?.folders || []} initialKind={capability} selectedFileId={previewFile?.id} playingKey={player.source?.key} playerPlaying={player.state === "playing"} onSelect={setPreviewFile} onPlay={(source) => void player.toggleSource(source)} onUpload={() => uploadInputRef.current?.click()} />,
+        })}
+      </CreatorHost>}
         </div>
         <FilePreviewDialog file={previewFile} onOpenChange={(open) => { if (!open) setPreviewFile(null) }} />
       </DialogContent>

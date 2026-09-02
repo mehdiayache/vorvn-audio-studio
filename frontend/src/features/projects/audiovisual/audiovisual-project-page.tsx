@@ -6,7 +6,7 @@ import { DeleteProjectDialog } from "@/features/projects/audiovisual/delete-proj
 import { OperatorIconButton } from "@/components/operator-action"
 import { PartCaptionsDialog } from "@/features/projects/audiovisual/support/part-captions-dialog"
 import { MovePartPositionDialog } from "@/features/projects/audiovisual/support/move-part-position-dialog"
-import { ProjectCreatorStage } from "@/features/creator/project-creator-host"
+import { ProjectSpeechCreatorStage } from "@/features/creator/speech/project-speech-creator-host"
 import { AudioClipInspector } from "@/features/sound-scene/inspector/music-inspector"
 import { SequenceMixInspector } from "@/features/sound-scene/inspector/sequence-mix-inspector"
 import { SoundSceneSession, soundTrackDisplayName, useSoundSceneSession, type SoundScenePersistence } from "@/features/sound-scene/engine/sound-scene-session"
@@ -353,7 +353,7 @@ export function AudiovisualProjectPage({ project, soundScene, visualScene, folde
           : stage === "sound" && soundSpan ? `${soundSpan.role || soundSpan.voice_name || "Script Part"} · Mix` : "Inspector"
   const creatorInsertAt = insertBeforePartId ? Math.max(0, sourceParts.findIndex((part) => part.public_id === insertBeforePartId)) : null
 
-  const inspector = creatorOpen ? <ProjectCreatorStage
+  const inspector = creatorOpen ? <ProjectSpeechCreatorStage
     projectId={project.id} nextPartNumber={sourceParts.length + 1} insertAt={creatorInsertAt} insertBeforePartId={insertBeforePartId}
     part={creatorPart} config={config} directory={directory} playingKey={player.source?.key} playerPlaying={actions.playerPlaying}
     onSave={async (payload) => { await actions.saveDraft(payload); closeCreator() }}

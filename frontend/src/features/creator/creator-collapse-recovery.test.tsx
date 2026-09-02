@@ -10,7 +10,7 @@ vi.mock("@/components/global-player-provider", () => ({
   useGlobalPlayer: () => ({ transportHost: "shell", claimTransport: vi.fn(() => vi.fn()) }),
 }))
 
-import { ProjectCreatorStage } from "./project-creator-host"
+import { ProjectSpeechCreatorStage as ProjectCreatorStage } from "./speech/project-speech-creator-host"
 
 afterEach(() => { cleanup(); vi.clearAllMocks(); vi.useRealTimers(); vi.unstubAllGlobals() })
 

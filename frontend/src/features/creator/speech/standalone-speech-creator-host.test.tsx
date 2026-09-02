@@ -2,7 +2,7 @@
 import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react"
 import { afterEach, describe, expect, it, vi } from "vitest"
 
-import { StandaloneCreatorHost } from "./standalone-creator-host"
+import { StandaloneSpeechCreatorHost as StandaloneCreatorHost } from "./standalone-speech-creator-host"
 
 const player = vi.hoisted(() => ({
   source: { key: "clip:1", url: "/audio/test.mp3", title: "Current recording", kind: "standalone" as const },

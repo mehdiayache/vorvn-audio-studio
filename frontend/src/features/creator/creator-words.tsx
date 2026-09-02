@@ -11,7 +11,7 @@ import { Textarea } from "@/components/ui/textarea"
 import type { TextView } from "@/hooks/use-creator-text"
 import { formatMicroMoney } from "@/lib/format"
 import { cn } from "@/lib/utils"
-import { useCreator } from "./creator-controller"
+import { useSpeechCreator } from "./speech/speech-creator-controller"
 
 function textLabel(view: TextView) {
   return view === "raw" ? "Original" : view === "shaped" ? "Spoken" : "Tagged"
@@ -25,7 +25,7 @@ function TaggedScriptEditor({ value, onChange, autoFocus }: { value: string; onC
 }
 
 export function CreatorWords() {
-  const creator = useCreator()
+  const creator = useSpeechCreator()
   const text = creator.textSession
   const [compareOpen, setCompareOpen] = useState(false)
   const [copied, setCopied] = useState(false)

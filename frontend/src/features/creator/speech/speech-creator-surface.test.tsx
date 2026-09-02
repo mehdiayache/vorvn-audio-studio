@@ -3,7 +3,7 @@ import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/re
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
 
 import type { ProjectPart, StudioConfig, VoiceDirectory } from "@/types/domain"
-import { CreatorSurface } from "@/features/creator/creator-surface"
+import { SpeechCreatorSurface as CreatorSurface } from "./speech-creator-surface"
 import { originsApi } from "@/lib/api"
 
 beforeEach(() => {

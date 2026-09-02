@@ -3,6 +3,7 @@ import { act, cleanup, fireEvent, render, screen, waitFor } from "@testing-libra
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
 
 import { originsApi } from "@/lib/api"
+import { CreatorHost, type CreatorCapabilityId } from "@/features/creator/creator-host"
 import { MediaCreator } from "./media-creator"
 import type { MediaGeneration } from "./media-generation-types"
 import { inputMode, ratioChoices, type MediaOperationCapability } from "./media-creator-config"
@@ -89,7 +90,32 @@ function setup() {
 }
 
 function renderCreator(overrides: Partial<React.ComponentProps<typeof MediaCreator>> = {}) {
-  return render(<MediaCreator context={{ workspace_id: 1, project_id: 7, project_type: "audiovisual" }} uploading={false} uploadLabel="" libraryFiles={[]} onUploadReference={vi.fn()} {...overrides} />)
+  const context = overrides.context || { workspace_id: 1, project_id: 7, project_type: "audiovisual", selection: { output_media_type: "image" } }
+  const initialCapability = (context.selection?.output_media_type || "image") as CreatorCapabilityId
+  const { context: _context, renderWorkspace: _renderWorkspace, ...mediaOverrides } = overrides
+  return render(<CreatorHost context={context} initialCapability={initialCapability} allowedCapabilities={[initialCapability]}>
+    {({ context: activeContext, renderWorkspace }) => <MediaCreator
+      context={activeContext}
+      uploading={false}
+      uploadLabel=""
+      libraryFiles={[]}
+      onUploadReference={vi.fn()}
+      renderWorkspace={renderWorkspace}
+      {...mediaOverrides}
+    />}
+  </CreatorHost>)
+}
+
+function renderVideoCreator(overrides: Partial<React.ComponentProps<typeof MediaCreator>> = {}) {
+  return renderCreator({
+    ...overrides,
+    context: {
+      workspace_id: 1,
+      project_id: 7,
+      project_type: "audiovisual",
+      selection: { output_media_type: "video" },
+    },
+  })
 }
 
 async function chooseMode(name: string) {
@@ -127,8 +153,8 @@ describe("Media creator", () => {
   })
 
   it("keeps the model-first creation form in semantic top-to-bottom order", async () => {
-    renderCreator()
-    await chooseModel("Model B")
+    renderVideoCreator()
+    await screen.findByRole("combobox", { name: "Choose generation model" })
     const form = document.querySelector(".media-creator-form")!
     const ordered = [
       screen.getByRole("combobox", { name: "Choose generation model" }),
@@ -323,7 +349,10 @@ describe("Media creator", () => {
     renderCreator()
     expect(await screen.findByRole("combobox", { name: "Ratio" })).toBeTruthy()
     expect(screen.queryByRole("combobox", { name: "Duration" })).toBeNull()
-    await chooseModel("Model B")
+
+    cleanup()
+    renderVideoCreator()
+    await screen.findByRole("textbox", { name: "Media prompt" })
     expect(screen.getByRole("combobox", { name: "Choose generation model" }).textContent).toContain("Model B")
     expect(screen.getByRole("button", { name: "Choose image for Start frame" })).toBeTruthy()
     expect(screen.getByRole("button", { name: "Choose image for End frame" })).toBeTruthy()
@@ -343,7 +372,7 @@ describe("Media creator", () => {
   })
 
   it("shows only compatible media in an exact semantic slot", async () => {
-    renderCreator({ libraryFiles: [
+    renderCreator({ context: { workspace_id: 1, project_id: 7, project_type: "audiovisual", selection: { output_media_type: "video" } }, libraryFiles: [
       { id: 41, media_type: "image", name: "Character", filename: "character.webp" },
       { id: 42, media_type: "audio", name: "Voice", filename: "voice.wav" },
     ] })
@@ -364,7 +393,7 @@ describe("Media creator", () => {
       if (payload.role === "start-frame") resolveStart = resolve
       else resolveEnd = resolve
     })) as never)
-    renderCreator({ libraryFiles: [
+    renderVideoCreator({ libraryFiles: [
       { id: 41, media_type: "image", name: "Start only", filename: "start.webp" },
       { id: 42, media_type: "image", name: "End only", filename: "end.webp" },
     ] })
@@ -400,7 +429,7 @@ describe("Media creator", () => {
       ) ? "compatible" : "incompatible",
       reasons: [],
     })))) as never)
-    renderCreator({ libraryFiles: [
+    renderVideoCreator({ libraryFiles: [
       { id: 51, media_type: "image", name: "Valid subject", filename: "valid.png" },
       { id: 52, media_type: "image", name: "Too small subject", filename: "small.png" },
       { id: 53, media_type: "audio", name: "Valid voice", filename: "voice.wav" },
@@ -412,7 +441,7 @@ describe("Media creator", () => {
     expect(await screen.findByRole("option", { name: /Valid subject/ })).toBeTruthy()
     expect(screen.queryByRole("option", { name: /Too small subject/ })).toBeNull()
     expect(originsApi.mediaInputCompatibility).toHaveBeenCalledWith(
-      { workspace_id: 1, project_id: 7, project_type: "audiovisual" },
+      { workspace_id: 1, project_id: 7, project_type: "audiovisual", selection: { capability: "video", output_media_type: "video" } },
       expect.objectContaining({
         model_id: "kling-3.0-omni/text-to-video",
         operation: "text_to_video",
@@ -440,7 +469,7 @@ describe("Media creator", () => {
       { id: "single", name: "One look", type: "character", file_ids: [41] },
       { id: "bundle", name: "Two looks", type: "character", file_ids: [41, 42] },
     ] as never)
-    renderCreator({ context: { workspace_id: 8, project_id: 7, project_type: "audiovisual" }, libraryFiles: [
+    renderCreator({ context: { workspace_id: 8, project_id: 7, project_type: "audiovisual", selection: { output_media_type: "video" } }, libraryFiles: [
       { id: 41, media_type: "image", name: "Hero front" },
       { id: 42, media_type: "image", name: "Hero side" },
     ] })
@@ -457,7 +486,7 @@ describe("Media creator", () => {
     expect(await screen.findByText("Ready")).toBeTruthy()
     fireEvent.click(screen.getByRole("button", { name: "Regenerate" }))
     await waitFor(() => expect(originsApi.createMediaGeneration).toHaveBeenCalledWith({
-      context: { workspace_id: 1, project_id: 7, project_type: "audiovisual" },
+      context: { workspace_id: 1, project_id: 7, project_type: "audiovisual", selection: { capability: "image", output_media_type: "image" } },
       preset: saved.preset,
     }))
     fireEvent.click(screen.getByRole("button", { name: "Remix" }))
@@ -524,14 +553,14 @@ describe("Media creator", () => {
     expect(await screen.findByText("Saving failed")).toBeTruthy()
     fireEvent.click(screen.getByRole("button", { name: "Retry saving" }))
     await waitFor(() => expect(originsApi.retryMediaGenerationIngestion).toHaveBeenCalledWith(
-      { workspace_id: 1, project_id: 7, project_type: "audiovisual" },
+      { workspace_id: 1, project_id: 7, project_type: "audiovisual", selection: { capability: "image", output_media_type: "image" } },
       recovery.job_id,
     ))
   })
 
   it("keeps optional provider controls in one explicit settings surface", async () => {
     vi.mocked(originsApi.mediaModels).mockResolvedValue(kieCatalog as never)
-    renderCreator({ libraryFiles: [
+    renderVideoCreator({ libraryFiles: [
       { id: 41, media_type: "image", name: "Hero front" },
       { id: 42, media_type: "image", name: "Hero side" },
     ] })
@@ -547,7 +576,7 @@ describe("Media creator", () => {
 
   it("keeps the operator's creation type explicit when reference capacity is full", async () => {
     vi.mocked(originsApi.mediaModels).mockResolvedValue(kieCatalog as never)
-    renderCreator({ libraryFiles: [
+    renderVideoCreator({ libraryFiles: [
       { id: 41, media_type: "image", name: "Hero front" },
       { id: 42, media_type: "image", name: "Hero side" },
     ] })
@@ -572,7 +601,7 @@ describe("Media creator", () => {
 
   it("uses the source image ratio until custom shot direction is enabled", async () => {
     vi.mocked(originsApi.mediaModels).mockResolvedValue(kieCatalog as never)
-    renderCreator({ libraryFiles: [
+    renderVideoCreator({ libraryFiles: [
       { id: 41, media_type: "image", name: "Portrait source" },
     ] })
     await chooseMode("Image")
@@ -590,7 +619,7 @@ describe("Media creator", () => {
 
   it("shows shot planning in settings and explains why Create is unavailable", async () => {
     vi.mocked(originsApi.mediaModels).mockResolvedValue(kieCatalog as never)
-    renderCreator()
+    renderVideoCreator()
     fireEvent.change(await screen.findByRole("textbox", { name: "Media prompt" }), { target: { value: "A calm harbor at dawn" } })
     fireEvent.click(await screen.findByRole("button", { name: "Advanced settings" }))
     fireEvent.click(screen.getByRole("switch", { name: "Direct multiple shots" }))
@@ -601,7 +630,7 @@ describe("Media creator", () => {
 
   it("keeps conflicting creative modes mutually exclusive", async () => {
     vi.mocked(originsApi.mediaModels).mockResolvedValue(kieCatalog as never)
-    renderCreator()
+    renderVideoCreator()
     fireEvent.click(await screen.findByRole("button", { name: "Advanced settings" }))
     const direct = screen.getByRole("switch", { name: "Direct multiple shots" })
     const automatic = screen.getByRole("switch", { name: "Plan shots automatically" })
@@ -614,7 +643,7 @@ describe("Media creator", () => {
 
   it("does not invent a persistent subject when adding an ordinary reference", async () => {
     vi.mocked(originsApi.mediaModels).mockResolvedValue(kieCatalog as never)
-    renderCreator({ libraryFiles: [
+    renderVideoCreator({ libraryFiles: [
       { id: 41, media_type: "image", name: "Hero front" },
       { id: 42, media_type: "image", name: "Hero side" },
     ] })

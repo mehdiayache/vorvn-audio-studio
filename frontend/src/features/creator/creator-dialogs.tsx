@@ -1,9 +1,9 @@
 import { Button } from "@/components/ui/button"
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog"
-import { useCreator } from "./creator-controller"
+import { useSpeechCreator } from "./speech/speech-creator-controller"
 
 export function CreatorDialogs() {
-  const creator = useCreator()
+  const creator = useSpeechCreator()
   return <>
     <Dialog open={Boolean(creator.editorialCommand)} onOpenChange={(open) => { if (!open) creator.setEditorialCommand(null) }}>
       <DialogContent><DialogHeader><DialogTitle>Update this Part before generating?</DialogTitle><DialogDescription>The edited words become the Part’s script. The current audio remains available until the new recording succeeds.</DialogDescription></DialogHeader><DialogFooter><Button variant="outline" onClick={() => creator.setEditorialCommand(null)}>Cancel</Button><Button onClick={() => { const next = creator.editorialCommand; creator.setEditorialCommand(null); if (next) creator.continueGeneration(next, true) }}>Update Part and generate</Button></DialogFooter></DialogContent>

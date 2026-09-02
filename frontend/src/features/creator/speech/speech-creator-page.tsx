@@ -3,7 +3,7 @@ import { toast } from "sonner"
 
 import { RecordingClipCard, type RecordingClipView } from "@/components/recording-clip-card"
 import { ShellBreadcrumbs } from "@/components/shell-breadcrumbs"
-import { StandaloneCreatorHost } from "@/features/creator/standalone-creator-host"
+import { StandaloneSpeechCreatorHost } from "./standalone-speech-creator-host"
 import { ErrorState, InlineResourceError, PageLoading } from "@/components/state-panel"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { useGlobalPlayer } from "@/components/global-player-provider"
@@ -196,7 +196,7 @@ export function SpeechCreatorPage({ embedded = false, panelOnly = false, onLibra
 
   if (panelOnly) return <div className="speech-creator-panel">
     {voices.error && voices.config && <InlineResourceError message="Voice directory refresh failed. Existing voice data is preserved." retry={() => void voices.refresh()} />}
-    <StandaloneCreatorHost config={voices.config} directory={voices.directory} playingKey={player.source?.key} playerPlaying={player.state === "playing"} generationState={generationState} onGenerate={generate} onPlay={(source) => void player.toggleSource(source)} />
+    <StandaloneSpeechCreatorHost config={voices.config} directory={voices.directory} playingKey={player.source?.key} playerPlaying={player.state === "playing"} generationState={generationState} onGenerate={generate} onPlay={(source) => void player.toggleSource(source)} />
   </div>
 
   const Root = embedded ? "div" : "main"
@@ -205,7 +205,7 @@ export function SpeechCreatorPage({ embedded = false, panelOnly = false, onLibra
     {!embedded && <div className="speech-creator-page-location"><ShellBreadcrumbs leaf="Create speech" />{voices.error && voices.config && <InlineResourceError message="Voice directory refresh failed. Existing voice data is preserved." retry={() => void voices.refresh()} />}</div>}
     {embedded && voices.error && voices.config && <InlineResourceError message="Voice directory refresh failed. Existing voice data is preserved." retry={() => void voices.refresh()} />}
     <div className="speak-workbench">
-      <section className="speak-workspace"><StandaloneCreatorHost config={voices.config} directory={voices.directory} playingKey={player.source?.key} playerPlaying={player.state === "playing"} generationState={generationState} onGenerate={generate} onPlay={(source) => void player.toggleSource(source)} /></section>
+      <section className="speak-workspace"><StandaloneSpeechCreatorHost config={voices.config} directory={voices.directory} playingKey={player.source?.key} playerPlaying={player.state === "playing"} generationState={generationState} onGenerate={generate} onPlay={(source) => void player.toggleSource(source)} /></section>
       <aside className="speak-session" aria-live="polite">
         <header>
           <div><span className="eyebrow">{workspaceName}</span><h2>This session</h2></div>

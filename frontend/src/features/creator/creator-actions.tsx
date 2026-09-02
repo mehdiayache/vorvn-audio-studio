@@ -1,10 +1,10 @@
 import { CircleDollarSign, Plus, WandSparkles } from "lucide-react"
 
 import { Button } from "@/components/ui/button"
-import { useCreator } from "./creator-controller"
+import { useSpeechCreator } from "./speech/speech-creator-controller"
 import { CreatorCapabilityFooter } from "./panel/creator-capability-panel"
 
-function primaryLabel(creator: ReturnType<typeof useCreator>) {
+function primaryLabel(creator: ReturnType<typeof useSpeechCreator>) {
   if (creator.generationState === "recovering") return "Checking current session…"
   if (creator.busy === "generate" || creator.generationState === "active") return "Generating audio…"
   if (!creator.projectId) return "Generate audio"
@@ -14,7 +14,7 @@ function primaryLabel(creator: ReturnType<typeof useCreator>) {
 }
 
 export function CreatorActions({ capabilityPanel = false }: { capabilityPanel?: boolean }) {
-  const creator = useCreator()
+  const creator = useSpeechCreator()
   const textUnresolved = Boolean(creator.textSession.busy || creator.textSession.review || creator.textSession.pending)
   const ssmlInvalid = creator.enableSsml && !creator.ssmlValidation.valid
   const blocked = !creator.config?.has_key || !creator.textSession.text.trim() || !creator.currentRoute || !creator.outputFormatSupported || Boolean(creator.busy) || Boolean(creator.generationState) || textUnresolved || creator.taggedIncompatible || ssmlInvalid || creator.recovery.status === "loading" || creator.recovery.status === "conflict"

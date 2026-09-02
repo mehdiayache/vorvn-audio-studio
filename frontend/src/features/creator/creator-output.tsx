@@ -1,9 +1,9 @@
 import { SpeechModelIdentity } from "@/components/speech-model-identity"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { useCreator } from "./creator-controller"
+import { useSpeechCreator } from "./speech/speech-creator-controller"
 
 export function CreatorOutput() {
-  const creator = useCreator()
+  const creator = useSpeechCreator()
   const controls = creator.capabilityControls
   return <section className="creator-section">
     <header><div><span className="eyebrow">Output</span><h3>File settings</h3></div></header>

@@ -5,8 +5,8 @@ import { afterEach, describe, expect, it, vi } from "vitest"
 const api = vi.hoisted(() => ({
   attachProjectLibraryFile: vi.fn(), detachProjectLibraryFile: vi.fn(),
   mediaModels: vi.fn().mockResolvedValue({
-    operations: [{ id: "image", label: "Image", detail: "Create a still visual" }],
-    models: [{ id: "model-a", label: "Model A", provider: "Prototype Lab", version: "a-1", description: "Still images", operations: [{ operation: "image", output_media_type: "image", prompt: { supported: true, required: true, negative_prompt: true }, inputs: [{ role: "reference", label: "Reference", required: false, media_types: ["image"], max: 1 }], ratios: ["1:1", "16:9"], resolutions: ["1K", "2K"], durations: [], fps: [], supports_seed: true, supports_cancel: true }] }],
+    operations: [{ id: "text_to_video", label: "Text", detail: "Create a video from a written direction" }],
+    models: [{ id: "model-a", label: "Model A", provider: "Prototype Lab", version: "a-1", description: "Videos", operations: [{ operation: "text_to_video", output_media_type: "video", prompt: { supported: true, required: true, negative_prompt: true }, inputs: [{ role: "reference", label: "Reference", required: false, media_types: ["image"], max: 1 }], ratios: ["16:9", "9:16"], resolutions: ["720p", "1080p"], durations: [5], fps: [24], supports_seed: true, supports_cancel: true }] }],
   }),
   mediaGenerations: vi.fn().mockResolvedValue([]),
   mediaInputCompatibility: vi.fn().mockResolvedValue([]),
@@ -46,9 +46,9 @@ describe("Project workflow", () => {
     expect(screen.getByRole("heading", { name: "No media collected yet" })).toBeTruthy()
     expect(await screen.findByRole("textbox", { name: "Media prompt" })).toBeTruthy()
     expect(screen.getByRole("navigation", { name: "Creation capability" })).toBeTruthy()
-    expect(["Media", "Speech", "Music", "SFX"].map((name) => screen.getByRole("button", { name }).getAttribute("aria-pressed"))).toEqual(["true", "false", "false", "false"])
+    expect(["Image", "Video", "Speech", "Music", "SFX"].map((name) => screen.getByRole("button", { name }).getAttribute("aria-pressed"))).toEqual(["false", "true", "false", "false", "false"])
     expect(screen.queryByRole("button", { name: "Subtitles" })).toBeNull()
-    expect(screen.getByRole("radio", { name: "Image: Create a still visual" })).toBeTruthy()
+    expect(screen.getByRole("radio", { name: "Text: Create a video from a written direction" })).toBeTruthy()
     expect(screen.getByRole("combobox", { name: "Choose generation model" }).textContent).toContain("Model A")
     expect(screen.getByRole("button", { name: "Choose image for Reference" })).toBeTruthy()
     expect(screen.queryByRole("button", { name: "Add a reference" })).toBeNull()

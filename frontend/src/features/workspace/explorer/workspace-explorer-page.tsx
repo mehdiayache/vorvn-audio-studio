@@ -30,7 +30,8 @@ const actionPresentation: Record<string, { icon: LucideIcon; href?: string; tone
   "generate-speech": { icon: Mic2, href: "/origins/create/generate-speech", tone: "speech" },
   "generate-music": { icon: Music2, href: "/origins/create/generate-music", tone: "music" },
   "generate-sound-effect": { icon: Waves, href: "/origins/create/generate-sound-effect", tone: "sound" },
-  "generate-media": { icon: WandSparkles, href: "/origins/create/generate-media", tone: "media" },
+  "generate-image": { icon: FileImage, href: "/origins/create/generate-image", tone: "image" },
+  "generate-video": { icon: FileVideo2, href: "/origins/create/generate-video", tone: "video" },
   "create-subtitles": { icon: Captions, href: "/origins/create/create-subtitles", tone: "subtitle" },
 }
 
@@ -38,16 +39,8 @@ type CreateShortcut = Pick<CreationActionSummary, "id" | "label" | "description"
 
 function createShortcuts(actions: CreationActionSummary[]): CreateShortcut[] {
   const byId = new Map(actions.map((action) => [action.id, action]))
-  const ordered: CreateShortcut[] = ["generate-speech", "generate-music", "generate-sound-effect", "create-subtitles"]
+  return ["generate-speech", "generate-music", "generate-sound-effect", "generate-image", "generate-video", "create-subtitles"]
     .flatMap((id) => byId.get(id) ? [byId.get(id)!] : [])
-  if (byId.has("generate-image") || byId.has("generate-video")) {
-    ordered.splice(Math.min(3, ordered.length), 0, {
-      id: "generate-media",
-      label: "Generate media",
-      description: "Create images or videos with any compatible model from one Creator.",
-    })
-  }
-  return ordered
 }
 
 const fileIcons: Record<string, LucideIcon> = {

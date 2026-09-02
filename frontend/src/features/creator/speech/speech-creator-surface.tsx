@@ -3,31 +3,31 @@ import { Expand, X } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { OperatorIconButton } from "@/components/operator-action"
 import { cn } from "@/lib/utils"
-import { CreatorActions } from "./creator-actions"
-import type { CreatorController } from "./creator-controller"
-import { CreatorDialogs } from "./creator-dialogs"
-import { CreatorOutput } from "./creator-output"
-import { CreatorPerformance } from "./creator-performance"
-import { CreatorProvider, type CreatorSurfaceProps, useCreatorController } from "./creator-controller"
-import { CreatorRoleEditor } from "./creator-role-editor"
-import { CreatorWho } from "./creator-who"
-import { CreatorWords } from "./creator-words"
-import { CreatorCapabilityBody, CreatorCapabilityPanel } from "./panel/creator-capability-panel"
+import { CreatorActions } from "../creator-actions"
+import { CreatorDialogs } from "../creator-dialogs"
+import { CreatorOutput } from "../creator-output"
+import { CreatorPerformance } from "../creator-performance"
+import { CreatorRoleEditor } from "../creator-role-editor"
+import { CreatorWho } from "../creator-who"
+import { CreatorWords } from "../creator-words"
+import { CreatorCapabilityBody, CreatorCapabilityPanel } from "../panel/creator-capability-panel"
+import type { SpeechCreatorController } from "./speech-creator-controller"
+import { SpeechCreatorProvider, type SpeechCreatorSurfaceProps, useSpeechCreatorController } from "./speech-creator-controller"
 
-import "./creator.css"
+import "../creator.css"
 
-export type CreatorPresentation = "inline" | "stage" | "mega" | "dialog" | "panel"
+export type SpeechCreatorPresentation = "inline" | "stage" | "mega" | "dialog" | "panel"
 
-export function ControlledCreatorSurface({ creator, presentation = "mega", onExpand, onClose }: {
-  creator: CreatorController
-  presentation?: CreatorPresentation
+export function ControlledSpeechCreatorSurface({ creator, presentation = "mega", onExpand, onClose }: {
+  creator: SpeechCreatorController
+  presentation?: SpeechCreatorPresentation
   onExpand?: () => void
   onClose?: () => void
 }) {
   const standalone = presentation === "mega"
   const workstation = standalone || presentation === "dialog"
   const panel = presentation === "panel"
-  return <CreatorProvider value={creator}>
+  return <SpeechCreatorProvider value={creator}>
     <div className={cn("speech-creator creator-surface", `is-${presentation}`)}>
       {!panel && <header className="creator-context-bar">
         <div className="creator-context-copy">
@@ -73,10 +73,10 @@ export function ControlledCreatorSurface({ creator, presentation = "mega", onExp
       {!panel && <CreatorActions />}
       <CreatorDialogs />
     </div>
-  </CreatorProvider>
+  </SpeechCreatorProvider>
 }
 
-export function CreatorSurface(props: CreatorSurfaceProps & { presentation?: CreatorPresentation; onExpand?: () => void; onClose?: () => void }) {
-  const creator = useCreatorController(props)
-  return <ControlledCreatorSurface creator={creator} presentation={props.presentation} onExpand={props.onExpand} onClose={props.onClose} />
+export function SpeechCreatorSurface(props: SpeechCreatorSurfaceProps & { presentation?: SpeechCreatorPresentation; onExpand?: () => void; onClose?: () => void }) {
+  const creator = useSpeechCreatorController(props)
+  return <ControlledSpeechCreatorSurface creator={creator} presentation={props.presentation} onExpand={props.onExpand} onClose={props.onClose} />
 }

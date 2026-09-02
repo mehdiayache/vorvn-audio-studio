@@ -50,6 +50,17 @@ vi.mock("@/features/creator/subtitles/subtitle-creator-page", () => ({
   SubtitleCreatorPage: ({ embedded }: { embedded?: boolean }) => <div data-testid="subtitle-creator" data-embedded={String(embedded)}>Subtitle controls</div>,
 }))
 
+vi.mock("@/features/creator/media/media-creator", () => ({
+  MediaCreator: (props: {
+    context: { selection?: { output_media_type?: string } }
+    renderWorkspace: (workspace: { creator: React.ReactNode; library: React.ReactNode; creatorDetail?: string }) => React.ReactNode
+  }) => props.renderWorkspace({
+    creatorDetail: props.context.selection?.output_media_type,
+    creator: <div data-testid="media-creator" data-output={props.context.selection?.output_media_type}>Media controls</div>,
+    library: <div>Shared Library</div>,
+  }),
+}))
+
 vi.mock("@/lib/api", () => ({ originsApi: {
   keepGeneratedAudioInWorkspace: vi.fn(async () => ({ file: { id: 9 }, duplicate: false })),
 } }))
@@ -86,5 +97,21 @@ describe("CreateCreatorPage", () => {
     expect(screen.getAllByText(new RegExp(title)).length).toBeGreaterThan(0)
     const panel = await screen.findByTestId(testId)
     expect(panel.getAttribute("data-embedded")).toBe("true")
+  })
+
+  it.each([
+    ["generate-image", "Create image", "image"],
+    ["generate-video", "Create video", "video"],
+  ])("opens %s through the universal CreatorHost", async (actionId, title, capability) => {
+    render(<MemoryRouter initialEntries={[`/origins/create/${actionId}`]}><Routes><Route path="/origins/create/:actionId" element={<CreateCreatorPage />} /></Routes></MemoryRouter>)
+
+    expect(screen.getByRole("dialog", { name: title })).toBeTruthy()
+    const panel = await screen.findByTestId("media-creator")
+    expect(panel.getAttribute("data-output")).toBe(capability)
+    expect(screen.getByRole("button", { name: capability === "image" ? "Image" : "Video" }).getAttribute("aria-pressed")).toBe("true")
+    expect(screen.getByText("Shared Library")).toBeTruthy()
+
+    fireEvent.click(screen.getByRole("button", { name: "Speech" }))
+    expect(await screen.findByTestId("speech-creator")).toBeTruthy()
   })
 })

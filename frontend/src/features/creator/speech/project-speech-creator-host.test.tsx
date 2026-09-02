@@ -3,7 +3,7 @@ import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/re
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
 
 import { originsApi } from "@/lib/api"
-import { ProjectCreatorSession } from "./project-creator-host"
+import { ProjectSpeechCreatorSession as ProjectCreatorSession } from "./project-speech-creator-host"
 
 beforeEach(() => {
   vi.stubGlobal("ResizeObserver", class { observe() {}; unobserve() {}; disconnect() {} })

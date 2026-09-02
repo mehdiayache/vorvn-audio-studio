@@ -3,10 +3,10 @@ import { routeSelectionId } from "@/lib/creator-contract"
 import { CreatorLanguagePicker } from "./creator-language-picker"
 import { CreatorMethodPicker } from "./creator-method-picker"
 import { CreatorModelPicker } from "./creator-model-picker"
-import { useCreator } from "./creator-controller"
+import { useSpeechCreator } from "./speech/speech-creator-controller"
 
 export function CreatorWho() {
-  const creator = useCreator()
+  const creator = useSpeechCreator()
   return <section className="creator-recording-bar" aria-label="Voice and recording context">
     <div className="creator-context-field creator-model-field">
       <span className="creator-field-label">Model</span>

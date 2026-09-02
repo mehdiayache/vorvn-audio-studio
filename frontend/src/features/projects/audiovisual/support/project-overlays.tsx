@@ -2,7 +2,7 @@ import { useState } from "react"
 
 import { ProjectToolDialog, type ProjectToolKind } from "@/features/projects/audiovisual/project-tools"
 import type { FileUpdateInput, FileUploadInput, CatalogKeepInput, GeneratedKeepInput } from "@/features/workspace/library/audio-library"
-import { ProjectCreatorDialog } from "@/features/creator/project-creator-host"
+import { ProjectSpeechCreatorDialog } from "@/features/creator/speech/project-speech-creator-host"
 import { DeleteConfirmationDialog } from "@/components/delete-confirmation-dialog"
 import { ActionButton } from "@/components/operator-action"
 import { Button } from "@/components/ui/button"
@@ -61,7 +61,7 @@ export default function ProjectOverlays({ tool, project, nextPartNumber, insertA
     }
   }
   return <>
-    {tool === "speech" && <ProjectCreatorDialog
+    {tool === "speech" && <ProjectSpeechCreatorDialog
       title={creatorPart ? `Edit ${formatAuthoredRole(creatorPart.authored_role) || "speech"} · Part ${formatPartNumber(creatorPart.position ?? 0)}` : "Add speech"}
       description={creatorPart?.clip_id ? "Change the words, Voice or delivery, then generate again to replace the current audio." : creatorPart ? "Finish this Draft and generate its first recording." : insertBeforePartId ? "Insert at the selected Script position." : `Add as Part ${nextPartNumber}.`}
       projectId={projectId}

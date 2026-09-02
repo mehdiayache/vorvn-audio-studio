@@ -1,6 +1,6 @@
-import { useEffect, useMemo, useRef, useState, type ComponentPropsWithoutRef, type ReactNode, type Ref } from "react"
+import { useEffect, useMemo, useRef, useState, type ReactNode } from "react"
 
-import { CreatorLibraryWorkspace } from "../library/creator-library-workspace"
+import type { CreatorHostWorkspace } from "../creator-host"
 import { originsApi, type CreatorContext } from "@/lib/api"
 import type { SavedVisualReference, WorkspaceFile } from "@/types/domain"
 import { visualFileName, visualFilePosterUrl } from "@/features/projects/audiovisual/library/visual-files"
@@ -61,11 +61,8 @@ function initialHiddenRequests(context: CreatorContext) {
   }
 }
 
-export function MediaCreator({ context, createOpen, onCreateOpenChange, creatorNavigation, uploading, uploadLabel, libraryFiles, recentFileIds = [], usageCounts, onUploadReference, onGenerationOutputReady, onPreviewGenerated, onAddGeneratedToTimeline, renderLibrary, workspacePresentation = "workspace", libraryPaneRef, libraryPaneProps }: {
+export function MediaCreator({ context, uploading, uploadLabel, libraryFiles, recentFileIds = [], usageCounts, onUploadReference, onGenerationOutputReady, onPreviewGenerated, onAddGeneratedToTimeline, renderLibrary, renderWorkspace }: {
   context: CreatorContext
-  createOpen?: boolean
-  onCreateOpenChange?: (open: boolean) => void
-  creatorNavigation?: ReactNode
   uploading: boolean
   uploadLabel: string
   libraryFiles: WorkspaceFile[]
@@ -76,9 +73,7 @@ export function MediaCreator({ context, createOpen, onCreateOpenChange, creatorN
   onPreviewGenerated?: (file: WorkspaceFile) => void
   onAddGeneratedToTimeline?: (file: WorkspaceFile) => Promise<void>
   renderLibrary?: (generatedOutputIds: Set<number>, generationItems: ProjectLibraryCreationItem[]) => ReactNode
-  workspacePresentation?: "workspace" | "workstation"
-  libraryPaneRef?: Ref<HTMLElement>
-  libraryPaneProps?: Omit<ComponentPropsWithoutRef<"main">, "children" | "className">
+  renderWorkspace: (workspace: CreatorHostWorkspace) => ReactNode
 }) {
   const workspaceId = context.workspace_id
   const preferredOutputType = context.selection?.output_media_type === "image" || context.selection?.output_media_type === "video"
@@ -102,15 +97,12 @@ export function MediaCreator({ context, createOpen, onCreateOpenChange, creatorN
   const [savedReferences, setSavedReferences] = useState<SavedVisualReference[]>([])
   const [saveReferenceOpen, setSaveReferenceOpen] = useState(false)
   const [creatorError, setCreatorError] = useState("")
-  const [internalCreateOpen, setInternalCreateOpen] = useState(true)
   const [hiddenRequestIds, setHiddenRequestIds] = useState(() => initialHiddenRequests(context))
   const slotUploadRef = useRef<HTMLInputElement>(null)
   const pickerRequestId = useRef(0)
   const pickerAbort = useRef<AbortController | null>(null)
   const refreshedOutputIds = useRef(new Set<number>())
   const { generations, submitting, workingId, create, cancel, confirm, retryIngestion } = useMediaGenerations(context, setCreatorError)
-  const panelOpen = createOpen ?? internalCreateOpen
-  const setPanelOpen = onCreateOpenChange ?? setInternalCreateOpen
   const generatedOutputIds = useMemo(() => new Set(generations.flatMap(({ output_file_ids }) => output_file_ids)), [generations])
   const activeEstimate = useMemo(() => generations
     .filter(({ status, needs_confirmation }) => needs_confirmation || status === "queued" || status === "generating")
@@ -178,7 +170,9 @@ export function MediaCreator({ context, createOpen, onCreateOpenChange, creatorN
     })
   }, [generations, onGenerationOutputReady])
 
-  const families = useMemo(() => catalog ? modelFamilies(catalog.models) : [], [catalog])
+  const families = useMemo(() => catalog ? modelFamilies(catalog.models.filter((candidate) => (
+    !preferredOutputType || candidate.operations.some(({ output_media_type }) => output_media_type === preferredOutputType)
+  ))) : [], [catalog, preferredOutputType])
   const preferredOutputUnavailable = Boolean(
     catalog && preferredOutputType
     && !families.some((candidate) => familyModes(candidate).some(
@@ -551,19 +545,13 @@ export function MediaCreator({ context, createOpen, onCreateOpenChange, creatorN
     />
   }
 
-  if (preferredOutputUnavailable || !catalog || !model || !capability) return <CreatorLibraryWorkspace
-    className="media-creator-workspace"
-    presentation={workspacePresentation}
-    libraryPaneRef={libraryPaneRef}
-    libraryPaneProps={libraryPaneProps}
-    creatorOpen={panelOpen}
-    onCreatorOpenChange={setPanelOpen}
-    creatorNavigation={creatorNavigation}
-    creatorDetail={preferredOutputUnavailable ? `${preferredOutputType === "image" ? "Image" : "Video"} unavailable` : "Media"}
-    libraryDetail={context.project_id ? "Files collected for this Project" : "Reusable Workspace Files"}
-    creator={<div className="media-creator-loading">{preferredOutputUnavailable ? `Connect an ${preferredOutputType}-capable model to use this Creation Action.` : "Loading Media capabilities…"}{creatorError && <p className="media-creator-error" role="alert">{creatorError}</p>}</div>}
-    library={renderLibrary?.(new Set(), [])}
-  />
+  if (preferredOutputUnavailable || !catalog || !model || !capability) return renderWorkspace({
+    className: "media-creator-workspace",
+    creatorDetail: preferredOutputUnavailable ? `${preferredOutputType === "image" ? "Image" : "Video"} unavailable` : preferredOutputType === "image" ? "Image" : "Video",
+    libraryDetail: context.project_id ? "Files collected for this Project" : "Reusable Workspace Files",
+    creator: <div className="media-creator-loading">{preferredOutputUnavailable ? `Connect an ${preferredOutputType}-capable model to use this Creation Action.` : "Loading Media capabilities…"}{creatorError && <p className="media-creator-error" role="alert">{creatorError}</p>}</div>,
+    library: renderLibrary?.(new Set(), []) || null,
+  })
 
   const generationItems = generations.filter(({ id }) => !hiddenRequestIds.has(id)).map((generation) => ({
     id: generation.id,
@@ -573,17 +561,11 @@ export function MediaCreator({ context, createOpen, onCreateOpenChange, creatorN
     node: generationCard(generation, true),
   }))
   return <>
-    <CreatorLibraryWorkspace
-      className="media-creator-workspace"
-      presentation={workspacePresentation}
-      libraryPaneRef={libraryPaneRef}
-      libraryPaneProps={libraryPaneProps}
-      creatorOpen={panelOpen}
-      onCreatorOpenChange={setPanelOpen}
-      creatorNavigation={creatorNavigation}
-      creatorDetail="Media"
-      libraryDetail={`${context.project_id ? recentFileIds.length : libraryFiles.length} Files · ${generations.length} request${generations.length === 1 ? "" : "s"}${activeEstimate > 0 ? " · generation pending" : ""}`}
-      creator={<><MediaCreatorInput
+    {renderWorkspace({
+      className: "media-creator-workspace",
+      creatorDetail: preferredOutputType === "image" ? "Image" : "Video",
+      libraryDetail: `${context.project_id ? recentFileIds.length : libraryFiles.length} Files · ${generations.length} request${generations.length === 1 ? "" : "s"}${activeEstimate > 0 ? " · generation pending" : ""}`,
+      creator: <><MediaCreatorInput
       prompt={prompt} operations={catalog.operations.filter(({ id }) => modes.some((mode) => mode.operation === id))} operation={operation} capability={presentedCapability || capability}
       model={model} models={families} modelFamilyId={family?.id || ""} attachments={visibleAttachments} missingRoles={missing}
       ratio={ratio} resolution={resolution} duration={duration} advanced={advanced}
@@ -601,9 +583,9 @@ export function MediaCreator({ context, createOpen, onCreateOpenChange, creatorN
       canSaveReference={visibleAttachments.some(({ fileId }) => fileId)}
       onSaveReference={() => setSaveReferenceOpen(true)}
       onSubmit={() => void createGeneration()}
-      />{creatorError && <p className="media-creator-error" role="alert">{creatorError}</p>}</>}
-      library={renderLibrary ? renderLibrary(generatedOutputIds, generationItems) : <div className="media-generation-list" aria-label="Media requests">{generations.map((generation) => generationCard(generation))}</div>}
-    />
+      />{creatorError && <p className="media-creator-error" role="alert">{creatorError}</p>}</>,
+      library: renderLibrary ? renderLibrary(generatedOutputIds, generationItems) : <div className="media-generation-list" aria-label="Media requests">{generations.map((generation) => generationCard(generation))}</div>,
+    })}
     <input ref={slotUploadRef} hidden multiple type="file" accept={pickerFileAccept} onChange={(event) => { if (event.target.files?.length) receiveFiles(Array.from(event.target.files), pickerRole); event.target.value = "" }} />
     <MediaReferenceLibraryDialog open={libraryOpen} title={pickerSlot?.label} files={libraryFiles} recentFileIds={recentFileIds} savedReferences={compatibleSavedReferences} acceptedMediaTypes={pickerMediaTypes} compatibility={pickerCompatibility} checking={pickerChecking} onOpenChange={changeLibraryOpen} onAdd={(file) => void receiveFile(file, pickerRole)} onAddReference={applySavedReference} onUpload={() => slotUploadRef.current?.click()} />
     <SavedReferenceCreateDialog open={saveReferenceOpen} count={visibleAttachments.filter(({ fileId }) => fileId).length} onOpenChange={setSaveReferenceOpen} onCreate={saveCurrentReference} />

@@ -26,7 +26,7 @@ import { getVoiceIdentities, routesForIdentity, type VoiceChoice, type VoiceIden
 import { ssmlToPlainText, validateSsmlDocument, wrapPlainTextAsSsml } from "@/lib/ssml"
 import type { DurableJob, GeneratePayload, GenerateResult, PartEditorialUpdate, PlayerSource, ProjectPart, StudioConfig, VoiceDirectory } from "@/types/domain"
 
-export type CreatorSurfaceProps = {
+export type SpeechCreatorSurfaceProps = {
   projectId?: number
   nextPartNumber?: number
   insertAt?: number | null
@@ -51,7 +51,7 @@ type PendingGeneration = {
   updateEditorial: boolean
 }
 
-export function useCreatorController({ projectId, nextPartNumber = 1, insertAt = null, insertBeforePartId = null, part = null, config, directory, playingKey, playerPlaying, onSave, onUpdateEditorial, onGenerate, onPlay, generationState = null, visible = true }: CreatorSurfaceProps) {
+export function useSpeechCreatorController({ projectId, nextPartNumber = 1, insertAt = null, insertBeforePartId = null, part = null, config, directory, playingKey, playerPlaying, onSave, onUpdateEditorial, onGenerate, onPlay, generationState = null, visible = true }: SpeechCreatorSurfaceProps) {
   const [route, setRoute] = useState(routeSelectionFromPart(part))
   const [identityId, setIdentityId] = useState(part?.voice_identity_id || "")
   const [language, setLanguage] = useState(part?.language || "Auto")
@@ -327,16 +327,16 @@ export function useCreatorController({ projectId, nextPartNumber = 1, insertAt =
   }
 }
 
-export type CreatorController = ReturnType<typeof useCreatorController>
+export type SpeechCreatorController = ReturnType<typeof useSpeechCreatorController>
 
-const CreatorContext = createContext<CreatorController | null>(null)
+const SpeechCreatorContext = createContext<SpeechCreatorController | null>(null)
 
-export function CreatorProvider({ value, children }: { value: CreatorController; children: ReactNode }) {
-  return <CreatorContext.Provider value={value}>{children}</CreatorContext.Provider>
+export function SpeechCreatorProvider({ value, children }: { value: SpeechCreatorController; children: ReactNode }) {
+  return <SpeechCreatorContext.Provider value={value}>{children}</SpeechCreatorContext.Provider>
 }
 
-export function useCreator() {
-  const value = useContext(CreatorContext)
-  if (!value) throw new Error("Creator components must be rendered inside CreatorProvider.")
+export function useSpeechCreator() {
+  const value = useContext(SpeechCreatorContext)
+  if (!value) throw new Error("Speech Creator components must be rendered inside SpeechCreatorProvider.")
   return value
 }

@@ -2,12 +2,12 @@ import { CheckCircle2, ChevronDown, CircleAlert, Mic2 } from "lucide-react"
 import { useState } from "react"
 
 import { cn } from "@/lib/utils"
-import type { CreatorPresentation } from "./creator-surface"
-import { useCreator } from "./creator-controller"
+import type { SpeechCreatorPresentation } from "./speech/speech-creator-surface"
+import { useSpeechCreator } from "./speech/speech-creator-controller"
 import { CreatorWho } from "./creator-who"
 
-export function CreatorRecordingContext({ presentation }: { presentation: CreatorPresentation }) {
-  const creator = useCreator()
+export function CreatorRecordingContext({ presentation }: { presentation: SpeechCreatorPresentation }) {
+  const creator = useSpeechCreator()
   const incomplete = !creator.selectedIdentity || !creator.currentRoute
   const [open, setOpen] = useState(false)
 
