@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from origins.infrastructure.postgres.files import FileRepository
+from origins.infrastructure.postgres.projects import ProjectRepository
 from origins.infrastructure.postgres.session import read_only, transaction
 
 
@@ -21,6 +22,7 @@ class WorkspaceRepository:
                 "production_count": int(row[6]),
                 "file_count": int(row[7]),
                 "folder_count": int(row[8]),
+                "project_count": int(row[9]),
             })
         return item
 
@@ -31,12 +33,14 @@ class WorkspaceRepository:
                        workspace.description, workspace.created_at, workspace.updated_at,
                        count(DISTINCT production.id),
                        count(DISTINCT file.id),
-                       count(DISTINCT folder.id)
+                       count(DISTINCT folder.id),
+                       count(DISTINCT project.id)
                   FROM workspaces workspace
                   LEFT JOIN productions production
                     ON production.workspace_id = workspace.id
                   LEFT JOIN files file ON file.workspace_id = workspace.id
                   LEFT JOIN folders folder ON folder.workspace_id = workspace.id
+                  LEFT JOIN projects project ON project.workspace_id = workspace.id
                  GROUP BY workspace.id
                  ORDER BY workspace.updated_at DESC, workspace.id
             """)
@@ -68,7 +72,8 @@ class WorkspaceRepository:
         with read_only() as cursor:
             cursor.execute("""
                 SELECT production.id, production.public_id, production.folder_id,
-                       production.production_type, production.name, production.description,
+                       production.project_id, production.production_type,
+                       production.name, production.description,
                        production.status, production.updated_at,
                        count(DISTINCT production_file.file_id),
                        count(DISTINCT part.id)
@@ -86,11 +91,14 @@ class WorkspaceRepository:
             return [{
                 "id": int(row[0]), "public_id": str(row[1]),
                 "workspace_id": workspace_id, "folder_id": row[2],
-                "production_type": row[3], "name": row[4],
-                "description": row[5], "status": row[6],
-                "updated_at": row[7].isoformat(),
-                "file_count": int(row[8]), "part_count": int(row[9]),
+                "project_id": row[3], "production_type": row[4],
+                "name": row[5], "description": row[6], "status": row[7],
+                "updated_at": row[8].isoformat(),
+                "file_count": int(row[9]), "part_count": int(row[10]),
             } for row in cursor.fetchall()]
+
+    def projects(self, workspace_id: int) -> list[dict]:
+        return ProjectRepository().list_for_workspace(workspace_id)
 
     def files(self, workspace_id: int) -> list[dict]:
         return FileRepository().list_for_workspace(workspace_id)
@@ -111,7 +119,8 @@ class WorkspaceRepository:
         with read_only() as cursor:
             cursor.execute("""
                 SELECT production.id, production.public_id, production.workspace_id,
-                       production.folder_id, production.production_type, production.name,
+                       production.folder_id, production.project_id,
+                       production.production_type, production.name,
                        production.description, production.status, production.updated_at,
                        count(DISTINCT production_file.file_id),
                        count(DISTINCT part.id)
@@ -131,10 +140,10 @@ class WorkspaceRepository:
         return {
             "id": int(row[0]), "public_id": str(row[1]),
             "workspace_id": int(row[2]), "folder_id": row[3],
-            "production_type": row[4], "name": row[5],
-            "description": row[6], "status": row[7],
-            "updated_at": row[8].isoformat(), "file_count": int(row[9]),
-            "part_count": int(row[10]),
+            "project_id": row[4], "production_type": row[5], "name": row[6],
+            "description": row[7], "status": row[8],
+            "updated_at": row[9].isoformat(), "file_count": int(row[10]),
+            "part_count": int(row[11]),
         }
 
     def create_folder(

@@ -23,6 +23,9 @@ class FakeWorkspaceRecords:
     def productions(self, workspace_id):
         return [{"id": 12, "workspace_id": workspace_id, "production_type": "audiovisual"}]
 
+    def projects(self, workspace_id):
+        return [{"id": 7, "workspace_id": workspace_id, "name": "Launch"}]
+
     def files(self, workspace_id):
         return [{"id": 31, "workspace_id": workspace_id, "name": "Score.wav"}]
 
@@ -48,6 +51,7 @@ class WorkspaceServiceTests(unittest.TestCase):
         overview = self.service.overview(4)
         self.assertEqual(overview["workspace"]["name"], "Hudson")
         self.assertEqual(overview["folders"][0]["workspace_id"], 4)
+        self.assertEqual(overview["projects"][0]["name"], "Launch")
         self.assertEqual(overview["productions"][0]["production_type"], "audiovisual")
         self.assertEqual(overview["files"][0]["name"], "Score.wav")
 

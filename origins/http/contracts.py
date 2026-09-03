@@ -23,6 +23,7 @@ class ResourceUpdate(BaseModel):
     settings: dict[str, Any] | None = None
     status: str | None = None
     series_id: int | None = None
+    project_id: int | None = Field(default=None, gt=0)
 
     def changes(self) -> dict[str, Any]:
         return self.model_dump(exclude_unset=True)

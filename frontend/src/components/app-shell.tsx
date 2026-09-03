@@ -51,7 +51,7 @@ export function OriginsRailToggle({ className, tooltipSide = "right" }: { classN
 }
 
 type StudioNavigationItem = {
-  id: "create" | "productions" | "files" | "voices" | "activity" | "settings"
+  id: "create" | "projects" | "productions" | "files" | "voices" | "activity" | "settings"
   label: string
   icon: LucideIcon
   href: string
@@ -60,7 +60,8 @@ type StudioNavigationItem = {
 
 export const originsNavigation: StudioNavigationItem[] = [
   { id: "create", label: "Create", icon: Sparkles, href: "/origins/", group: "primary" },
-  { id: "productions", label: "Productions", icon: FolderKanban, href: "/origins/productions", group: "primary" },
+  { id: "projects", label: "Projects", icon: FolderKanban, href: "/origins/projects", group: "primary" },
+  { id: "productions", label: "Productions", icon: Clapperboard, href: "/origins/productions", group: "primary" },
   { id: "files", label: "Files", icon: Files, href: "/origins/files", group: "primary" },
   { id: "voices", label: "Voices", icon: UsersRound, href: "/origins/voices", group: "primary" },
   { id: "activity", label: "Activity", icon: Activity, href: "/origins/activity", group: "tools" },

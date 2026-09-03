@@ -17,6 +17,7 @@ class WorkspaceResponse(BaseModel):
     production_count: int = 0
     file_count: int = 0
     folder_count: int = 0
+    project_count: int = 0
     created_at: str
     updated_at: str
 
@@ -26,6 +27,7 @@ class ProductionResponse(BaseModel):
     public_id: str
     workspace_id: int
     folder_id: int | None
+    project_id: int | None = None
     production_type: str
     name: str
     description: str
@@ -39,6 +41,7 @@ class ProductionResponse(BaseModel):
 class WorkspaceOverviewResponse(BaseModel):
     workspace: WorkspaceResponse
     folders: list[WorkspaceFolderResponse]
+    projects: list["ProjectResponse"]
     productions: list[ProductionResponse]
     files: list[WorkspaceFileResponse]
 
@@ -77,6 +80,59 @@ class FolderMutationEnvelope(BaseModel):
 
 class ProductionMutationEnvelope(BaseModel):
     data: ProductionResponse
+
+
+class ProjectResponse(BaseModel):
+    id: int
+    public_id: str
+    workspace_id: int
+    folder_id: int | None
+    name: str
+    description: str
+    created_at: str
+    updated_at: str
+    production_count: int = 0
+
+
+class ProjectDetailResponse(ProjectResponse):
+    productions: list[ProductionResponse]
+
+
+class ProjectListEnvelope(BaseModel):
+    data: list[ProjectResponse]
+
+
+class ProjectMutationEnvelope(BaseModel):
+    data: ProjectResponse
+
+
+class ProjectDetailEnvelope(BaseModel):
+    data: ProjectDetailResponse
+
+
+class ProjectCreateRequest(BaseModel):
+    name: str = Field(min_length=1, max_length=180)
+    description: str = Field(default="", max_length=2_000)
+    folder_id: int | None = Field(default=None, gt=0)
+
+
+class ProjectUpdateRequest(BaseModel):
+    name: str | None = Field(default=None, min_length=1, max_length=180)
+    description: str | None = Field(default=None, max_length=2_000)
+    folder_id: int | None = Field(default=None, gt=0)
+
+    def changes(self) -> dict[str, Any]:
+        return self.model_dump(exclude_unset=True)
+
+
+class ProjectDeletedResponse(BaseModel):
+    id: int
+    type: str
+    deleted: bool
+
+
+class ProjectDeletedEnvelope(BaseModel):
+    data: ProjectDeletedResponse
 
 
 class CreationFieldResponse(BaseModel):

@@ -22,6 +22,7 @@ from origins.http.errors import (
 from origins.domain.jobs import IdempotencyConflict
 from origins.http.routers.system import router as system_router
 from origins.http.routers.productions import router as productions_router
+from origins.http.routers.projects import router as projects_router
 from origins.http.routers.jobs import router as jobs_router
 from origins.http.routers.workspaces import router as workspaces_router
 from origins.http.routers.activity import router as activity_router
@@ -71,6 +72,7 @@ app.add_exception_handler(RequestValidationError, validation_handler)
 app.add_exception_handler(IdempotencyConflict, idempotency_handler)
 app.include_router(system_router)
 app.include_router(productions_router)
+app.include_router(projects_router)
 app.include_router(jobs_router)
 app.include_router(workspaces_router)
 app.include_router(activity_router)

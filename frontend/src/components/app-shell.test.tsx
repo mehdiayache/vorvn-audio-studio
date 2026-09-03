@@ -83,6 +83,7 @@ describe("Origins shell", () => {
   it("derives one honest destination from tool and Work resource routes", () => {
     expect(activeOriginsDestination("/origins/create/generate-speech")).toBe("Create")
     expect(activeOriginsDestination("/origins/create/create-subtitles")).toBe("Create")
+    expect(activeOriginsDestination("/origins/projects/project-id")).toBe("Projects")
     expect(activeOriginsDestination("/origins/productions/audiovisual/production-id")).toBe("Productions")
   })
   it("renders one standalone identity and the Studio-owned navigation", async () => {

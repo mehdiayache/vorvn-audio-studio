@@ -35,7 +35,7 @@ class MigrationTests(unittest.TestCase):
                      WHERE table_schema = 'public'
                 """).fetchall()}
                 self.assertTrue({
-                    "workspaces", "folders", "productions", "production_parts",
+                    "workspaces", "folders", "projects", "productions", "production_parts",
                     "files", "file_versions", "production_file_usages",
                     "objects", "object_file_usages", "jobs", "job_events",
                     "sound_scenes", "sound_scene_history", "visual_scenes",
@@ -44,7 +44,7 @@ class MigrationTests(unittest.TestCase):
                     "schema_migrations",
                 }.issubset(tables))
                 self.assertTrue({
-                    "spaces", "ventures", "series", "projects",
+                    "spaces", "ventures", "series",
                     "project_parts", "project_file_usages", "assets", "asset_versions",
                     "file_collections", "production_files",
                 }.isdisjoint(tables))
@@ -61,7 +61,7 @@ class MigrationTests(unittest.TestCase):
                      WHERE table_name='productions'
                 """).fetchall()}
                 self.assertTrue({
-                    "workspace_id", "folder_id", "production_type"
+                    "workspace_id", "folder_id", "project_id", "production_type"
                 }.issubset(production_columns))
                 for table in ("production_parts", "clips", "transcripts",
                               "jobs", "exports"):

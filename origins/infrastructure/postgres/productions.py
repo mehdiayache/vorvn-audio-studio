@@ -25,7 +25,8 @@ def get(production_id: int) -> dict | None:
     with read_only() as cursor:
         cursor.execute("""
             SELECT production.id, production.public_id, production.workspace_id,
-                   production.folder_id, production.production_type, production.name,
+                   production.folder_id, production.project_id,
+                   production.production_type, production.name,
                    production.description, production.status, production.settings,
                    production.updated_at
               FROM productions production
@@ -37,15 +38,27 @@ def get(production_id: int) -> dict | None:
     return {
         "id": int(row[0]), "public_id": str(row[1]),
         "workspace_id": int(row[2]), "folder_id": row[3],
-        "production_type": row[4], "name": row[5],
-        "description": row[6] or "", "status": row[7],
-        "settings": row[8] or {},
-        "updated_at": row[9].isoformat() if row[9] else None,
+        "project_id": row[4], "production_type": row[5], "name": row[6],
+        "description": row[7] or "", "status": row[8],
+        "settings": row[9] or {},
+        "updated_at": row[10].isoformat() if row[10] else None,
     }
 
 
+def project_membership_valid(production_id: int, project_id: int) -> bool:
+    with read_only() as cursor:
+        cursor.execute("""
+            SELECT 1
+              FROM productions production
+              JOIN projects project ON project.id=%s
+             WHERE production.id=%s
+               AND production.workspace_id=project.workspace_id
+        """, (project_id, production_id))
+        return cursor.fetchone() is not None
+
+
 def update(production_id: int, changes: dict) -> dict | None:
-    allowed = {"name", "description", "status", "settings", "folder_id"}
+    allowed = {"name", "description", "status", "settings", "folder_id", "project_id"}
     values = {key: value for key, value in changes.items() if key in allowed}
     if not values:
         return get(production_id)

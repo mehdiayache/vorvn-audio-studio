@@ -19,6 +19,8 @@ class OriginsArchitectureTests(unittest.TestCase):
             "/api/v1/workspaces",
             "/api/v1/workspaces/{workspace_id}",
             "/api/v1/workspaces/{workspace_id}/folders",
+            "/api/v1/workspaces/{workspace_id}/projects",
+            "/api/v1/projects/{project_identifier}",
             "/api/v1/workspaces/{workspace_id}/productions/audiovisual",
             "/api/v1/workspaces/{workspace_id}/files/upload",
             "/api/v1/productions/{production_identifier}",
@@ -35,7 +37,7 @@ class OriginsArchitectureTests(unittest.TestCase):
 
     def test_legacy_domain_roots_are_not_published(self):
         paths = app.openapi()["paths"]
-        forbidden = ("/spaces", "/ventures", "/series", "/projects",
+        forbidden = ("/spaces", "/ventures", "/series",
                      "/director", "/file-collections", "/audiovisual-productions")
         self.assertFalse([
             path for path in paths if any(token in path for token in forbidden)
@@ -44,6 +46,7 @@ class OriginsArchitectureTests(unittest.TestCase):
     def test_canonical_persistence_boundaries_exist(self):
         expected = (
             "origins/infrastructure/postgres/workspaces.py",
+            "origins/infrastructure/postgres/projects.py",
             "origins/infrastructure/postgres/productions.py",
             "origins/infrastructure/postgres/files.py",
             "origins/infrastructure/postgres/production_document.py",
@@ -59,7 +62,6 @@ class OriginsArchitectureTests(unittest.TestCase):
             "origins/infrastructure/postgres/work.py",
             "origins/infrastructure/postgres/production_records.py",
             "origins/infrastructure/postgres/project_document.py",
-            "origins/infrastructure/postgres/projects.py",
         )
         for relative in obsolete:
             self.assertFalse((ROOT / relative).exists(), relative)
@@ -96,24 +98,39 @@ class OriginsArchitectureTests(unittest.TestCase):
         self.assertNotIn("source_generation_id", migration)
         self.assertNotIn("legacy_generation_id", migration)
 
-    def test_schema_is_one_clean_origins_baseline(self):
+    def test_schema_has_the_locked_baseline_and_project_introduction(self):
         migrations = sorted((ROOT / "origins/migrations").glob("*.sql"))
         self.assertEqual(
             [path.name for path in migrations],
-            ["000_origins_schema.sql"],
+            ["000_origins_schema.sql", "001_projects.sql"],
         )
-        schema = migrations[0].read_text()
+        schema = "\n".join(path.read_text() for path in migrations)
         forbidden = (
             "CREATE TABLE public.spaces",
             "CREATE TABLE public.ventures",
             "CREATE TABLE public.series",
-            "CREATE TABLE public.projects",
             "CREATE TABLE public.project_parts",
             "CREATE TABLE public.project_file_usages",
             "CREATE TABLE public.assets",
             "CREATE TABLE public.generations",
         )
         self.assertFalse([token for token in forbidden if token in schema])
+        self.assertIn("CREATE TABLE public.projects", schema)
+        self.assertIn("project_id bigint", schema)
+
+    def test_project_is_grouping_only_not_a_false_subsystem(self):
+        source = "\n".join(
+            path.read_text()
+            for path in (ROOT / "origins").rglob("*.py")
+            if "migrations" not in path.parts
+        )
+        for false_generic in (
+            "project_file_usages", "project_file_links", "project_parts",
+            "project_creator", "project_timeline",
+        ):
+            self.assertNotIn(false_generic, source)
+        context = app.openapi()["components"]["schemas"]["CreatorContext"]["properties"]
+        self.assertNotIn("project_id", context)
 
     def test_daw_libraries_stay_behind_sound_scene_boundaries(self):
         frontend = ROOT / "frontend/src"

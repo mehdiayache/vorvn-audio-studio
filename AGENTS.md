@@ -85,10 +85,10 @@ Placements mean actual use.
   FreeSound is an Import provider, not a top-level provenance family.
 - **Production Type** selects Production modules, Creator Capabilities and Library
   filters. Audiovisual exposes Script, Timeline, Library, Preview and Export.
-- Project membership does not belong in `CreatorContext` until the Project
-  entity and its relationships are implemented. Creator continues to receive
-  `workspace_id`, optional `folder_id`, `production_id`, `production_type`,
-  `object_id` and selection context.
+- Project membership does not belong in `CreatorContext`. Project groups
+  Productions and does not alter where Creator Files are made or owned. Creator
+  receives `workspace_id`, optional `folder_id`, `production_id`,
+  `production_type`, `object_id` and selection context.
 - The Audiovisual **Library** module replaces the old Visuals module. It may show
   Creator and Library panes together, but they retain separate responsibilities.
 - All Library hosts use one query and filter contract. Context changes the

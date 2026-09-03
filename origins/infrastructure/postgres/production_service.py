@@ -83,6 +83,10 @@ class PostgresProductionRecords:
     def update_production(production_id: int, changes: dict) -> dict | None:
         return productions.update(production_id, changes)
 
+    @staticmethod
+    def project_membership_valid(production_id: int, project_id: int) -> bool:
+        return productions.project_membership_valid(production_id, project_id)
+
     def create_audiovisual_production(
         self, workspace_id: int, name: str, description: str,
         folder_id: int | None,

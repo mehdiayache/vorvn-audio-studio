@@ -21,6 +21,7 @@ const SettingsPage = lazy(() => import("@/features/settings/settings-page").then
 const AudiovisualProductionPage = lazy(() => import("@/features/productions/audiovisual/audiovisual-production-page").then((module) => ({ default: module.AudiovisualProductionPage })))
 const WorkspaceExplorerPage = lazy(() => import("@/features/workspace/explorer/workspace-explorer-page").then((module) => ({ default: module.WorkspaceExplorerPage })))
 const CreateCreatorPage = lazy(() => import("@/features/create/create-creator-page").then((module) => ({ default: module.CreateCreatorPage })))
+const ProjectPage = lazy(() => import("@/features/projects/project-page").then((module) => ({ default: module.ProjectPage })))
 
 function AudiovisualProductionWorkspace({ productionId }: { productionId: number }) {
   const { production, soundScene, visualScene, refresh } = useProduction(productionId)
@@ -37,7 +38,7 @@ function AudiovisualProductionWorkspace({ productionId }: { productionId: number
   </>
 }
 
-function WorkspaceExplorerRoute({ view = "create" }: { view?: "create" | "productions" | "files" }) {
+function WorkspaceExplorerRoute({ view = "create" }: { view?: "create" | "projects" | "productions" | "files" }) {
   return <LazyRoute label="Opening your Workspace"><WorkspaceExplorerPage view={view} /></LazyRoute>
 }
 
@@ -70,6 +71,8 @@ function OriginsRoutes({ mode }: { mode: OriginsMountMode }) {
         <Route index element={<WorkspaceExplorerRoute />} />
         <Route path="create" element={<WorkspaceExplorerRoute />} />
         <Route path="create/:actionId" element={<LazyRoute label="Opening Create"><CreateCreatorPage /></LazyRoute>} />
+        <Route path="projects" element={<WorkspaceExplorerRoute view="projects" />} />
+        <Route path="projects/:identifier" element={<LazyRoute label="Opening Project"><ProjectPage /></LazyRoute>} />
         <Route path="productions" element={<WorkspaceExplorerRoute view="productions" />} />
         <Route path="productions/audiovisual/:identifier" element={<AudiovisualProductionRoute />} />
         <Route path="files" element={<WorkspaceExplorerRoute view="files" />} />

@@ -10,22 +10,22 @@ import { WorkspaceExplorerPage } from "./workspace-explorer-page"
 
 vi.mock("@/lib/api", () => ({ originsApi: {
   workspaces: vi.fn(), workspace: vi.fn(), creationActions: vi.fn(),
-  createAudiovisualProduction: vi.fn(), createFolder: vi.fn(),
+  createProject: vi.fn(), createAudiovisualProduction: vi.fn(), createFolder: vi.fn(),
   uploadFileSummary: vi.fn(),
 } }))
 
 const workspaces: WorkspaceSummary[] = [{
   id: 4, public_id: "workspace-4", name: "Campaign Lab", description: "Creative work",
-  production_count: 1, file_count: 1, folder_count: 0,
+  project_count: 0, production_count: 1, file_count: 1, folder_count: 0,
   created_at: "2026-01-01T00:00:00Z", updated_at: "2026-01-02T00:00:00Z",
 }]
 const overview: WorkspaceOverview = {
-  workspace: workspaces[0]!, folders: [],
-  productions: [{ id: 8, public_id: "production-8", workspace_id: 4, folder_id: null, production_type: "audiovisual", name: "Launch film", description: "", status: "draft", updated_at: "2026-01-02T00:00:00Z", file_count: 1, part_count: 3 }],
+  workspace: workspaces[0]!, folders: [], projects: [],
+  productions: [{ id: 8, public_id: "production-8", workspace_id: 4, folder_id: null, project_id: null, production_type: "audiovisual", name: "Launch film", description: "", status: "draft", updated_at: "2026-01-02T00:00:00Z", file_count: 1, part_count: 3 }],
   files: [{ id: 9, public_id: "file-9", workspace_id: 4, folder_id: null, name: "Score.wav", source: "generated", tags: ["music"], metadata: {}, created_at: "2026-01-01T00:00:00Z", updated_at: "2026-01-02T00:00:00Z", current_version: { id: 10, public_id: "version-10", version: 1, filename: "score.wav", storage_key: "score.wav", url: "/audio/score.wav", size_bytes: 20, duration_ms: 5_000, mime_type: "audio/wav", family: "audio", width: null, height: null } }],
 }
 
-function renderPage(view: "create" | "productions" | "files" = "create") {
+function renderPage(view: "create" | "projects" | "productions" | "files" = "create") {
   return render(<MemoryRouter initialEntries={["/origins/"]}><TooltipProvider><Routes><Route path="/origins/*" element={<WorkspaceExplorerPage view={view} />} /></Routes></TooltipProvider></MemoryRouter>)
 }
 
@@ -73,6 +73,19 @@ describe("WorkspaceExplorerPage", () => {
     expect(screen.queryByRole("heading", { name: "What do you want to create?" })).toBeNull()
     expect(screen.queryByRole("heading", { name: "Files" })).toBeNull()
     expect(document.querySelector(".workspace-library-layout.has-single-column")).toBeTruthy()
+  })
+
+  it("creates a Project as a grouping resource in the selected Workspace", async () => {
+    vi.mocked(originsApi.createProject).mockResolvedValue({
+      id: 12, public_id: "project-12", workspace_id: 4, folder_id: null,
+      name: "Nike Summer Launch", description: "Campaign", production_count: 0,
+      created_at: "2026-01-01T00:00:00Z", updated_at: "2026-01-01T00:00:00Z",
+    })
+    renderPage("projects")
+    fireEvent.click(await screen.findByRole("button", { name: "New Project" }))
+    fireEvent.change(screen.getByRole("textbox", { name: "Name" }), { target: { value: "Nike Summer Launch" } })
+    fireEvent.click(screen.getByRole("button", { name: "Create Project" }))
+    await waitFor(() => expect(originsApi.createProject).toHaveBeenCalledWith(4, "Nike Summer Launch", "", null))
   })
 
   it("lets the dedicated Files view use the complete library width", async () => {

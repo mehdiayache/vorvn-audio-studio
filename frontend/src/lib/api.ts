@@ -24,6 +24,8 @@ import type {
   WorkspaceOverview,
   WorkspaceFolder,
   WorkspaceProduction,
+  WorkspaceProject,
+  ProjectDetail,
   CreationActionSummary,
 } from "@/types/domain"
 import type { components, paths } from "@/types/api.generated"
@@ -191,6 +193,13 @@ export const originsApi = {
   creationActions: () => v1<CreationActionSummary[]>("/api/v1/creation-actions?context=workspace"),
   createWorkspace: (name: string, description = "") => postV1<WorkspaceSummary>("/api/v1/workspaces", { name, description }),
   createFolder: (workspaceId: number, name: string, parentId: number | null = null) => postV1<WorkspaceFolder>(`/api/v1/workspaces/${workspaceId}/folders`, { name, parent_id: parentId }),
+  projects: (workspaceId: number) => v1<WorkspaceProject[]>(`/api/v1/workspaces/${workspaceId}/projects`),
+  project: (identifier: string) => v1<ProjectDetail>(`/api/v1/projects/${identifier}`),
+  createProject: (workspaceId: number, name: string, description = "", folderId: number | null = null) => postV1<WorkspaceProject>(`/api/v1/workspaces/${workspaceId}/projects`, { name, description, folder_id: folderId }),
+  updateProject: (id: number, changes: { name?: string; description?: string; folder_id?: number | null }) =>
+    request<{ data: WorkspaceProject }>(`/api/v1/projects/${id}`, { method: "PATCH", body: JSON.stringify(changes) }).then((response) => response.data),
+  deleteProject: (id: number) =>
+    request<{ data: { id: number; type: "project"; deleted: boolean } }>(`/api/v1/projects/${id}`, { method: "DELETE" }).then((response) => response.data),
   createAudiovisualProduction: (workspaceId: number, name: string, description = "", folderId: number | null = null) => postV1<WorkspaceProduction>(`/api/v1/workspaces/${workspaceId}/productions/audiovisual`, { name, description, folder_id: folderId }),
   production: (identifier: string) => v1<WorkspaceProduction>(`/api/v1/productions/${identifier}`),
   activity: (filters: { kind?: string; failed?: boolean; limit?: number } = {}) => {
@@ -278,7 +287,7 @@ export const originsApi = {
   createWorkspaceSavedVisualReference: (workspaceId: number, payload: { name: string; type: import("@/types/domain").SavedVisualReference["type"]; file_ids: number[] }) => request<{ data: import("@/types/domain").SavedVisualReference }>(`/api/v1/workspaces/${workspaceId}/saved-references`, { method: "POST", body: JSON.stringify(payload) }).then((response) => response.data),
   deleteWorkspaceSavedVisualReference: (workspaceId: number, referenceId: string) => request<void>(`/api/v1/workspaces/${workspaceId}/saved-references/${encodeURIComponent(referenceId)}`, { method: "DELETE" }),
   productionEditor: (id: number) => v1<Production>(`/api/v1/productions/${id}/editor`),
-  updateProduction: (id: number, changes: { name?: string; description?: string; status?: string; folder_id?: number | null }) =>
+  updateProduction: (id: number, changes: { name?: string; description?: string; status?: string; folder_id?: number | null; project_id?: number | null }) =>
     request<{ data: Production }>(`/api/v1/productions/${id}`, { method: "PATCH", body: JSON.stringify(changes) }).then((response) => response.data),
   uploadProductionCover: (file: File) => uploadFile<{ data: UploadedImage }>("/api/v1/production-covers/upload", file).then((response) => response.data),
   deleteProduction: (id: number) =>

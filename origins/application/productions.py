@@ -22,6 +22,7 @@ class ProductionRecords(Protocol):
     def latest_render_job(self, production_id: int, operation: str) -> dict | None: ...
     def accounting(self, production_id: int) -> dict: ...
     def update_production(self, production_id: int, changes: dict) -> dict | None: ...
+    def project_membership_valid(self, production_id: int, project_id: int) -> bool: ...
     def delete_production(self, production_id: int) -> bool: ...
 
 
@@ -96,6 +97,12 @@ class ProductionService:
         }
 
     def update_production(self, production_id: int, changes: dict[str, Any]) -> dict | None:
+        project_id = changes.get("project_id")
+        if project_id is not None and not self.records.project_membership_valid(
+            production_id, int(project_id),
+        ):
+            raise DomainValidation(
+                "A Production and its Project must belong to the same Workspace.")
         return self.records.update_production(production_id, changes)
 
     def delete_production(self, production_id: int) -> dict[str, Any] | None:

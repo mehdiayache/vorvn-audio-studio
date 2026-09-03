@@ -127,6 +127,7 @@ export type Production = {
   status: "draft" | "in_progress" | "review" | "approved" | "released" | "archived" | string
   workspace_id: number
   folder_id?: number | null
+  project_id?: number | null
   settings: Record<string, unknown>
   updated_at?: string
   parts: ProductionPart[]
@@ -644,6 +645,7 @@ export type WorkspaceSummary = {
   production_count: number
   file_count: number
   folder_count: number
+  project_count: number
   created_at: string
   updated_at: string
 }
@@ -663,6 +665,7 @@ export type WorkspaceProduction = {
   public_id: string
   workspace_id: number
   folder_id: number | null
+  project_id: number | null
   production_type: string
   name: string
   description: string
@@ -672,9 +675,26 @@ export type WorkspaceProduction = {
   part_count: number
 }
 
+export type WorkspaceProject = {
+  id: number
+  public_id: string
+  workspace_id: number
+  folder_id: number | null
+  name: string
+  description: string
+  created_at: string
+  updated_at: string
+  production_count: number
+}
+
+export type ProjectDetail = WorkspaceProject & {
+  productions: WorkspaceProduction[]
+}
+
 export type WorkspaceOverview = {
   workspace: WorkspaceSummary
   folders: WorkspaceFolder[]
+  projects: WorkspaceProject[]
   productions: WorkspaceProduction[]
   files: WorkspaceFile[]
 }

@@ -1169,6 +1169,41 @@ export interface paths {
         patch: operations["updateProductionVisualScene"];
         trace?: never;
     };
+    "/api/v1/projects/{project_identifier}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Project */
+        get: operations["getProject"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/projects/{project_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /** Delete Project */
+        delete: operations["deleteProject"];
+        options?: never;
+        head?: never;
+        /** Update Project */
+        patch: operations["updateProject"];
+        trace?: never;
+    };
     "/api/v1/recordings/{recording_id}/download": {
         parameters: {
             query?: never;
@@ -1920,6 +1955,24 @@ export interface paths {
         put?: never;
         /** Create Audiovisual Production */
         post: operations["createAudiovisualProduction"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace_id}/projects": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List Projects */
+        get: operations["listProjects"];
+        put?: never;
+        /** Create Project */
+        post: operations["createProject"];
         delete?: never;
         options?: never;
         head?: never;
@@ -4576,6 +4629,8 @@ export interface components {
             part_count: number;
             /** Production Type */
             production_type: string;
+            /** Project Id */
+            project_id?: number | null;
             /** Public Id */
             public_id: string;
             /** Settings */
@@ -4615,6 +4670,103 @@ export interface components {
              * @default 1
              */
             volume: number;
+        };
+        /** ProjectCreateRequest */
+        ProjectCreateRequest: {
+            /**
+             * Description
+             * @default
+             */
+            description: string;
+            /** Folder Id */
+            folder_id?: number | null;
+            /** Name */
+            name: string;
+        };
+        /** ProjectDeletedEnvelope */
+        ProjectDeletedEnvelope: {
+            data: components["schemas"]["ProjectDeletedResponse"];
+        };
+        /** ProjectDeletedResponse */
+        ProjectDeletedResponse: {
+            /** Deleted */
+            deleted: boolean;
+            /** Id */
+            id: number;
+            /** Type */
+            type: string;
+        };
+        /** ProjectDetailEnvelope */
+        ProjectDetailEnvelope: {
+            data: components["schemas"]["ProjectDetailResponse"];
+        };
+        /** ProjectDetailResponse */
+        ProjectDetailResponse: {
+            /** Created At */
+            created_at: string;
+            /** Description */
+            description: string;
+            /** Folder Id */
+            folder_id: number | null;
+            /** Id */
+            id: number;
+            /** Name */
+            name: string;
+            /**
+             * Production Count
+             * @default 0
+             */
+            production_count: number;
+            /** Productions */
+            productions: components["schemas"]["ProductionResponse"][];
+            /** Public Id */
+            public_id: string;
+            /** Updated At */
+            updated_at: string;
+            /** Workspace Id */
+            workspace_id: number;
+        };
+        /** ProjectListEnvelope */
+        ProjectListEnvelope: {
+            /** Data */
+            data: components["schemas"]["ProjectResponse"][];
+        };
+        /** ProjectMutationEnvelope */
+        ProjectMutationEnvelope: {
+            data: components["schemas"]["ProjectResponse"];
+        };
+        /** ProjectResponse */
+        ProjectResponse: {
+            /** Created At */
+            created_at: string;
+            /** Description */
+            description: string;
+            /** Folder Id */
+            folder_id: number | null;
+            /** Id */
+            id: number;
+            /** Name */
+            name: string;
+            /**
+             * Production Count
+             * @default 0
+             */
+            production_count: number;
+            /** Public Id */
+            public_id: string;
+            /** Updated At */
+            updated_at: string;
+            /** Workspace Id */
+            workspace_id: number;
+        };
+        /** ProjectUpdateRequest */
+        ProjectUpdateRequest: {
+            /** Description */
+            description?: string | null;
+            /** Folder Id */
+            folder_id?: number | null;
+            /** Name */
+            name?: string | null;
         };
         /** PronunciationListEnvelope */
         PronunciationListEnvelope: {
@@ -4916,6 +5068,8 @@ export interface components {
             icon?: string | null;
             /** Name */
             name?: string | null;
+            /** Project Id */
+            project_id?: number | null;
             /** Series Id */
             series_id?: number | null;
             /** Settings */
@@ -7408,6 +7562,8 @@ export interface components {
             folders: components["schemas"]["WorkspaceFolderResponse"][];
             /** Productions */
             productions: components["schemas"]["ProductionResponse"][];
+            /** Projects */
+            projects: components["schemas"]["ProjectResponse"][];
             workspace: components["schemas"]["WorkspaceResponse"];
         };
         /** WorkspaceResponse */
@@ -7435,6 +7591,11 @@ export interface components {
              * @default 0
              */
             production_count: number;
+            /**
+             * Project Count
+             * @default 0
+             */
+            project_count: number;
             /** Public Id */
             public_id: string;
             /** Updated At */
@@ -9862,6 +10023,103 @@ export interface operations {
             };
         };
     };
+    getProject: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                project_identifier: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProjectDetailEnvelope"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    deleteProject: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                project_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProjectDeletedEnvelope"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    updateProject: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                project_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ProjectUpdateRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProjectMutationEnvelope"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     downloadRecording: {
         parameters: {
             query?: never;
@@ -11335,6 +11593,72 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["ProductionMutationEnvelope"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    listProjects: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                workspace_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProjectListEnvelope"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    createProject: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                workspace_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ProjectCreateRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProjectMutationEnvelope"];
                 };
             };
             /** @description Validation Error */

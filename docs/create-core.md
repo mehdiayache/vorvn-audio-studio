@@ -213,6 +213,8 @@ infrastructure. Do not rename or rebuild mature Job machinery for symmetry.
 - No Space entity or Workspace compatibility shell.
 - No Project used as a synonym for Production. Project groups work; Production
   executes creative work.
+- No `project_id` in `CreatorContext`; Project membership does not change File
+  creation or ownership.
 - No separate Creator implementations per route, Production or Capability.
 - No generic Creator component that imports Speech-, Audiovisual- or
   provider-specific state.
@@ -238,7 +240,7 @@ Converge one complete path at a time and delete the replaced path:
 7. keep actual Timeline use in TimelinePlacement;
 8. express Audiovisual through ProductionType configuration rather than generic
    platform conditionals.
-9. introduce Project as a separate grouping container without moving creative
+9. keep Project as a separate grouping container without moving creative
    execution, Files or ProductionType modules into it.
 
 This order is architectural guidance, not permission to preserve compatibility
