@@ -13,7 +13,7 @@ import { Button } from "@/components/ui/button"
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { CreateProductionDialog } from "@/features/productions/create-production-dialog"
 import { CreateFolderDialog } from "@/features/workspace/explorer/create-folder-dialog"
-import { rememberedWorkspaceId, rememberWorkspace } from "@/features/workspace/workspace-selection"
+import { synchronizeWorkspaceSelection } from "@/features/workspace/workspace-selection"
 import { useAsyncAction } from "@/hooks/use-async-action"
 import { originsApi } from "@/lib/api"
 import { formatDuration, formatUpdated } from "@/lib/format"
@@ -72,9 +72,7 @@ export function ProjectPage() {
     try {
       const nextProject = await originsApi.project(identifier)
       setProject(nextProject)
-      if (rememberedWorkspaceId() !== nextProject.workspace_id) {
-        rememberWorkspace(nextProject.workspace_id)
-      }
+      synchronizeWorkspaceSelection(nextProject.workspace_id)
     } catch (reason) {
       setError(reason instanceof Error ? reason.message : "Unable to open this Project.")
     }

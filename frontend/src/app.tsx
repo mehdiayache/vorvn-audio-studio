@@ -10,6 +10,7 @@ import { GlobalPlayerProvider } from "@/components/global-player-provider"
 import { ProductReadinessProvider } from "@/components/product-readiness"
 import { TooltipProvider } from "@/components/ui/tooltip"
 import { Toaster } from "@/components/ui/sonner"
+import { synchronizeWorkspaceSelection } from "@/features/workspace/workspace-selection"
 import { useProduction } from "@/hooks/use-production"
 import { useProductionResources } from "@/hooks/use-production-resources"
 import { originsApi } from "@/lib/api"
@@ -85,7 +86,9 @@ function AudiovisualProductionRoute() {
     let active = true
     setState({})
     void originsApi.production(identifier).then((production) => {
-      if (active) setState({ id: production.id })
+      if (!active) return
+      synchronizeWorkspaceSelection(production.workspace_id)
+      setState({ id: production.id })
     }).catch((error) => {
       if (active) setState({ error: error instanceof Error ? error.message : "Unable to open this Production." })
     })

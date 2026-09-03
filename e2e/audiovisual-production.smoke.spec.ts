@@ -47,6 +47,22 @@ async function reusableProjectFixture(request: APIRequestContext) {
   return { workspace, project }
 }
 
+async function differentWorkspace(request: APIRequestContext, workspaceId: number) {
+  const listedResponse = await request.get("/api/v1/workspaces")
+  expect(listedResponse.ok()).toBe(true)
+  const listed = (await listedResponse.json()).data as WorkspaceResource[]
+  const existing = listed.find((workspace) => workspace.id !== workspaceId)
+  if (existing) return existing
+  const response = await request.post("/api/v1/workspaces", {
+    data: {
+      name: "Browser Smoke Alternate Workspace",
+      description: "Disposable browser Workspace-selection fixture",
+    },
+  })
+  expect(response.ok()).toBe(true)
+  return (await response.json()).data as WorkspaceResource
+}
+
 test("opens an audiovisual Production and renders Timeline and Creator Library without browser warnings", async ({ page, request }) => {
   const browserIssues: string[] = []
   page.on("console", (message) => {
@@ -84,9 +100,12 @@ test("uses the fixed desktop rail, then opens Home Project and Production", asyn
   page.on("pageerror", (error) => browserIssues.push(`pageerror: ${error.message}`))
 
   const { workspace, project } = await reusableProjectFixture(request)
+  const wrongWorkspace = await differentWorkspace(request, workspace.id)
 
   await page.addInitScript((workspaceId) => {
-    window.localStorage.setItem("origins.current-workspace", String(workspaceId))
+    if (!window.localStorage.getItem("origins.current-workspace")) {
+      window.localStorage.setItem("origins.current-workspace", String(workspaceId))
+    }
   }, workspace.id)
   await page.goto("/origins/")
   await expect(page.getByRole("heading", { name: "Choose a Workspace" })).toBeVisible()
@@ -183,10 +202,21 @@ test("uses the fixed desktop rail, then opens Home Project and Production", asyn
     await page.getByRole("textbox", { name: "Name" }).fill("Browser Smoke Project Production")
     await page.getByRole("button", { name: "Create Production" }).click()
     await expect(page.getByRole("heading", { name: "Rename Production Browser Smoke Project Production" })).toBeVisible()
-  } else {
-    await page.getByRole("link", { name: `Open Production ${production.name}` }).click()
-    await expect(page.getByRole("heading", { name: `Rename Production ${production.name}` })).toBeVisible()
+    const refreshedProjectResponse = await request.get(`/api/v1/projects/${project.public_id}`)
+    expect(refreshedProjectResponse.ok()).toBe(true)
+    projectDetail = (await refreshedProjectResponse.json()).data as ProjectDetail
+    production = projectDetail.productions.find((item) =>
+      item.name === "Browser Smoke Project Production" && item.folder_id === nestedFolder!.id)
   }
+  expect(production).toBeTruthy()
+  await page.evaluate(({ workspaceId }) => {
+    window.localStorage.setItem("origins.current-workspace", String(workspaceId))
+  }, { workspaceId: wrongWorkspace.id })
+  const groupedProductionUrl = `/origins/productions/audiovisual/${production!.public_id}`
+  await page.goto(groupedProductionUrl)
+  await expect(page).toHaveURL(groupedProductionUrl)
+  await expect(page.getByRole("button", { name: `Current Workspace: ${workspace.name}` })).toBeVisible()
+  await expect(page.getByRole("heading", { name: `Rename Production ${production!.name}` })).toBeVisible()
   const projectBreadcrumb = page.getByRole("link", { name: project.name, exact: true })
   await expect(projectBreadcrumb).toHaveAttribute(
     "href", `/origins/projects/${project.public_id}?folder=${nestedFolder!.public_id}`)
@@ -205,7 +235,13 @@ test("uses the fixed desktop rail, then opens Home Project and Production", asyn
     expect(standaloneResponse.ok()).toBe(true)
     standalone = (await standaloneResponse.json()).data as ProductionResource
   }
-  await page.goto(`/origins/productions/audiovisual/${standalone.public_id}`)
+  await page.evaluate(({ workspaceId }) => {
+    window.localStorage.setItem("origins.current-workspace", String(workspaceId))
+  }, { workspaceId: wrongWorkspace.id })
+  const standaloneProductionUrl = `/origins/productions/audiovisual/${standalone.public_id}`
+  await page.goto(standaloneProductionUrl)
+  await expect(page).toHaveURL(standaloneProductionUrl)
+  await expect(page.getByRole("button", { name: `Current Workspace: ${workspace.name}` })).toBeVisible()
   await expect(page.getByRole("heading", { name: `Rename Production ${standalone.name}` })).toBeVisible()
   await expect(page.getByRole("link", { name: "Productions", exact: true }))
     .toHaveAttribute("href", "/origins/productions")

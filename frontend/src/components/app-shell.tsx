@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react"
 import {
-  Activity, Building2, Check, ChevronDown, Circle, Files, FolderKanban,
+  Activity, Building2, Check, ChevronDown, Files, FolderKanban,
   FolderTree, Home, Menu, Plus, Settings2,
   Shapes, Sparkles, Wrench,
 } from "lucide-react"
@@ -8,6 +8,7 @@ import type { LucideIcon } from "lucide-react"
 import { Link, NavLink, Outlet, useLocation, useNavigate } from "react-router-dom"
 
 import { AppErrorBoundary } from "@/components/app-error-boundary"
+import { OriginsMark } from "@/components/origins-mark"
 import { useProductReadiness } from "@/components/product-readiness"
 import { TransportStrip } from "@/components/transport-strip"
 import { Button } from "@/components/ui/button"
@@ -75,7 +76,7 @@ export function activeOriginsDestination(pathname: string) {
 function StudioBrand() {
   return (
     <NavLink className="studio-deck-brand" to="/origins/" aria-label={productIdentity.name}>
-      <span className="studio-deck-mark"><Circle aria-hidden="true" fill="currentColor" strokeWidth={0} /></span>
+      <span className="studio-deck-mark"><OriginsMark /></span>
       <span>{productIdentity.name}</span>
     </NavLink>
   )

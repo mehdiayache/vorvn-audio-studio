@@ -12,6 +12,10 @@ export function rememberedWorkspaceId() {
   return Number(window.localStorage.getItem(WORKSPACE_STORAGE_KEY) || 0)
 }
 
+export function synchronizeWorkspaceSelection(workspaceId: number) {
+  if (rememberedWorkspaceId() !== workspaceId) rememberWorkspace(workspaceId)
+}
+
 export function preferredWorkspace(workspaces: WorkspaceSummary[]) {
   const remembered = workspaces.find((workspace) => workspace.id === rememberedWorkspaceId())
   if (remembered) return remembered
