@@ -34,21 +34,30 @@ When existing resources can exercise a scenario, preserve and reuse them.**
 The Board-approved product grammar is authoritative:
 
 ```text
-Workspace owns everything.
+Workspace owns.
 Explorer places.
-Add brings in.
+Projects group work.
+Productions execute creative work.
 Library finds.
 Creator creates.
+Add brings in.
 Tools transform.
 Files exist.
 Objects organize knowledge.
-Productions organize work.
 Links associate.
 Placements mean actual use.
 ```
 
-- **Workspace** is the sole ownership root for Folders, Files, Objects and Productions.
+- **Workspace** is the sole ownership root for Folders, Files, Objects, Projects
+  and Productions.
 - **Explorer** is Folder navigation only. It answers where something is placed.
+- **Project** is the human work-grouping container. It groups related
+  Productions, such as an Audiovisual Production, Slides Production and Merch
+  Production for one campaign. It is not a creative execution surface and does
+  not replace Workspace ownership.
+- **Production** is a typed creative working environment. It may exist on its
+  own or belong to a Project. Script, Timeline, Preview and Export belong to an
+  Audiovisual Production, not to Project itself.
 - **Add** brings an existing resource into the Workspace through Upload or
   Import. FreeSound is an Import provider, not a Creator Capability.
 - **Library** browses existing Workspace resources. It never creates or duplicates
@@ -66,8 +75,9 @@ Placements mean actual use.
   Creator. A Tool may use an ExecutionEngine and Job, and its kept output is a
   new canonical File related to its input through `FileRelation`.
 - **Create** is a human launcher/verb that may open Creator, Upload, Import, or
-  a Tool, or directly create a Folder, Object or Production. It is not a technical
-  parent type and does not justify shortcut-specific product implementations.
+  a Tool, or directly create a Folder, Object, Project or Production. It is not
+  a technical parent type and does not justify shortcut-specific product
+  implementations.
 - A Creator **Capability** is what Creator can produce, for example
   `image.generate`, `video.generate`, `speech.generate`, `music.generate` and
   `sfx.generate`. **ExecutionEngine** remains an internal implementation detail.
@@ -75,6 +85,10 @@ Placements mean actual use.
   FreeSound is an Import provider, not a top-level provenance family.
 - **Production Type** selects Production modules, Creator Capabilities and Library
   filters. Audiovisual exposes Script, Timeline, Library, Preview and Export.
+- Project membership does not belong in `CreatorContext` until the Project
+  entity and its relationships are implemented. Creator continues to receive
+  `workspace_id`, optional `folder_id`, `production_id`, `production_type`,
+  `object_id` and selection context.
 - The Audiovisual **Library** module replaces the old Visuals module. It may show
   Creator and Library panes together, but they retain separate responsibilities.
 - All Library hosts use one query and filter contract. Context changes the

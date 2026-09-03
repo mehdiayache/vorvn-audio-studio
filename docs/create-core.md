@@ -5,27 +5,29 @@ must converge on it. The current interface is evidence of capabilities, not an
 authority for architecture.
 
 ```text
-Workspace owns everything.
+Workspace owns.
 Explorer places.
-Add brings in.
+Projects group work.
+Productions execute creative work.
 Library finds.
 Creator creates.
+Add brings in.
 Tools transform.
 Files exist.
 Objects organize knowledge.
-Productions organize work.
 Links associate.
 Placements mean actual use.
 ```
 
 ## Workspace and Explorer
 
-`Workspace` is the sole ownership root for Folders, Files, Objects and Productions.
+`Workspace` is the sole ownership root for Folders, Files, Objects, Projects and
+Productions.
 It is not another database layer above a Space; there is no Space entity.
 
 Explorer only navigates the Workspace root and its freely named Folders. An
-optional `folder_id` places a File, Object or Production. Moving it changes where it
-appears, not what it is, who owns it, or where it is used.
+optional `folder_id` places a File, Object, Project or Production. Moving it
+changes where it appears, not what it is, who owns it, or where it is used.
 
 ## Files, Add and provenance
 
@@ -156,16 +158,28 @@ For Audiovisual, `TimelinePlacement` contains timing and source-window data. A
 Production link does not imply a Timeline placement, and a relation does not imply
 either. Do not call association records `Usage`.
 
-## Objects and Productions
+## Objects, Projects and Productions
 
 Objects are durable structured identities such as Brand, Product, Voice and
 Citizen. Their media and documents remain canonical Workspace Files connected by
 ObjectFileLink.
 
-Productions are typed working environments. `ProductionType` selects modules, allowed
+Projects are human work-grouping containers. A Project groups related Productions
+for one initiative, client or campaign. It does not own Files, execute Creator
+Capabilities, expose Timeline modules or introduce another ownership root.
+
+```text
+Project: Nike Summer Launch
+├── Hero Film        [Audiovisual Production]
+├── Retail Deck      [Slides Production]
+└── Capsule          [Merch Production]
+```
+
+Productions are typed creative working environments. A Production can exist
+standalone or belong to a Project. `ProductionType` selects modules, allowed
 Creator Capabilities, relevant Tools, Library defaults and its Placement kind.
-Creating a Production is direct domain creation; it does not pass through Creator,
-an ExecutionEngine or a Job.
+Creating a Production is direct domain creation; it does not pass through
+Creator, an ExecutionEngine or a Job.
 
 Audiovisual is the first Production Type consumer, not the platform root. It exposes
 Script, Timeline, Creator Library, Preview and Export. “Creator Library” names the
@@ -175,8 +189,8 @@ merge their responsibilities.
 ## Create is a launcher
 
 `Create` is a human verb that may launch Creator, Add, a Tool, or direct creation
-of a Folder, Object or typed Production. It is not a table, superclass, workflow or
-technical parent type.
+of a Folder, Object, Project or typed Production. It is not a table, superclass,
+workflow or technical parent type.
 
 ## Execution stays lean
 
@@ -197,6 +211,8 @@ infrastructure. Do not rename or rebuild mature Job machinery for symmetry.
 ## Non-negotiable boundaries
 
 - No Space entity or Workspace compatibility shell.
+- No Project used as a synonym for Production. Project groups work; Production
+  executes creative work.
 - No separate Creator implementations per route, Production or Capability.
 - No generic Creator component that imports Speech-, Audiovisual- or
   provider-specific state.
@@ -222,7 +238,10 @@ Converge one complete path at a time and delete the replaced path:
 7. keep actual Timeline use in TimelinePlacement;
 8. express Audiovisual through ProductionType configuration rather than generic
    platform conditionals.
+9. introduce Project as a separate grouping container without moving creative
+   execution, Files or ProductionType modules into it.
 
 This order is architectural guidance, not permission to preserve compatibility
 bridges. Pre-production schemas may change cleanly, while operator-created Files,
-Productions, Objects and generated or uploaded QA resources remain protected.
+Projects, Productions, Objects and generated or uploaded QA resources remain
+protected.
