@@ -2,7 +2,7 @@
 import { cleanup, fireEvent, render, screen } from "@testing-library/react"
 import { afterEach, describe, expect, it, vi } from "vitest"
 
-import { FileCard, FileUsedState } from "./file-card"
+import { FileCard } from "./file-card"
 
 afterEach(cleanup)
 
@@ -18,7 +18,7 @@ describe("FileCard", () => {
       }}
       interaction={{ selected: true, onInvoke: select }}
       audition={{ playing: false, onToggle: audition }}
-      slots={{ state: <FileUsedState count={2} /> }}
+      slots={{ state: <span aria-label="Host state">2 uses</span> }}
     />)
 
     expect(container.querySelector("[data-file-source='generated']")).toBeTruthy()
@@ -27,7 +27,7 @@ describe("FileCard", () => {
     expect(screen.getByText("intro")).toBeTruthy()
     expect(screen.getByText("bright")).toBeTruthy()
     expect(screen.getByText("+1")).toBeTruthy()
-    expect(screen.getByLabelText("Used in Timeline").textContent).toContain("2")
+    expect(screen.getByLabelText("Host state").textContent).toBe("2 uses")
     expect(screen.getByRole("button", { name: "Select Opening score" }).getAttribute("aria-pressed")).toBe("true")
     fireEvent.click(screen.getByRole("button", { name: "Audition Opening score" }))
     fireEvent.click(screen.getByRole("button", { name: "Select Opening score" }))

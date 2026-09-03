@@ -25,7 +25,7 @@ describe("AudioLibrary", () => {
     const { container } = render(<AudioLibrary files={[]} loading mode="sound" playerPlaying={false} onChoose={vi.fn()} onPlay={vi.fn()} onUpload={vi.fn()} onKeep={vi.fn()} />)
 
     expect(screen.getByRole("status", { name: "Loading Audio Library" })).toBeTruthy()
-    expect(container.querySelectorAll(".audio-file-card-skeleton")).toHaveLength(8)
+    expect(container.querySelectorAll(".audio-library-card-skeleton")).toHaveLength(8)
     expect(screen.queryByText("No matching audio")).toBeNull()
   })
 
@@ -344,9 +344,9 @@ describe("AudioLibrary", () => {
       { id: 21, name: "Night room", media_type: "audio" as const },
       { id: 22, name: "Wooden knock", media_type: "audio" as const },
     ]
-    const { container } = render(<AudioLibrary files={library} usedFileIds={[22]} mode="sound" playerPlaying={false} onChoose={vi.fn()} onPlay={vi.fn()} onUpload={vi.fn()} onKeep={vi.fn()} />)
+    const { container } = render(<AudioLibrary files={library} usedFileIds={[22]} renderUsageState={() => <span aria-label="Used in host">Used</span>} chooseLabel="Add to Timeline" mode="sound" playerPlaying={false} onChoose={vi.fn()} onPlay={vi.fn()} onUpload={vi.fn()} onKeep={vi.fn()} />)
     const view = within(container)
-    expect(view.getByLabelText("Used in Timeline")).toBeTruthy()
+    expect(view.getByLabelText("Used in host")).toBeTruthy()
     expect(view.getAllByRole("button", { name: "Add to Timeline" })).toHaveLength(2)
     fireEvent.click(view.getByRole("button", { name: "Filters" }))
     fireEvent.click(screen.getByRole("combobox", { name: "File usage in this Production" }))
@@ -460,6 +460,8 @@ describe("AudioLibrary", () => {
     fireEvent.click(view.getByRole("tab", { name: "Freesound" }))
     fireEvent.change(view.getByPlaceholderText("Describe the sound you need"), { target: { value: "wooden door closing" } })
     await waitFor(() => expect(view.getByText("Wooden door close.wav")).toBeTruthy())
+    expect(view.getByText("Freesound · fieldrecorder")).toBeTruthy()
+    expect(container.querySelector("article.audio-catalog-card")?.hasAttribute("data-file-id")).toBe(false)
     expect(search).toHaveBeenCalledWith(expect.objectContaining({
       query: "wooden door closing", license: "all",
     }), expect.any(AbortSignal))

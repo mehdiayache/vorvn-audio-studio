@@ -120,10 +120,6 @@ class File:
     updated_at: datetime | None = None
 
     def __post_init__(self) -> None:
-        if self.source not in {"generated", "uploaded", "imported"}:
-            raise ValueError("File provenance must be generated, uploaded or imported.")
-
-    def __post_init__(self) -> None:
         if self.id < 1 or self.workspace_id < 1:
             raise ValueError("File and Workspace identifiers must be positive.")
         if not self.name.strip():
@@ -132,3 +128,5 @@ class File:
             raise ValueError("Current FileVersion ID must be positive.")
         if self.folder_id is not None and self.folder_id < 1:
             raise ValueError("Folder ID must be positive.")
+        if self.source not in {"generated", "uploaded", "imported"}:
+            raise ValueError("File provenance must be generated, uploaded or imported.")

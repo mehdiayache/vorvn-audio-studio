@@ -4,7 +4,7 @@ import { useMemo, useState } from "react"
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
-import { FileCard, FileUsedState } from "@/features/files/file-card"
+import { FileCard } from "@/features/files/file-card"
 import {
   createLibraryQuery, LIBRARY_SCOPE_OPTIONS, LIBRARY_SORT_OPTIONS, LIBRARY_SOURCE_OPTIONS,
   LIBRARY_TYPE_OPTIONS, LIBRARY_USAGE_OPTIONS, queryLibraryFiles,
@@ -12,6 +12,7 @@ import {
 } from "@/features/library/library-query"
 import { Select, SelectContent, SelectGroup, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import type { WorkspaceFile, WorkspaceFolder } from "@/types/domain"
+import { TimelineFileUsageState } from "./timeline-file-usage-state"
 
 export function ProductionLibraryDialog({ open, folders = [], files, productionFileIds = [], usedFileIds = [], currentFolderId, pendingId, initialScope = "workspace", showScope = true, title = "Workspace Library", description = "Choose reusable Files for this Production.", emptyDescription = "Upload a File to the Workspace Library first.", addLabel = "Add", onOpenChange, onPreview, onAdd }: {
   open: boolean
@@ -61,7 +62,7 @@ export function ProductionLibraryDialog({ open, folders = [], files, productionF
           file={file}
           preview={{ onOpen: () => onPreview(file) }}
           slots={{
-            state: usageCounts.get(file.id) ? <FileUsedState count={usageCounts.get(file.id)} /> : undefined,
+            state: usageCounts.get(file.id) ? <TimelineFileUsageState count={usageCounts.get(file.id)} /> : undefined,
             actions: <Button disabled={pendingId === file.id} size="sm" onClick={() => onAdd(file)}><Plus />{pendingId === file.id ? "Adding…" : addLabel}</Button>,
           }}
         />)}</div>

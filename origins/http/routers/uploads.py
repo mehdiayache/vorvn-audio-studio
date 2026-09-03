@@ -10,7 +10,6 @@ from origins.config import settings
 
 from origins.application.uploads import (
     MAX_FILE_UPLOAD_BYTES,
-    MAX_FILE_UPLOAD_BYTES,
     UploadError,
 )
 from origins.composition.uploads import upload_service

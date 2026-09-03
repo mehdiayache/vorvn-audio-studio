@@ -75,6 +75,7 @@ describe("ProductionLibraryGallery", () => {
       uploads={[]} pendingId={null}
       onPreview={vi.fn()} onAddToProduction={vi.fn()} onRemove={vi.fn()} onRetryUpload={vi.fn()} onDismissUpload={vi.fn()} onUpload={vi.fn()}
     />)
+    expect(screen.getByLabelText("Used in Timeline").textContent).toContain("2")
     fireEvent.click(screen.getByRole("combobox", { name: "Production usage" }))
     fireEvent.click(await screen.findByRole("option", { name: "Used here" }))
     expect(screen.getAllByRole("button", { name: "Preview Actually used" }).length).toBeGreaterThan(0)

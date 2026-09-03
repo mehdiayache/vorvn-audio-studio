@@ -7,7 +7,7 @@ import { Input } from "@/components/ui/input"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group"
 import type { CreatorLibraryCreationItem } from "@/features/creator/library/creator-library-creation-item"
-import { FileCard, FileUsedState } from "@/features/files/file-card"
+import { FileCard } from "@/features/files/file-card"
 import { fileDisplayName, fileDisplayUrl } from "@/features/files/file-presentation"
 import {
   createLibraryQuery, LIBRARY_SCOPE_OPTIONS, LIBRARY_SOURCE_OPTIONS, LIBRARY_TYPE_OPTIONS,
@@ -16,6 +16,7 @@ import {
 } from "@/features/library/library-query"
 import type { WorkspaceFile, WorkspaceFolder } from "@/types/domain"
 import { ProductionLibraryUploadCard, type ProductionLibraryUploadItem } from "./production-library-upload-card"
+import { TimelineFileUsageState } from "./timeline-file-usage-state"
 
 function galleryColumnCount(width: number) {
   if (width < 400) return 1
@@ -161,7 +162,7 @@ export function ProductionLibraryGallery({
       file={file}
       preview={{ onOpen: () => onPreview(file) }}
       audition={["audio", "speech", "music", "sfx"].includes(kind) && url && onPlayAudio ? { playing: playingFileId === file.id, onToggle: () => onPlayAudio(file) } : undefined}
-      slots={{ state: usageCounts?.get(file.id) ? <FileUsedState count={usageCounts.get(file.id)} /> : undefined, actions }}
+      slots={{ state: usageCounts?.get(file.id) ? <TimelineFileUsageState count={usageCounts.get(file.id)} /> : undefined, actions }}
     />
   }
 

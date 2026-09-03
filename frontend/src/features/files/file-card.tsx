@@ -1,5 +1,5 @@
 import {
-  Archive, AudioLines, Captions, CircleCheck, Clock3, Database, Expand,
+  Archive, AudioLines, Captions, Clock3, Database, Expand,
   FileText, Image as ImageIcon, Pause, Play, Video,
 } from "lucide-react"
 import type { ReactNode } from "react"
@@ -92,9 +92,4 @@ export function FileCard({ file, interaction, preview, audition, slots }: {
       {(slots?.state || slots?.actions) && <div className="file-card-context">{slots.state}{slots.actions}</div>}
     </footer>
   </article>
-}
-
-export function FileUsedState({ count = 1, label = "Used in Timeline" }: { count?: number; label?: string }) {
-  const detail = count === 1 ? "This File has one placement here." : `This File has ${count} placements here.`
-  return <OperatorTooltip label={label} detail={detail} side="bottom"><span className="file-card-used" tabIndex={0} aria-label={label}><CircleCheck /><span>{count > 1 ? count : label}</span></span></OperatorTooltip>
 }

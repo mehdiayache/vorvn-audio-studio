@@ -1,8 +1,7 @@
-import { AlertCircle, FileAudio, Library, LoaderCircle, RefreshCw, Search, SlidersHorizontal, Sparkles, Upload, X } from "lucide-react"
+import { AlertCircle, FileAudio, Library, LoaderCircle, Plus, RefreshCw, Search, SlidersHorizontal, Sparkles, Upload, X } from "lucide-react"
 import { useEffect, useMemo, useRef, useState, type ReactNode } from "react"
 
-import { ActionButton } from "@/components/operator-action"
-import { AudioFileCard, AudioCatalogCard, audioFileTitle } from "@/components/audio-file-card"
+import { ActionButton, OperatorIconButton } from "@/components/operator-action"
 import { AudioLibraryLoadingWorkspace } from "@/features/workspace/library/audio-library-loading"
 import { Button } from "@/components/ui/button"
 import { Checkbox } from "@/components/ui/checkbox"
@@ -14,11 +13,13 @@ import { Skeleton } from "@/components/ui/skeleton"
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { AUDIO_SOURCE_LABELS, AudioSourceBadge, FreesoundMark } from "@/features/sound-scene/audio-identity"
 import { audioFileCategory } from "@/features/sound-scene/audio-presentation"
+import { FileCard } from "@/features/files/file-card"
+import { fileDisplayName, fileDisplayUrl } from "@/features/files/file-presentation"
 import {
   createLibraryQuery, LIBRARY_SOURCE_OPTIONS, LIBRARY_USAGE_OPTIONS, queryLibraryFiles,
   type LibrarySourceFilter, type LibraryUsageFilter,
 } from "@/features/library/library-query"
-import { audioUrl, originsApi } from "@/lib/api"
+import { originsApi } from "@/lib/api"
 import { fileSource } from "@/lib/file-provenance"
 import { formatBytes } from "@/lib/format"
 import type { AudioFileCategory, CatalogKeepResult, CatalogLicense, CatalogSound, PlayerSource, WorkspaceFile } from "@/types/domain"
@@ -27,6 +28,7 @@ import { FILE_CATEGORIES, FileCategorySelect, FileTagEditor } from "@/features/c
 import type { CreatorContext } from "@/lib/api"
 import type { CreatorResult } from "@/features/creator/creator-contracts"
 import { FreesoundAudioInspector, SavedAudioInspector } from "./audio-library-inspector"
+import { AudioCatalogCard } from "./audio-catalog-card"
 import { AudioCreator } from "@/features/creator/audio/audio-creator"
 
 export type AudioLibraryMode = "sequence" | "sound"
@@ -44,10 +46,11 @@ function humanName(file: File) {
   return cleaned ? cleaned.charAt(0).toLocaleUpperCase() + cleaned.slice(1) : "Untitled audio"
 }
 
-export function AudioLibrary({ context, files, loading = false, refreshing = false, resourceError, onRetryResource, mode, chooseLabel, initialSelectedId, usedFileIds = [], playingKey, playerPlaying, transport, onChoose, onPlay, onUpload, onUpdate, onKeep }: {
+export function AudioLibrary({ context, files, loading = false, refreshing = false, resourceError, onRetryResource, mode, chooseLabel, initialSelectedId, usedFileIds = [], renderUsageState, playingKey, playerPlaying, transport, onChoose, onPlay, onUpload, onUpdate, onKeep }: {
   context?: CreatorContext; files: WorkspaceFile[]; mode: AudioLibraryMode; chooseLabel?: string; initialSelectedId?: number | null
   loading?: boolean; refreshing?: boolean; resourceError?: string; onRetryResource?: () => Promise<void>
   usedFileIds?: number[]
+  renderUsageState?: (file: WorkspaceFile) => ReactNode
   transport?: ReactNode
   playingKey?: string; playerPlaying: boolean; onChoose: (file: WorkspaceFile) => Promise<void>; onPlay: (source: PlayerSource) => void
   onUpload: (folder: string, input: FileUploadInput) => Promise<WorkspaceFile>; onKeep: (folder: string, input: CatalogKeepInput) => Promise<CatalogKeepResult>
@@ -117,6 +120,7 @@ export function AudioLibrary({ context, files, loading = false, refreshing = fal
     return 0
   })
   const activeFilterCount = [category !== "all", sourceFilter !== "all", durationFilter !== "all", usageFilter !== "any", fileSort !== "recent"].filter(Boolean).length + tagFilters.length
+  const resolvedChooseLabel = chooseLabel || (mode === "sequence" ? "Insert" : "Use File")
   const clearFilters = () => { setCategory("all"); setSourceFilter("all"); setDurationFilter("all"); setUsageFilter("any"); setTagFilters([]); setFileSort("recent") }
   const selected = audioFiles.find((file) => file.id === selectedId) || null
   const selectedCatalog = catalogResults.find((result) => result.external_id === selectedCatalogId) || null
@@ -245,11 +249,26 @@ export function AudioLibrary({ context, files, loading = false, refreshing = fal
 
     <div className="file-workspace-shell">
       {view === "library" && loading ? <AudioLibraryLoadingWorkspace /> : view === "library" ? <section className="file-view file-library-view">
-        <ScrollArea className="file-canvas"><div className="audio-file-card-grid">{shown.length ? shown.map((file) => {
-          const sourceKey = `file-source:${file.id}`; const active = playerPlaying && playingKey === sourceKey; const isSelected = selectedId === file.id
-          return <AudioFileCard key={file.id} file={file} selected={isSelected} used={usedIds.has(file.id)} playing={active} actionLabel={chooseLabel || (mode === "sound" ? "Add to Timeline" : "Insert")} actionBusy={choosingId === file.id} onSelect={() => setSelectedId(file.id)} onPlay={() => { setSelectedId(file.id); onPlay({ key: sourceKey, url: audioUrl(file.filename!), title: audioFileTitle(file), sourceLabel: AUDIO_SOURCE_LABELS[fileSource(file)], subtitle: "Audio Library audition", kind: "file" }) }} onAction={() => void choose(file)} />
+        <ScrollArea className="file-canvas"><div className="audio-library-card-grid">{shown.length ? shown.map((file) => {
+          const sourceKey = `file-source:${file.id}`
+          const active = playerPlaying && playingKey === sourceKey
+          const isSelected = selectedId === file.id
+          const title = fileDisplayName(file)
+          const url = fileDisplayUrl(file)
+          const replacing = resolvedChooseLabel.toLocaleLowerCase().includes("replace")
+          const busyLabel = replacing ? "Replacing audio…" : "Using audio…"
+          return <FileCard
+            key={file.id}
+            file={file}
+            interaction={{ selected: isSelected, onInvoke: () => setSelectedId(file.id) }}
+            audition={url ? { playing: active, onToggle: () => { setSelectedId(file.id); onPlay({ key: sourceKey, url, title, sourceLabel: AUDIO_SOURCE_LABELS[fileSource(file)], subtitle: "Audio Library audition", kind: "file" }) } } : undefined}
+            slots={{
+              state: usedIds.has(file.id) ? renderUsageState?.(file) : undefined,
+              actions: <OperatorIconButton label={choosingId === file.id ? busyLabel : resolvedChooseLabel} detail="Uses this File in the current context." variant="outline" size="icon-sm" busy={choosingId === file.id} busyLabel={busyLabel} onClick={() => void choose(file)}>{replacing ? <RefreshCw /> : <Plus />}</OperatorIconButton>,
+            }}
+          />
         }) : resourceError ? <div className="file-empty file-resource-error"><AlertCircle /><b>Audio Library unavailable</b><p role="alert">{resourceError}</p>{onRetryResource && <ActionButton variant="outline" busy={refreshing} busyLabel="Retrying…" onClick={() => void onRetryResource().catch(() => undefined)}><RefreshCw />Try again</ActionButton>}</div> : <div className="file-empty"><FileAudio /><b>No matching audio</b><p>Change the filter or add a new sound.</p><Button variant="outline" onClick={() => openView("upload")}><Upload />Upload audio</Button></div>}</div></ScrollArea>
-        {selected ? <SavedAudioInspector file={selected} title={audioFileTitle(selected)} error={error} onSave={async (details) => {
+        {selected ? <SavedAudioInspector file={selected} title={fileDisplayName(selected)} error={error} onSave={async (details) => {
           if (!onUpdate) throw new Error("File editing is unavailable.")
           await onUpdate(selected, details)
         }} /> : <aside className="file-inspector" aria-label="Selected File details"><div className="file-inspector-empty"><FileAudio /><b>Select audio</b><p>Origin, optional category, tags, availability and file facts will appear here.</p>{error && <p className="file-inspector-error" role="alert">{error}</p>}</div></aside>}
@@ -258,7 +277,7 @@ export function AudioLibrary({ context, files, loading = false, refreshing = fal
         <aside className="file-inspector file-form-inspector"><header><div><span className="audio-inspector-source"><AudioSourceBadge source="uploaded" /></span><h3>{file ? "Describe this audio" : "Choose a file first"}</h3></div></header>{file ? <div className="file-inspector-form"><label className="file-field"><span>Name</span><Input value={name} maxLength={120} onChange={(event) => setName(event.target.value)} placeholder="Human-readable audio name" /></label><FileCategorySelect value={uploadCategory} onChange={setUploadCategory} /><FileTagEditor tags={tags} onChange={setTags} onError={setError} placeholder="calm, night, transition" /></div> : <div className="file-inspector-empty"><FileAudio /><b>No file prepared</b><p>The file stays local until you confirm Add to Library.</p></div>}</aside>
         <footer className="file-action-bar"><div><b>{file ? file.name : "Upload audio"}</b><span>{file ? "Technical audio facts are inspected when you add it." : "Choose a file to begin."}</span></div>{error && <p role="alert">{error}</p>}<Button variant="ghost" disabled={uploading} onClick={() => { resetUpload(); openView("library") }}>Cancel</Button><ActionButton busy={uploading} busyLabel="Adding to Library…" disabled={!file || !name.trim()} onClick={() => void upload()}>Add to Library</ActionButton></footer>
       </section> : view === "search" ? <section className="file-view file-search-view">
-        <ScrollArea className="file-canvas"><div className="audio-file-card-grid">{catalogSearching ? <>{Array.from({ length: 8 }, (_, index) => <Skeleton className="audio-file-card-skeleton" key={index} />)}<span className="audio-library-loading-label"><LoaderCircle className="spin" />Searching Freesound…</span></> : catalogError ? <div className="file-empty file-catalog-error"><FreesoundMark /><b>Search unavailable</b><p role="alert">{catalogError}</p></div> : catalogResults.length ? catalogResults.map((result) => {
+        <ScrollArea className="file-canvas"><div className="audio-library-card-grid">{catalogSearching ? <>{Array.from({ length: 8 }, (_, index) => <Skeleton className="audio-library-card-skeleton" key={index} />)}<span className="audio-library-loading-label"><LoaderCircle className="spin" />Searching Freesound…</span></> : catalogError ? <div className="file-empty file-catalog-error"><FreesoundMark /><b>Search unavailable</b><p role="alert">{catalogError}</p></div> : catalogResults.length ? catalogResults.map((result) => {
           const sourceKey = `freesound-preview:${result.external_id}`; const active = playerPlaying && playingKey === sourceKey; const isSelected = selectedCatalogId === result.external_id
           return <AudioCatalogCard key={result.external_id} result={result} selected={isSelected} playing={active} kept={Boolean(kept[result.external_id])} busy={keepingId === result.external_id} onSelect={() => selectCatalog(result)} onPlay={() => { selectCatalog(result); onPlay({ key: sourceKey, url: result.preview_url!, title: result.name, sourceLabel: "Freesound preview", subtitle: result.creator, kind: "file", downloadable: false }) }} onKeep={() => { if (!isSelected) selectCatalog(result); void keep(result, isSelected ? keepCategory : null) }} />
         }) : catalogQuery.trim().length >= 2 ? <div className="file-empty"><FreesoundMark /><b>No matching sounds</b><p>Try another phrase or broaden the filters.</p></div> : <section className="freesound-welcome"><header><span className="file-generation-provider"><FreesoundMark />Freesound</span><h2>What do you want to find?</h2><p>Search millions of community sounds, audition them immediately, then keep only what belongs in your Library.</p></header><div><b>Try a sound</b><span>{["city room tone", "soft transition", "wooden door", "crowd applause"].map((example) => <Button key={example} variant="outline" onClick={() => setCatalogQuery(example)}>{example}</Button>)}</span></div></section>}</div></ScrollArea>

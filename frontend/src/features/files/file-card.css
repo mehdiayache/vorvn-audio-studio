@@ -44,8 +44,6 @@ button.file-card-stage-target { cursor: zoom-in; }
 .file-card-tags { grid-column: 1 / -1; display: flex; gap: .3rem; overflow: hidden; }
 .file-card-tags > span { max-inline-size: 7rem; overflow: hidden; padding: 3px 7px; border: 1px solid color-mix(in oklab, var(--file-card-accent) 16%, transparent); border-radius: 999px; color: var(--file-card-accent); background: var(--file-card-soft); font-size: 9px; font-weight: var(--weight-emphasis); text-overflow: ellipsis; text-transform: capitalize; white-space: nowrap; }
 .file-card-context { display: flex; align-items: center; justify-content: end; gap: .35rem; }
-.file-card-used { display: inline-flex; align-items: center; gap: .3rem; color: var(--success); font-size: var(--type-caption); font-weight: var(--weight-emphasis); white-space: nowrap; }
-.file-card-used svg { inline-size: .9rem; }
 @media (hover: hover) and (pointer: fine) {
   .file-card:hover { border-color: color-mix(in oklab, var(--file-card-accent) 44%, var(--border)); box-shadow: var(--shadow-sm); transform: translateY(-1px); }
   .file-card-stage-target:hover img, .file-card-stage-target:hover video { transform: scale(1.015); }

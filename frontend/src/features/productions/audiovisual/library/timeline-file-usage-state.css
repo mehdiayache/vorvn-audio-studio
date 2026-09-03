@@ -1,0 +1,10 @@
+.timeline-file-usage-state {
+  display: inline-flex;
+  align-items: center;
+  gap: .3rem;
+  color: var(--success);
+  font-size: var(--type-caption);
+  font-weight: var(--weight-emphasis);
+  white-space: nowrap;
+}
+.timeline-file-usage-state svg { inline-size: .9rem; }

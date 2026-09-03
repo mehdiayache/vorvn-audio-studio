@@ -53,10 +53,10 @@
 .file-library-view,
 .file-search-view { grid-template-rows: minmax(0, 1fr); }
 .file-canvas { min-width: 0; min-height: 0; height: 100%; }
-.audio-file-card-grid { min-height: 100%; display: grid; grid-template-columns: repeat(auto-fill, minmax(190px, 220px)); align-content: start; gap: 12px; padding: 12px 14px 24px; }
-.audio-file-card-grid > .file-empty { grid-column: 1 / -1; }
-.file-search-view .audio-file-card-grid { position: relative; }
-.file-search-view .audio-file-card-skeleton { min-height: 202px; border-radius: calc(var(--radius) * 1.2); }
+.audio-library-card-grid { min-height: 100%; display: grid; grid-template-columns: repeat(auto-fill, minmax(190px, 220px)); align-content: start; gap: 12px; padding: 12px 14px 24px; }
+.audio-library-card-grid > .file-empty { grid-column: 1 / -1; }
+.file-search-view .audio-library-card-grid { position: relative; }
+.file-search-view .audio-library-card-skeleton { min-height: 202px; border-radius: calc(var(--radius) * 1.2); }
 .file-search-view .audio-library-loading-label { left: 50%; }
 .freesound-welcome { grid-column: 1 / -1; width: min(100%, 760px); min-height: calc(100% - 24px); display: grid; grid-template-rows: 1fr auto 1fr; align-items: center; gap: 28px; margin: 0 auto; padding: 44px 24px; text-align: center; }
 .freesound-welcome > header { align-self: end; display: grid; justify-items: center; gap: 8px; }
@@ -66,7 +66,7 @@
 .freesound-welcome > div > b { font-size: var(--type-caption); }
 .freesound-welcome > div > span { display: flex; flex-wrap: wrap; justify-content: center; gap: 8px; }
 .audio-library-loading { position: relative; }
-.audio-library-loading .audio-file-card-skeleton { min-height: 202px; border-radius: calc(var(--radius) * 1.2); }
+.audio-library-loading .audio-library-card-skeleton { min-height: 202px; border-radius: calc(var(--radius) * 1.2); }
 .audio-library-inspector-loading { display: grid; align-content: start; gap: 12px; }
 .audio-library-inspector-loading > span { height: 54px; border-radius: var(--radius-sm); }
 .audio-library-inspector-loading > .audio-library-inspector-heading { width: 72%; height: 22px; margin-bottom: 8px; }

@@ -9,6 +9,7 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } f
 import type { ProductionFileResources } from "@/hooks/use-production-resources"
 import type { CatalogKeepResult, LoadState, PlayerSource, Production, StudioConfig, WorkspaceFile } from "@/types/domain"
 import type { VoiceDirectory } from "@/types/domain"
+import { TimelineFileUsageState } from "./library/timeline-file-usage-state"
 
 import "@/features/workspace/library/audio-library.css"
 
@@ -17,6 +18,10 @@ export type ProductionToolKind = "speech" | "file" | "silence" | "audio" | "impo
 const SilenceTool = lazy(() => import("@/features/productions/audiovisual/support/add-silence-tool").then((module) => ({ default: module.AddSilenceTool })))
 const AudioLibrary = lazy(() => import("@/features/workspace/library/audio-library").then((module) => ({ default: module.AudioLibrary })))
 const ProductionImportTool = lazy(() => import("@/features/productions/audiovisual/support/production-import-tool").then((module) => ({ default: module.ProductionImportTool })))
+
+function renderTimelineFileUsageState() {
+  return <TimelineFileUsageState />
+}
 
 function AudioLibraryToolLoading() {
   return <div className="tool-panel-body file-tool file-tool-loading">
@@ -83,7 +88,7 @@ export function ProductionToolDialog({ open, production, config, nextPartNumber,
       <DialogHeader className={open === "file" || open === "audio" ? "file-dialog-a11y-header" : undefined}><DialogTitle>{title}</DialogTitle><DialogDescription>{description}</DialogDescription></DialogHeader>
       <Suspense fallback={open === "file" || open === "audio" ? <AudioLibraryToolLoading /> : <div className="tool-panel-body"><span className="eyebrow">Loading tool…</span></div>}>
         {open === "silence" && <SilenceTool onAdd={onAddSilence} />}
-        {(open === "file" || open === "audio") && <AudioLibrary context={{ workspace_id: production.workspace_id, folder_id: production.folder_id, production_id: production.id, production_type: "audiovisual" }} files={files} loading={fileState.status === "loading" && !fileState.data} refreshing={fileState.status === "loading" && Boolean(fileState.data)} resourceError={fileState.status === "error" ? fileState.error : undefined} onRetryResource={onRetryFiles} usedFileIds={usedFileIds} mode={fileMode} chooseLabel={replacingFile ? "Replace linked audio" : undefined} initialSelectedId={fileMode === "sound" ? initialAudioFileId : replacingFileId} playingKey={playingKey} playerPlaying={playerPlaying} transport={libraryTransport} onChoose={fileMode === "sound" ? onPlaceAudio : onInsertFile} onUpload={onUploadFile} onUpdate={onUpdateFile} onKeep={onKeepFile} onPlay={onPlay} />}
+        {(open === "file" || open === "audio") && <AudioLibrary context={{ workspace_id: production.workspace_id, folder_id: production.folder_id, production_id: production.id, production_type: "audiovisual" }} files={files} loading={fileState.status === "loading" && !fileState.data} refreshing={fileState.status === "loading" && Boolean(fileState.data)} resourceError={fileState.status === "error" ? fileState.error : undefined} onRetryResource={onRetryFiles} usedFileIds={usedFileIds} renderUsageState={renderTimelineFileUsageState} mode={fileMode} chooseLabel={replacingFile ? "Replace linked audio" : fileMode === "sound" ? "Add to Timeline" : "Insert"} initialSelectedId={fileMode === "sound" ? initialAudioFileId : replacingFileId} playingKey={playingKey} playerPlaying={playerPlaying} transport={libraryTransport} onChoose={fileMode === "sound" ? onPlaceAudio : onInsertFile} onUpload={onUploadFile} onUpdate={onUpdateFile} onKeep={onKeepFile} onPlay={onPlay} />}
         {open === "import" && <ProductionImportTool workspaceId={production.workspace_id} folderId={production.folder_id} existing={{ id: production.id, publicId: production.public_id, name: production.name, description: production.description, partCount: nextPartNumber - 1 }} config={config} directory={directory} playingKey={playingKey} playerPlaying={playerPlaying} onPlay={onPlay} onCompleted={onImported} onCancel={onClose} />}
       </Suspense>
     </DialogContent>
