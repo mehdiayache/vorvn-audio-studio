@@ -4,7 +4,7 @@ import { useState } from "react"
 import { MemoryRouter, Route, Routes, useNavigate } from "react-router-dom"
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
 
-import { AppShell, OriginsRailToggle, activeOriginsDestination } from "@/components/app-shell"
+import { AppShell, activeOriginsDestination } from "@/components/app-shell"
 import { GlobalPlayerProvider } from "@/components/global-player-provider"
 import { ProductReadinessProvider } from "@/components/product-readiness"
 import { TooltipProvider } from "@/components/ui/tooltip"
@@ -15,7 +15,7 @@ vi.mock("@/lib/api", () => ({ originsApi: { config: vi.fn(), workspaces: vi.fn()
 const configured = { has_key: true } as Awaited<ReturnType<typeof originsApi.config>>
 
 function ProductionContent() {
-  return <><OriginsRailToggle className="production-header-toggle" /><h1>Production content</h1></>
+  return <h1>Production content</h1>
 }
 
 beforeEach(() => {
@@ -117,17 +117,13 @@ describe("Origins shell", () => {
     expect(container.querySelector(".studio-app-shell")?.getAttribute("data-presentation")).toBe("standard")
   })
 
-  it("keeps the desktop navigation rail collapsible inside its own surface", () => {
+  it("keeps one fixed desktop navigation rail without collapse machinery", async () => {
     const { container } = renderShell("standalone", "/origins/productions/audiovisual/production-id", true)
     const shell = container.querySelector(".studio-app-shell")
     expect(shell?.getAttribute("data-navigation")).toBe("rail")
-    expect(shell?.getAttribute("data-rail-expanded")).toBe("false")
-    const railToggle = container.querySelector<HTMLButtonElement>(".studio-rail .studio-rail-toggle")
-    expect(railToggle).toBeTruthy()
-    expect(container.querySelector(".production-header-toggle")).toBeTruthy()
-    fireEvent.click(railToggle!)
-    expect(shell?.getAttribute("data-rail-expanded")).toBe("true")
-    expect(railToggle?.getAttribute("aria-label")).toBe("Collapse Origins navigation")
+    expect(screen.queryByRole("button", { name: /Origins navigation/ })).toBeNull()
+    expect(screen.getByRole("link", { name: "Home" })).toBeTruthy()
+    await waitFor(() => expect(screen.getByRole("button", { name: "Current Workspace: Aduh Lagi Studio" })).toBeTruthy())
   })
 
   it("exposes the approved Workspace, action and utility hierarchy", async () => {

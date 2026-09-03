@@ -7,60 +7,45 @@
 .studio-app-shell[data-navigation="rail"] {
   --studio-standalone-header-height: 0rem;
   --studio-local-chrome-height: 0rem;
-  --studio-rail-current: 3.25rem;
   block-size: 100dvh;
   min-block-size: 0;
   display: grid;
-  grid-template-columns: var(--studio-rail-current) minmax(0, 1fr);
+  grid-template-areas: "workspace-bar workspace-bar" "rail viewport";
+  grid-template-columns: 9.5rem minmax(0, 1fr);
+  grid-template-rows: 3.5rem minmax(0, 1fr);
   overflow: hidden;
   background: var(--workspace-background);
-  transition: grid-template-columns 180ms ease;
 }
 
-.studio-app-shell[data-navigation="rail"][data-rail-expanded="true"] { --studio-rail-current: 13.5rem; }
-.studio-app-shell[data-navigation="rail"] .origins-viewport { min-block-size: 0; overflow: auto; }
+.studio-app-shell[data-navigation="rail"] .origins-viewport { grid-area: viewport; min-block-size: 0; overflow: auto; }
+
+.studio-workspace-bar {
+  grid-area: workspace-bar;
+  min-inline-size: 0;
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  padding-inline: 1rem;
+  border-block-end: 1px solid color-mix(in oklab, var(--border) 75%, transparent);
+  background: var(--background);
+}
+.studio-workspace-bar .studio-workspace-selector { inline-size: auto; max-inline-size: min(28rem, 42vw); padding-inline: .5rem; }
+.studio-workspace-bar .studio-workspace-selector > span,
+.studio-workspace-bar .studio-workspace-selector > svg:last-child { opacity: 1; transform: none; }
 
 .studio-rail {
-  position: relative;
+  grid-area: rail;
   min-inline-size: 0;
   min-block-size: 0;
   display: grid;
-  grid-template-rows: auto minmax(0, 1fr) auto;
+  grid-template-rows: minmax(0, 1fr) auto;
   gap: 0.625rem;
-  padding: 0.75rem 0.25rem;
+  padding: 1rem 0.5rem 0.75rem;
   border-inline-end: 1px solid color-mix(in oklab, var(--border) 75%, transparent);
   background: var(--background);
-  overflow: visible;
+  overflow: hidden;
 }
 
-.studio-app-shell[data-navigation="rail"][data-rail-expanded="true"] .studio-rail { padding-inline: 0.5rem; }
-
-.studio-rail-head { display: grid; gap: 0.375rem; }
-.studio-rail-brand-row { min-inline-size: 0; }
-.studio-rail .studio-deck-brand { min-inline-size: 0; block-size: 2.5rem; padding-inline: 0.1875rem; overflow: hidden; }
-.studio-rail .studio-deck-mark { inline-size: 2.125rem; block-size: 2.125rem; flex: 0 0 2.125rem; }
-.studio-rail .studio-deck-brand > span:last-child,
-.studio-rail-link > span,
-.studio-workspace-selector > span,
-.studio-workspace-selector > svg:last-child { opacity: 0; transform: translateX(-0.25rem); transition: opacity 120ms ease, transform 160ms ease; }
-.studio-app-shell[data-rail-expanded="true"] .studio-rail .studio-deck-brand > span:last-child,
-.studio-app-shell[data-rail-expanded="true"] .studio-rail-link > span,
-.studio-app-shell[data-rail-expanded="true"] .studio-workspace-selector > span,
-.studio-app-shell[data-rail-expanded="true"] .studio-workspace-selector > svg:last-child { opacity: 1; transform: translateX(0); }
-.studio-rail-toggle {
-  position: absolute;
-  z-index: 2;
-  inset-block-start: 3.4rem;
-  inset-inline-end: -0.6875rem;
-  inline-size: 1.375rem;
-  block-size: 1.375rem;
-  border: 1px solid var(--border);
-  border-radius: 999px;
-  color: var(--muted-foreground);
-  background: var(--background);
-  box-shadow: var(--shadow-xs);
-}
-.studio-rail-toggle svg { inline-size: 0.75rem; block-size: 0.75rem; }
 .studio-workspace-selector {
   min-inline-size: 0;
   inline-size: 100%;
@@ -89,7 +74,7 @@
   align-items: center;
   gap: 0.75rem;
   overflow: hidden;
-  padding-inline: 0.625rem;
+  padding-inline: 0.75rem;
   border-radius: 0.625rem;
   color: var(--muted-foreground);
   font-size: var(--type-small);
@@ -103,7 +88,6 @@
 .studio-rail-link.is-active { color: var(--primary); background: var(--primary-soft); }
 .studio-rail-footer { display: grid; gap: 0.25rem; padding-block-start: 0.625rem; border-block-start: 1px solid color-mix(in oklab, var(--border) 72%, transparent); }
 .studio-rail-footer .studio-deck-readiness { overflow: hidden; white-space: nowrap; }
-.studio-app-shell[data-rail-expanded="false"] .studio-rail-footer .studio-deck-readiness:not(.is-checking):not(.is-setup_required):not(.is-unavailable) { display: none; }
 
 .studio-app-shell[data-mount-mode="embedded"] {
   --studio-standalone-header-height: 0rem;

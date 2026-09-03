@@ -1,7 +1,7 @@
-import { createContext, useContext, useEffect, useState } from "react"
+import { useEffect, useState } from "react"
 import {
   Activity, Building2, Check, ChevronDown, Circle, Files, FolderKanban,
-  FolderTree, Home, Menu, PanelLeftClose, PanelLeftOpen, Plus, Settings2,
+  FolderTree, Home, Menu, Plus, Settings2,
   Shapes, Sparkles, Wrench,
 } from "lucide-react"
 import type { LucideIcon } from "lucide-react"
@@ -29,32 +29,6 @@ import { cn } from "@/lib/utils"
 import type { WorkspaceSummary } from "@/types/domain"
 
 export type OriginsMountMode = "standalone" | "embedded"
-
-type OriginsShellContextValue = {
-  railNavigation: boolean
-  railExpanded: boolean
-  toggleRail: () => void
-}
-
-const OriginsShellContext = createContext<OriginsShellContextValue>({
-  railNavigation: false,
-  railExpanded: false,
-  toggleRail: () => undefined,
-})
-
-export function OriginsRailToggle({ className, tooltipSide = "right" }: { className?: string; tooltipSide?: "right" | "bottom" }) {
-  const shell = useContext(OriginsShellContext)
-  if (!shell.railNavigation) return null
-  const label = shell.railExpanded ? `Collapse ${productIdentity.name} navigation` : `Expand ${productIdentity.name} navigation`
-  return <Tooltip>
-    <TooltipTrigger asChild>
-      <Button variant="ghost" size="icon-sm" className={className} aria-label={label} onClick={shell.toggleRail}>
-        {shell.railExpanded ? <PanelLeftClose /> : <PanelLeftOpen />}
-      </Button>
-    </TooltipTrigger>
-    <TooltipContent side={tooltipSide}>{shell.railExpanded ? "Collapse navigation" : "Expand navigation"}</TooltipContent>
-  </Tooltip>
-}
 
 type StudioNavigationItem = {
   id: "home" | "projects" | "explorer" | "library" | "objects" | "create" | "add" | "tools" | "activity" | "settings"
@@ -274,10 +248,6 @@ function StudioRail() {
   const actionItems = originsNavigation.filter((item) => item.group === "actions")
   const utilityItems = originsNavigation.filter((item) => item.group === "utility")
   return <aside className="studio-rail" aria-label={`${productIdentity.name} navigation`}>
-    <div className="studio-rail-head">
-      <div className="studio-rail-brand-row"><StudioBrand /><OriginsRailToggle className="studio-rail-toggle" /></div>
-      <WorkspaceRailSelector />
-    </div>
     <nav className="studio-rail-navigation" aria-label={`${productIdentity.name} tools`}>
       <div className="studio-rail-group">
         {workspaceItems.map((item) => <StudioRailLink key={item.id} item={item} pathname={location.pathname} />)}
@@ -291,6 +261,13 @@ function StudioRail() {
       {utilityItems.map((item) => <StudioRailLink key={item.id} item={item} pathname={location.pathname} />)}
     </div>
   </aside>
+}
+
+function WorkspaceChrome({ mode }: { mode: OriginsMountMode }) {
+  return <header className="studio-workspace-bar">
+    {mode === "standalone" && <StudioBrand />}
+    <WorkspaceRailSelector />
+  </header>
 }
 
 function OriginsGatewayChrome({ mode }: { mode: OriginsMountMode }) {
@@ -364,21 +341,18 @@ export function AppShell({ mode = "standalone" }: { mode?: OriginsMountMode }) {
   const location = useLocation()
   const activeDestination = activeOriginsDestination(location.pathname)
   const desktop = useMediaQuery("(min-width: 48.01rem)")
-  const [railExpanded, setRailExpanded] = useState(false)
   const workspaceGateway = location.pathname === "/origins" || location.pathname === "/origins/"
   const railNavigation = mode === "standalone" && desktop && !workspaceGateway
   return (
-    <OriginsShellContext.Provider value={{ railNavigation, railExpanded, toggleRail: () => setRailExpanded((expanded) => !expanded) }}>
-      <div className="studio-app-shell" data-mount-mode={mode} data-presentation="standard" data-navigation={workspaceGateway ? "gateway" : railNavigation ? "rail" : "top"} data-rail-expanded={railExpanded ? "true" : "false"}>
-        <a className="studio-skip-link" href="#origins-content">Skip to {productIdentity.name} content</a>
-        {workspaceGateway ? <OriginsGatewayChrome mode={mode} /> : railNavigation ? <StudioRail /> : <StudioDeckChrome mode={mode} destination={activeDestination} />}
-        <main id="origins-content" className="origins-viewport" tabIndex={-1}>
-          <AppErrorBoundary key={location.pathname}>
-            <Outlet />
-          </AppErrorBoundary>
-        </main>
-        <TransportStrip />
-      </div>
-    </OriginsShellContext.Provider>
+    <div className="studio-app-shell" data-mount-mode={mode} data-presentation="standard" data-navigation={workspaceGateway ? "gateway" : railNavigation ? "rail" : "top"}>
+      <a className="studio-skip-link" href="#origins-content">Skip to {productIdentity.name} content</a>
+      {workspaceGateway ? <OriginsGatewayChrome mode={mode} /> : railNavigation ? <><WorkspaceChrome mode={mode} /><StudioRail /></> : <StudioDeckChrome mode={mode} destination={activeDestination} />}
+      <main id="origins-content" className="origins-viewport" tabIndex={-1}>
+        <AppErrorBoundary key={location.pathname}>
+          <Outlet />
+        </AppErrorBoundary>
+      </main>
+      <TransportStrip />
+    </div>
   )
 }

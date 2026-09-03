@@ -89,7 +89,7 @@ test("opens an audiovisual Production and renders Timeline and Creator Library w
   expect(browserIssues, browserIssues.join("\n")).toEqual([])
 })
 
-test("expands and collapses the desktop rail, then opens Home Project and Production", async ({ page, request }) => {
+test("uses the fixed desktop rail, then opens Home Project and Production", async ({ page, request }) => {
   const browserIssues: string[] = []
   page.on("console", (message) => {
     if (message.type() === "warning" || message.type() === "error") browserIssues.push(`${message.type()}: ${message.text()}`)
@@ -106,13 +106,10 @@ test("expands and collapses the desktop rail, then opens Home Project and Produc
   await expect(page.getByRole("link", { name: "Origins", exact: true })).toBeVisible()
   await page.getByRole("button", { name: `Open Workspace ${workspace.name}` }).click()
   await expect(page).toHaveURL(/\/origins\/home$/)
-  await expect(page.getByRole("heading", { name: workspace.name })).toBeVisible()
+  await expect(page.getByText(`Welcome back to ${workspace.name}`)).toBeVisible()
   const shell = page.locator(".studio-app-shell")
-  const railToggle = page.locator(".studio-rail .studio-rail-toggle")
-  await expect(shell).toHaveAttribute("data-rail-expanded", "false")
-  await expect(railToggle).toHaveAccessibleName("Expand Origins navigation")
-  await railToggle.click()
-  await expect(shell).toHaveAttribute("data-rail-expanded", "true")
+  await expect(shell).toHaveAttribute("data-navigation", "rail")
+  await expect(page.getByRole("button", { name: /Origins navigation/ })).toHaveCount(0)
   const projectsLink = page.getByRole("link", { name: "Projects", exact: true })
   await expect(projectsLink).toBeVisible()
   await expect(page.getByRole("button", { name: `Current Workspace: ${workspace.name}` })).toBeVisible()
@@ -122,10 +119,8 @@ test("expands and collapses the desktop rail, then opens Home Project and Produc
   const homeLink = page.getByRole("link", { name: "Home", exact: true })
   await homeLink.click()
   await expect(homeLink).toHaveAttribute("aria-current", "page")
-  await railToggle.click()
-  await expect(shell).toHaveAttribute("data-rail-expanded", "false")
 
-  await expect(page.getByRole("heading", { name: workspace.name })).toBeVisible()
+  await expect(page.getByText(`Welcome back to ${workspace.name}`)).toBeVisible()
   await expect(page.getByRole("heading", { name: "What do you want to create today?" })).toBeVisible()
   await page.getByRole("link", { name: `Open Project ${project.name}` }).click()
   await expect(page.getByRole("heading", { name: project.name })).toBeVisible()

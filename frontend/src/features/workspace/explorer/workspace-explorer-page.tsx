@@ -143,50 +143,49 @@ function WorkspaceHome({ workspaceOverview, actions, actionsError, onRetryAction
   onNewProduction: () => void
 }) {
   return <div className="workspace-home">
-    <header className="workspace-home-intro">
-      <span>Current Workspace</span>
-      <h1>{workspaceOverview.workspace.name}</h1>
-      {workspaceOverview.workspace.description && <p>{workspaceOverview.workspace.description}</p>}
-      <div>
-        <h2>What do you want to create today?</h2>
-        <Button onClick={onNewProject}><Plus /> New Project</Button>
-      </div>
+    <header className="workspace-home-welcome">
+      <p>Welcome back to {workspaceOverview.workspace.name}</p>
+      <h1>What do you want to create today?</h1>
     </header>
 
-    <section className="workspace-home-section" aria-labelledby="workspace-home-productions">
-      <header><div><h2 id="workspace-home-productions">Productions</h2><p>Choose the creative environment for the work.</p></div></header>
-      <div className="workspace-home-production-types">
-        <Button variant="ghost" onClick={onNewProduction}>
-          <span><Clapperboard /></span><b>Audiovisual</b><small>Script, Timeline, Library, Preview and Export.</small><ChevronRight />
-        </Button>
-        <article aria-label="Merch, coming soon"><span><Sparkles /></span><b>Merch</b><small>Coming soon</small></article>
-        <article aria-label="Slides, coming soon"><span><FileImage /></span><b>Slides</b><small>Coming soon</small></article>
-      </div>
-    </section>
+    <div className="workspace-home-board">
+      <div className="workspace-home-main">
+        <section className="workspace-home-section" aria-labelledby="workspace-home-creator">
+          <header><div><h2 id="workspace-home-creator">Creator</h2><p>Create a reusable File.</p></div></header>
+          <div className="workspace-home-creator-actions">
+            {createShortcuts(actions).map((action) => <CreateActionButton action={action} folderId={null} key={action.id} />)}
+          </div>
+          {actionsError && <div className="workspace-create-inline-error" role="alert"><span>{actionsError}</span><Button variant="ghost" size="sm" onClick={onRetryActions}>Try again</Button></div>}
+        </section>
 
-    <section className="workspace-home-section" aria-labelledby="workspace-home-creator">
-      <header><div><h2 id="workspace-home-creator">Creator</h2><p>Create reusable Files without starting a Production.</p></div></header>
-      <div className="workspace-home-creator-actions">
-        {createShortcuts(actions).map((action) => <CreateActionButton action={action} folderId={null} key={action.id} />)}
+        <section className="workspace-home-section" aria-labelledby="workspace-home-productions">
+          <header><div><h2 id="workspace-home-productions">Productions</h2><p>Choose a creative working environment.</p></div></header>
+          <div className="workspace-home-production-types">
+            <Button variant="ghost" onClick={onNewProduction}>
+              <span><Clapperboard /></span><b>Audiovisual</b><small>Script, Timeline, Library, Preview and Export.</small><ChevronRight />
+            </Button>
+            <article aria-label="Merch, coming soon"><span><Sparkles /></span><b>Merch</b><small>Coming soon</small></article>
+            <article aria-label="Slides, coming soon"><span><FileImage /></span><b>Slides</b><small>Coming soon</small></article>
+          </div>
+        </section>
       </div>
-      {actionsError && <div className="workspace-create-inline-error" role="alert"><span>{actionsError}</span><Button variant="ghost" size="sm" onClick={onRetryActions}>Try again</Button></div>}
-    </section>
 
-    <div className="workspace-home-recents">
-      <section className="workspace-library-section" aria-labelledby="workspace-home-projects">
-        <header><div><h2 id="workspace-home-projects">Recent Projects</h2><p>Human initiatives across this Workspace.</p></div><Link to="/origins/projects">View all</Link></header>
-        <div className="workspace-recent-rail">
-          {workspaceOverview.projects.slice(0, 6).map((project) => <RecentProjectCard key={project.id} project={project} />)}
-          {!workspaceOverview.projects.length && <div className="workspace-quiet-empty"><FolderKanban /><b>No Projects yet</b><span>Create one to group related Productions.</span></div>}
-        </div>
-      </section>
-      <section className="workspace-library-section" aria-labelledby="workspace-home-work">
-        <header><div><h2 id="workspace-home-work">Recent Work</h2><p>Productions you can continue.</p></div><Link to="/origins/productions">View all</Link></header>
-        <div className="workspace-recent-rail">
-          {workspaceOverview.productions.slice(0, 6).map((production) => <RecentProductionCard key={production.id} production={production} />)}
-          {!workspaceOverview.productions.length && <div className="workspace-quiet-empty"><Clapperboard /><b>No Productions yet</b><span>Start with the Audiovisual Production type.</span></div>}
-        </div>
-      </section>
+      <aside className="workspace-home-side" aria-label="Your work">
+        <section className="workspace-library-section" aria-labelledby="workspace-home-projects">
+          <header><div><h2 id="workspace-home-projects">My Projects</h2></div><Button variant="ghost" size="sm" onClick={onNewProject}><Plus /> New</Button></header>
+          <div className="workspace-recent-rail">
+            {workspaceOverview.projects.slice(0, 4).map((project) => <RecentProjectCard key={project.id} project={project} />)}
+            {!workspaceOverview.projects.length && <div className="workspace-quiet-empty"><FolderKanban /><b>No Projects yet</b><span>Create one to group related Productions.</span></div>}
+          </div>
+        </section>
+        <section className="workspace-library-section" aria-labelledby="workspace-home-work">
+          <header><div><h2 id="workspace-home-work">My Productions</h2></div><Link to="/origins/productions">View all</Link></header>
+          <div className="workspace-recent-rail">
+            {workspaceOverview.productions.slice(0, 4).map((production) => <RecentProductionCard key={production.id} production={production} />)}
+            {!workspaceOverview.productions.length && <div className="workspace-quiet-empty"><Clapperboard /><b>No Productions yet</b><span>Start with Audiovisual.</span></div>}
+          </div>
+        </section>
+      </aside>
     </div>
   </div>
 }
@@ -444,7 +443,7 @@ export function WorkspaceExplorerPage({ view = "home" }: { view?: WorkspaceExplo
   if (!workspaceOverview && overview.status === "error") return <main className="workspace-explorer"><div className="workspace-explorer-loading"><b>Workspace unavailable</b><span>{overview.error}</span><Button onClick={() => void refresh()}>Try again</Button></div></main>
 
   const pageLabel = view === "home" ? "Home" : view === "projects" ? "Projects" : view === "productions" ? "Productions" : view === "files" ? "Library" : "Explorer"
-  return <main className="workspace-explorer">
+  return <main className={cn("workspace-explorer", view === "home" && "is-home")}>
     <header className="workspace-explorer-header"><div><strong>{pageLabel}</strong><span>{workspaceOverview?.workspace.name || "Your creative Workspace"}</span></div><div className="workspace-mobile-switcher"><select aria-label="Current Workspace" value={selectedWorkspaceId} onChange={(event) => { setSelectedFolderId(null); setSelectedWorkspaceId(Number(event.target.value)) }}>{availableWorkspaces.map((workspace) => <option value={workspace.id} key={workspace.id}>{workspace.name}</option>)}</select><OperatorIconButton label="New Workspace" detail="Create another ownership root." size="icon-sm" variant="ghost" onClick={() => setDialog("workspace")}><Plus /></OperatorIconButton></div><small>{workspaceOverview ? `${workspaceOverview.projects.length} Projects · ${workspaceOverview.productions.length} Productions · ${workspaceOverview.files.length} Files` : "Loading…"}</small></header>
     {workspaceOverview ? <div className={cn("workspace-explorer-content", view !== "home" && "is-library-view")}>
       <ExplorerContent workspaceOverview={workspaceOverview} view={view} actions={createActions} actionsError={actions.status === "error" ? actions.error : undefined} onRetryActions={() => void refreshActions()} onNewProject={() => setDialog("project")} onNewProduction={() => setDialog("production")} onNewFolder={() => setDialog("folder")} onUploadFile={() => setUploadOpen(true)} selectedFolderId={selectedFolderId} onSelectedFolderId={setSelectedFolderId} />

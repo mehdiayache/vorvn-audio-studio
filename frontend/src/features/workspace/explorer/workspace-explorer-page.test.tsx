@@ -59,9 +59,10 @@ describe("WorkspaceExplorerPage", () => {
 
   it("makes Home teach Projects, Production types and standalone Creator capabilities", async () => {
     renderPage()
-    expect(await screen.findByRole("heading", { name: "Campaign Lab" })).toBeTruthy()
+    expect(await screen.findByText("Welcome back to Campaign Lab")).toBeTruthy()
     expect(screen.getByRole("heading", { name: "What do you want to create today?" })).toBeTruthy()
-    expect(screen.getByRole("button", { name: "New Project" })).toBeTruthy()
+    expect(screen.getByRole("heading", { name: "My Projects" })).toBeTruthy()
+    expect(screen.getByRole("button", { name: "New" })).toBeTruthy()
     expect(screen.getByRole("button", { name: /Audiovisual/ })).toBeTruthy()
     expect(screen.getByRole("article", { name: "Merch, coming soon" })).toBeTruthy()
     expect(screen.getByRole("article", { name: "Slides, coming soon" })).toBeTruthy()
