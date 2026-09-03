@@ -5,6 +5,7 @@ import { jobObserver } from "@/lib/job-observer"
 import type { DurableJob, GeneratePayload, GenerateResult } from "@/types/domain"
 
 const payload: GeneratePayload = {
+  context: { workspace_id: 4, folder_id: 27, selection: { capability: "speech" } },
   text: "Immediate durable handle",
   voice_identity_id: "identity-1", binding_id: "binding-1", capability_id: null, format: "mp3",
   language: "English", instruction: "", speech_mode: "exact", rate: 1,

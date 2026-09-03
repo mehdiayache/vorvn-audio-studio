@@ -2714,7 +2714,10 @@ export interface components {
         CreatorCapabilitiesEnvelope: {
             data: components["schemas"]["CreatorCapabilities"];
         };
-        /** CreatorContext */
+        /**
+         * CreatorContext
+         * @description The destination and optional host selection for one Creator session.
+         */
         CreatorContext: {
             /** Folder Id */
             folder_id?: number | null;
@@ -5434,6 +5437,7 @@ export interface components {
              * @default false
              */
             confirmed: boolean;
+            context: components["schemas"]["CreatorContext"];
             /**
              * Enable Ssml
              * @default false
@@ -5464,8 +5468,6 @@ export interface components {
              * @default 1
              */
             pitch: number;
-            /** Project Id */
-            project_id?: number | null;
             /**
              * Rate
              * @default 1
@@ -5508,8 +5510,6 @@ export interface components {
              * @default 100
              */
             volume: number;
-            /** Workspace Id */
-            workspace_id?: number | null;
         };
         /** SpeechJobCreatedEnvelope */
         SpeechJobCreatedEnvelope: {

@@ -338,9 +338,10 @@ export const originsApi = {
   replaceFile: (projectId: number, partId: number, fileId: number) =>
     request<TimelinePartEnvelope>(`/api/v1/projects/${projectId}/parts/${partId}/file`, { method: "PATCH", body: JSON.stringify({ file_id: fileId }) }).then((response) => response.data),
   saveDraft: (payload: Omit<GeneratePayload, "confirmed">) => {
-    if (!payload.project_id) return Promise.reject(new ApiError("Choose a Project before saving a Draft.", 400))
-    const { project_id, ...draft } = payload
-    return postV1<{ id: number }>(`/api/v1/projects/${project_id}/parts/drafts`, draft)
+    const projectId = payload.context.project_id
+    if (!projectId) return Promise.reject(new ApiError("Choose a Project before saving a Draft.", 400))
+    const { context: _context, ...draft } = payload
+    return postV1<{ id: number }>(`/api/v1/projects/${projectId}/parts/drafts`, draft)
   },
   importProject: (
     projectId: number,

@@ -14,7 +14,8 @@ vi.mock("@/lib/api", async (importOriginal) => {
 })
 
 const payload: GeneratePayload = {
-  text: "In the beginning", project_id: 28,
+  context: { workspace_id: 4, project_id: 28, project_type: "audiovisual", selection: { target: "script_part" } },
+  text: "In the beginning",
   voice_identity_id: "identity-serenity", binding_id: "binding-serenity",
   capability_id: null, format: "mp3",
   language: "English", instruction: "", speech_mode: "exact",

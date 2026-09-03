@@ -57,10 +57,11 @@ describe("provider-neutral Creator contract", () => {
     expect(standalone.text).toEqual(project.text)
     expect(standalone.context).toEqual({ kind: "standalone" })
     expect(project.context).toEqual({ kind: "project", projectId: 7, insertion: { kind: "before_part", partId: "part-public-3" } })
-    expect(toGeneratePayload(project)).toMatchObject({
+    expect(toGeneratePayload(project, { workspace_id: 4, project_id: 7, project_type: "audiovisual", selection: { target: "script_part" } })).toMatchObject({
+      context: { workspace_id: 4, project_id: 7, project_type: "audiovisual", selection: { target: "script_part" } },
       insert_before_part_id: "part-public-3",
     })
-    expect(toGeneratePayload(project)).not.toHaveProperty("operation")
+    expect(toGeneratePayload(project, { workspace_id: 4 })).not.toHaveProperty("operation")
   })
 
   it("refuses generation without an operator-selected exact route", () => {
@@ -85,8 +86,9 @@ describe("provider-neutral Creator contract", () => {
 
   it("sends only the exact route and never provider-derived compatibility fields", () => {
     const command = buildSpeechCommand({ context: compositionContext({}), draft: draft(routeSelection(ownedRoute)) })
-    const payload = toGeneratePayload(command)
+    const payload = toGeneratePayload(command, { workspace_id: 4, folder_id: 27 })
     expect(payload).toMatchObject({
+      context: { workspace_id: 4, folder_id: 27 },
       binding_id: "binding-1",
       catalogue_voice_id: null,
       spoken_profile: "spoken_1",

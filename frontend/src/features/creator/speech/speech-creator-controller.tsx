@@ -225,7 +225,7 @@ export function useSpeechCreatorController({ context: creatorContext, nextPartNu
     : part
       ? `Edit ${formatAuthoredRole(authoredRole) || "speech"} · Part ${formatPartNumber(part.position ?? 0)}`
       : insertAt === null ? `New speech · Part ${nextPartNumber}` : `New speech · before Part ${insertAt + 1}`
-  const context = useMemo(() => compositionContext({ projectId, part, insertBeforePartId }), [insertBeforePartId, part, projectId])
+  const draftContext = useMemo(() => compositionContext({ projectId, part, insertBeforePartId }), [insertBeforePartId, part, projectId])
   const baseline = useMemo(() => editorialBaseline(part), [part])
   const draft: CompositionDraft = {
     authoredRole,
@@ -246,7 +246,7 @@ export function useSpeechCreatorController({ context: creatorContext, nextPartNu
   const latestRecoverableDraftRef = useRef(recoverableDraft(draft))
   latestRecoverableDraftRef.current = recoverableDraft(draft)
   const recovery = useCreatorDraftRecovery({
-    context,
+    context: draftContext,
     draft: recoverableDraft(draft),
     onRestore: (saved) => {
       setAuthoredRole(saved.authoredRole || "")
@@ -286,14 +286,14 @@ export function useSpeechCreatorController({ context: creatorContext, nextPartNu
   }, [visible])
 
   function command(confirmed = false) {
-    return buildSpeechCommand({ context, draft, confirmed })
+    return buildSpeechCommand({ context: draftContext, draft, confirmed })
   }
 
   function payload(nextCommand = command()): GeneratePayload {
     if (!currentRoute || currentRoute.id !== routeSelectionId(nextCommand.route)) {
       throw new Error("Choose the exact recording route again before generating.")
     }
-    return toGeneratePayload(nextCommand)
+    return toGeneratePayload(nextCommand, creatorContext)
   }
 
   async function executeGeneration(next: SpeechGenerationCommand, updateEditorial: boolean) {

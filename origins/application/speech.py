@@ -462,7 +462,7 @@ class SpeechJobHandler:
                 job.id, done, total, detail),
         )
         if (job.workspace_id is not None
-                and job.payload.get("project_id") is None
+                and job.project_id is None
                 and result.get("path") and result.get("name")):
             extension = str(result["name"]).rsplit(".", 1)[-1].casefold()
             mime_type = {

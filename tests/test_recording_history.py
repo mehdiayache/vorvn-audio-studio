@@ -30,13 +30,16 @@ class RecordingHistoryTests(unittest.TestCase):
         self.assertTrue(ledger.requested)
         self.assertEqual(ledger.workspace_id, 12)
 
-    def test_standalone_speech_belongs_directly_to_a_space(self):
+    def test_standalone_speech_belongs_directly_to_a_workspace_folder(self):
         contract = SpeechJobCreate(
-            text="Hello", catalogue_voice_id="catalogue:voice", workspace_id=12,
+            text="Hello", catalogue_voice_id="catalogue:voice",
+            context={"workspace_id": 12, "folder_id": 27},
         )
         persisted = contract.model_dump(exclude_unset=True, mode="json")
         self.assertNotIn("session_id", persisted)
-        self.assertEqual(persisted["workspace_id"], 12)
+        self.assertEqual(persisted["context"], {
+            "workspace_id": 12, "folder_id": 27,
+        })
 
     def test_history_preserves_ssml_choice_for_safe_reuse(self):
         request = _safe_request({

@@ -32,10 +32,11 @@ class FakeJobs:
 
 
 class CreationFileTests(unittest.TestCase):
-    def job(self, workspace_id=12):
+    def job(self, workspace_id=12, creation_context=None):
         return Job(
             7, uuid4(), "transcribe", JobStatus.RUNNING,
             workspace_id=workspace_id, creation_action_id="create-subtitles",
+            creation_context=creation_context or {},
         )
 
     def test_register_uses_job_and_action_as_canonical_provenance(self):
@@ -64,6 +65,28 @@ class CreationFileTests(unittest.TestCase):
                          "create-subtitles")
         self.assertEqual(values["metadata"]["provider"], "test")
         self.assertEqual(jobs.links, [(job.public_id, 41)])
+
+    def test_register_keeps_the_creator_destination_folder(self):
+        with TemporaryDirectory() as directory:
+            path = Path(directory) / "speech.mp3"
+            path.write_bytes(b"audio")
+            records, jobs = FakeRecords(), FakeJobs()
+            service = CreationFileService(
+                records, jobs, LocalCreationFileStorage(Path(directory)))
+            service.register(
+                self.job(creation_context={
+                    "workspace_id": 12, "folder_id": 27,
+                    "selection": {"capability": "speech"},
+                }),
+                output_key="speech", name="Folder speech",
+                stored=StoredFileVersion(
+                    filename=path.name, path=str(path),
+                    mime_type="audio/mpeg", family="audio"),
+            )
+
+        workspace_id, values = records.calls[0]
+        self.assertEqual(workspace_id, 12)
+        self.assertEqual(values["folder_id"], 27)
 
     def test_subtitle_outputs_are_real_utf8_file_versions(self):
         with TemporaryDirectory() as directory:

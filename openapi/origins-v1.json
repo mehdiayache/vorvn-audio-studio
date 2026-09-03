@@ -2175,6 +2175,7 @@
       },
       "CreatorContext": {
         "additionalProperties": false,
+        "description": "The destination and optional host selection for one Creator session.",
         "properties": {
           "folder_id": {
             "anyOf": [
@@ -9790,6 +9791,9 @@
             "title": "Confirmed",
             "type": "boolean"
           },
+          "context": {
+            "$ref": "#/components/schemas/CreatorContext"
+          },
           "enable_ssml": {
             "default": false,
             "title": "Enable Ssml",
@@ -9847,18 +9851,6 @@
             "minimum": 0.5,
             "title": "Pitch",
             "type": "number"
-          },
-          "project_id": {
-            "anyOf": [
-              {
-                "exclusiveMinimum": 0.0,
-                "type": "integer"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Project Id"
           },
           "rate": {
             "default": 1,
@@ -9960,22 +9952,11 @@
             "minimum": 0.0,
             "title": "Volume",
             "type": "integer"
-          },
-          "workspace_id": {
-            "anyOf": [
-              {
-                "exclusiveMinimum": 0.0,
-                "type": "integer"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Workspace Id"
           }
         },
         "required": [
-          "text"
+          "text",
+          "context"
         ],
         "title": "SpeechJobCreate",
         "type": "object"

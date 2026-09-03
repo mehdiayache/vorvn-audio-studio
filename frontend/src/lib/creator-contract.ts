@@ -1,4 +1,5 @@
 import type { GeneratePayload, ProjectPart } from "@/types/domain"
+import type { CreatorContext } from "@/lib/api"
 import type { VoiceChoice } from "@/lib/voice-options"
 
 export type TextState = "raw" | "shaped" | "tagged"
@@ -233,10 +234,11 @@ export function buildSpeechCommand(input: {
 }
 
 /** Public speech payload. Route snapshots are resolved and persisted by the server. */
-export function toGeneratePayload(command: SpeechGenerationCommand): GeneratePayload {
+export function toGeneratePayload(command: SpeechGenerationCommand, context: CreatorContext): GeneratePayload {
   const selectedText = command.text[command.text.active] || ""
   const project = command.context.kind === "project" ? command.context : null
   return {
+    context,
     text: selectedText,
     authored_role: command.authoredRole?.trim().replace(/\s+/g, " ") || null,
     text_raw: command.text.raw || null,
@@ -244,7 +246,6 @@ export function toGeneratePayload(command: SpeechGenerationCommand): GeneratePay
     text_tagged: command.text.tagged || null,
     text_state: command.text.active,
     spoken_profile: command.textPreparation.spokenProfile,
-    ...(project ? { project_id: project.projectId } : {}),
     insert_before_part_id: project?.insertion?.partId ?? null,
     binding_id: command.route.kind === "owned" ? command.route.bindingId : null,
     catalogue_voice_id: command.route.kind === "catalogue" ? command.route.catalogueVoiceId : null,

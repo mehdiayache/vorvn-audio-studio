@@ -4,6 +4,7 @@ import type { GeneratePayload, RecordingHistory } from "@/types/domain"
 import { recordingAttemptStatus, recoverSpeechExecutions, reusableGeneratePayload } from "./speech-execution"
 
 const request: GeneratePayload = {
+  context: { workspace_id: 4 },
   text: "Hello", voice_identity_id: "identity", binding_id: "binding",
   capability_id: null, format: "mp3", language: "English", instruction: "",
   speech_mode: "exact", rate: 1, pitch: 1, volume: 50, seed: 0,

@@ -21,6 +21,7 @@ from origins.composition.catalog import catalog_service
 from origins.composition.audio_generation import audio_generation_service
 from origins.composition.workspaces import workspace_service
 from origins.composition.subtitles import subtitle_service
+from origins.http.creator_contracts import CreatorContext
 from origins.http.errors import ApiProblem
 
 
@@ -104,8 +105,7 @@ class SpeechJobCreate(BaseModel):
     text_tagged: str | None = Field(default=None, max_length=500_000)
     text_state: Literal["raw", "shaped", "tagged"] = "raw"
     spoken_profile: Literal["spoken_1", "spoken_2"] = "spoken_1"
-    project_id: int | None = Field(default=None, gt=0)
-    workspace_id: int | None = Field(default=None, gt=0)
+    context: CreatorContext
     insert_before_part_id: UUID | None = None
     authored_role: str | None = Field(default=None, max_length=120)
     voice_identity_id: str | None = Field(default=None, max_length=120)
@@ -128,14 +128,13 @@ class SpeechJobCreate(BaseModel):
     def target_is_coherent(self):
         if bool(self.binding_id) == bool(self.catalogue_voice_id):
             raise ValueError("Choose exactly one cloned binding or catalogue voice.")
-        if self.part_id and not self.project_id:
-            raise ValueError("A Part recording requires its Project.")
+        script_target = self.context.selection.get("target") == "script_part"
+        if (self.part_id or self.insert_before_part_id) and not script_target:
+            raise ValueError("A Part recording requires an explicit Script target.")
+        if script_target and self.context.project_id is None:
+            raise ValueError("A Script target requires its Project.")
         if self.part_id and self.insert_before_part_id:
             raise ValueError("An existing Part cannot have an insertion point.")
-        if self.insert_before_part_id and not self.project_id:
-            raise ValueError("An insertion point requires a Project.")
-        if self.project_id is None and self.workspace_id is None:
-            raise ValueError("Choose a Workspace for this speech recording.")
         return self
 
 
@@ -305,22 +304,28 @@ def create_speech_job(payload: SpeechJobCreate,
         "capability_id": resolved.get("capability_id"),
     })
     key = (idempotency_key or f"speech-{uuid4()}")[:200]
-    if payload.project_id is not None:
+    context = payload.context.model_dump(mode="json")
+    script_target = payload.context.selection.get("target") == "script_part"
+    if script_target:
+        # Project mutation is an internal execution fact, not a second public
+        # destination contract.
+        values["project_id"] = payload.context.project_id
         before_part = payload.insert_before_part_id
         job, created = project_speech_service.enqueue(
             values, idempotency_key=key,
-            project_id=payload.project_id,
+            project_id=payload.context.project_id,
             before_part_public_id=before_part,
+            creation_context=context,
             operation_label=("Generate Part" if payload.part_id
                              else "Generate and add Part"))
     else:
-        if not workspace_service.overview(payload.workspace_id):
+        if not workspace_service.overview(payload.context.workspace_id):
             raise ApiProblem(404, "workspace_not_found", "Workspace not found.")
         job, created = job_service.enqueue(
             "speech", values, idempotency_key=key,
-            workspace_id=payload.workspace_id,
+            workspace_id=payload.context.workspace_id,
             creation_action_id="generate-speech",
-            creation_context={"workspace_id": payload.workspace_id},
+            creation_context=context,
             source_tool="creator", operation_label="Generate speech")
     return {"data": _payload(job), "meta": {"created": created}}
 

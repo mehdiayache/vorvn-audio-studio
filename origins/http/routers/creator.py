@@ -10,6 +10,7 @@ from fastapi import APIRouter, Header
 from pydantic import BaseModel, ConfigDict, Field, model_validator
 
 from origins.composition.media_generation import media_generation_service
+from origins.http.creator_contracts import CreatorContext
 from origins.http.errors import ApiProblem
 
 
@@ -161,16 +162,6 @@ class MediaGenerationPreset(BaseModel):
     negative_prompt: str = Field(default="", max_length=20_000)
     inputs: list[MediaGenerationInput] = Field(default_factory=list, max_length=100)
     controls: MediaGenerationControls
-
-
-class CreatorContext(BaseModel):
-    model_config = ConfigDict(extra="forbid")
-    workspace_id: int = Field(gt=0)
-    folder_id: int | None = Field(default=None, gt=0)
-    project_id: int | None = Field(default=None, gt=0)
-    project_type: str | None = Field(default=None, min_length=1, max_length=80)
-    object_id: int | None = Field(default=None, gt=0)
-    selection: dict[str, Any] = Field(default_factory=dict)
 
 
 class CreatorInputCompatibilityRequest(BaseModel):

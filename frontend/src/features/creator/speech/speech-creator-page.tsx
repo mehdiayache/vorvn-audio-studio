@@ -2,6 +2,7 @@ import { useCallback, useEffect, useRef, useState } from "react"
 import { toast } from "sonner"
 
 import { RecordingClipCard, type RecordingClipView } from "@/components/recording-clip-card"
+import { ActionButton } from "@/components/operator-action"
 import { ShellBreadcrumbs } from "@/components/shell-breadcrumbs"
 import { StandaloneSpeechCreatorHost } from "./standalone-speech-creator-host"
 import { ErrorState, InlineResourceError, PageLoading } from "@/components/state-panel"
@@ -17,7 +18,7 @@ import type { DurableJob, GeneratePayload, GenerateResult, RecordingAttempt, Rec
 import { recordingAttemptStatus, recoverSpeechExecutions, reusableGeneratePayload, type SpeechExecution } from "./speech-execution"
 import type { CreatorLibraryCreationItem } from "../library/creator-library-creation-item"
 import { CreatorLibraryOperationCard } from "../library/creator-library-operation-card"
-import type { CreatorCapabilityPanelProps } from "../creator-contracts"
+import type { CreatorCapabilityPanelProps, CreatorResult } from "../creator-contracts"
 
 import "./speech-creator-page.css"
 
@@ -61,13 +62,16 @@ function PendingSpeechExecution({ execution, directory, onTerminal }: {
   }} directory={directory} />
 }
 
-export function SpeechCreatorPage({ context, embedded = false, panelOnly = false, onResult, onCreationItemsChange }: CreatorCapabilityPanelProps & { embedded?: boolean; panelOnly?: boolean; onCreationItemsChange?: (items: CreatorLibraryCreationItem[]) => void }) {
+export function SpeechCreatorPage({ context, embedded = false, panelOnly = false, onResult, resultAction, onCreationItemsChange }: CreatorCapabilityPanelProps & { embedded?: boolean; panelOnly?: boolean; onCreationItemsChange?: (items: CreatorLibraryCreationItem[]) => void }) {
   const voices = useVoiceDirectory()
   const player = useGlobalPlayer()
   const [history, setHistory] = useState<RecordingHistory | null>(null)
   const [historyLoading, setHistoryLoading] = useState(true)
   const [executions, setExecutions] = useState<SpeechExecution[]>([])
+  const [availableResult, setAvailableResult] = useState<CreatorResult | null>(null)
+  const [runningResultAction, setRunningResultAction] = useState(false)
   const generationLock = useRef<string | null>(null)
+  const destinationKey = JSON.stringify(context)
 
   const refreshHistory = useCallback(async () => {
     setHistoryLoading(true)
@@ -79,8 +83,9 @@ export function SpeechCreatorPage({ context, embedded = false, panelOnly = false
   useEffect(() => {
     setHistory(null)
     setExecutions([])
+    setAvailableResult(null)
     generationLock.current = null
-  }, [context.workspace_id])
+  }, [destinationKey])
 
   useEffect(() => { void refreshHistory() }, [refreshHistory])
 
@@ -105,7 +110,7 @@ export function SpeechCreatorPage({ context, embedded = false, panelOnly = false
     }
     generationLock.current = "submitting"
     try {
-      const request = { ...payload, workspace_id: context.workspace_id }
+      const request = { ...payload, context }
       const job = await originsApi.enqueueGenerate(request)
       generationLock.current = job.id
       setExecutions((current) => [...current, { jobId: job.id, payload: request }])
@@ -145,7 +150,11 @@ export function SpeechCreatorPage({ context, embedded = false, panelOnly = false
       await refreshHistory()
       const fileIds = job.output_file_ids || ((job.result as GenerateResult & { output_file_ids?: number[] }).output_file_ids ?? [])
       try {
-        if ((job.status === "ok" || job.status === "warning") && fileIds.length) await onResult?.({ file_ids: fileIds })
+        if ((job.status === "ok" || job.status === "warning") && fileIds.length) {
+          const creatorResult = { file_ids: fileIds }
+          await onResult?.(creatorResult)
+          setAvailableResult(creatorResult)
+        }
       } catch (reason) {
         toast.error("The speech is safe in Workspace Files, but the current Library did not refresh.", { description: reason instanceof Error ? reason.message : undefined })
       }
@@ -154,6 +163,18 @@ export function SpeechCreatorPage({ context, embedded = false, panelOnly = false
       setExecutions((current) => current.filter((item) => item.jobId !== execution.jobId))
     }
   }, [onResult, player, refreshHistory, voices.directory])
+
+  async function runResultAction() {
+    if (!resultAction || !availableResult || runningResultAction) return
+    setRunningResultAction(true)
+    try {
+      await resultAction.run(availableResult)
+    } catch (reason) {
+      toast.error(reason instanceof Error ? reason.message : "The created speech could not be used here.")
+    } finally {
+      setRunningResultAction(false)
+    }
+  }
 
   useEffect(() => {
     if (!onCreationItemsChange) return
@@ -201,6 +222,10 @@ export function SpeechCreatorPage({ context, embedded = false, panelOnly = false
   if (panelOnly) return <div className="speech-creator-panel">
     {voices.error && voices.config && <InlineResourceError message="Voice directory refresh failed. Existing voice data is preserved." retry={() => void voices.refresh()} />}
     <StandaloneSpeechCreatorHost context={context} config={voices.config} directory={voices.directory} playingKey={player.source?.key} playerPlaying={player.state === "playing"} generationState={generationState} onGenerate={generate} onPlay={(source) => void player.toggleSource(source)} />
+    {resultAction && availableResult && <div className="speech-creator-result-action" role="status">
+      <span><strong>Speech ready</strong>{resultAction.detail && <small>{resultAction.detail}</small>}</span>
+      <ActionButton busy={runningResultAction} busyLabel={resultAction.busyLabel || "Applying…"} onClick={() => void runResultAction()}>{resultAction.label}</ActionButton>
+    </div>}
     <div hidden>{executions.map((execution) => <PendingSpeechExecution key={execution.jobId} execution={execution} directory={voices.directory} onTerminal={(item, job) => void settleExecution(item, job)} />)}</div>
   </div>
 

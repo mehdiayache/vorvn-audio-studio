@@ -13,6 +13,7 @@ class CreationFileRecords(Protocol):
     def create_generated_workspace_file(
         self, workspace_id: int, *, candidate_id: str, name: str,
         stored: StoredFileVersion, size_bytes: int, category=None,
+        folder_id: int | None = None,
         tags: tuple[str, ...] = (),
         metadata: dict | None = None,
     ) -> tuple[dict | None, bool]: ...
@@ -56,6 +57,7 @@ class CreationFileService:
             job.workspace_id, candidate_id=external_id,
             name=" ".join(name.split())[:120] or "Untitled File",
             stored=stored, size_bytes=Path(stored.path).stat().st_size,
+            folder_id=job.creation_context.get("folder_id"),
             tags=tags, metadata=provenance,
         )
         if not file:

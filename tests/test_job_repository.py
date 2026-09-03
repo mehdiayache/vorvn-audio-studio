@@ -217,6 +217,12 @@ class JobRepositoryTests(unittest.TestCase):
                 job, created = repository.enqueue(
                     request, idempotency_key=key,
                     project_id=project_id,
+                    creation_context={
+                        "workspace_id": workspace_id,
+                        "project_id": project_id,
+                        "project_type": "audiovisual",
+                        "selection": {"target": "script_part"},
+                    },
                     before_part_public_id=anchor_public_id)
                 self.assertTrue(created)
                 self.assertIsNotNone(job.part_id)
@@ -251,6 +257,12 @@ class JobRepositoryTests(unittest.TestCase):
                     repository.enqueue(
                         request, idempotency_key=key,
                         project_id=project_id,
+                        creation_context={
+                            "workspace_id": workspace_id,
+                            "project_id": project_id,
+                            "project_type": "audiovisual",
+                            "selection": {"target": "script_part"},
+                        },
                         before_part_public_id=anchor_public_id))
                 self.assertFalse(repeated_created)
                 self.assertEqual(repeated.id, job.id)
@@ -282,7 +294,13 @@ class JobRepositoryTests(unittest.TestCase):
                     repository.enqueue(
                         {**request, "part_id": job.part_id},
                         idempotency_key=f"project-speech-retry-{uuid4()}",
-                        project_id=project_id))
+                        project_id=project_id,
+                        creation_context={
+                            "workspace_id": workspace_id,
+                            "project_id": project_id,
+                            "project_type": "audiovisual",
+                            "selection": {"target": "script_part"},
+                        }))
                 self.assertTrue(retry_created)
                 self.assertNotEqual(retry.id, job.id)
                 self.assertEqual(retry.part_id, job.part_id)
@@ -293,7 +311,13 @@ class JobRepositoryTests(unittest.TestCase):
                         {**request, "part_id": job.part_id,
                          "text_raw": changed_text},
                         idempotency_key=f"project-speech-invalid-{uuid4()}",
-                        project_id=project_id)
+                        project_id=project_id,
+                        creation_context={
+                            "workspace_id": workspace_id,
+                            "project_id": project_id,
+                            "project_type": "audiovisual",
+                            "selection": {"target": "script_part"},
+                        })
                 cursor.execute("""
                     SELECT count(*) FROM project_parts
                      WHERE project_id=%s AND script='Canonical Part script'

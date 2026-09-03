@@ -14,7 +14,7 @@ from origins.application.speech import (
 from origins.application.provider_operations import ProviderOperationService
 from origins.domain.jobs import Job, JobFailed, JobStatus
 from origins.domain.speech import PreparedSpeech, SpeechSynthesisError, StoredAudio, SynthesizedSpeech
-from origins.http.routers.jobs import SpeechJobCreate
+from origins.http.routers.jobs import SpeechJobCreate, create_speech_job
 from origins.infrastructure.audio_workspace import AudioWorkspace
 from origins.infrastructure import audio_codec
 from origins.providers.alibaba.speech_generation import AlibabaSpeechProvider
@@ -460,33 +460,118 @@ class SpeechGenerationTests(unittest.TestCase):
         cleared = SpeechJobCreate(
             text="Hello", voice_identity_id=None,
             catalogue_voice_id="alibaba:intl:qwen-audio-3.0-tts-plus:Cherry",
-            workspace_id=12)
+            context={"workspace_id": 12, "folder_id": 27})
         self.assertIn("voice_identity_id", cleared.model_dump(exclude_unset=True))
         self.assertEqual(cleared.volume, 100)
         SpeechJobCreate(
             text="Hello",
             catalogue_voice_id="alibaba:intl:qwen-audio-3.0-tts-plus:Cherry",
-            project_id=7, part_id=8)
+            context={"workspace_id": 12, "project_id": 7,
+                     "project_type": "audiovisual",
+                     "selection": {"target": "script_part"}},
+            part_id=8)
         anchor = uuid4()
         anchored = SpeechJobCreate(
             text="Hello",
             catalogue_voice_id="alibaba:intl:qwen-audio-3.0-tts-plus:Cherry",
-            project_id=7, insert_before_part_id=anchor)
+            context={"workspace_id": 12, "project_id": 7,
+                     "project_type": "audiovisual",
+                     "selection": {"target": "script_part"}},
+            insert_before_part_id=anchor)
         self.assertEqual(anchored.insert_before_part_id, anchor)
         for changes in (
             {"voice": "Cherry"}, {"engine": "audio"}, {"model": "plus"},
             {"rate": 3}, {"volume": 101},
-            {"operation": "render_draft", "project_id": 7, "part_id": 8},
+            {"operation": "render_draft", "part_id": 8},
             {"insert_at": 2},
             {"part_id": 8},
-            {"project_id": 7, "part_id": 8,
+            {"part_id": 8,
              "insert_before_part_id": anchor},
         ):
             values = {"text": "Hello",
                       "catalogue_voice_id": "alibaba:intl:qwen-audio-3.0-tts-plus:Cherry",
+                      "context": {"workspace_id": 12},
                       **changes}
             with self.assertRaises(ValueError):
                 SpeechJobCreate(**values)
+
+    def test_creator_speech_enqueues_the_complete_destination_context(self):
+        context = {
+            "workspace_id": 12,
+            "folder_id": 27,
+            "project_id": 7,
+            "project_type": "audiovisual",
+            "object_id": None,
+            "selection": {"capability": "speech"},
+        }
+        contract = SpeechJobCreate(
+            text="Hello",
+            catalogue_voice_id="alibaba:intl:qwen-audio-3.0-tts-plus:Cherry",
+            context=context,
+        )
+        queued = Job(
+            9, uuid4(), "speech", JobStatus.QUEUED,
+            workspace_id=12, creation_context=context,
+        )
+        resolved = {
+            "provider_voice_id": "Cherry", "identity_id": None,
+            "engine": "audio", "tier": "plus",
+            "capability_id": None,
+        }
+        with (
+            patch("origins.http.routers.jobs.catalog_service.resolve_voice",
+                  return_value=resolved),
+            patch("origins.http.routers.jobs.workspace_service.overview",
+                  return_value={"workspace": {"id": 12}}),
+            patch("origins.http.routers.jobs.job_service.enqueue",
+                  return_value=(queued, True)) as enqueue,
+            patch("origins.http.routers.jobs.project_speech_service.enqueue")
+                    as project_enqueue,
+        ):
+            create_speech_job(contract, "speech-folder-context")
+
+        project_enqueue.assert_not_called()
+        self.assertEqual(enqueue.call_args.kwargs["workspace_id"], 12)
+        self.assertEqual(enqueue.call_args.kwargs["creation_context"], context)
+
+    def test_script_speech_uses_the_same_context_with_an_explicit_part_target(self):
+        context = {
+            "workspace_id": 12,
+            "folder_id": 27,
+            "project_id": 7,
+            "project_type": "audiovisual",
+            "object_id": None,
+            "selection": {"capability": "speech", "target": "script_part"},
+        }
+        contract = SpeechJobCreate(
+            text="Part words",
+            catalogue_voice_id="alibaba:intl:qwen-audio-3.0-tts-plus:Cherry",
+            context=context,
+            part_id=8,
+        )
+        queued = Job(
+            10, uuid4(), "speech", JobStatus.QUEUED,
+            workspace_id=12, project_id=7, part_id=8,
+            creation_context=context,
+        )
+        resolved = {
+            "provider_voice_id": "Cherry", "identity_id": None,
+            "engine": "audio", "tier": "plus",
+            "capability_id": None,
+        }
+        with (
+            patch("origins.http.routers.jobs.catalog_service.resolve_voice",
+                  return_value=resolved),
+            patch("origins.http.routers.jobs.project_speech_service.enqueue",
+                  return_value=(queued, True)) as enqueue,
+            patch("origins.http.routers.jobs.job_service.enqueue") as generic_enqueue,
+        ):
+            create_speech_job(contract, "speech-script-context")
+
+        generic_enqueue.assert_not_called()
+        self.assertEqual(enqueue.call_args.kwargs["project_id"], 7)
+        self.assertEqual(enqueue.call_args.kwargs["creation_context"], context)
+        self.assertEqual(enqueue.call_args.args[0]["project_id"], 7)
 
     def test_audio_workspace_uses_opaque_contained_names(self):
         with TemporaryDirectory() as directory:

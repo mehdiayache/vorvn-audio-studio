@@ -1,9 +1,13 @@
 .speech-creator-page { width: min(1640px, calc(100% - 32px)); height: calc(100dvh - 32px); min-height: 680px; display: grid; grid-template-rows: auto minmax(0, 1fr); gap: 10px; margin: 0 auto; padding: 10px 0 16px; }
 .speech-creator-page[data-embedded] { width: 100%; height: 100%; min-height: 0; grid-template-rows: minmax(0, 1fr); gap: 0; padding: 0; }
-.speech-creator-panel { width: 100%; height: 100%; min-height: 0; overflow: hidden; }
+.speech-creator-panel { width: 100%; height: 100%; min-height: 0; display: grid; grid-template-rows: minmax(0, 1fr) auto; overflow: hidden; }
 .speech-creator-panel .creator-surface,
 .speech-creator-panel .speech-creator { width: 100%; height: 100%; min-height: 0; border: 0; border-radius: 0; box-shadow: none; }
 .speech-creator-panel .creator-creative-workspace { grid-template-columns: minmax(0, 1fr) 13rem; }
+.speech-creator-result-action { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 9px 10px 9px 12px; border-top: 1px solid var(--border); background: var(--surface-raised); }
+.speech-creator-result-action > span { min-width: 0; display: grid; gap: 1px; }
+.speech-creator-result-action strong { font-size: var(--type-small); font-weight: var(--weight-emphasis); }
+.speech-creator-result-action small { overflow: hidden; color: var(--muted-foreground); font-size: var(--type-caption); text-overflow: ellipsis; white-space: nowrap; }
 .speech-creator-page-location { display: grid; gap: 8px; }
 .speak-workbench { height: 100%; min-height: 0; display: grid; grid-template-columns: minmax(760px, 1fr) minmax(340px, 380px); gap: 14px; }
 .speak-workspace,

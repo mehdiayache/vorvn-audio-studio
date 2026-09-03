@@ -74,6 +74,17 @@ class OriginsArchitectureTests(unittest.TestCase):
         self.assertNotIn("space_id", context)
         self.assertNotIn("production_id", context)
 
+    def test_speech_uses_creator_context_as_its_only_public_destination(self):
+        schema = app.openapi()["components"]["schemas"]["SpeechJobCreate"]
+        properties = schema["properties"]
+        self.assertIn("context", schema["required"])
+        self.assertEqual(
+            properties["context"]["$ref"],
+            "#/components/schemas/CreatorContext",
+        )
+        self.assertNotIn("workspace_id", properties)
+        self.assertNotIn("project_id", properties)
+
     def test_files_are_workspace_owned_and_versioned(self):
         migration = (ROOT / "origins/migrations/000_origins_schema.sql").read_text()
         self.assertIn("CREATE TABLE public.files", migration)

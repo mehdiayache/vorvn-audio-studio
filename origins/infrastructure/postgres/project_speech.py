@@ -22,6 +22,7 @@ class ProjectSpeechCommandRepository:
     def enqueue(self, payload: dict[str, Any], *, idempotency_key: str,
                 project_id: int,
                 before_part_public_id: UUID | None = None,
+                creation_context: dict[str, Any] | None = None,
                 actor_id: str | None = None,
                 organization_id: str | None = None,
                 source_tool: str = "project",
@@ -36,6 +37,11 @@ class ProjectSpeechCommandRepository:
             if not project:
                 raise LookupError("That Project no longer exists.")
             workspace_id = int(project[0])
+            context = dict(creation_context or {})
+            if context.get("workspace_id") != workspace_id:
+                raise ValueError("Creator context does not belong to this Project Workspace.")
+            if context.get("project_id") != project_id:
+                raise ValueError("Creator context does not target this Project.")
             job, created = self.jobs.enqueue_in_transaction(
                 cursor, "speech", request_payload,
                 idempotency_key=idempotency_key,
@@ -43,11 +49,7 @@ class ProjectSpeechCommandRepository:
                 project_id=project_id, source_tool=source_tool,
                 operation_label=operation_label, workspace_id=workspace_id,
                 creation_action_id="generate-speech" if workspace_id else None,
-                creation_context={
-                    "workspace_id": workspace_id,
-                    "project_id": project_id,
-                    "project_type": "audiovisual",
-                })
+                creation_context=context)
             if not created:
                 return job, False
 
