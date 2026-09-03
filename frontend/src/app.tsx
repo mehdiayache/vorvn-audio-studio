@@ -15,7 +15,7 @@ import { useProduction } from "@/hooks/use-production"
 import { useProductionResources } from "@/hooks/use-production-resources"
 import { originsApi } from "@/lib/api"
 import { productIdentity } from "@/lib/product-identity"
-import type { LoadState, ProjectDetail } from "@/types/domain"
+import type { LoadState, WorkspaceProject } from "@/types/domain"
 
 const VoicesPage = lazy(() => import("@/features/voices/voices-page").then((module) => ({ default: module.VoicesPage })))
 const ActivityPage = lazy(() => import("@/features/activity/activity-page").then((module) => ({ default: module.ActivityPage })))
@@ -30,17 +30,19 @@ function AudiovisualProductionWorkspace({ productionId }: { productionId: number
   const resources = useProductionResources(productionId)
   const data = production.data
   const projectId = data?.project_id ?? null
-  const [project, setProject] = useState<LoadState<ProjectDetail | null>>({ status: "ready", data: null })
+  const workspaceId = data?.workspace_id ?? null
+  const [project, setProject] = useState<LoadState<WorkspaceProject | null>>({ status: "ready", data: null })
   const projectRequest = useRef(0)
   const refreshProject = useCallback(async () => {
     const request = ++projectRequest.current
-    if (!projectId) {
+    if (!projectId || !workspaceId) {
       setProject({ status: "ready", data: null })
       return
     }
     setProject({ status: "loading" })
     try {
-      const nextProject = await originsApi.project(String(projectId))
+      const projects = await originsApi.projects(workspaceId)
+      const nextProject = projects.find((candidate) => candidate.id === projectId) || null
       if (projectRequest.current === request) setProject({ status: "ready", data: nextProject })
     } catch (reason) {
       if (projectRequest.current === request) setProject({
@@ -48,7 +50,7 @@ function AudiovisualProductionWorkspace({ productionId }: { productionId: number
         error: reason instanceof Error ? reason.message : "Project navigation is unavailable.",
       })
     }
-  }, [projectId])
+  }, [projectId, workspaceId])
   useEffect(() => { void refreshProject() }, [refreshProject])
   return <>
     {production.status === "loading" && !data && <PageLoading />}

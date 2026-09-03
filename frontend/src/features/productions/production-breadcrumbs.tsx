@@ -1,14 +1,15 @@
 import { ShellBreadcrumbs, type ShellBreadcrumbItem } from "@/components/shell-breadcrumbs"
-import type { Production, ProjectDetail, WorkspaceFolder } from "@/types/domain"
+import type { Production, WorkspaceFolder, WorkspaceProject } from "@/types/domain"
 
-function folderPath(project: ProjectDetail, folderId: number | null | undefined) {
+function folderPath(production: Production, folders: WorkspaceFolder[]) {
+  const folderId = production.folder_id
   if (!folderId) return []
-  const byId = new Map(project.folders.map((folder) => [folder.id, folder]))
+  const byId = new Map(folders.map((folder) => [folder.id, folder]))
   const path: WorkspaceFolder[] = []
   const visited = new Set<number>()
   let folder = byId.get(folderId)
   while (folder && !visited.has(folder.id)) {
-    if (folder.workspace_id !== project.workspace_id || folder.project_id !== project.id) return []
+    if (folder.workspace_id !== production.workspace_id || folder.project_id !== production.project_id) return []
     visited.add(folder.id)
     path.unshift(folder)
     folder = folder.parent_id === null ? undefined : byId.get(folder.parent_id)
@@ -16,14 +17,15 @@ function folderPath(project: ProjectDetail, folderId: number | null | undefined)
   return path
 }
 
-function projectLocation(project: ProjectDetail, folder?: WorkspaceFolder) {
-  const destination = `/origins/projects/${project.public_id}`
+function projectLocation(projectIdentifier: string, folder?: WorkspaceFolder) {
+  const destination = `/origins/projects/${projectIdentifier}`
   return folder ? `${destination}?folder=${encodeURIComponent(folder.public_id)}` : destination
 }
 
-export function ProductionBreadcrumbs({ production, project }: {
+export function ProductionBreadcrumbs({ production, project, folders }: {
   production: Production
-  project: ProjectDetail | null
+  project: WorkspaceProject | null
+  folders: WorkspaceFolder[]
 }) {
   if (!production.project_id) {
     return <ShellBreadcrumbs items={[
@@ -32,19 +34,17 @@ export function ProductionBreadcrumbs({ production, project }: {
     ]} />
   }
 
-  const folders = project && project.id === production.project_id
-    ? folderPath(project, production.folder_id)
-    : []
-  const currentFolder = folders.at(-1)
-  const projectIdentifier = project?.public_id || String(production.project_id)
-  const projectDestination = project
-    ? projectLocation(project, currentFolder)
-    : `/origins/projects/${projectIdentifier}`
+  const matchingProject = project?.id === production.project_id
+    && project.workspace_id === production.workspace_id ? project : null
+  const path = folderPath(production, folders)
+  const currentFolder = path.at(-1)
+  const projectIdentifier = matchingProject?.public_id || String(production.project_id)
+  const projectDestination = projectLocation(projectIdentifier, currentFolder)
   const items: ShellBreadcrumbItem[] = [
-    { label: project?.name || "Project", href: projectDestination },
-    ...folders.map((folder) => ({
+    { label: matchingProject?.name || "Project", href: projectDestination },
+    ...path.map((folder) => ({
       label: folder.name,
-      href: project ? projectLocation(project, folder) : undefined,
+      href: projectLocation(projectIdentifier, folder),
     })),
     { label: production.name },
   ]

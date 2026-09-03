@@ -1,4 +1,4 @@
-import { expect, test, type APIRequestContext } from "@playwright/test"
+import { expect, test, type APIRequestContext, type Request } from "@playwright/test"
 
 type Resource = { id: number; public_id: string; name: string }
 type WorkspaceResource = Resource & { description?: string }
@@ -209,6 +209,15 @@ test("uses the fixed desktop rail, then opens Home Project and Production", asyn
       item.name === "Browser Smoke Project Production" && item.folder_id === nestedFolder!.id)
   }
   expect(production).toBeTruthy()
+  const projectSummaryRequests: string[] = []
+  const fullProjectRequests: string[] = []
+  const captureProjectRequests = (browserRequest: Request) => {
+    if (browserRequest.method() !== "GET") return
+    const pathname = new URL(browserRequest.url()).pathname
+    if (pathname === `/api/v1/workspaces/${workspace.id}/projects`) projectSummaryRequests.push(pathname)
+    if (/^\/api\/v1\/projects\/[^/]+$/.test(pathname)) fullProjectRequests.push(pathname)
+  }
+  page.on("request", captureProjectRequests)
   await page.evaluate(({ workspaceId }) => {
     window.localStorage.setItem("origins.current-workspace", String(workspaceId))
   }, { workspaceId: wrongWorkspace.id })
@@ -220,6 +229,9 @@ test("uses the fixed desktop rail, then opens Home Project and Production", asyn
   const projectBreadcrumb = page.getByRole("link", { name: project.name, exact: true })
   await expect(projectBreadcrumb).toHaveAttribute(
     "href", `/origins/projects/${project.public_id}?folder=${nestedFolder!.public_id}`)
+  await expect.poll(() => projectSummaryRequests.length).toBeGreaterThan(0)
+  expect(fullProjectRequests).toEqual([])
+  page.off("request", captureProjectRequests)
   await projectBreadcrumb.click()
   await expect(page).toHaveURL(
     `/origins/projects/${project.public_id}?folder=${nestedFolder!.public_id}`)

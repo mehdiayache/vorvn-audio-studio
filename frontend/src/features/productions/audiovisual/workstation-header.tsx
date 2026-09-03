@@ -15,7 +15,7 @@ import { ProductionBreadcrumbs } from "@/features/productions/production-breadcr
 import type { ProductionToolKind } from "@/features/productions/audiovisual/production-tools"
 import type { ProductionMutationStatus } from "@/hooks/use-production-actions"
 import { formatDuration, formatMoney } from "@/lib/format"
-import type { Production, ProjectDetail } from "@/types/domain"
+import type { Production, WorkspaceFolder, WorkspaceProject } from "@/types/domain"
 import { WORKSTATION_STAGES, type WorkstationStage } from "./workstation-workflow"
 
 export function InlineProductionName({ name, onRename }: { name: string; onRename: (name: string) => Promise<void> }) {
@@ -59,9 +59,10 @@ export function InlineProductionName({ name, onRename }: { name: string; onRenam
   </div>
 }
 
-export function WorkstationHeader({ production, project, duration, stage, issueCount, previewing, playing, mutationStatus, onStage, onPreview, onExport, onAdd, onDelete, onRename }: {
+export function WorkstationHeader({ production, project, folders, duration, stage, issueCount, previewing, playing, mutationStatus, onStage, onPreview, onExport, onAdd, onDelete, onRename }: {
   production: Production
-  project: ProjectDetail | null
+  project: WorkspaceProject | null
+  folders: WorkspaceFolder[]
   duration: number
   stage: WorkstationStage
   issueCount: number
@@ -82,7 +83,7 @@ export function WorkstationHeader({ production, project, duration, stage, issueC
   const otherSpend = Number(production.accounting.other_spend ?? 0)
   return <header className="ws-header">
     <div className="ws-context-rail">
-      <ProductionBreadcrumbs production={production} project={project} />
+      <ProductionBreadcrumbs production={production} project={project} folders={folders} />
     </div>
     <div className="ws-header-context">
       <InlineProductionName name={production.name} onRename={onRename} />
