@@ -11,7 +11,9 @@ import psycopg
 
 from origins.application.workspaces import WorkspaceService
 from origins.application.uploads import UploadService
+from origins.application.productions import ProductionService
 from origins.config import settings
+from origins.infrastructure.postgres.production_service import PostgresProductionRecords
 from origins.infrastructure.postgres.workspaces import WorkspaceRepository
 from origins.infrastructure.postgres.uploads import PostgresUploadRecords
 from origins.infrastructure.postgres.files import FileRepository
@@ -148,6 +150,44 @@ class WorkspaceRepositoryTests(unittest.TestCase):
             if item["id"] == created["id"])
         self.assertEqual(overview_file["category"], "sfx")
         self.assertEqual(production_file["category"], "sfx")
+
+    def test_deleting_production_preserves_workspace_file_and_version(self):
+        workspace_id = int(self.workspace["id"])
+        production = self.service.create_audiovisual_production(
+            workspace_id, "Disposable Production")
+        files = FileRepository()
+        created = files.create_workspace_file(
+            workspace_id, name="Reusable source", filename="reusable-source.wav",
+            path="/tmp/reusable-source.wav", size_bytes=256,
+            duration_ms=800, audio_format="wav", mime_type="audio/wav")
+        self.assertIsNotNone(created)
+        file_id = int(created["id"])
+        version_id = int(created["version_id"])
+        self.assertTrue(files.attach_to_production_library(
+            int(production["id"]), file_id))
+
+        deleted = ProductionService(
+            PostgresProductionRecords()).delete_production(int(production["id"]))
+
+        self.assertEqual(deleted, {
+            "id": int(production["id"]),
+            "type": "production",
+            "deleted": True,
+        })
+        with psycopg.connect(settings.database_url) as database:
+            self.assertIsNone(database.execute(
+                "SELECT id FROM productions WHERE id=%s",
+                (production["id"],)).fetchone())
+            self.assertEqual(database.execute(
+                "SELECT id, workspace_id FROM files WHERE id=%s",
+                (file_id,)).fetchone(), (file_id, workspace_id))
+            self.assertEqual(database.execute(
+                "SELECT id, file_id FROM file_versions WHERE id=%s",
+                (version_id,)).fetchone(), (version_id, file_id))
+            self.assertIsNone(database.execute(
+                "SELECT 1 FROM production_file_usages "
+                "WHERE production_id=%s AND file_id=%s",
+                (production["id"], file_id)).fetchone())
 
     def test_direct_document_upload_commits_one_file_version_without_a_job(self):
         with TemporaryDirectory() as directory:

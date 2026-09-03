@@ -91,5 +91,5 @@ class PostgresProductionRecords:
             workspace_id, name, description, folder_id)
 
     @staticmethod
-    def delete_production(production_id: int) -> list[str] | None:
-        return [] if productions.delete(production_id) else None
+    def delete_production(production_id: int) -> bool:
+        return productions.delete(production_id)

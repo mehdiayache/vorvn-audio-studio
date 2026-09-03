@@ -22,17 +22,12 @@ class ProductionRecords(Protocol):
     def latest_render_job(self, production_id: int, operation: str) -> dict | None: ...
     def accounting(self, production_id: int) -> dict: ...
     def update_production(self, production_id: int, changes: dict) -> dict | None: ...
-    def delete_production(self, production_id: int) -> list[str] | None: ...
-
-
-class ProductionWorkspace(Protocol):
-    def discard(self, filename: str) -> None: ...
+    def delete_production(self, production_id: int) -> bool: ...
 
 
 class ProductionService:
-    def __init__(self, records: ProductionRecords, workspace: ProductionWorkspace):
+    def __init__(self, records: ProductionRecords):
         self.records = records
-        self.workspace = workspace
 
     def _production_id(self, identifier: int | str) -> int | None:
         if isinstance(identifier, int) or str(identifier).isdigit():
@@ -104,9 +99,6 @@ class ProductionService:
         return self.records.update_production(production_id, changes)
 
     def delete_production(self, production_id: int) -> dict[str, Any] | None:
-        filenames = self.records.delete_production(production_id)
-        if filenames is None:
+        if not self.records.delete_production(production_id):
             return None
-        for filename in filenames:
-            self.workspace.discard(filename)
         return {"id": production_id, "type": "production", "deleted": True}
