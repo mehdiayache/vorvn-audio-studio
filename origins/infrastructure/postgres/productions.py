@@ -57,6 +57,18 @@ def project_membership_valid(production_id: int, project_id: int) -> bool:
         return cursor.fetchone() is not None
 
 
+def folder_context_valid(
+    workspace_id: int, project_id: int | None, folder_id: int,
+) -> bool:
+    with read_only() as cursor:
+        cursor.execute("""
+            SELECT 1 FROM folders
+             WHERE id=%s AND workspace_id=%s
+               AND project_id IS NOT DISTINCT FROM %s
+        """, (folder_id, workspace_id, project_id))
+        return cursor.fetchone() is not None
+
+
 def update(production_id: int, changes: dict) -> dict | None:
     allowed = {"name", "description", "status", "settings", "folder_id", "project_id"}
     values = {key: value for key, value in changes.items() if key in allowed}

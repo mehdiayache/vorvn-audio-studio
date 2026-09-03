@@ -93,6 +93,15 @@ class FileRepository:
     def list_for_workspace(self, workspace_id: int) -> list[dict]:
         return self._listed("file.workspace_id=%s", (workspace_id,))
 
+    def list_for_project(self, project_id: int) -> list[dict]:
+        """Return Files placed in Folders that belong to one Project."""
+        return self._listed("""
+            EXISTS (
+                SELECT 1 FROM folders folder
+                 WHERE folder.id=file.folder_id AND folder.project_id=%s
+            )
+        """, (project_id,))
+
     def list_for_production(self, production_id: int) -> list[dict]:
         """Return the owning Workspace Library available to a Production."""
         return self._listed("""

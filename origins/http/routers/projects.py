@@ -36,12 +36,11 @@ def list_projects(workspace_id: int) -> dict:
 def create_project(workspace_id: int, payload: ProjectCreateRequest) -> dict:
     try:
         project = project_service.create(
-            workspace_id, payload.name, payload.description, payload.folder_id)
+            workspace_id, payload.name, payload.description)
     except DomainValidation as exc:
         raise ApiProblem(400, "invalid_project", str(exc)) from exc
     if not project:
-        raise ApiProblem(404, "workspace_or_folder_not_found",
-                         "Workspace or Folder not found.")
+        raise ApiProblem(404, "workspace_not_found", "Workspace not found.")
     return {"data": project}
 
 
@@ -68,8 +67,7 @@ def update_project(project_id: int, payload: ProjectUpdateRequest) -> dict:
     except DomainValidation as exc:
         raise ApiProblem(400, "invalid_project", str(exc)) from exc
     if not project:
-        raise ApiProblem(404, "project_or_folder_not_found",
-                         "Project or Folder not found in this Workspace.")
+        raise ApiProblem(404, "project_not_found", "Project not found.")
     return {"data": project}
 
 

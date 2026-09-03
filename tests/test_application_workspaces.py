@@ -33,12 +33,17 @@ class FakeWorkspaceRecords:
         self.created.append(("workspace", name, description))
         return {"id": 5, "name": name}
 
-    def create_folder(self, workspace_id, name, parent_id):
-        self.created.append(("folder", workspace_id, name, parent_id))
+    def create_folder(self, workspace_id, name, parent_id, project_id):
+        self.created.append((
+            "folder", workspace_id, name, parent_id, project_id))
         return {"id": 10, "workspace_id": workspace_id, "name": name}
 
-    def create_audiovisual_production(self, workspace_id, name, description, folder_id):
-        self.created.append(("production", workspace_id, name, description, folder_id))
+    def create_audiovisual_production(
+        self, workspace_id, name, description, folder_id, project_id,
+    ):
+        self.created.append((
+            "production", workspace_id, name, description, folder_id,
+            project_id))
         return {"id": 13, "workspace_id": workspace_id, "name": name}
 
 
@@ -61,7 +66,7 @@ class WorkspaceServiceTests(unittest.TestCase):
         self.assertEqual(production["name"], "Episode 1")
         self.assertEqual(
             self.records.created[-1],
-            ("production", 4, "Episode 1", "Pilot", 9))
+            ("production", 4, "Episode 1", "Pilot", 9, None))
 
     def test_production_identity_resolves_without_the_work_hierarchy(self):
         self.assertEqual(self.service.production("production-12")["id"], 12)

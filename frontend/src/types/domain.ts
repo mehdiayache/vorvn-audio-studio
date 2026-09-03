@@ -654,6 +654,7 @@ export type WorkspaceFolder = {
   id: number
   public_id: string
   workspace_id: number
+  project_id: number | null
   parent_id: number | null
   name: string
   created_at: string
@@ -679,7 +680,6 @@ export type WorkspaceProject = {
   id: number
   public_id: string
   workspace_id: number
-  folder_id: number | null
   name: string
   description: string
   created_at: string
@@ -701,7 +701,9 @@ export type ProjectProductionSummary = {
 }
 
 export type ProjectDetail = WorkspaceProject & {
+  folders: WorkspaceFolder[]
   productions: ProjectProductionSummary[]
+  files: WorkspaceFile[]
 }
 
 export type WorkspaceOverview = {

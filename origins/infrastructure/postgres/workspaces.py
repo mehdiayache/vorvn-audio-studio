@@ -58,14 +58,16 @@ class WorkspaceRepository:
     def folders(self, workspace_id: int) -> list[dict]:
         with read_only() as cursor:
             cursor.execute("""
-                SELECT id, public_id, parent_id, name, created_at, updated_at
+                SELECT id, public_id, project_id, parent_id, name,
+                       created_at, updated_at
                   FROM folders WHERE workspace_id = %s
                  ORDER BY parent_id NULLS FIRST, name, id
             """, (workspace_id,))
             return [{
                 "id": int(row[0]), "public_id": str(row[1]),
-                "workspace_id": workspace_id, "parent_id": row[2], "name": row[3],
-                "created_at": row[4].isoformat(), "updated_at": row[5].isoformat(),
+                "workspace_id": workspace_id, "project_id": row[2],
+                "parent_id": row[3], "name": row[4],
+                "created_at": row[5].isoformat(), "updated_at": row[6].isoformat(),
             } for row in cursor.fetchall()]
 
     def productions(self, workspace_id: int) -> list[dict]:
@@ -148,6 +150,7 @@ class WorkspaceRepository:
 
     def create_folder(
         self, workspace_id: int, name: str, parent_id: int | None,
+        project_id: int | None,
     ) -> dict | None:
         with transaction() as cursor:
             cursor.execute("SELECT 1 FROM workspaces WHERE id=%s", (workspace_id,))
@@ -155,43 +158,60 @@ class WorkspaceRepository:
                 return None
             if parent_id is not None:
                 cursor.execute(
-                    "SELECT 1 FROM folders WHERE id=%s AND workspace_id=%s",
-                    (parent_id, workspace_id))
+                    """SELECT 1 FROM folders
+                         WHERE id=%s AND workspace_id=%s
+                           AND project_id IS NOT DISTINCT FROM %s""",
+                    (parent_id, workspace_id, project_id))
+                if not cursor.fetchone():
+                    return None
+            if project_id is not None:
+                cursor.execute(
+                    "SELECT 1 FROM projects WHERE id=%s AND workspace_id=%s",
+                    (project_id, workspace_id))
                 if not cursor.fetchone():
                     return None
             cursor.execute("""
-                INSERT INTO folders (workspace_id, parent_id, name)
-                VALUES (%s, %s, %s)
-                RETURNING id, public_id, parent_id, name, created_at, updated_at
-            """, (workspace_id, parent_id, name))
+                INSERT INTO folders (workspace_id, project_id, parent_id, name)
+                VALUES (%s, %s, %s, %s)
+                RETURNING id, public_id, project_id, parent_id, name,
+                          created_at, updated_at
+            """, (workspace_id, project_id, parent_id, name))
             row = cursor.fetchone()
         return {
             "id": int(row[0]), "public_id": str(row[1]), "workspace_id": workspace_id,
-            "parent_id": row[2], "name": row[3],
-            "created_at": row[4].isoformat(), "updated_at": row[5].isoformat(),
+            "project_id": row[2], "parent_id": row[3], "name": row[4],
+            "created_at": row[5].isoformat(), "updated_at": row[6].isoformat(),
         }
 
     def create_audiovisual_production(
         self, workspace_id: int, name: str, description: str,
-        folder_id: int | None,
+        folder_id: int | None, project_id: int | None = None,
     ) -> dict | None:
         with transaction() as cursor:
             cursor.execute("SELECT 1 FROM workspaces WHERE id=%s", (workspace_id,))
             if not cursor.fetchone():
                 return None
+            if project_id is not None:
+                cursor.execute(
+                    "SELECT 1 FROM projects WHERE id=%s AND workspace_id=%s",
+                    (project_id, workspace_id))
+                if not cursor.fetchone():
+                    return None
             if folder_id is not None:
                 cursor.execute(
-                    "SELECT 1 FROM folders WHERE id=%s AND workspace_id=%s",
-                    (folder_id, workspace_id))
+                    """SELECT 1 FROM folders
+                         WHERE id=%s AND workspace_id=%s
+                           AND project_id IS NOT DISTINCT FROM %s""",
+                    (folder_id, workspace_id, project_id))
                 if not cursor.fetchone():
                     return None
             cursor.execute("""
                 INSERT INTO productions
-                    (workspace_id, folder_id, production_type, name,
+                    (workspace_id, project_id, folder_id, production_type, name,
                      description, settings)
-                VALUES (%s, %s, 'audiovisual', %s, %s, '{}')
+                VALUES (%s, %s, %s, 'audiovisual', %s, %s, '{}')
                 RETURNING id
-            """, (workspace_id, folder_id, name, description))
+            """, (workspace_id, project_id, folder_id, name, description))
             production_id = int(cursor.fetchone()[0])
             cursor.execute("""
                 INSERT INTO sound_scenes (production_id, document)

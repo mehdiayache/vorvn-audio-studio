@@ -43,21 +43,29 @@ class ProjectRepositoryTests(unittest.TestCase):
                 database.execute("DELETE FROM workspaces WHERE id=%s", (workspace_id,))
             database.commit()
 
-    def test_project_can_live_at_workspace_root_or_in_a_folder(self):
+    def test_project_is_a_workspace_child_with_project_folder_tree(self):
         workspace_id = int(self.workspace["id"])
-        folder = self.workspace_service.create_folder(workspace_id, "Campaign")
-        root = self.project_service.create(workspace_id, "Brand launch")
-        placed = self.project_service.create(
-            workspace_id, "Retail launch", "In-store initiative", int(folder["id"]))
+        project = self.project_service.create(workspace_id, "Brand launch")
+        folder = self.workspace_service.create_folder(
+            workspace_id, "References", project_id=int(project["id"]))
+        child = self.workspace_service.create_folder(
+            workspace_id, "Research", int(folder["id"]), int(project["id"]))
 
-        self.assertIsNone(root["folder_id"])
-        self.assertEqual(placed["folder_id"], folder["id"])
+        self.assertNotIn("folder_id", project)
+        self.assertEqual(folder["project_id"], project["id"])
+        self.assertEqual(child["project_id"], project["id"])
+        self.assertEqual(child["parent_id"], folder["id"])
+        detail = self.project_service.project(project["public_id"])
+        self.assertEqual(
+            [item["id"] for item in detail["folders"]],
+            [folder["id"], child["id"]],
+        )
         overview = self.workspace_service.overview(workspace_id)
-        self.assertEqual({item["id"] for item in overview["projects"]},
-                         {root["id"], placed["id"]})
+        self.assertEqual([item["id"] for item in overview["projects"]],
+                         [project["id"]])
         listed = next(item for item in self.workspace_service.list_workspaces()
                       if item["id"] == workspace_id)
-        self.assertEqual(listed["project_count"], 2)
+        self.assertEqual(listed["project_count"], 1)
 
     def test_membership_moves_without_copying_or_changing_production_state(self):
         workspace_id = int(self.workspace["id"])
@@ -75,7 +83,7 @@ class ProjectRepositoryTests(unittest.TestCase):
 
         with psycopg.connect(settings.database_url) as database:
             before = database.execute("""
-                SELECT production.id, production.folder_id, sound.document,
+                SELECT production.id, sound.document,
                        visual.document, count(DISTINCT file.id),
                        count(DISTINCT version.id)
                   FROM productions production
@@ -91,7 +99,7 @@ class ProjectRepositoryTests(unittest.TestCase):
             int(production["id"]), {"project_id": int(project["id"])})
         self.assertEqual(attached["id"], production["id"])
         self.assertEqual(attached["project_id"], project["id"])
-        self.assertEqual(attached["folder_id"], folder["id"])
+        self.assertIsNone(attached["folder_id"])
         self.assertEqual(
             [item["id"] for item in self.project_service.project(
                 project["public_id"])["productions"]],
@@ -110,7 +118,7 @@ class ProjectRepositoryTests(unittest.TestCase):
         self.assertIsNone(detached["project_id"])
         with psycopg.connect(settings.database_url) as database:
             after = database.execute("""
-                SELECT production.id, production.folder_id, sound.document,
+                SELECT production.id, sound.document,
                        visual.document, count(DISTINCT file.id),
                        count(DISTINCT version.id)
                   FROM productions production
@@ -122,6 +130,57 @@ class ProjectRepositoryTests(unittest.TestCase):
                  GROUP BY production.id, sound.document, visual.document
             """, (production["id"],)).fetchone()
         self.assertEqual(after, before)
+
+    def test_production_is_created_directly_in_its_project_folder(self):
+        workspace_id = int(self.workspace["id"])
+        project = self.project_service.create(workspace_id, "Campaign")
+        folder = self.workspace_service.create_folder(
+            workspace_id, "Drafts", project_id=int(project["id"]))
+
+        production = self.workspace_service.create_audiovisual_production(
+            workspace_id, "Hero Film", "", int(folder["id"]),
+            int(project["id"]))
+
+        self.assertEqual(production["project_id"], project["id"])
+        self.assertEqual(production["folder_id"], folder["id"])
+        self.assertEqual(
+            self.project_service.project(project["public_id"])["productions"][0]["id"],
+            production["id"],
+        )
+
+    def test_moving_between_projects_clears_an_incompatible_folder(self):
+        workspace_id = int(self.workspace["id"])
+        first = self.project_service.create(workspace_id, "First")
+        second = self.project_service.create(workspace_id, "Second")
+        folder = self.workspace_service.create_folder(
+            workspace_id, "First drafts", project_id=int(first["id"]))
+        production = self.workspace_service.create_audiovisual_production(
+            workspace_id, "Moving Film", "", int(folder["id"]),
+            int(first["id"]))
+
+        moved = self.production_service.update_production(
+            int(production["id"]), {"project_id": int(second["id"])})
+
+        self.assertEqual(moved["project_id"], second["id"])
+        self.assertIsNone(moved["folder_id"])
+
+    def test_cross_project_folder_combinations_are_rejected(self):
+        workspace_id = int(self.workspace["id"])
+        first = self.project_service.create(workspace_id, "First")
+        second = self.project_service.create(workspace_id, "Second")
+        folder = self.workspace_service.create_folder(
+            workspace_id, "First drafts", project_id=int(first["id"]))
+
+        self.assertIsNone(self.workspace_service.create_audiovisual_production(
+            workspace_id, "Invalid", "", int(folder["id"]), int(second["id"])))
+        standalone = self.workspace_service.create_audiovisual_production(
+            workspace_id, "Standalone")
+        with self.assertRaises(psycopg.errors.CheckViolation):
+            with psycopg.connect(settings.database_url) as database:
+                database.execute(
+                    "UPDATE productions SET folder_id=%s WHERE id=%s",
+                    (folder["id"], standalone["id"]),
+                )
 
     def test_cross_workspace_membership_is_rejected(self):
         workspace_id = int(self.workspace["id"])
@@ -148,14 +207,18 @@ class ProjectRepositoryTests(unittest.TestCase):
     def test_deleting_project_preserves_production_files_versions_and_scenes(self):
         workspace_id = int(self.workspace["id"])
         project = self.project_service.create(workspace_id, "Campaign")
+        folder = self.workspace_service.create_folder(
+            workspace_id, "Deliverables", project_id=int(project["id"]))
+        child = self.workspace_service.create_folder(
+            workspace_id, "Approved", int(folder["id"]), int(project["id"]))
         production = self.workspace_service.create_audiovisual_production(
-            workspace_id, "Campaign Film")
-        self.production_service.update_production(
-            int(production["id"]), {"project_id": int(project["id"])})
+            workspace_id, "Campaign Film", "", int(child["id"]),
+            int(project["id"]))
         file = FileRepository().create_workspace_file(
             workspace_id, name="Reusable score", filename="score.wav",
             path="/tmp/score.wav", size_bytes=128, duration_ms=1000,
-            audio_format="wav", mime_type="audio/wav", media_type="audio")
+            audio_format="wav", mime_type="audio/wav", media_type="audio",
+            folder_id=int(child["id"]))
         file_id = int(file["id"])
         version_id = int(file["version_id"])
         self.assertTrue(FileRepository().attach_to_production_library(
@@ -172,8 +235,16 @@ class ProjectRepositoryTests(unittest.TestCase):
                 "SELECT id, project_id FROM productions WHERE id=%s",
                 (production["id"],)).fetchone(), (production["id"], None))
             self.assertEqual(database.execute(
-                "SELECT id, workspace_id FROM files WHERE id=%s",
-                (file_id,)).fetchone(), (file_id, workspace_id))
+                "SELECT id, project_id, parent_id FROM folders WHERE id=%s",
+                (folder["id"],)).fetchone(), (folder["id"], None, None))
+            self.assertEqual(database.execute(
+                "SELECT id, project_id, parent_id FROM folders WHERE id=%s",
+                (child["id"],)).fetchone(),
+                (child["id"], None, folder["id"]))
+            self.assertEqual(database.execute(
+                "SELECT id, workspace_id, folder_id FROM files WHERE id=%s",
+                (file_id,)).fetchone(),
+                (file_id, workspace_id, child["id"]))
             self.assertEqual(database.execute(
                 "SELECT id, file_id FROM file_versions WHERE id=%s",
                 (version_id,)).fetchone(), (version_id, file_id))

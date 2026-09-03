@@ -63,7 +63,7 @@ describe("CreatorLibraryBrowser", () => {
 
   it("applies the same search, folder and type query to in-flight creation items", async () => {
     render(<CreatorLibraryBrowser
-      folders={[{ id: 7, public_id: "campaign", workspace_id: 1, parent_id: null, name: "Campaign", created_at: "2026-01-01T00:00:00Z", updated_at: "2026-01-01T00:00:00Z" }]}
+      folders={[{ id: 7, public_id: "campaign", workspace_id: 1, project_id: null, parent_id: null, name: "Campaign", created_at: "2026-01-01T00:00:00Z", updated_at: "2026-01-01T00:00:00Z" }]}
       files={[]}
       creationItems={[
         { id: "speech", status: "generating", mediaType: "speech", folderId: 7, searchText: "Warm narrator", node: <div>Speech operation</div> },

@@ -12,6 +12,7 @@ WORKSPACE
 │
 ├── Projects
 │   └── Project
+│       ├── Explorer / Folders
 │       ├── Production
 │       └── Production
 │
@@ -47,17 +48,22 @@ Placements mean actual use.
 Workspace is the ownership root. Files, Folders, Projects, Productions and
 Objects belong to a Workspace.
 
-Explorer navigates Folder placement. A Folder answers where a resource is
-placed; it does not change what the resource is or who owns it.
+Explorer navigates Folder placement. A Workspace Folder organizes standalone
+Workspace resources. A Project Folder organizes resources inside one Project.
+A Folder answers where a resource is placed; it does not change what the
+resource is or who owns it.
 
-Folder placement and Project membership are independent. Moving a Production
-between Folders must not add it to or remove it from a Project. Adding a
-Production to a Project must not move it between Folders.
+A child Folder shares the Workspace and Project context of its parent. A
+standalone Production may only use a Workspace Folder. A Project Production may
+only use a Folder from that same Project. Moving a Production between Projects
+clears any Folder placement that is not valid in the destination context.
 
 ## Projects and Productions
 
-A Project groups human work: an initiative, campaign or other body of related
-work. It may group Productions of different types.
+A Project is the master container for a human initiative, campaign or other body
+of related work. Its Explorer contains Project Folders and it may group
+Productions of different types. The Project itself is a direct child of the
+Workspace, never a child of a Folder.
 
 A Production is a typed creative working environment. Audiovisual is one
 Production Type; future types may include Slides and Merch. A Production may
@@ -102,7 +108,7 @@ Therefore:
 ```text
 File ownership      → Workspace
 Folder location     → Explorer placement
-Project membership  → human grouping
+Project context     → human work container
 File association    → Link
 Actual creative use → Placement
 ```

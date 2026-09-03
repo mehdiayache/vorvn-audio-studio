@@ -2503,6 +2503,8 @@ export interface components {
             folder_id?: number | null;
             /** Name */
             name: string;
+            /** Project Id */
+            project_id?: number | null;
         };
         /** CaptionCueResponse */
         CaptionCueResponse: {
@@ -3367,6 +3369,8 @@ export interface components {
             name: string;
             /** Parent Id */
             parent_id?: number | null;
+            /** Project Id */
+            project_id?: number | null;
         };
         /** FolderMutationEnvelope */
         FolderMutationEnvelope: {
@@ -4678,8 +4682,6 @@ export interface components {
              * @default
              */
             description: string;
-            /** Folder Id */
-            folder_id?: number | null;
             /** Name */
             name: string;
         };
@@ -4706,8 +4708,10 @@ export interface components {
             created_at: string;
             /** Description */
             description: string;
-            /** Folder Id */
-            folder_id: number | null;
+            /** Files */
+            files: components["schemas"]["WorkspaceFileResponse"][];
+            /** Folders */
+            folders: components["schemas"]["WorkspaceFolderResponse"][];
             /** Id */
             id: number;
             /** Name */
@@ -4764,8 +4768,6 @@ export interface components {
             created_at: string;
             /** Description */
             description: string;
-            /** Folder Id */
-            folder_id: number | null;
             /** Id */
             id: number;
             /** Name */
@@ -4786,8 +4788,6 @@ export interface components {
         ProjectUpdateRequest: {
             /** Description */
             description?: string | null;
-            /** Folder Id */
-            folder_id?: number | null;
             /** Name */
             name?: string | null;
         };
@@ -7557,6 +7557,8 @@ export interface components {
             name: string;
             /** Parent Id */
             parent_id?: number | null;
+            /** Project Id */
+            project_id?: number | null;
             /** Public Id */
             public_id: string;
             /** Updated At */

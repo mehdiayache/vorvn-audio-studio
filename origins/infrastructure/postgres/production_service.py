@@ -87,12 +87,19 @@ class PostgresProductionRecords:
     def project_membership_valid(production_id: int, project_id: int) -> bool:
         return productions.project_membership_valid(production_id, project_id)
 
+    @staticmethod
+    def folder_context_valid(
+        workspace_id: int, project_id: int | None, folder_id: int,
+    ) -> bool:
+        return productions.folder_context_valid(
+            workspace_id, project_id, folder_id)
+
     def create_audiovisual_production(
         self, workspace_id: int, name: str, description: str,
-        folder_id: int | None,
+        folder_id: int | None, project_id: int | None = None,
     ) -> dict | None:
         return self.workspace_records.create_audiovisual_production(
-            workspace_id, name, description, folder_id)
+            workspace_id, name, description, folder_id, project_id)
 
     @staticmethod
     def delete_production(production_id: int) -> bool:

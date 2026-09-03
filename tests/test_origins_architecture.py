@@ -103,7 +103,12 @@ class OriginsArchitectureTests(unittest.TestCase):
         migrations = sorted((ROOT / "origins/migrations").glob("*.sql"))
         self.assertEqual(
             [path.name for path in migrations],
-            ["000_origins_schema.sql", "001_projects.sql"],
+            [
+                "000_origins_schema.sql",
+                "001_projects.sql",
+                "002_project_explorer.sql",
+                "003_project_explorer_data_normalization.sql",
+            ],
         )
         schema = "\n".join(path.read_text() for path in migrations)
         forbidden = (
@@ -118,6 +123,8 @@ class OriginsArchitectureTests(unittest.TestCase):
         self.assertFalse([token for token in forbidden if token in schema])
         self.assertIn("CREATE TABLE public.projects", schema)
         self.assertIn("project_id bigint", schema)
+        self.assertIn("ALTER TABLE public.folders ADD COLUMN project_id", schema)
+        self.assertIn("ALTER TABLE public.projects DROP COLUMN folder_id", schema)
 
     def test_project_is_grouping_only_not_a_false_subsystem(self):
         source = "\n".join(

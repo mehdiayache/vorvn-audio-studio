@@ -192,15 +192,15 @@ export const originsApi = {
   workspace: (workspaceId: number) => v1<WorkspaceOverview>(`/api/v1/workspaces/${workspaceId}`),
   creationActions: () => v1<CreationActionSummary[]>("/api/v1/creation-actions?context=workspace"),
   createWorkspace: (name: string, description = "") => postV1<WorkspaceSummary>("/api/v1/workspaces", { name, description }),
-  createFolder: (workspaceId: number, name: string, parentId: number | null = null) => postV1<WorkspaceFolder>(`/api/v1/workspaces/${workspaceId}/folders`, { name, parent_id: parentId }),
+  createFolder: (workspaceId: number, name: string, parentId: number | null = null, projectId: number | null = null) => postV1<WorkspaceFolder>(`/api/v1/workspaces/${workspaceId}/folders`, { name, parent_id: parentId, project_id: projectId }),
   projects: (workspaceId: number) => v1<WorkspaceProject[]>(`/api/v1/workspaces/${workspaceId}/projects`),
   project: (identifier: string) => v1<ProjectDetail>(`/api/v1/projects/${identifier}`),
-  createProject: (workspaceId: number, name: string, description = "", folderId: number | null = null) => postV1<WorkspaceProject>(`/api/v1/workspaces/${workspaceId}/projects`, { name, description, folder_id: folderId }),
-  updateProject: (id: number, changes: { name?: string; description?: string; folder_id?: number | null }) =>
+  createProject: (workspaceId: number, name: string, description = "") => postV1<WorkspaceProject>(`/api/v1/workspaces/${workspaceId}/projects`, { name, description }),
+  updateProject: (id: number, changes: { name?: string; description?: string }) =>
     request<{ data: WorkspaceProject }>(`/api/v1/projects/${id}`, { method: "PATCH", body: JSON.stringify(changes) }).then((response) => response.data),
   deleteProject: (id: number) =>
     request<{ data: { id: number; type: "project"; deleted: boolean } }>(`/api/v1/projects/${id}`, { method: "DELETE" }).then((response) => response.data),
-  createAudiovisualProduction: (workspaceId: number, name: string, description = "", folderId: number | null = null) => postV1<WorkspaceProduction>(`/api/v1/workspaces/${workspaceId}/productions/audiovisual`, { name, description, folder_id: folderId }),
+  createAudiovisualProduction: (workspaceId: number, name: string, description = "", folderId: number | null = null, projectId: number | null = null) => postV1<WorkspaceProduction>(`/api/v1/workspaces/${workspaceId}/productions/audiovisual`, { name, description, folder_id: folderId, project_id: projectId }),
   production: (identifier: string) => v1<WorkspaceProduction>(`/api/v1/productions/${identifier}`),
   activity: (filters: { kind?: string; failed?: boolean; limit?: number } = {}) => {
     const query = new URLSearchParams()

@@ -18,6 +18,24 @@ CHECKS = {
         JOIN folders parent ON parent.id = folder.parent_id
         WHERE parent.workspace_id <> folder.workspace_id
     """,
+    "Project Folders belong to a Project in their Workspace": """
+        SELECT count(*) FROM folders folder
+        LEFT JOIN projects project
+          ON project.id=folder.project_id
+         AND project.workspace_id=folder.workspace_id
+        WHERE folder.project_id IS NOT NULL AND project.id IS NULL
+    """,
+    "nested Folders share one Project context": """
+        SELECT count(*) FROM folders folder
+        JOIN folders parent ON parent.id=folder.parent_id
+        WHERE parent.project_id IS DISTINCT FROM folder.project_id
+    """,
+    "Production Folders share their Production context": """
+        SELECT count(*) FROM productions production
+        JOIN folders folder ON folder.id=production.folder_id
+        WHERE folder.workspace_id<>production.workspace_id
+           OR folder.project_id IS DISTINCT FROM production.project_id
+    """,
     "every canonical Part belongs to an existing Production": """
         SELECT count(*) FROM production_parts part
         LEFT JOIN productions production ON production.id = part.production_id

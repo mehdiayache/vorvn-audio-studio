@@ -18,10 +18,11 @@ class WorkspaceRecords(Protocol):
     def create_workspace(self, name: str, description: str) -> dict: ...
     def create_folder(
         self, workspace_id: int, name: str, parent_id: int | None,
+        project_id: int | None,
     ) -> dict | None: ...
     def create_audiovisual_production(
         self, workspace_id: int, name: str, description: str,
-        folder_id: int | None,
+        folder_id: int | None, project_id: int | None,
     ) -> dict | None: ...
     def attach_file(
         self, production_id: int, file_id: int, purpose: str,
@@ -58,21 +59,24 @@ class WorkspaceService:
 
     def create_folder(
         self, workspace_id: int, name: str, parent_id: int | None = None,
+        project_id: int | None = None,
     ) -> dict | None:
         clean_name = name.strip()
         if not clean_name:
             raise DomainValidation("Name this Folder.")
-        return self.records.create_folder(workspace_id, clean_name, parent_id)
+        return self.records.create_folder(
+            workspace_id, clean_name, parent_id, project_id)
 
     def create_audiovisual_production(
         self, workspace_id: int, name: str, description: str = "",
-        folder_id: int | None = None,
+        folder_id: int | None = None, project_id: int | None = None,
     ) -> dict | None:
         clean_name = name.strip()
         if not clean_name:
             raise DomainValidation("Name this audiovisual Production.")
         return self.records.create_audiovisual_production(
-            workspace_id, clean_name, description.strip(), folder_id)
+            workspace_id, clean_name, description.strip(), folder_id,
+            project_id)
 
     def attach_file(
         self, production_id: int, file_id: int, purpose: str = "media",

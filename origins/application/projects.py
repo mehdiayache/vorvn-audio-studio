@@ -11,9 +11,10 @@ class ProjectRecords(Protocol):
     def list_for_workspace(self, workspace_id: int) -> list[dict]: ...
     def project(self, identifier: str) -> dict | None: ...
     def productions(self, project_id: int) -> list[dict]: ...
+    def folders(self, project_id: int) -> list[dict]: ...
+    def files(self, project_id: int) -> list[dict]: ...
     def create(
         self, workspace_id: int, name: str, description: str,
-        folder_id: int | None,
     ) -> dict | None: ...
     def update(self, project_id: int, changes: dict[str, Any]) -> dict | None: ...
     def delete(self, project_id: int) -> bool: ...
@@ -30,17 +31,21 @@ class ProjectService:
         project = self.records.project(identifier)
         if not project:
             return None
-        return {**project, "productions": self.records.productions(int(project["id"]))}
+        project_id = int(project["id"])
+        return {
+            **project,
+            "folders": self.records.folders(project_id),
+            "productions": self.records.productions(project_id),
+            "files": self.records.files(project_id),
+        }
 
     def create(
         self, workspace_id: int, name: str, description: str = "",
-        folder_id: int | None = None,
     ) -> dict | None:
         clean_name = name.strip()
         if not clean_name:
             raise DomainValidation("Name this Project.")
-        return self.records.create(
-            workspace_id, clean_name, description.strip(), folder_id)
+        return self.records.create(workspace_id, clean_name, description.strip())
 
     def update(self, project_id: int, changes: dict[str, Any]) -> dict | None:
         values = dict(changes)

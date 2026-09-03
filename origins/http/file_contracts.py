@@ -51,6 +51,7 @@ class WorkspaceFolderResponse(BaseModel):
     id: int
     public_id: str
     workspace_id: int
+    project_id: int | None = None
     parent_id: int | None = None
     name: str
     created_at: str

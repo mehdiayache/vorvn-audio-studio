@@ -114,6 +114,8 @@
   --stroke-hairline: 1px;
   --radius-full: 999px;
   --control-xs: 1.75rem;
+  --motion-fast: 140ms;
+  --ease-out-ui: cubic-bezier(0.23, 1, 0.32, 1);
 
   --type-caption: 0.75rem;
   --type-small: 0.8125rem;

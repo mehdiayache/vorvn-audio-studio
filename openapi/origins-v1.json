@@ -1484,6 +1484,18 @@
             "minLength": 1,
             "title": "Name",
             "type": "string"
+          },
+          "project_id": {
+            "anyOf": [
+              {
+                "exclusiveMinimum": 0.0,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Project Id"
           }
         },
         "required": [
@@ -3813,6 +3825,18 @@
               }
             ],
             "title": "Parent Id"
+          },
+          "project_id": {
+            "anyOf": [
+              {
+                "exclusiveMinimum": 0.0,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Project Id"
           }
         },
         "required": [
@@ -7521,18 +7545,6 @@
             "title": "Description",
             "type": "string"
           },
-          "folder_id": {
-            "anyOf": [
-              {
-                "exclusiveMinimum": 0.0,
-                "type": "integer"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Folder Id"
-          },
           "name": {
             "maxLength": 180,
             "minLength": 1,
@@ -7603,16 +7615,19 @@
             "title": "Description",
             "type": "string"
           },
-          "folder_id": {
-            "anyOf": [
-              {
-                "type": "integer"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Folder Id"
+          "files": {
+            "items": {
+              "$ref": "#/components/schemas/WorkspaceFileResponse"
+            },
+            "title": "Files",
+            "type": "array"
+          },
+          "folders": {
+            "items": {
+              "$ref": "#/components/schemas/WorkspaceFolderResponse"
+            },
+            "title": "Folders",
+            "type": "array"
           },
           "id": {
             "title": "Id",
@@ -7651,12 +7666,13 @@
           "id",
           "public_id",
           "workspace_id",
-          "folder_id",
           "name",
           "description",
           "created_at",
           "updated_at",
-          "productions"
+          "folders",
+          "productions",
+          "files"
         ],
         "title": "ProjectDetailResponse",
         "type": "object"
@@ -7764,17 +7780,6 @@
             "title": "Description",
             "type": "string"
           },
-          "folder_id": {
-            "anyOf": [
-              {
-                "type": "integer"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Folder Id"
-          },
           "id": {
             "title": "Id",
             "type": "integer"
@@ -7805,7 +7810,6 @@
           "id",
           "public_id",
           "workspace_id",
-          "folder_id",
           "name",
           "description",
           "created_at",
@@ -7827,18 +7831,6 @@
               }
             ],
             "title": "Description"
-          },
-          "folder_id": {
-            "anyOf": [
-              {
-                "exclusiveMinimum": 0.0,
-                "type": "integer"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Folder Id"
           },
           "name": {
             "anyOf": [
@@ -15681,6 +15673,17 @@
               }
             ],
             "title": "Parent Id"
+          },
+          "project_id": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Project Id"
           },
           "public_id": {
             "title": "Public Id",

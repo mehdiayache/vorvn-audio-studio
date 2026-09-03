@@ -62,12 +62,14 @@ class WorkspaceCreateRequest(BaseModel):
 class FolderCreateRequest(BaseModel):
     name: str = Field(min_length=1, max_length=180)
     parent_id: int | None = Field(default=None, gt=0)
+    project_id: int | None = Field(default=None, gt=0)
 
 
 class AudiovisualProductionCreateRequest(BaseModel):
     name: str = Field(min_length=1, max_length=180)
     description: str = Field(default="", max_length=2_000)
     folder_id: int | None = Field(default=None, gt=0)
+    project_id: int | None = Field(default=None, gt=0)
 
 
 class WorkspaceMutationEnvelope(BaseModel):
@@ -86,7 +88,6 @@ class ProjectResponse(BaseModel):
     id: int
     public_id: str
     workspace_id: int
-    folder_id: int | None
     name: str
     description: str
     created_at: str
@@ -108,7 +109,9 @@ class ProjectProductionSummaryResponse(BaseModel):
 
 
 class ProjectDetailResponse(ProjectResponse):
+    folders: list[WorkspaceFolderResponse]
     productions: list[ProjectProductionSummaryResponse]
+    files: list[WorkspaceFileResponse]
 
 
 class ProjectListEnvelope(BaseModel):
@@ -126,13 +129,11 @@ class ProjectDetailEnvelope(BaseModel):
 class ProjectCreateRequest(BaseModel):
     name: str = Field(min_length=1, max_length=180)
     description: str = Field(default="", max_length=2_000)
-    folder_id: int | None = Field(default=None, gt=0)
 
 
 class ProjectUpdateRequest(BaseModel):
     name: str | None = Field(default=None, min_length=1, max_length=180)
     description: str | None = Field(default=None, max_length=2_000)
-    folder_id: int | None = Field(default=None, gt=0)
 
     def changes(self) -> dict[str, Any]:
         return self.model_dump(exclude_unset=True)

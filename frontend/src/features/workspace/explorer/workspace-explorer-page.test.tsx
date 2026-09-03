@@ -21,7 +21,7 @@ const workspaces: WorkspaceSummary[] = [{
 }]
 const overview: WorkspaceOverview = {
   workspace: { ...workspaces[0]!, project_count: 1 }, folders: [], projects: [{
-    id: 7, public_id: "project-7", workspace_id: 4, folder_id: null,
+    id: 7, public_id: "project-7", workspace_id: 4,
     name: "Summer Launch", description: "Campaign", production_count: 1,
     created_at: "2026-01-01T00:00:00Z", updated_at: "2026-01-02T00:00:00Z",
   }],
@@ -76,13 +76,14 @@ describe("WorkspaceExplorerPage", () => {
     expect(screen.getByRole("link", { name: "Open Launch film" }).getAttribute("href")).toBe("/origins/productions/audiovisual/production-8")
   })
 
-  it("creates an audiovisual Production directly inside the selected Workspace", async () => {
+  it("asks for a Project destination from the Home audiovisual shortcut", async () => {
     vi.mocked(originsApi.createAudiovisualProduction).mockResolvedValue({ ...overview.productions[0]!, id: 11, public_id: "production-11", name: "New film" })
     renderPage()
     fireEvent.click(await screen.findByRole("button", { name: /Audiovisual/ }))
     fireEvent.change(screen.getByRole("textbox", { name: "Name" }), { target: { value: "New film" } })
     fireEvent.click(screen.getByRole("button", { name: "Create Production" }))
-    await waitFor(() => expect(originsApi.createAudiovisualProduction).toHaveBeenCalledWith(4, "New film", "", null))
+    expect(screen.getByRole("combobox", { name: "Project" })).toBeTruthy()
+    await waitFor(() => expect(originsApi.createAudiovisualProduction).toHaveBeenCalledWith(4, "New film", "", null, 7))
   })
 
   it("uses dedicated Productions view without duplicating Home", async () => {
@@ -93,9 +94,29 @@ describe("WorkspaceExplorerPage", () => {
     expect(document.querySelector(".workspace-library-layout.has-single-column")).toBeTruthy()
   })
 
+  it("keeps Project Folders and grouped work inside the Project Explorer", async () => {
+    vi.mocked(originsApi.workspace).mockResolvedValue({
+      ...overview,
+      folders: [
+        { id: 20, public_id: "folder-20", workspace_id: 4, project_id: null, parent_id: null, name: "Shared Assets", created_at: "2026-01-01T00:00:00Z", updated_at: "2026-01-02T00:00:00Z" },
+        { id: 21, public_id: "folder-21", workspace_id: 4, project_id: 7, parent_id: null, name: "Project Drafts", created_at: "2026-01-01T00:00:00Z", updated_at: "2026-01-02T00:00:00Z" },
+      ],
+      productions: [
+        ...overview.productions,
+        { ...overview.productions[0]!, id: 22, public_id: "production-22", project_id: 7, folder_id: 21, name: "Grouped film" },
+      ],
+    })
+    renderPage("explorer")
+    expect(await screen.findByRole("link", { name: "Open Project Summer Launch" })).toBeTruthy()
+    expect(screen.getByRole("button", { name: "Shared Assets" })).toBeTruthy()
+    expect(screen.queryByRole("button", { name: "Project Drafts" })).toBeNull()
+    expect(screen.queryByRole("link", { name: "Open Grouped film" })).toBeNull()
+    expect(screen.getByRole("heading", { name: "Standalone work" })).toBeTruthy()
+  })
+
   it("creates a Project as a grouping resource in the selected Workspace", async () => {
     vi.mocked(originsApi.createProject).mockResolvedValue({
-      id: 12, public_id: "project-12", workspace_id: 4, folder_id: null,
+      id: 12, public_id: "project-12", workspace_id: 4,
       name: "Nike Summer Launch", description: "Campaign", production_count: 0,
       created_at: "2026-01-01T00:00:00Z", updated_at: "2026-01-01T00:00:00Z",
     })
@@ -103,7 +124,7 @@ describe("WorkspaceExplorerPage", () => {
     fireEvent.click(await screen.findByRole("button", { name: "New Project" }))
     fireEvent.change(screen.getByRole("textbox", { name: "Name" }), { target: { value: "Nike Summer Launch" } })
     fireEvent.click(screen.getByRole("button", { name: "Create Project" }))
-    await waitFor(() => expect(originsApi.createProject).toHaveBeenCalledWith(4, "Nike Summer Launch", "", null))
+    await waitFor(() => expect(originsApi.createProject).toHaveBeenCalledWith(4, "Nike Summer Launch", ""))
   })
 
   it("lets the dedicated Files view use the complete library width", async () => {
@@ -164,7 +185,7 @@ describe("WorkspaceExplorerPage", () => {
       ...overview,
       folders: [{
         id: 21, public_id: "folder-21", workspace_id: 4,
-        parent_id: null, name: "Episode 01", created_at: "2026-01-01T00:00:00Z",
+        project_id: null, parent_id: null, name: "Episode 01", created_at: "2026-01-01T00:00:00Z",
         updated_at: "2026-01-01T00:00:00Z",
       }],
     })
@@ -180,7 +201,7 @@ describe("WorkspaceExplorerPage", () => {
     })
     fireEvent.click(screen.getByRole("button", { name: "Create Production" }))
     await waitFor(() => expect(originsApi.createAudiovisualProduction)
-      .toHaveBeenCalledWith(4, "Episode film", "", 21))
+      .toHaveBeenCalledWith(4, "Episode film", "", 21, null))
   })
 
   it("keeps the chosen File visible when upload fails", async () => {

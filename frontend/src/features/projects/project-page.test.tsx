@@ -10,6 +10,7 @@ import { ProjectPage } from "./project-page"
 
 vi.mock("@/lib/api", () => ({ originsApi: {
   project: vi.fn(), workspace: vi.fn(), updateProduction: vi.fn(),
+  createFolder: vi.fn(), createAudiovisualProduction: vi.fn(),
 } }))
 
 const production = {
@@ -19,10 +20,10 @@ const production = {
   file_count: 1, part_count: 2,
 }
 const project: ProjectDetail = {
-  id: 6, public_id: "project-6", workspace_id: 4, folder_id: null,
+  id: 6, public_id: "project-6", workspace_id: 4,
   name: "Nike Summer Launch", description: "Campaign initiative",
   production_count: 0, created_at: "2026-09-03T00:00:00Z",
-  updated_at: "2026-09-03T00:00:00Z", productions: [],
+  updated_at: "2026-09-03T00:00:00Z", folders: [], productions: [], files: [],
 }
 const overview: WorkspaceOverview = {
   workspace: {
@@ -35,7 +36,7 @@ const overview: WorkspaceOverview = {
 
 function renderPage() {
   return render(<MemoryRouter initialEntries={["/origins/projects/project-6"]}>
-    <TooltipProvider><Routes><Route path="/origins/projects/:identifier" element={<ProjectPage />} /></Routes></TooltipProvider>
+    <TooltipProvider><Routes><Route path="/origins/projects/:identifier" element={<ProjectPage />} /><Route path="/origins/productions/audiovisual/:identifier" element={<div>Workstation</div>} /></Routes></TooltipProvider>
   </MemoryRouter>)
 }
 
@@ -49,6 +50,15 @@ beforeEach(() => {
       historical_spend: 0, current_sequence_cost: 0,
     },
   } as unknown as Awaited<ReturnType<typeof originsApi.updateProduction>>)
+  vi.mocked(originsApi.createFolder).mockResolvedValue({
+    id: 12, public_id: "folder-12", workspace_id: 4, project_id: 6,
+    parent_id: null, name: "References", created_at: "2026-09-03T00:00:00Z",
+    updated_at: "2026-09-03T00:00:00Z",
+  })
+  vi.mocked(originsApi.createAudiovisualProduction).mockResolvedValue({
+    ...production, id: 13, public_id: "production-13", project_id: 6,
+    name: "Campaign Film",
+  })
 })
 afterEach(cleanup)
 
@@ -56,8 +66,8 @@ describe("ProjectPage", () => {
   it("groups an existing Production and opens its existing workstation", async () => {
     renderPage()
     expect(await screen.findByRole("heading", { name: "Nike Summer Launch" })).toBeTruthy()
-    fireEvent.click(screen.getByRole("button", { name: "Add Production" }))
-    fireEvent.click(screen.getByRole("button", { name: /Hero Film/ }))
+    fireEvent.click(screen.getByRole("button", { name: "Add existing" }))
+    fireEvent.click(await screen.findByRole("button", { name: /Hero Film/ }))
     await waitFor(() => expect(originsApi.updateProduction).toHaveBeenCalledWith(8, { project_id: 6 }))
 
     vi.mocked(originsApi.project).mockResolvedValue({
@@ -70,6 +80,60 @@ describe("ProjectPage", () => {
       }],
     })
     await waitFor(() => expect(originsApi.project).toHaveBeenCalledTimes(2))
+  })
+
+  it("creates a Folder directly in the Project context", async () => {
+    renderPage()
+    await screen.findByRole("heading", { name: "Nike Summer Launch" })
+    fireEvent.click(screen.getByRole("button", { name: "New Folder" }))
+    fireEvent.change(screen.getByRole("textbox", { name: "Name" }), {
+      target: { value: "References" },
+    })
+    fireEvent.click(screen.getByRole("button", { name: "Create Folder" }))
+    await waitFor(() => expect(originsApi.createFolder)
+      .toHaveBeenCalledWith(4, "References", null, 6))
+  })
+
+  it("creates a Production directly in the Project and opens its workstation", async () => {
+    renderPage()
+    await screen.findByRole("heading", { name: "Nike Summer Launch" })
+    fireEvent.click(screen.getByRole("button", { name: "New Production" }))
+    fireEvent.change(screen.getByRole("textbox", { name: "Name" }), {
+      target: { value: "Campaign Film" },
+    })
+    fireEvent.click(screen.getByRole("button", { name: "Create Production" }))
+    await waitFor(() => expect(originsApi.createAudiovisualProduction)
+      .toHaveBeenCalledWith(4, "Campaign Film", "", null, 6))
+  })
+
+  it("preserves nested Project Folder context for new work", async () => {
+    const folder = {
+      id: 20, public_id: "folder-20", workspace_id: 4, project_id: 6,
+      parent_id: null, name: "References", created_at: "2026-09-03T00:00:00Z",
+      updated_at: "2026-09-03T00:00:00Z",
+    }
+    vi.mocked(originsApi.project).mockResolvedValue({ ...project, folders: [folder] })
+    vi.mocked(originsApi.createFolder).mockResolvedValue({
+      ...folder, id: 21, public_id: "folder-21", parent_id: folder.id,
+      name: "Research",
+    })
+    renderPage()
+    fireEvent.click(await screen.findByRole("button", { name: "References" }))
+    fireEvent.click(screen.getByRole("button", { name: "New Folder" }))
+    fireEvent.change(screen.getByRole("textbox", { name: "Name" }), {
+      target: { value: "Research" },
+    })
+    fireEvent.click(screen.getByRole("button", { name: "Create Folder" }))
+    await waitFor(() => expect(originsApi.createFolder)
+      .toHaveBeenCalledWith(4, "Research", 20, 6))
+
+    fireEvent.click(screen.getByRole("button", { name: "New Production" }))
+    fireEvent.change(screen.getByRole("textbox", { name: "Name" }), {
+      target: { value: "Campaign Film" },
+    })
+    fireEvent.click(screen.getByRole("button", { name: "Create Production" }))
+    await waitFor(() => expect(originsApi.createAudiovisualProduction)
+      .toHaveBeenCalledWith(4, "Campaign Film", "", 21, 6))
   })
 
   it("keeps Production navigation on the canonical audiovisual route", async () => {

@@ -1,0 +1,23 @@
+.production-create-dialog { inline-size: min(34rem, calc(100vw - 2rem)); }
+.production-create-dialog form { display: grid; gap: var(--space-4); }
+.production-create-dialog label { display: grid; gap: .35rem; }
+.production-create-dialog label > span { color: var(--foreground); font-size: var(--type-small); font-weight: var(--weight-emphasis); }
+.production-create-dialog label small { color: var(--muted-foreground); font-weight: var(--weight-body); }
+.production-create-dialog [data-slot="select-trigger"] { inline-size: 100%; }
+.production-create-dialog [data-slot="dialog-description"] { color: var(--foreground); }
+.production-create-destination,
+.production-create-guidance { display: flex; align-items: center; gap: var(--space-3); padding: var(--space-3); border: var(--stroke-hairline) solid var(--border); border-radius: var(--radius-md); background: var(--surface-subtle); }
+.production-create-destination > svg,
+.production-create-guidance > svg { inline-size: 1rem; flex: 0 0 1rem; color: var(--primary); }
+.production-create-destination > span,
+.production-create-guidance > span { min-inline-size: 0; display: grid; flex: 1; gap: .1rem; }
+.production-create-destination small,
+.production-create-guidance small { color: var(--muted-foreground); font-size: var(--type-caption); }
+.production-create-destination b,
+.production-create-guidance b { overflow: hidden; color: var(--foreground); font-size: var(--type-small); font-weight: var(--weight-emphasis); text-overflow: ellipsis; white-space: nowrap; }
+.production-create-error { color: var(--destructive); font-size: var(--type-caption); }
+
+@media (max-width: 34rem) {
+  .production-create-guidance { align-items: start; flex-wrap: wrap; }
+  .production-create-guidance > button { inline-size: 100%; }
+}

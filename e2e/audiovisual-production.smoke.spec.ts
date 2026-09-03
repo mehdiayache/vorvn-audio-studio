@@ -2,9 +2,11 @@ import { expect, test, type APIRequestContext } from "@playwright/test"
 
 type Resource = { id: number; public_id: string; name: string }
 type WorkspaceResource = Resource & { description?: string }
-type ProductionResource = Resource & { project_id: number | null }
+type ProductionResource = Resource & { project_id: number | null; folder_id: number | null }
 type ProjectResource = Resource & { description?: string }
 type WorkspaceOverview = { projects: ProjectResource[]; productions: ProductionResource[] }
+type ProjectFolder = Resource & { project_id: number | null; parent_id: number | null }
+type ProjectDetail = ProjectResource & { folders: ProjectFolder[]; productions: ProductionResource[] }
 
 async function reusableBrowserFixture(request: APIRequestContext) {
   const listedResponse = await request.get("/api/v1/workspaces")
@@ -42,22 +44,7 @@ async function reusableProjectFixture(request: APIRequestContext) {
     expect(projectResponse.ok()).toBe(true)
     project = (await projectResponse.json()).data as ProjectResource
   }
-  let production = overview.productions.find((item) => item.project_id === project.id)
-    || overview.productions.find((item) => item.project_id === null)
-  if (!production) {
-    const productionResponse = await request.post(`/api/v1/workspaces/${workspace.id}/productions/audiovisual`, {
-      data: { name: "Browser Smoke Grouped Production", description: "" },
-    })
-    expect(productionResponse.ok()).toBe(true)
-    production = (await productionResponse.json()).data as ProductionResource
-  }
-  if (production.project_id !== project.id) {
-    const membershipResponse = await request.patch(`/api/v1/productions/${production.id}`, {
-      data: { project_id: project.id },
-    })
-    expect(membershipResponse.ok()).toBe(true)
-  }
-  return { workspace, project, production }
+  return { workspace, project }
 }
 
 test("opens an audiovisual Production and renders Timeline and Creator Library without browser warnings", async ({ page, request }) => {
@@ -96,7 +83,7 @@ test("uses the fixed desktop rail, then opens Home Project and Production", asyn
   })
   page.on("pageerror", (error) => browserIssues.push(`pageerror: ${error.message}`))
 
-  const { workspace, project, production } = await reusableProjectFixture(request)
+  const { workspace, project } = await reusableProjectFixture(request)
 
   await page.addInitScript((workspaceId) => {
     window.localStorage.setItem("origins.current-workspace", String(workspaceId))
@@ -137,8 +124,35 @@ test("uses the fixed desktop rail, then opens Home Project and Production", asyn
   await expect(page.getByRole("heading", { name: "What do you want to create today?" })).toBeVisible()
   await page.getByRole("link", { name: `Open Project ${project.name}` }).click()
   await expect(page.getByRole("heading", { name: project.name })).toBeVisible()
-  await page.getByRole("link", { name: `Open Production ${production.name}` }).click()
-  await expect(page.getByRole("heading", { name: `Rename Production ${production.name}` })).toBeVisible()
+
+  const projectResponse = await request.get(`/api/v1/projects/${project.public_id}`)
+  expect(projectResponse.ok()).toBe(true)
+  let projectDetail = (await projectResponse.json()).data as ProjectDetail
+  let folder = projectDetail.folders.find((item) => item.name === "Browser Smoke References")
+  if (!folder) {
+    await page.getByRole("button", { name: "New Folder" }).click()
+    await page.getByRole("textbox", { name: "Name" }).fill("Browser Smoke References")
+    await page.getByRole("button", { name: "Create Folder" }).click()
+    await expect(page.getByRole("button", { name: "Browser Smoke References" })).toBeVisible()
+    const refreshedProjectResponse = await request.get(`/api/v1/projects/${project.public_id}`)
+    projectDetail = (await refreshedProjectResponse.json()).data as ProjectDetail
+    folder = projectDetail.folders.find((item) => item.name === "Browser Smoke References")
+  } else {
+    await page.getByRole("button", { name: folder.name }).click()
+  }
+  expect(folder).toBeTruthy()
+
+  let production = projectDetail.productions.find((item) =>
+    item.name === "Browser Smoke Project Production" && item.folder_id === folder!.id)
+  if (!production) {
+    await page.getByRole("button", { name: "New Production" }).click()
+    await page.getByRole("textbox", { name: "Name" }).fill("Browser Smoke Project Production")
+    await page.getByRole("button", { name: "Create Production" }).click()
+    await expect(page.getByRole("heading", { name: "Rename Production Browser Smoke Project Production" })).toBeVisible()
+  } else {
+    await page.getByRole("link", { name: `Open Production ${production.name}` }).click()
+    await expect(page.getByRole("heading", { name: `Rename Production ${production.name}` })).toBeVisible()
+  }
 
   const refreshedResponse = await request.get(`/api/v1/workspaces/${workspace.id}`)
   const refreshed = (await refreshedResponse.json()).data as WorkspaceOverview

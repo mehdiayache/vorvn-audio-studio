@@ -63,6 +63,18 @@ class MigrationTests(unittest.TestCase):
                 self.assertTrue({
                     "workspace_id", "folder_id", "project_id", "production_type"
                 }.issubset(production_columns))
+                folder_columns = {row[0] for row in database.execute("""
+                    SELECT column_name FROM information_schema.columns
+                     WHERE table_name='folders'
+                """).fetchall()}
+                self.assertTrue({
+                    "workspace_id", "project_id", "parent_id"
+                }.issubset(folder_columns))
+                project_columns = {row[0] for row in database.execute("""
+                    SELECT column_name FROM information_schema.columns
+                     WHERE table_name='projects'
+                """).fetchall()}
+                self.assertNotIn("folder_id", project_columns)
                 for table in ("production_parts", "clips", "transcripts",
                               "jobs", "exports"):
                     columns = {row[0] for row in database.execute("""

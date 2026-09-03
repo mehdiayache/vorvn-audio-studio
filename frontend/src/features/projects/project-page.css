@@ -1,37 +1,70 @@
 .project-page { min-block-size: 100%; background: var(--workspace-background); }
-.project-page-header { min-block-size: 8rem; display: grid; grid-template-columns: auto auto minmax(0, 1fr) auto; align-items: center; gap: .8rem; padding: 1.5rem clamp(1rem, 4vw, 3rem); border-block-end: 1px solid var(--border); background: var(--background); }
+.project-page-header { min-block-size: 8rem; display: grid; grid-template-columns: auto auto minmax(0, 1fr) auto; align-items: center; gap: var(--space-3); padding: var(--space-6) clamp(1rem, 4vw, 3rem); border-block-end: var(--stroke-hairline) solid var(--border); background: var(--background); }
 .project-page-header > div { min-inline-size: 0; }
-.project-page-header small, .project-page-header p, .project-page-location { color: var(--muted-foreground); font-size: var(--type-caption); }
+.project-page-header small { color: var(--primary); font-size: var(--type-caption); font-weight: var(--weight-emphasis); }
 .project-page-header h1 { margin-block: .15rem; overflow: hidden; font-size: var(--type-heading-lg); font-weight: var(--weight-title); text-overflow: ellipsis; white-space: nowrap; }
-.project-page-header p { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.project-page-icon, .project-production-icon { display: grid; place-items: center; border-radius: var(--radius-md); color: var(--primary); background: var(--primary-soft); }
-.project-page-icon { inline-size: 2.5rem; block-size: 2.5rem; }
+.project-page-header p { overflow: hidden; color: var(--foreground); font-size: var(--type-caption); text-overflow: ellipsis; white-space: nowrap; }
+.project-page-icon,
+.project-resource-icon { display: grid; place-items: center; border-radius: var(--radius-md); }
+.project-page-icon { inline-size: 2.5rem; block-size: 2.5rem; color: var(--primary); background: var(--primary-soft); }
 .project-page-icon svg { inline-size: 1.1rem; }
-.project-page-location { white-space: nowrap; }
-.project-productions { inline-size: min(100% - clamp(2rem, 8vw, 8rem), 70rem); margin-inline: auto; padding-block: clamp(2rem, 5vh, 4rem); }
-.project-productions > header { display: flex; align-items: end; justify-content: space-between; gap: 1rem; margin-block-end: 1rem; }
-.project-productions h2 { font-size: var(--type-heading-md); font-weight: var(--weight-title); }
-.project-productions header p { margin-block-start: .15rem; color: var(--muted-foreground); font-size: var(--type-caption); }
-.project-production-list { display: grid; border-block-start: 1px solid var(--border); }
-.project-production-row { min-block-size: 4rem; display: grid; grid-template-columns: 2rem minmax(0, 1fr) auto auto auto; align-items: center; gap: .75rem; border-block-end: 1px solid var(--border); }
-.project-production-icon { inline-size: 2rem; block-size: 2rem; }
-.project-production-icon svg { inline-size: .9rem; }
-.project-production-copy { min-inline-size: 0; display: grid; gap: .1rem; }
-.project-production-copy b, .project-production-copy small { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.project-production-copy b { font-size: var(--type-small); font-weight: var(--weight-emphasis); }
-.project-production-copy small, .project-production-updated { color: var(--muted-foreground); font-size: var(--type-caption); }
-.project-empty { min-block-size: 15rem; display: grid; place-items: center; align-content: center; gap: .35rem; color: var(--muted-foreground); text-align: center; }
-.project-empty svg { inline-size: 1.5rem; }
-.project-empty b { color: var(--foreground); font-size: var(--type-small); font-weight: var(--weight-emphasis); }
-.project-empty span { font-size: var(--type-caption); }
-.project-production-options { display: grid; gap: .5rem; max-block-size: 24rem; overflow: auto; }
+.project-page-count { color: var(--muted-foreground); font-size: var(--type-caption); white-space: nowrap; }
+.project-explorer { inline-size: min(100% - clamp(2rem, 8vw, 8rem), 76rem); margin-inline: auto; padding-block: clamp(2rem, 5vh, 4rem); }
+.project-breadcrumbs { min-block-size: 2rem; display: flex; align-items: center; gap: var(--space-1); overflow-x: auto; margin-block-end: var(--space-4); scrollbar-width: none; }
+.project-breadcrumbs > span { display: inline-flex; align-items: center; gap: var(--space-1); }
+.project-breadcrumbs svg { inline-size: .8rem; flex: 0 0 .8rem; color: var(--muted-foreground); }
+.project-breadcrumbs button { min-block-size: 1.75rem; padding-inline: var(--space-2); border-radius: var(--radius-md); color: var(--foreground); font-size: var(--type-small); white-space: nowrap; transition: color var(--motion-fast) ease, background var(--motion-fast) ease; }
+.project-breadcrumbs button:hover { background: var(--surface-raised); }
+.project-breadcrumbs button[aria-current="page"] { color: var(--primary); background: var(--primary-soft); }
+.project-explorer-actions { display: flex; align-items: center; gap: var(--space-2); margin-block-end: var(--space-8); }
+.project-explorer-section { margin-block-start: var(--space-8); }
+.project-explorer-section > header { display: flex; align-items: end; justify-content: space-between; gap: var(--space-4); margin-block-end: var(--space-3); }
+.project-explorer-section h2 { font-size: var(--type-heading-md); font-weight: var(--weight-title); }
+.project-explorer-section header p { margin-block-start: .15rem; color: var(--foreground); font-size: var(--type-caption); }
+.project-explorer-section header > span { color: var(--muted-foreground); font-family: var(--font-mono); font-size: var(--type-caption); }
+.project-folder-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: var(--space-2); }
+.project-folder-grid > button { min-inline-size: 0; min-block-size: 4rem; display: grid; grid-template-columns: 2rem minmax(0, 1fr) auto; align-items: center; gap: var(--space-3); padding: var(--space-3); border: var(--stroke-hairline) solid var(--border); border-radius: var(--radius-md); color: var(--foreground); background: var(--surface-raised); text-align: start; transition: border-color var(--motion-fast) ease, background var(--motion-fast) ease, transform var(--motion-fast) var(--ease-out-ui); }
+.project-folder-grid > button:hover { border-color: var(--border-strong); background: var(--surface-subtle); }
+.project-folder-grid > button:active { transform: scale(.98); }
+.project-folder-grid > button > span { inline-size: 2rem; block-size: 2rem; display: grid; place-items: center; border-radius: var(--radius-md); color: var(--primary); background: var(--primary-soft); }
+.project-folder-grid > button svg { inline-size: .95rem; }
+.project-folder-grid > button > svg { inline-size: .8rem; color: var(--muted-foreground); }
+.project-folder-grid b { overflow: hidden; font-size: var(--type-small); font-weight: var(--weight-emphasis); text-overflow: ellipsis; white-space: nowrap; }
+.project-resource-list { display: grid; border-block-start: var(--stroke-hairline) solid var(--border); }
+.project-resource-row { min-block-size: 4rem; display: grid; grid-template-columns: 2rem minmax(0, 1fr) auto auto auto; align-items: center; gap: var(--space-3); border-block-end: var(--stroke-hairline) solid var(--border); }
+.project-resource-icon { inline-size: 2rem; block-size: 2rem; color: var(--file); background: var(--file-soft); }
+.project-resource-icon.is-production { color: var(--production); background: var(--production-soft); }
+.project-resource-icon.is-image { color: var(--file-image); background: var(--file-image-soft); }
+.project-resource-icon.is-video { color: var(--file-video); background: var(--file-video-soft); }
+.project-resource-icon svg { inline-size: .9rem; }
+.project-resource-copy { min-inline-size: 0; display: grid; gap: .1rem; }
+.project-resource-copy b,
+.project-resource-copy small { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.project-resource-copy b { color: var(--foreground); font-size: var(--type-small); font-weight: var(--weight-emphasis); }
+.project-resource-copy small { color: var(--foreground); font-size: var(--type-caption); }
+.project-resource-meta { color: var(--muted-foreground); font-size: var(--type-caption); text-transform: capitalize; }
+.project-compact-empty { min-block-size: 4rem; display: flex; align-items: center; gap: var(--space-3); color: var(--foreground); font-size: var(--type-caption); }
+.project-compact-empty svg { inline-size: 1rem; color: var(--muted-foreground); }
+.project-production-options { display: grid; gap: var(--space-2); max-block-size: 24rem; overflow: auto; }
 .project-production-options > button { min-block-size: 3.5rem; justify-content: start; }
 .project-production-options > button > span { min-inline-size: 0; display: grid; flex: 1; gap: .1rem; text-align: start; }
 .project-production-options b { font-weight: var(--weight-emphasis); }
-.project-production-options small, .project-production-options p { color: var(--muted-foreground); font-size: var(--type-caption); }
-@media (max-width: 700px) {
+.project-production-options small,
+.project-production-options p { color: var(--foreground); font-size: var(--type-caption); }
+.project-production-picker [data-slot="dialog-description"] { color: var(--foreground); }
+@media (max-width: 56rem) {
+  .project-folder-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+@media (max-width: 44rem) {
   .project-page-header { grid-template-columns: auto auto minmax(0, 1fr); }
-  .project-page-location { display: none; }
-  .project-production-updated { display: none; }
-  .project-production-row { grid-template-columns: 2rem minmax(0, 1fr) auto auto; }
+  .project-page-count { display: none; }
+  .project-explorer { inline-size: min(100% - 2rem, 44rem); }
+  .project-explorer-actions { align-items: stretch; flex-direction: column; }
+  .project-folder-grid { grid-template-columns: 1fr; }
+  .project-resource-meta { display: none; }
+  .project-resource-row { grid-template-columns: 2rem minmax(0, 1fr) auto auto; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .project-folder-grid > button { transition: border-color var(--motion-fast) ease, background var(--motion-fast) ease; }
+  .project-folder-grid > button:active { transform: none; }
 }

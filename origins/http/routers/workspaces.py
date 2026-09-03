@@ -46,7 +46,7 @@ def create_workspace(payload: WorkspaceCreateRequest) -> dict:
              status_code=status.HTTP_201_CREATED, operation_id="createFolder")
 def create_folder(workspace_id: int, payload: FolderCreateRequest) -> dict:
     folder = workspace_service.create_folder(
-        workspace_id, payload.name, payload.parent_id)
+        workspace_id, payload.name, payload.parent_id, payload.project_id)
     if not folder:
         raise HTTPException(status.HTTP_404_NOT_FOUND,
                             "Workspace or parent Folder not found.")
@@ -63,7 +63,8 @@ def create_audiovisual_production(
     workspace_id: int, payload: AudiovisualProductionCreateRequest,
 ) -> dict:
     production = workspace_service.create_audiovisual_production(
-        workspace_id, payload.name, payload.description, payload.folder_id)
+        workspace_id, payload.name, payload.description, payload.folder_id,
+        payload.project_id)
     if not production:
         raise HTTPException(status.HTTP_404_NOT_FOUND,
                             "Workspace or Folder not found.")
