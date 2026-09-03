@@ -147,6 +147,23 @@ class SpeechRepository:
                     expected_revision: int,
                     values: dict[str, Any]) -> dict[str, Any]:
         with transaction() as cursor:
+            file_id = int(values.get("file_id") or 0)
+            file_version_id = int(values.get("file_version_id") or 0)
+            if not file_id or not file_version_id:
+                raise ValueError(
+                    "A Speech recording must reference its canonical File.")
+            cursor.execute("""
+                SELECT file.id, version.id
+                  FROM projects project
+                  JOIN files file ON file.workspace_id=project.workspace_id
+                  JOIN file_versions version
+                    ON version.file_id=file.id AND version.id=%s
+                 WHERE project.id=%s AND file.id=%s
+                   AND project.project_type='audiovisual'
+            """, (file_version_id, project_id, file_id))
+            if not cursor.fetchone():
+                raise ValueError(
+                    "That Speech File is not available in this Project Workspace.")
             cursor.execute("""
                 SELECT revision, kind, script,
                        (SELECT clip.id FROM clips clip WHERE clip.part_id = project_parts.id),
@@ -190,9 +207,15 @@ class SpeechRepository:
             cursor.execute("""
                 UPDATE project_parts
                    SET kind = 'speech', editorial_status = 'ready',
+                       file_id=%s, file_version_id=%s, duration_ms=%s,
                        updated_at = now()
                  WHERE id = %s
-            """, (part_id,))
+            """, (file_id, file_version_id, values.get("duration_ms"), part_id))
+            cursor.execute("""
+                INSERT INTO project_file_usages (project_id, file_id, purpose)
+                VALUES (%s, %s, 'script')
+                ON CONFLICT (project_id, file_id, purpose) DO NOTHING
+            """, (project_id, file_id))
             cursor.execute("DELETE FROM composition_drafts WHERE part_id = %s",
                            (part_id,))
             return {"subtitles_stale": subtitles_stale, "attached": 1,
@@ -211,6 +234,8 @@ class SpeechRepository:
         snapshot = {
             "engine": values.get("engine"), "format": values.get("format"),
             "voice": values.get("provider_voice_id") or values.get("voice"),
+            "file_id": values.get("file_id"),
+            "file_version_id": values.get("file_version_id"),
             "text_state": values.get("text_state"),
             "text_raw": values.get("text_raw"),
             "text_shaped": values.get("text_shaped"),

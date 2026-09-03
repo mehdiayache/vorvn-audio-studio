@@ -55,7 +55,6 @@ class SpeechProvider(Protocol):
 
 class SpeechWorkspace(Protocol):
     def save(self, audio: bytes, extension: str) -> StoredAudio: ...
-    def discard(self, filename: str) -> None: ...
 
 
 def _defaults(values: dict) -> dict:
@@ -167,7 +166,10 @@ class SpeechGenerationService:
         self.preferences = preferences
         self.operations = operations
 
-    def run(self, values: dict, on_progress=None) -> dict[str, Any]:
+    def run(
+        self, values: dict, on_progress=None, *,
+        commit_file: Callable[[dict[str, Any]], dict[str, Any]] | None = None,
+    ) -> dict[str, Any]:
         operation = str(values.get("operation") or "create")
         project_id = values.get("project_id")
         project_id = int(project_id) if project_id is not None else None
@@ -366,6 +368,8 @@ class SpeechGenerationService:
         row["_source_script_hash"] = values.get("_source_script_hash")
         if row.get("_provider_transcript"):
             row["_provider_transcript"]["source_job_id"] = job_id or None
+        if commit_file:
+            row.update(commit_file(row))
         mutation: dict[str, int] = {}
         try:
             if operation == "create":
@@ -378,19 +382,11 @@ class SpeechGenerationService:
                     part_id, project_id,
                     int(values.get("_source_part_revision") or part["revision"]),
                     row)
-                replaced_filename = str(
-                    mutation.pop("replaced_filename", "") or "")
-                if replaced_filename and replaced_filename != saved.filename:
-                    try:
-                        self.workspace.discard(replaced_filename)
-                    except OSError:
-                        # The active recording is already committed. A stale
-                        # local file is safer than reporting a false failure.
-                        pass
+                mutation.pop("replaced_filename", None)
         except Exception as exc:
             raise JobFailed(
-                "The provider completed and the audio was saved, but Audio "
-                "Studio could not attach its recording. The saved provider result "
+                "The provider completed and the audio was saved, but Origins "
+                "could not attach its recording. The saved provider result "
                 "must be recovered instead of synthesized again.",
                 {"provider_attempt_id": attempt_id,
                  "provider_succeeded": True,
@@ -405,6 +401,9 @@ class SpeechGenerationService:
                                  "path": saved.path,
                                  "size_bytes": saved.size_bytes,
                                  "duration_ms": saved.duration_ms},
+                 "file_id": row.get("file_id"),
+                 "file_version_id": row.get("file_version_id"),
+                 "output_file_ids": list(row.get("output_file_ids") or []),
                  "model": prepared.model_id, "engine": prepared.engine,
                  "voice": prepared.voice}) from exc
         if on_progress:
@@ -445,6 +444,9 @@ class SpeechGenerationService:
             "request_ids": request_ids,
             "provider_diagnostics": made.diagnostics,
             "provider_attempt_id": attempt_id,
+            "file_id": row.get("file_id"),
+            "file_version_id": row.get("file_version_id"),
+            "output_file_ids": list(row.get("output_file_ids") or []),
             **mutation,
         }
 
@@ -456,15 +458,13 @@ class SpeechJobHandler:
         self.files = files
 
     def __call__(self, job: Job, repository) -> dict[str, Any]:
-        result = self.service.run(
-            {**job.payload, "_job_id": job.id},
-            on_progress=lambda done, total, detail: repository.progress(
-                job.id, done, total, detail),
-        )
-        if (job.workspace_id is not None
-                and job.project_id is None
-                and result.get("path") and result.get("name")):
-            extension = str(result["name"]).rsplit(".", 1)[-1].casefold()
+        if job.workspace_id is None:
+            raise JobFailed("Speech output requires a Workspace-owned Job.")
+
+        def commit_file(row: dict[str, Any]) -> dict[str, Any]:
+            filename = str(row.get("filename") or "")
+            path = str(row.get("path") or "")
+            extension = filename.rsplit(".", 1)[-1].casefold()
             mime_type = {
                 "mp3": "audio/mpeg", "wav": "audio/wav", "ogg": "audio/ogg",
             }.get(extension, "audio/mpeg")
@@ -476,15 +476,15 @@ class SpeechJobHandler:
                 file = self.files.register(
                     job, output_key="speech", name=display_name,
                     stored=StoredFileVersion(
-                        filename=str(result["name"]), path=str(result["path"]),
+                        filename=filename, path=path,
                         mime_type=mime_type, family="audio",
-                        duration_ms=result.get("duration_ms"),
+                        duration_ms=row.get("duration_ms"),
                         audio_format=extension, media_format=extension,
                     ),
                     metadata={
-                        "provider": "alibaba",
-                        "model": result.get("model"),
-                        "voice": result.get("voice"),
+                        "provider": row.get("provider"),
+                        "model": row.get("model_id"),
+                        "voice": row.get("provider_voice_id"),
                         "language": job.payload.get("language"),
                     },
                     tags=("speech",),
@@ -494,9 +494,28 @@ class SpeechJobHandler:
                     "The speech was generated and stored, but its File record "
                     "could not be committed. The paid result needs review, not "
                     "another provider call.",
-                    {**result, "provider_succeeded": True,
+                    {**row, "provider_succeeded": True,
                      "requires_review": True},
                 ) from exc
-            result["file_id"] = int(file["id"])
-            result["output_file_ids"] = [int(file["id"])]
-        return result
+            try:
+                file_id = int(file["id"])
+                file_version_id = int(file["version_id"])
+            except (KeyError, TypeError, ValueError) as exc:
+                raise JobFailed(
+                    "The speech File was committed without a canonical version. "
+                    "The paid result needs review, not another provider call.",
+                    {**row, "provider_succeeded": True,
+                     "requires_review": True},
+                ) from exc
+            return {
+                "file_id": file_id,
+                "file_version_id": file_version_id,
+                "output_file_ids": [file_id],
+            }
+
+        return self.service.run(
+            {**job.payload, "_job_id": job.id},
+            on_progress=lambda done, total, detail: repository.progress(
+                job.id, done, total, detail),
+            commit_file=commit_file,
+        )

@@ -14,6 +14,7 @@ import psycopg
 from origins.application.timeline import TimelineError, TimelineService
 from origins.composition.projects import project_service as work
 from origins.config import settings
+from origins.domain.files import StoredFileVersion
 from origins.http.app import app
 from origins.http.routers import timeline as timeline_router
 from origins.infrastructure.postgres.project_document import (
@@ -23,6 +24,7 @@ from origins.infrastructure.postgres.speech import (
     SpeechRepository as PostgresSpeechRepository,
 )
 from origins.infrastructure.postgres.timeline import PostgresTimelineRecords
+from origins.infrastructure.postgres.uploads import PostgresUploadRecords
 from origins.infrastructure.postgres.workspaces import WorkspaceRepository
 
 
@@ -115,6 +117,23 @@ class ProjectImportTests(unittest.TestCase):
                     (self.project["id"],),
                 )
                 return int(cursor.fetchone()[0])
+
+    def _generated_speech_file(self, filename: str) -> dict:
+        file, duplicate = PostgresUploadRecords().create_generated_workspace_file(
+            int(self.workspace_record["id"]),
+            candidate_id=f"speech-test:{uuid4()}",
+            name=filename,
+            stored=StoredFileVersion(
+                filename=filename, path=f"/fixture/{filename}",
+                mime_type="audio/mpeg", family="audio",
+                duration_ms=1200, audio_format="mp3", media_format="mp3",
+            ),
+            size_bytes=12,
+            tags=("speech",),
+        )
+        self.assertFalse(duplicate)
+        self.assertIsNotNone(file)
+        return file
 
     def test_mixed_import_appends_in_order_and_restores_draft_truth(self):
         result = self.timeline.import_document(
@@ -264,7 +283,10 @@ class ProjectImportTests(unittest.TestCase):
             self.project["id"]) if item["kind"] == "draft")
         speech = PostgresSpeechRepository()
 
-        def recording(filename: str, text: str) -> dict:
+        first_file = self._generated_speech_file("first.mp3")
+        second_file = self._generated_speech_file("second.mp3")
+
+        def recording(filename: str, text: str, file: dict) -> dict:
             tagged = f"[serious] {text}"
             return {
                 "text": tagged, "text_raw": part["text"],
@@ -272,6 +294,8 @@ class ProjectImportTests(unittest.TestCase):
                 "text_state": "tagged", "filename": filename,
                 "path": f"/fixture/{filename}", "size_bytes": 12,
                 "duration_ms": 1200, "format": "mp3",
+                "file_id": file["id"],
+                "file_version_id": file["version_id"],
                 "language": "English", "voice": "fixture-voice",
                 "model": "fixture-model", "tier": "fixture",
                 "_provider_transcript": {
@@ -290,10 +314,10 @@ class ProjectImportTests(unittest.TestCase):
 
         first = speech.attach_clip(
             part["id"], self.project["id"], part["revision"],
-            recording("first.mp3", part["text"]))
+            recording("first.mp3", part["text"], first_file))
         second = speech.attach_clip(
             part["id"], self.project["id"], part["revision"],
-            recording("second.mp3", part["text"]))
+            recording("second.mp3", part["text"], second_file))
 
         self.assertEqual(first["replaced_filename"], "")
         self.assertEqual(second["replaced_filename"], "first.mp3")
@@ -309,6 +333,19 @@ class ProjectImportTests(unittest.TestCase):
                 "WHERE part_id=%s ORDER BY created_at",
                 (part["id"],),
             ).fetchall()
+            current_file = database.execute(
+                "SELECT file_id,file_version_id FROM project_parts WHERE id=%s",
+                (part["id"],),
+            ).fetchone()
+            retained_files = database.execute(
+                "SELECT id FROM files WHERE id=ANY(%s) ORDER BY id",
+                ([first_file["id"], second_file["id"]],),
+            ).fetchall()
+            project_files = database.execute(
+                "SELECT file_id FROM project_file_usages "
+                "WHERE project_id=%s AND purpose='script' ORDER BY file_id",
+                (self.project["id"],),
+            ).fetchall()
         self.assertEqual([(row[0], row[1]) for row in rows],
                          [(second["clip_id"], "second.mp3")])
         self.assertEqual(rows[0][2]["text_state"], "tagged")
@@ -316,6 +353,18 @@ class ProjectImportTests(unittest.TestCase):
         self.assertEqual(rows[0][2]["text_shaped"], part["text"])
         self.assertEqual(rows[0][2]["text_tagged"],
                          f"[serious] {part['text']}")
+        self.assertEqual(
+            current_file,
+            (second_file["id"], second_file["version_id"]),
+        )
+        self.assertEqual(
+            [row[0] for row in retained_files],
+            sorted([first_file["id"], second_file["id"]]),
+        )
+        self.assertEqual(
+            [row[0] for row in project_files],
+            sorted([first_file["id"], second_file["id"]]),
+        )
         self.assertEqual(
             [(row[1], row[2], row[3]) for row in transcript_rows],
             [(None, True, "provider_word_timestamps"),

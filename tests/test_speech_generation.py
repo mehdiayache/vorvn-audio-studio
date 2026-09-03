@@ -31,6 +31,7 @@ class FakeRepository:
         self.replaced_filename = replaced_filename
         self.created = []
         self.replaced = []
+        self.active_file_id = None
 
     def voice_bindings(self):
         return [{"binding_id": "binding-one", "provider_voice_id": "voice-one", "voice_id": "voice-one",
@@ -60,6 +61,7 @@ class FakeRepository:
                     values):
         self.replaced.append(
             (part_id, project_id, expected_revision, values))
+        self.active_file_id = values.get("file_id")
         return {"attached": 1, "clip_id": 901, "subtitles_stale": 0,
                 "replaced_filename": self.replaced_filename}
 
@@ -139,6 +141,25 @@ class FakeWorkspace:
 
     def discard(self, filename):
         self.discarded.append(filename)
+
+
+class SequencedWorkspace(FakeWorkspace):
+    def save(self, audio, extension):
+        self.saved.append((audio, extension))
+        number = len(self.saved)
+        return StoredAudio(
+            f"generated-{number}.mp3", f"/safe/generated-{number}.mp3",
+            len(audio), 4_000)
+
+
+class FakeCreationFiles:
+    def __init__(self):
+        self.registrations = []
+
+    def register(self, job, **values):
+        self.registrations.append((job, values))
+        number = len(self.registrations)
+        return {"id": 40 + number, "version_id": 140 + number}
 
 
 class FailingWorkspace:
@@ -319,7 +340,7 @@ class SpeechGenerationTests(unittest.TestCase):
         self.assertEqual(result["id"], 45)
         self.assertEqual(repository.replaced[0][0], 45)
 
-    def test_record_replaces_one_active_clip_only_after_generation_succeeds(self):
+    def test_record_replacement_preserves_the_previous_workspace_audio(self):
         repository = FakeRepository(
             part={**existing("speech"), "clip_id": 73},
             replaced_filename="previous.mp3",
@@ -331,7 +352,7 @@ class SpeechGenerationTests(unittest.TestCase):
             text="Updated recording"))
 
         self.assertEqual(result["clip_id"], 901)
-        self.assertEqual(workspace.discarded, ["previous.mp3"])
+        self.assertEqual(workspace.discarded, [])
 
     def test_cosyvoice_word_timing_becomes_one_standard_transcript_payload(self):
         repository = FakeRepository(part=existing("draft"))
@@ -448,13 +469,87 @@ class SpeechGenerationTests(unittest.TestCase):
 
     def test_job_handler_reports_durable_chunk_progress(self):
         service, _, _, _ = self.service()
-        handler = SpeechJobHandler(service, object())
+        handler = SpeechJobHandler(service, FakeCreationFiles())
         progress = Progress()
-        job = Job(9, uuid4(), "speech", JobStatus.RUNNING, payload())
+        job = Job(
+            9, uuid4(), "speech", JobStatus.RUNNING, payload(),
+            workspace_id=12, creation_context={"workspace_id": 12},
+        )
         result = handler(job, progress)
         self.assertIsNone(result["id"])
+        self.assertEqual(result["output_file_ids"], [41])
         self.assertEqual(progress.events[0][1:3], (0, 2))
         self.assertEqual(progress.events[-1][1:3], (2, 2))
+
+    def test_script_speech_commits_one_file_before_attaching_the_same_result(self):
+        repository = FakeRepository(part=existing("speech"))
+        provider = FakeProvider()
+        workspace = SequencedWorkspace()
+        service = SpeechGenerationService(
+            repository, provider, workspace,
+            lambda: {"warn_above": 0, "daily_cap": 0},
+        )
+        files = FakeCreationFiles()
+        handler = SpeechJobHandler(service, files)
+        job = Job(
+            9, uuid4(), "speech", JobStatus.RUNNING,
+            payload(operation="record", project_id=12, part_id=45),
+            part_id=45, workspace_id=7, project_id=12,
+            creation_context={
+                "workspace_id": 7, "project_id": 12,
+                "project_type": "audiovisual",
+                "selection": {"target": "script_part"},
+            },
+        )
+
+        result = handler(job, Progress())
+
+        self.assertEqual(result["output_file_ids"], [41])
+        self.assertEqual(result["file_id"], 41)
+        attached = repository.replaced[0][3]
+        self.assertEqual(attached["file_id"], 41)
+        self.assertEqual(attached["file_version_id"], 141)
+        self.assertEqual(attached["path"], "/safe/generated-1.mp3")
+        self.assertEqual(files.registrations[0][1]["stored"].path,
+                         attached["path"])
+        self.assertEqual(len(provider.calls), 1)
+        self.assertEqual(len(workspace.saved), 1)
+
+    def test_regenerating_script_speech_keeps_both_files_and_switches_the_part(self):
+        repository = FakeRepository(
+            part=existing("speech"), replaced_filename="generated-1.mp3")
+        provider = FakeProvider()
+        workspace = SequencedWorkspace()
+        service = SpeechGenerationService(
+            repository, provider, workspace,
+            lambda: {"warn_above": 0, "daily_cap": 0},
+        )
+        files = FakeCreationFiles()
+        handler = SpeechJobHandler(service, files)
+
+        def job(job_id):
+            return Job(
+                job_id, uuid4(), "speech", JobStatus.RUNNING,
+                payload(operation="record", project_id=12, part_id=45),
+                part_id=45, workspace_id=7, project_id=12,
+                creation_context={
+                    "workspace_id": 7, "project_id": 12,
+                    "project_type": "audiovisual",
+                    "selection": {"target": "script_part"},
+                },
+            )
+
+        first = handler(job(9), Progress())
+        second = handler(job(10), Progress())
+
+        self.assertEqual(first["output_file_ids"], [41])
+        self.assertEqual(second["output_file_ids"], [42])
+        self.assertEqual(repository.active_file_id, 42)
+        self.assertEqual([item[1]["stored"].path for item in files.registrations],
+                         ["/safe/generated-1.mp3", "/safe/generated-2.mp3"])
+        self.assertEqual(len(provider.calls), 2)
+        self.assertEqual(len(workspace.saved), 2)
+        self.assertEqual(workspace.discarded, [])
 
     def test_http_contract_is_canonical_and_strict(self):
         cleared = SpeechJobCreate(
