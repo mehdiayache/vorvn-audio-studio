@@ -4,9 +4,9 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
 
 import { speechModelKey, type VoiceChoice } from "@/lib/voice-options"
 import type { StudioConfig } from "@/types/domain"
-import { CreatorLanguagePicker } from "./creator-language-picker"
-import { CreatorMethodPicker } from "./creator-method-picker"
-import { CreatorModelPicker } from "./creator-model-picker"
+import { SpeechLanguagePicker } from "./speech-language-picker"
+import { SpeechMethodPicker } from "./speech-method-picker"
+import { SpeechModelPicker } from "./speech-model-picker"
 
 beforeEach(() => {
   Element.prototype.scrollIntoView = vi.fn()
@@ -42,7 +42,7 @@ const route: VoiceChoice = {
 describe("Creator context pickers", () => {
   it("searches output languages and keeps undocumented choices available", async () => {
     const onChange = vi.fn()
-    render(<CreatorLanguagePicker value="English" options={["Auto", "English", "French", "Indonesian"]} route={route} customVoice onChange={onChange} />)
+    render(<SpeechLanguagePicker value="English" options={["Auto", "English", "French", "Indonesian"]} route={route} customVoice onChange={onChange} />)
     fireEvent.click(screen.getByRole("button", { name: "Output language" }))
     fireEvent.change(await screen.findByPlaceholderText("Search languages…"), { target: { value: "French" } })
     const french = screen.getByRole("option", { name: /French.*Not documented/ })
@@ -53,7 +53,7 @@ describe("Creator context pickers", () => {
 
   it("groups exact speech models by provider without a closed vendor enum", async () => {
     const onSelect = vi.fn()
-    render(<CreatorModelPicker routes={[route]} selectedModelKey={speechModelKey(route)} selectedCapabilityId={null} config={config} onSelect={onSelect} />)
+    render(<SpeechModelPicker routes={[route]} selectedModelKey={speechModelKey(route)} selectedCapabilityId={null} config={config} onSelect={onSelect} />)
     fireEvent.click(screen.getByRole("combobox", { name: "Speech model" }))
     expect((await screen.findAllByText("Aurora Labs")).length).toBeGreaterThan(0)
     expect(screen.getByText("aurora-natural-v2")).toBeTruthy()
@@ -63,7 +63,7 @@ describe("Creator context pickers", () => {
 
   it("shows the recording modes of only the selected model", async () => {
     const onSelect = vi.fn()
-    render(<CreatorMethodPicker route={route} selectedCapabilityId="directing" onSelect={onSelect} />)
+    render(<SpeechMethodPicker route={route} selectedCapabilityId="directing" onSelect={onSelect} />)
     expect(screen.getByRole("button", { name: "Recording mode" }).textContent).toContain("Directed speech")
     fireEvent.click(screen.getByRole("button", { name: "Recording mode" }))
     fireEvent.click(await screen.findByRole("option", { name: /Directed speech/ }))

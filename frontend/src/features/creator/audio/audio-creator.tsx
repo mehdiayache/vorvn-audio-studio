@@ -22,11 +22,11 @@ import { SoundMediaIcon } from "@/features/sound-scene/audio-presentation"
 import { formatDuration } from "@/lib/format"
 import type {
   AudioFileCategory, AudioGenerationHistoryItem,
-  GeneratedKeepResult, PlayerSource, SoundPresetCompilation,
-  SoundPresetNormalizationResult, SoundPresetTaxonomy, WorkspaceFile,
+  PlayerSource, SoundPresetCompilation,
+  SoundPresetNormalizationResult, SoundPresetTaxonomy,
 } from "@/types/domain"
 
-import type { AudioCreatorPlacementMode, GeneratedAudioKeepInput } from "./audio-creator-contracts"
+import type { CreatorCapabilityPanelProps } from "../creator-contracts"
 import { FileCategorySelect, FileTagEditor } from "../library/file-library-controls"
 import {
   CreatorActionBar,
@@ -47,7 +47,7 @@ import {
   type PresetCapability, type PresetInstrument, type SemanticValue,
   type SoundPreset, type TaxonomyItem,
 } from "@/features/creator/audio/sound-preset"
-import { cachedAudioCreatorStatus, loadAudioCreatorStatus } from "../creator-model-catalog"
+import { cachedAudioCreatorStatus, loadAudioCreatorStatus } from "./audio-model-catalog"
 import type { CreatorLibraryCreationItem } from "../library/creator-library-creation-item"
 import { CreatorLibraryOperationCard } from "../library/creator-library-operation-card"
 
@@ -141,21 +141,17 @@ function presetFromHistory(item: AudioGenerationHistoryItem): SoundPreset {
 }
 
 export function AudioCreator({
-  mode, projectId, workspaceId, fixedCapability, allowPlacement = true,
-  playingKey, playerPlaying, onPlay, onKeep, onKept, onCreationItemsChange,
-}: {
-  mode: AudioCreatorPlacementMode
-  projectId?: number
-  workspaceId?: number
+  context, fixedCapability,
+  playingKey, playerPlaying, onPlay, onResult, resultAction, onCreationItemsChange,
+}: CreatorCapabilityPanelProps & {
   fixedCapability?: PresetCapability
-  allowPlacement?: boolean
   playingKey?: string
   playerPlaying: boolean
   onPlay: (source: PlayerSource) => void
-  onKeep: (folder: string, input: GeneratedAudioKeepInput) => Promise<GeneratedKeepResult>
-  onKept: (file: WorkspaceFile, category: AudioFileCategory, place: boolean) => Promise<void>
   onCreationItemsChange?: (items: CreatorLibraryCreationItem[]) => void
 }) {
+  const workspaceId = context.workspace_id
+  const projectId = context.project_id ?? undefined
   const [capability, setCapability] = useState<PresetCapability>(fixedCapability || "sfx")
   const [promptMode, setPromptMode] = useState<"simple" | "expert">("simple")
   const [composeScreen, setComposeScreen] = useState<ComposeScreen>(fixedCapability ? "preset" : "setup")
@@ -235,16 +231,13 @@ export function AudioCreator({
   const setPath = (path: string, value: unknown) => setPreset((current) => updatePresetPath(current, path, value))
 
   const refreshHistory = useCallback(async () => {
-    if (!projectId && !workspaceId) return
     try {
-      const recent = workspaceId
-        ? await originsApi.recentAudioGenerationsForWorkspace(workspaceId)
-        : await originsApi.recentAudioGenerations(projectId!)
+      const recent = await originsApi.recentAudioGenerationsForWorkspace(workspaceId)
       setHistory(recent)
     } catch (cause) {
       setError(cause instanceof Error ? cause.message : "Recent variations could not be loaded.")
     }
-  }, [projectId, workspaceId])
+  }, [workspaceId])
 
   useEffect(() => { void refreshHistory() }, [refreshHistory])
   useEffect(() => {
@@ -415,15 +408,17 @@ export function AudioCreator({
     setError("")
   }
 
-  const keep = async (place: boolean) => {
+  const keep = async (runContextAction: boolean) => {
     if (!candidate || !name.trim()) return
-    setKeeping(place ? "place" : "library"); setError("")
+    setKeeping(runContextAction ? "place" : "library"); setError("")
     try {
-      const kept = await onKeep(workspaceId ? "Files" : "Files", {
-        candidateId: candidate.candidate_id, name: name.trim(), category, tags,
+      const kept = await originsApi.keepGeneratedAudioInWorkspace(candidate.candidate_id, workspaceId, {
+        name: name.trim(), category, tags, folder_id: context.folder_id,
       })
       await refreshHistory()
-      await onKept(kept.file as WorkspaceFile, category, place)
+      const result = { file_ids: [kept.file.id] }
+      await onResult?.(result)
+      if (runContextAction) await resultAction?.run(result)
     } catch (cause) {
       setError(cause instanceof Error ? cause.message : "That generated audio could not be kept.")
     } finally { setKeeping(null) }
@@ -589,7 +584,7 @@ export function AudioCreator({
         {phase === "compose" && composeScreen === "preset" && <ActionButton busy={generating} busyLabel={generationStage === "understanding" ? "Understanding…" : "Starting…"} disabled={status !== "ready" || !hasCreativeDirection || !generatedPrompt || compiling || Boolean(unresolvedConflicts.length)} onClick={() => void generate()}><Sparkles />Generate {preset.variation_count} variation{preset.variation_count === 1 ? "" : "s"}</ActionButton>}
         {phase === "generating" && <div className="file-generation-footer-progress"><Progress value={Math.max(generationProgress / preset.variation_count, ...sessionItems.map((item) => item.progress)) * 100} /><span>{sessionItems.filter((item) => item.candidate).length}/{preset.variation_count}</span></div>}
         {phase === "compare" && <><Button variant="outline" onClick={() => { setComposeScreen("preset"); setPhase("compose") }}><ArrowLeft />Back to preset</Button><Button variant="ghost" onClick={startFresh}>Start fresh</Button></>}
-        {phase === "finalize" && candidate && !selected?.kept_file && <><ActionButton variant="ghost" busy={discarding} busyLabel="Discarding…" disabled={Boolean(keeping)} onClick={() => void discard()}><Trash2 />Discard</ActionButton><ActionButton variant={allowPlacement ? "outline" : "default"} busy={keeping === "library"} busyLabel="Saving…" disabled={Boolean(keeping) || discarding || !name.trim()} onClick={() => void keep(false)}><Check />Save to Library</ActionButton>{allowPlacement && <ActionButton busy={keeping === "place"} busyLabel={mode === "sound" ? "Adding to track…" : "Inserting…"} disabled={Boolean(keeping) || discarding || !name.trim()} onClick={() => void keep(true)}><Check />{mode === "sound" ? "Save & Add to Track" : "Save & Insert"}</ActionButton>}</>}
+        {phase === "finalize" && candidate && !selected?.kept_file && <><ActionButton variant="ghost" busy={discarding} busyLabel="Discarding…" disabled={Boolean(keeping)} onClick={() => void discard()}><Trash2 />Discard</ActionButton><ActionButton variant={resultAction ? "outline" : "default"} busy={keeping === "library"} busyLabel="Saving…" disabled={Boolean(keeping) || discarding || !name.trim()} onClick={() => void keep(false)}><Check />Save to Library</ActionButton>{resultAction && <ActionButton busy={keeping === "place"} busyLabel={resultAction.busyLabel || "Applying…"} disabled={Boolean(keeping) || discarding || !name.trim()} onClick={() => void keep(true)}><Check />{resultAction.label}</ActionButton>}</>}
         {phase === "finalize" && selected?.kept_file && <Button onClick={startFresh}><Sparkles />Create another</Button>}
       </>}
     />

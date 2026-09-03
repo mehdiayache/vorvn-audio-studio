@@ -17,17 +17,17 @@ import { audioFileCategory } from "@/features/sound-scene/audio-presentation"
 import { audioUrl, originsApi } from "@/lib/api"
 import { fileSource, type FileSource } from "@/lib/file-provenance"
 import { formatBytes } from "@/lib/format"
-import type { AudioFileCategory, CatalogKeepResult, CatalogLicense, CatalogSound, GeneratedKeepResult, PlayerSource, WorkspaceFile } from "@/types/domain"
+import type { AudioFileCategory, CatalogKeepResult, CatalogLicense, CatalogSound, PlayerSource, WorkspaceFile } from "@/types/domain"
 
 import { FILE_CATEGORIES, FileCategorySelect, FileTagEditor } from "@/features/creator/library/file-library-controls"
-import type { AudioCreatorPlacementMode, GeneratedAudioKeepInput } from "@/features/creator/audio/audio-creator-contracts"
+import type { CreatorContext } from "@/lib/api"
+import type { CreatorResult } from "@/features/creator/creator-contracts"
 import { FreesoundAudioInspector, SavedAudioInspector } from "./audio-library-inspector"
 import { AudioCreator } from "@/features/creator/audio/audio-creator"
 
-export type AudioLibraryMode = AudioCreatorPlacementMode
+export type AudioLibraryMode = "sequence" | "sound"
 export type FileUploadInput = { file: File; name: string; category: AudioFileCategory | null; tags: string[] }
 export type CatalogKeepInput = { result: CatalogSound; name: string; category: AudioFileCategory | null; tags: string[] }
-export type GeneratedKeepInput = GeneratedAudioKeepInput
 export type FileUpdateInput = { name: string; category: AudioFileCategory | null; tags: string[] }
 
 type LibraryView = "library" | "upload" | "search" | "generate"
@@ -42,15 +42,14 @@ function humanName(file: File) {
   return cleaned ? cleaned.charAt(0).toLocaleUpperCase() + cleaned.slice(1) : "Untitled audio"
 }
 
-export function AudioLibrary({ files, loading = false, refreshing = false, resourceError, onRetryResource, mode, chooseLabel, initialSelectedId, projectId, usedFileIds = [], playingKey, playerPlaying, transport, onChoose, onPlay, onUpload, onUpdate, onKeep, onKeepGenerated }: {
-  files: WorkspaceFile[]; mode: AudioLibraryMode; chooseLabel?: string; initialSelectedId?: number | null; projectId?: number
+export function AudioLibrary({ context, files, loading = false, refreshing = false, resourceError, onRetryResource, mode, chooseLabel, initialSelectedId, usedFileIds = [], playingKey, playerPlaying, transport, onChoose, onPlay, onUpload, onUpdate, onKeep }: {
+  context?: CreatorContext; files: WorkspaceFile[]; mode: AudioLibraryMode; chooseLabel?: string; initialSelectedId?: number | null
   loading?: boolean; refreshing?: boolean; resourceError?: string; onRetryResource?: () => Promise<void>
   usedFileIds?: number[]
   transport?: ReactNode
   playingKey?: string; playerPlaying: boolean; onChoose: (file: WorkspaceFile) => Promise<void>; onPlay: (source: PlayerSource) => void
   onUpload: (folder: string, input: FileUploadInput) => Promise<WorkspaceFile>; onKeep: (folder: string, input: CatalogKeepInput) => Promise<CatalogKeepResult>
   onUpdate?: (file: WorkspaceFile, input: FileUpdateInput) => Promise<WorkspaceFile>
-  onKeepGenerated?: (folder: string, input: GeneratedKeepInput) => Promise<GeneratedKeepResult>
 }) {
   const fileInput = useRef<HTMLInputElement>(null)
   const [view, setView] = useState<LibraryView>("library")
@@ -190,6 +189,25 @@ export function AudioLibrary({ files, loading = false, refreshing = false, resou
     finally { setKeepingId(null) }
   }
 
+  const resolveCreatorFile = async (result: CreatorResult) => {
+    if (!context) throw new Error("Creator context is unavailable.")
+    const overview = await originsApi.workspace(context.workspace_id)
+    const file = overview.files.find(({ id }) => id === result.file_ids[0])
+    if (!file) throw new Error("The created File is not available yet.")
+    return file
+  }
+
+  const acceptCreatorResult = async (result: CreatorResult) => {
+    if (!context) return
+    if (context.project_id) {
+      for (const fileId of [...new Set(result.file_ids)]) await originsApi.attachProjectLibraryFile(context.project_id, fileId)
+    }
+    const created = await resolveCreatorFile(result)
+    setSelectedId(created.id)
+    setCategory(audioFileCategory(created) || "unclassified")
+    await onRetryResource?.()
+  }
+
   return <div className={`tool-panel-body file-tool${dragging ? " dragging" : ""}`}
     onDragEnter={(event) => { if ([...event.dataTransfer.types].includes("Files")) { event.preventDefault(); setDragging(true) } }}
     onDragOver={(event) => event.preventDefault()} onDragLeave={(event) => { if (!event.currentTarget.contains(event.relatedTarget as Node)) setDragging(false) }}
@@ -201,7 +219,7 @@ export function AudioLibrary({ files, loading = false, refreshing = false, resou
           <TabsTrigger value="library" aria-label="Library" onClick={() => openView("library")}><Library />Library</TabsTrigger>
           <TabsTrigger value="upload" aria-label="Upload" onClick={() => openView("upload")}><Upload />Upload</TabsTrigger>
           <TabsTrigger value="search" aria-label="Freesound" onClick={() => openView("search")}><FreesoundMark />Freesound</TabsTrigger>
-          <TabsTrigger value="generate" aria-label="Generate" onClick={() => openView("generate")} disabled={!onKeepGenerated}><Sparkles />Generate</TabsTrigger>
+          <TabsTrigger value="generate" aria-label="Generate" onClick={() => openView("generate")} disabled={!context}><Sparkles />Generate</TabsTrigger>
         </TabsList>
       </Tabs>
       <div className="file-toolbar-context">
@@ -247,7 +265,7 @@ export function AudioLibrary({ files, loading = false, refreshing = false, resou
           return <AudioCatalogCard key={result.external_id} result={result} selected={isSelected} playing={active} kept={Boolean(kept[result.external_id])} busy={keepingId === result.external_id} onSelect={() => selectCatalog(result)} onPlay={() => { selectCatalog(result); onPlay({ key: sourceKey, url: result.preview_url!, title: result.name, sourceLabel: "Freesound preview", subtitle: result.creator, kind: "file", downloadable: false }) }} onKeep={() => { if (!isSelected) selectCatalog(result); void keep(result, isSelected ? keepCategory : null) }} />
         }) : catalogQuery.trim().length >= 2 ? <div className="file-empty"><FreesoundMark /><b>No matching sounds</b><p>Try another phrase or broaden the filters.</p></div> : <section className="freesound-welcome"><header><span className="file-generation-provider"><FreesoundMark />Freesound</span><h2>What do you want to find?</h2><p>Search millions of community sounds, audition them immediately, then keep only what belongs in your Library.</p></header><div><b>Try a sound</b><span>{["city room tone", "soft transition", "wooden door", "crowd applause"].map((example) => <Button key={example} variant="outline" onClick={() => setCatalogQuery(example)}>{example}</Button>)}</span></div></section>}</div></ScrollArea>
         {selectedCatalog ? <FreesoundAudioInspector result={selectedCatalog} category={keepCategory} error={catalogActionError} onCategory={setKeepCategory} /> : <aside className="file-inspector file-form-inspector"><div className="file-inspector-empty"><FreesoundMark /><b>{catalogQuery.trim().length >= 2 ? "Select a result" : "Search Freesound"}</b><p>{catalogQuery.trim().length >= 2 ? "Review origin, license and source facts. Category stays yours to decide." : "Results are temporary candidates until you keep one."}</p>{catalogError && <p className="file-inspector-error" role="alert">{catalogError}</p>}</div></aside>}
-      </section> : onKeepGenerated ? <AudioCreator mode={mode} projectId={projectId} playingKey={playingKey} playerPlaying={playerPlaying} onPlay={onPlay} onKeep={onKeepGenerated} onKept={async (file, keptCategory, place) => { setSelectedId(file.id); setCategory(keptCategory); if (place) await onChoose(file); else setView("library") }} /> : null}
+      </section> : context ? <AudioCreator context={context} playingKey={playingKey} playerPlaying={playerPlaying} onPlay={onPlay} onResult={acceptCreatorResult} resultAction={{ label: mode === "sound" ? "Save & Add to Track" : "Save & Insert", busyLabel: mode === "sound" ? "Adding to track…" : "Inserting…", run: async (result) => onChoose(await resolveCreatorFile(result)) }} /> : null}
     </div>
     {transport && <div className="file-library-transport">{transport}</div>}
     {dragging && <div className="file-drop-overlay"><Upload /><b>Drop to prepare this audio</b><span>Nothing is saved until you confirm.</span></div>}

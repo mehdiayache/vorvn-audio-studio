@@ -23,7 +23,7 @@ function languageName(value: string) {
   return value === "Auto" ? "Auto detect" : languageDisplay(value)
 }
 
-export function CreatorLanguagePicker({ value, options, route, customVoice, onChange }: {
+export function SpeechLanguagePicker({ value, options, route, customVoice, onChange }: {
   value: string
   options: string[]
   route?: VoiceChoice

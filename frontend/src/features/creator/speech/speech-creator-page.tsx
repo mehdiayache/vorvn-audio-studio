@@ -8,7 +8,6 @@ import { ErrorState, InlineResourceError, PageLoading } from "@/components/state
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { useGlobalPlayer } from "@/components/global-player-provider"
 import { useJobExecution } from "@/hooks/use-job-execution"
-import { useWorkspaceExplorer } from "@/hooks/use-workspace-explorer"
 import { useVoiceDirectory } from "@/hooks/use-voice-directory"
 import { originsApi } from "@/lib/api"
 import { playableGenerateResult } from "@/lib/generated-audio"
@@ -18,6 +17,7 @@ import type { DurableJob, GeneratePayload, GenerateResult, RecordingAttempt, Rec
 import { recordingAttemptStatus, recoverSpeechExecutions, reusableGeneratePayload, type SpeechExecution } from "./speech-execution"
 import type { CreatorLibraryCreationItem } from "../library/creator-library-creation-item"
 import { CreatorLibraryOperationCard } from "../library/creator-library-operation-card"
+import type { CreatorCapabilityPanelProps } from "../creator-contracts"
 
 import "./speech-creator-page.css"
 
@@ -61,9 +61,8 @@ function PendingSpeechExecution({ execution, directory, onTerminal }: {
   }} directory={directory} />
 }
 
-export function SpeechCreatorPage({ embedded = false, panelOnly = false, onLibraryChange, onCreatedFiles, onCreationItemsChange }: { embedded?: boolean; panelOnly?: boolean; onLibraryChange?: () => void | Promise<void>; onCreatedFiles?: (fileIds: number[]) => void | Promise<void>; onCreationItemsChange?: (items: CreatorLibraryCreationItem[]) => void } = {}) {
+export function SpeechCreatorPage({ context, embedded = false, panelOnly = false, onResult, onCreationItemsChange }: CreatorCapabilityPanelProps & { embedded?: boolean; panelOnly?: boolean; onCreationItemsChange?: (items: CreatorLibraryCreationItem[]) => void }) {
   const voices = useVoiceDirectory()
-  const workspaceHome = useWorkspaceExplorer()
   const player = useGlobalPlayer()
   const [history, setHistory] = useState<RecordingHistory | null>(null)
   const [historyLoading, setHistoryLoading] = useState(true)
@@ -71,18 +70,17 @@ export function SpeechCreatorPage({ embedded = false, panelOnly = false, onLibra
   const generationLock = useRef<string | null>(null)
 
   const refreshHistory = useCallback(async () => {
-    if (!workspaceHome.selectedWorkspaceId) return
     setHistoryLoading(true)
-    try { setHistory(await originsApi.recordingHistory(workspaceHome.selectedWorkspaceId)) }
+    try { setHistory(await originsApi.recordingHistory(context.workspace_id)) }
     catch (reason) { toast.error(reason instanceof Error ? reason.message : "Could not load recording history.") }
     finally { setHistoryLoading(false) }
-  }, [workspaceHome.selectedWorkspaceId])
+  }, [context.workspace_id])
 
   useEffect(() => {
     setHistory(null)
     setExecutions([])
     generationLock.current = null
-  }, [workspaceHome.selectedWorkspaceId])
+  }, [context.workspace_id])
 
   useEffect(() => { void refreshHistory() }, [refreshHistory])
 
@@ -100,7 +98,6 @@ export function SpeechCreatorPage({ embedded = false, panelOnly = false, onLibra
   }, [executions])
 
   async function generate(payload: GeneratePayload): Promise<DurableJob<GenerateResult>> {
-    if (!workspaceHome.selectedWorkspaceId) throw new Error("Choose a Workspace before generating speech.")
     if (generationLock.current) {
       const reason = new Error("One standalone recording is already generating. Listen to it or wait for it to finish before starting another.")
       toast.warning(reason.message)
@@ -108,7 +105,7 @@ export function SpeechCreatorPage({ embedded = false, panelOnly = false, onLibra
     }
     generationLock.current = "submitting"
     try {
-      const request = { ...payload, workspace_id: workspaceHome.selectedWorkspaceId }
+      const request = { ...payload, workspace_id: context.workspace_id }
       const job = await originsApi.enqueueGenerate(request)
       generationLock.current = job.id
       setExecutions((current) => [...current, { jobId: job.id, payload: request }])
@@ -127,7 +124,6 @@ export function SpeechCreatorPage({ embedded = false, panelOnly = false, onLibra
         ? current
         : [...current, { jobId: job.id, payload: attempt.request }])
       await refreshHistory()
-      await onLibraryChange?.()
     } catch (reason) {
       toast.error(reason instanceof Error ? reason.message : "Cost confirmation failed.")
     }
@@ -149,8 +145,7 @@ export function SpeechCreatorPage({ embedded = false, panelOnly = false, onLibra
       await refreshHistory()
       const fileIds = job.output_file_ids || ((job.result as GenerateResult & { output_file_ids?: number[] }).output_file_ids ?? [])
       try {
-        if ((job.status === "ok" || job.status === "warning") && fileIds.length) await onCreatedFiles?.(fileIds)
-        await onLibraryChange?.()
+        if ((job.status === "ok" || job.status === "warning") && fileIds.length) await onResult?.({ file_ids: fileIds })
       } catch (reason) {
         toast.error("The speech is safe in Workspace Files, but the current Library did not refresh.", { description: reason instanceof Error ? reason.message : undefined })
       }
@@ -158,7 +153,7 @@ export function SpeechCreatorPage({ embedded = false, panelOnly = false, onLibra
       if (generationLock.current === execution.jobId) generationLock.current = null
       setExecutions((current) => current.filter((item) => item.jobId !== execution.jobId))
     }
-  }, [onCreatedFiles, onLibraryChange, player, refreshHistory, voices.directory])
+  }, [onResult, player, refreshHistory, voices.directory])
 
   useEffect(() => {
     if (!onCreationItemsChange) return
@@ -193,10 +188,7 @@ export function SpeechCreatorPage({ embedded = false, panelOnly = false, onLibra
 
   if (voices.loading && !voices.config) return <PageLoading label="Loading Speak" />
   if (voices.error && !voices.config) return <ErrorState title="Speak unavailable" message={voices.error} retry={() => void voices.refresh()} />
-  if (workspaceHome.workspaces.status === "loading") return <PageLoading label="Opening Speak" />
-  if (!workspaceHome.selectedWorkspaceId) return <ErrorState title="Choose a Workspace first" message="Speech creates reusable audio Files, so it needs a destination Workspace." retry={() => window.location.assign("/origins/")} />
-  if (workspaceHome.overview.status === "error" && !workspaceHome.overview.data) return <ErrorState title="Workspace unavailable" message={workspaceHome.overview.error || "This Workspace could not be loaded."} retry={() => void workspaceHome.refresh()} />
-  const workspaceName = workspaceHome.overview.data?.workspace.name || workspaceHome.workspaces.data?.find((workspace) => workspace.id === workspaceHome.selectedWorkspaceId)?.name || "Current Workspace"
+  const workspaceName = "Current Workspace"
   const attemptCount = new Set([
     ...(history?.recordings.map((attempt) => attempt.id) || []),
     ...executions.map((execution) => execution.jobId),
@@ -208,7 +200,7 @@ export function SpeechCreatorPage({ embedded = false, panelOnly = false, onLibra
 
   if (panelOnly) return <div className="speech-creator-panel">
     {voices.error && voices.config && <InlineResourceError message="Voice directory refresh failed. Existing voice data is preserved." retry={() => void voices.refresh()} />}
-    <StandaloneSpeechCreatorHost config={voices.config} directory={voices.directory} playingKey={player.source?.key} playerPlaying={player.state === "playing"} generationState={generationState} onGenerate={generate} onPlay={(source) => void player.toggleSource(source)} />
+    <StandaloneSpeechCreatorHost context={context} config={voices.config} directory={voices.directory} playingKey={player.source?.key} playerPlaying={player.state === "playing"} generationState={generationState} onGenerate={generate} onPlay={(source) => void player.toggleSource(source)} />
     <div hidden>{executions.map((execution) => <PendingSpeechExecution key={execution.jobId} execution={execution} directory={voices.directory} onTerminal={(item, job) => void settleExecution(item, job)} />)}</div>
   </div>
 
@@ -218,7 +210,7 @@ export function SpeechCreatorPage({ embedded = false, panelOnly = false, onLibra
     {!embedded && <div className="speech-creator-page-location"><ShellBreadcrumbs leaf="Create speech" />{voices.error && voices.config && <InlineResourceError message="Voice directory refresh failed. Existing voice data is preserved." retry={() => void voices.refresh()} />}</div>}
     {embedded && voices.error && voices.config && <InlineResourceError message="Voice directory refresh failed. Existing voice data is preserved." retry={() => void voices.refresh()} />}
     <div className="speak-workbench">
-      <section className="speak-workspace"><StandaloneSpeechCreatorHost config={voices.config} directory={voices.directory} playingKey={player.source?.key} playerPlaying={player.state === "playing"} generationState={generationState} onGenerate={generate} onPlay={(source) => void player.toggleSource(source)} /></section>
+      <section className="speak-workspace"><StandaloneSpeechCreatorHost context={context} config={voices.config} directory={voices.directory} playingKey={player.source?.key} playerPlaying={player.state === "playing"} generationState={generationState} onGenerate={generate} onPlay={(source) => void player.toggleSource(source)} /></section>
       <aside className="speak-session" aria-live="polite">
         <header>
           <div><span className="eyebrow">{workspaceName}</span><h2>This session</h2></div>

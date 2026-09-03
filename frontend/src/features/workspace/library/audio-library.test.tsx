@@ -63,7 +63,7 @@ describe("AudioLibrary", () => {
         music: { id: "stable-audio-3-small-music", label: "Stable Audio Music", provider: "Origins Audio", capability: "music", max_seconds: 120, output: "audio/wav" },
       },
     })
-    const recent = vi.spyOn(originsApi, "recentAudioGenerations").mockResolvedValue([])
+    const recent = vi.spyOn(originsApi, "recentAudioGenerationsForWorkspace").mockResolvedValue([])
     const taxonomy = vi.spyOn(originsApi, "soundPresetTaxonomy").mockResolvedValue({
       version: "audio-taxonomy-v1", items: [],
     })
@@ -90,8 +90,7 @@ describe("AudioLibrary", () => {
         duration_ms: 0, audio_format: "wav", size_bytes: 0,
       },
     })
-    const onKeepGenerated = vi.fn()
-    const { container } = render(<AudioLibrary files={files} mode="sound" projectId={81} playerPlaying={false} onChoose={vi.fn()} onPlay={vi.fn()} onUpload={vi.fn()} onKeep={vi.fn()} onKeepGenerated={onKeepGenerated} />)
+    const { container } = render(<AudioLibrary files={files} mode="sound" context={{ workspace_id: 1, project_id: 81 }} playerPlaying={false} onChoose={vi.fn()} onPlay={vi.fn()} onUpload={vi.fn()} onKeep={vi.fn()} />)
     const view = within(container)
     fireEvent.click(view.getByRole("tab", { name: "Generate" }))
     await waitFor(() => expect(status).toHaveBeenCalled())
@@ -113,7 +112,6 @@ describe("AudioLibrary", () => {
       source_free_text: "A dry match strikes once in a quiet room",
       generation_brief: null, seconds: 5, seed: null, project_id: 81,
     })))
-    expect(onKeepGenerated).not.toHaveBeenCalled()
     status.mockRestore(); recent.mockRestore(); taxonomy.mockRestore(); compile.mockRestore(); normalize.mockRestore(); enqueue.mockRestore()
   })
 
@@ -121,7 +119,7 @@ describe("AudioLibrary", () => {
     const status = vi.spyOn(originsApi, "audioGenerationStatus").mockResolvedValue({
       configured: true, sfx_ready: true, music_ready: true, reason: "", models: {},
     })
-    const recent = vi.spyOn(originsApi, "recentAudioGenerations").mockResolvedValue([{
+    const recent = vi.spyOn(originsApi, "recentAudioGenerationsForWorkspace").mockResolvedValue([{
       job_id: "old-job",
       status: "succeeded",
       progress: 1,
@@ -146,7 +144,7 @@ describe("AudioLibrary", () => {
       compiler_version: "sfx-compiler-v2", taxonomy_version: "audio-taxonomy-v1",
     })
 
-    const { container } = render(<AudioLibrary files={files} mode="sound" projectId={81} playerPlaying={false} onChoose={vi.fn()} onPlay={vi.fn()} onUpload={vi.fn()} onKeep={vi.fn()} onKeepGenerated={vi.fn()} />)
+    const { container } = render(<AudioLibrary files={files} mode="sound" context={{ workspace_id: 1, project_id: 81 }} playerPlaying={false} onChoose={vi.fn()} onPlay={vi.fn()} onUpload={vi.fn()} onKeep={vi.fn()} />)
     const view = within(container)
     fireEvent.click(view.getByRole("tab", { name: "Generate" }))
     await waitFor(() => expect(recent).toHaveBeenCalled())
@@ -177,7 +175,7 @@ describe("AudioLibrary", () => {
         music: { id: "stable-audio-3-small-music", label: "Stable Audio Music", provider: "Origins Audio", capability: "music", max_seconds: 120, output: "audio/wav" },
       },
     })
-    vi.spyOn(originsApi, "recentAudioGenerations").mockResolvedValue([])
+    vi.spyOn(originsApi, "recentAudioGenerationsForWorkspace").mockResolvedValue([])
     vi.spyOn(originsApi, "soundPresetTaxonomy").mockResolvedValue({ version: "audio-taxonomy-v1", items: [] })
     vi.spyOn(originsApi, "compileSoundPreset").mockResolvedValue({
       capability: "sfx", semantic_state: {}, source_free_text: "", compiled_prompt: "",
@@ -185,7 +183,7 @@ describe("AudioLibrary", () => {
       compiler_version: "sfx-compiler-v2", taxonomy_version: "audio-taxonomy-v1",
     })
 
-    const { container } = render(<AudioLibrary files={files} mode="sound" projectId={81} playerPlaying={false} onChoose={vi.fn()} onPlay={vi.fn()} onUpload={vi.fn()} onKeep={vi.fn()} onKeepGenerated={vi.fn()} />)
+    const { container } = render(<AudioLibrary files={files} mode="sound" context={{ workspace_id: 1, project_id: 81 }} playerPlaying={false} onChoose={vi.fn()} onPlay={vi.fn()} onUpload={vi.fn()} onKeep={vi.fn()} />)
     const view = within(container)
     fireEvent.click(view.getByRole("tab", { name: "Generate" }))
     expect(view.getByRole("button", { name: "Sound Effect" })).toBeTruthy()
@@ -238,7 +236,7 @@ describe("AudioLibrary", () => {
       kept_file: null,
     }
     let recentItems: typeof readyItem[] = []
-    vi.spyOn(originsApi, "recentAudioGenerations").mockImplementation(async () => recentItems)
+    vi.spyOn(originsApi, "recentAudioGenerationsForWorkspace").mockImplementation(async () => recentItems)
     vi.spyOn(originsApi, "enqueueAudioGeneration").mockImplementation(async () => {
       recentItems = [readyItem]
       return {
@@ -247,7 +245,7 @@ describe("AudioLibrary", () => {
       }
     })
 
-    const { container } = render(<AudioLibrary files={files} mode="sound" projectId={81} playerPlaying={false} onChoose={vi.fn()} onPlay={vi.fn()} onUpload={vi.fn()} onKeep={vi.fn()} onKeepGenerated={vi.fn()} />)
+    const { container } = render(<AudioLibrary files={files} mode="sound" context={{ workspace_id: 1, project_id: 81 }} playerPlaying={false} onChoose={vi.fn()} onPlay={vi.fn()} onUpload={vi.fn()} onKeep={vi.fn()} />)
     const view = within(container)
     fireEvent.click(view.getByRole("tab", { name: "Generate" }))
     fireEvent.click(view.getByRole("button", { name: "Continue" }))

@@ -1,8 +1,8 @@
 import { Button } from "@/components/ui/button"
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog"
-import { useSpeechCreator } from "./speech/speech-creator-controller"
+import { useSpeechCreator } from "./speech-creator-controller"
 
-export function CreatorDialogs() {
+export function SpeechCreatorDialogs() {
   const creator = useSpeechCreator()
   return <>
     <Dialog open={Boolean(creator.editorialCommand)} onOpenChange={(open) => { if (!open) creator.setEditorialCommand(null) }}>

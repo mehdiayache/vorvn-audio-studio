@@ -75,9 +75,6 @@ class FakeAdapter:
 
 
 class FakeFiles:
-    def __init__(self):
-        self.attached = []
-
     def list_for_project(self, project_id):
         return [
             {"id": 11, "name": "Front", "media_type": "image",
@@ -85,12 +82,6 @@ class FakeFiles:
             {"id": 14, "name": "Side", "media_type": "image",
              "path": "/files/side.png", "mime_type": "image/png"},
         ]
-
-    def output_workspace_for_project(self, project_id):
-        return 4
-
-    def attach_to_project_library(self, project_id, file_id):
-        self.attached.append((project_id, file_id))
 
 
 class FakeMaterializer:
@@ -105,12 +96,14 @@ class FakeMaterializer:
 class FakeUploads:
     def __init__(self):
         self.metadata = None
+        self.workspace_id = None
 
     def prepare_file_upload(self, filename, **values):
         self.metadata = values["metadata"]
         return {"filename": filename, **values}
 
     def save_generated_workspace_file(self, workspace_id, path, size, **values):
+        self.workspace_id = workspace_id
         return {"file": {"id": 88}}
 
 
@@ -262,7 +255,7 @@ class MediaGenerationExecutionTest(unittest.TestCase):
         self.assertTrue(all(file["url"].startswith("https://temporary.test/")
                             for file in groups[0]["files"]))
         self.assertEqual(result["output_file_ids"], [88])
-        self.assertEqual(files.attached, [(7, 88)])
+        self.assertEqual(uploads.workspace_id, 4)
         self.assertEqual(uploads.metadata["preset"], preset)
         self.assertNotIn("temporary.test", str(uploads.metadata["preset"]))
         self.assertEqual(operation_records.sent, [("51", "provider-job")])

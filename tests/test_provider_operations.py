@@ -186,7 +186,9 @@ class ProviderOperationTests(unittest.TestCase):
         with psycopg.connect(settings.database_url) as database:
             database.execute("""
                 UPDATE jobs SET status='blocked',
-                       result='{"requires_review":true}'::jsonb
+                       result='{"requires_review":true}'::jsonb,
+                       requested_route=coalesce(requested_route, '{}'::jsonb)
+                           || '{"executor":"provider-callback-test"}'::jsonb
                  WHERE id=%s
             """, (job.id,))
             database.commit()

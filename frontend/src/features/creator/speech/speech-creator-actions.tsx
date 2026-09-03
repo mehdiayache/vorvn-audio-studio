@@ -1,8 +1,8 @@
 import { CircleDollarSign, Plus, WandSparkles } from "lucide-react"
 
 import { Button } from "@/components/ui/button"
-import { useSpeechCreator } from "./speech/speech-creator-controller"
-import { CreatorActionBar } from "./panel/creator-capability-panel"
+import { useSpeechCreator } from "./speech-creator-controller"
+import { CreatorActionBar } from "../panel/creator-capability-panel"
 
 function primaryLabel(creator: ReturnType<typeof useSpeechCreator>) {
   if (creator.generationState === "recovering") return "Checking current session…"
@@ -13,7 +13,7 @@ function primaryLabel(creator: ReturnType<typeof useSpeechCreator>) {
   return `Generate and add Part ${creator.insertAt === null ? creator.nextPartNumber : creator.insertAt + 1}`
 }
 
-export function CreatorActions({ capabilityPanel = false }: { capabilityPanel?: boolean }) {
+export function SpeechCreatorActions({ capabilityPanel = false }: { capabilityPanel?: boolean }) {
   const creator = useSpeechCreator()
   const textUnresolved = Boolean(creator.textSession.busy || creator.textSession.review || creator.textSession.pending)
   const ssmlInvalid = creator.enableSsml && !creator.ssmlValidation.valid

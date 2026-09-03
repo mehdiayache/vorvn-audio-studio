@@ -6,10 +6,10 @@ import { toast } from "sonner"
 import { useGlobalPlayer } from "@/components/global-player-provider"
 import { CreatorCapabilityDispatcher } from "@/features/creator/creator-capability-dispatcher"
 import { CreatorHost } from "@/features/creator/creator-host"
+import type { CreatorResult } from "@/features/creator/creator-contracts"
 import type { ConfirmAction } from "@/features/projects/audiovisual/support/project-overlays"
-import type { GeneratedAudioKeepInput } from "@/features/creator/audio/audio-creator-contracts"
 import { originsApi, type CreatorContext } from "@/lib/api"
-import type { AudioFileCategory, GeneratedKeepResult, WorkspaceFile, WorkspaceFolder } from "@/types/domain"
+import type { WorkspaceFile, WorkspaceFolder } from "@/types/domain"
 import { isVisualFile } from "@/features/creator/library/visual-file-presentation"
 import { ProjectLibraryGallery } from "./project-library-gallery"
 import { ProjectLibraryDialog } from "./project-library-dialog"
@@ -101,22 +101,11 @@ export function ProjectLibraryStage({ centerPaneRef, projectId, workspaceId, cre
     }
   }
 
-  async function attachCreatedFiles(fileIds: number[]) {
-    for (const fileId of [...new Set(fileIds)]) await originsApi.attachProjectLibraryFile(projectId, fileId)
+  async function attachCreatorResult(result: CreatorResult) {
+    for (const fileId of [...new Set(result.file_ids)]) {
+      if (!selectedIds.has(fileId)) await originsApi.attachProjectLibraryFile(projectId, fileId)
+    }
     await onRefresh()
-  }
-
-  async function keepGeneratedAudio(_folder: string, input: GeneratedAudioKeepInput) {
-    return originsApi.keepGeneratedAudioInWorkspace(input.candidateId, workspaceId, {
-      name: input.name,
-      category: input.category,
-      tags: input.tags,
-    })
-  }
-
-  async function audioKept(file: WorkspaceFile, _category: AudioFileCategory, place: boolean) {
-    await attachCreatedFiles([file.id])
-    if (place && onAddToTimeline) await onAddToTimeline(file)
   }
 
   function updateUpload(id: string, changes: Partial<ProjectLibraryUploadItem>) {
@@ -257,20 +246,25 @@ export function ProjectLibraryStage({ centerPaneRef, projectId, workspaceId, cre
           recentFileIds: [...libraryFileIds].reverse(),
           usageCounts,
           onUploadReference: uploadReference,
-          onGenerationOutputReady: onRefresh,
-          onPreviewGenerated: setPreviewFile,
-          onAddGeneratedToTimeline: onAddToTimeline,
+          onPreviewFile: setPreviewFile,
         }}
-        speechCallbacks={{ onCreatedFiles: attachCreatedFiles }}
         audioProps={{
-          projectId,
-          workspaceId,
           playingKey: player.source?.key,
           playerPlaying: player.state === "playing",
           onPlay: (source) => void player.toggleSource(source),
-          onKeep: keepGeneratedAudio,
-          onKept: audioKept,
         }}
+        onResult={attachCreatorResult}
+        resultAction={onAddToTimeline ? {
+          label: "Add to Timeline",
+          detail: "Place this File at the current playhead.",
+          busyLabel: "Adding to Timeline…",
+          run: async ({ file_ids }) => {
+            const overview = await originsApi.workspace(workspaceId)
+            const file = overview.files.find(({ id }) => id === file_ids[0])
+            if (!file) throw new Error("The created File is not available yet.")
+            await onAddToTimeline(file)
+          },
+        } : undefined}
         renderLibrary={({ generatedOutputIds, creationItems }) => projectLibrary(generatedOutputIds, creationItems)}
       />}</CreatorHost>
     <ProjectLibraryDialog open={libraryOpen} folders={folders} files={available} usedFileIds={[...(usageCounts?.keys() || [])]} pendingId={pendingId} defaultSource="all" showProjectSource={false} onOpenChange={setLibraryOpen} onPreview={setPreviewFile} onAdd={(file) => void attach(file)} />

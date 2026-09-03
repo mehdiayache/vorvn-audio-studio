@@ -21,10 +21,6 @@ from origins.providers.media_generation import (
 class MediaGenerationFiles(Protocol):
     def list_for_project(self, project_id: int) -> list[dict]: ...
     def list_for_workspace(self, workspace_id: int) -> list[dict]: ...
-    def output_workspace_for_project(self, project_id: int) -> int | None: ...
-    def attach_to_project_library(
-        self, project_id: int, file_id: int,
-    ) -> bool | None: ...
 
 
 class MediaInputMaterializer(Protocol):
@@ -286,10 +282,8 @@ class MediaGenerationHandler:
                     receipt=state.raw or {})
                 provider_succeeded = True
 
-            workspace_id = (self.files.output_workspace_for_project(int(project_id))
-                            if project_id is not None else workspace_id)
             if workspace_id is None:
-                raise JobFailed("The Project has no owning Workspace.")
+                raise JobFailed("Creator context has no owning Workspace.")
             output = operation.get("output") or {}
             extension = str(output.get("extension") or "mp4").lstrip(".")
             artifact = ((attempt or {}).get("diagnostics") or {}).get(
@@ -337,9 +331,6 @@ class MediaGenerationHandler:
                         folder_id=(payload.get("creation_context") or {}).get(
                             "folder_id"))
                     file_id = int(kept["file"]["id"])
-                    if project_id is not None:
-                        self.files.attach_to_project_library(
-                            int(project_id), file_id)
                     output_ids.append(file_id)
                     self.operations.repository.record_artifact(
                         attempt_id, {"output_file_ids": output_ids})

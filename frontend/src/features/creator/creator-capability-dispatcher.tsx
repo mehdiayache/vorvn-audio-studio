@@ -1,7 +1,9 @@
-import { lazy, Suspense, useState, type ComponentProps, type ReactNode } from "react"
+import { lazy, Suspense, useEffect, useState, type ComponentProps, type ReactNode } from "react"
 
 import { PageLoading } from "@/components/state-panel"
 import { AudioCreator } from "./audio/audio-creator"
+import { preloadAudioModelCatalog } from "./audio/audio-model-catalog"
+import type { CreatorCapabilityPanelProps } from "./creator-contracts"
 import type { CreatorHostSession } from "./creator-host"
 import type { CreatorLibraryCreationItem } from "./library/creator-library-creation-item"
 import { MediaCreator } from "./media/media-creator"
@@ -16,8 +18,8 @@ const creatorCapabilityLabels = {
   sfx: "Sound Effect",
 } as const
 
-type MediaCreatorProps = Omit<ComponentProps<typeof MediaCreator>, "context" | "renderLibrary" | "renderWorkspace" | "libraryDetail">
-type AudioCreatorProps = Omit<ComponentProps<typeof AudioCreator>, "mode" | "fixedCapability">
+type MediaCreatorProps = Omit<ComponentProps<typeof MediaCreator>, keyof CreatorCapabilityPanelProps | "renderLibrary" | "renderWorkspace" | "libraryDetail">
+type AudioCreatorProps = Omit<ComponentProps<typeof AudioCreator>, keyof CreatorCapabilityPanelProps | "fixedCapability">
 
 export type CreatorLibraryRenderRequest = {
   capability: CreatorHostSession["capability"]
@@ -34,20 +36,19 @@ export function CreatorCapabilityDispatcher({
   libraryDetail,
   renderLibrary,
   mediaProps,
-  speechCallbacks,
   audioProps,
+  onResult,
+  resultAction,
 }: {
   session: CreatorHostSession
   libraryDetail: string
   renderLibrary: (request: CreatorLibraryRenderRequest) => ReactNode
   mediaProps: MediaCreatorProps
-  speechCallbacks?: {
-    onLibraryChange?: () => void | Promise<void>
-    onCreatedFiles?: (fileIds: number[]) => void | Promise<void>
-  }
   audioProps: AudioCreatorProps
+  onResult?: CreatorCapabilityPanelProps["onResult"]
+  resultAction?: CreatorCapabilityPanelProps["resultAction"]
 }) {
-  const { capability, context, renderWorkspace } = session
+  const { capability, availableCapabilities, context, renderWorkspace } = session
   const [speechCreationItems, setSpeechCreationItems] = useState<CreatorLibraryCreationItem[]>([])
   const [audioCreationItems, setAudioCreationItems] = useState<CreatorLibraryCreationItem[]>([])
   const library = (generatedOutputIds = new Set<number>(), creationItems: CreatorLibraryCreationItem[] = []) => renderLibrary({
@@ -56,10 +57,16 @@ export function CreatorCapabilityDispatcher({
     creationItems,
   })
 
+  useEffect(() => {
+    preloadAudioModelCatalog(availableCapabilities)
+  }, [availableCapabilities])
+
   if (capability === "image" || capability === "video") return <MediaCreator
     key={capability}
     {...mediaProps}
     context={context}
+    onResult={onResult}
+    resultAction={resultAction}
     libraryDetail={libraryDetail}
     renderLibrary={library}
     renderWorkspace={renderWorkspace}
@@ -69,8 +76,8 @@ export function CreatorCapabilityDispatcher({
     creatorDetail: creatorCapabilityLabel(capability),
     libraryDetail,
     creator: capability === "speech"
-      ? <Suspense fallback={<PageLoading label="Opening speech controls" />}><SpeechCreator embedded panelOnly {...speechCallbacks} onCreationItemsChange={setSpeechCreationItems} /></Suspense>
-      : <AudioCreator key={capability} {...audioProps} mode="sound" fixedCapability={capability} onCreationItemsChange={setAudioCreationItems} />,
+      ? <Suspense fallback={<PageLoading label="Opening speech controls" />}><SpeechCreator context={context} embedded panelOnly onResult={onResult} resultAction={resultAction} onCreationItemsChange={setSpeechCreationItems} /></Suspense>
+      : <AudioCreator key={capability} {...audioProps} context={context} fixedCapability={capability} onResult={onResult} resultAction={resultAction} onCreationItemsChange={setAudioCreationItems} />,
     library: library(new Set(), capability === "speech" ? speechCreationItems : audioCreationItems),
   })
 }

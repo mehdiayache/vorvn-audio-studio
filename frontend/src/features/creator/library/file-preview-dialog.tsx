@@ -9,7 +9,7 @@ import { fileDetailGroups, fileDisplayName, fileDisplayUrl, filePlaybackUrl, fil
 
 import "./file-preview-dialog.css"
 
-export function FilePreviewDialog({ file, pending = false, primaryLabel = "Add to Timeline", onPrimaryAction, onOpenChange }: {
+export function FilePreviewDialog({ file, pending = false, primaryLabel = "Use File", onPrimaryAction, onOpenChange }: {
   file: WorkspaceFile | null
   pending?: boolean
   primaryLabel?: string

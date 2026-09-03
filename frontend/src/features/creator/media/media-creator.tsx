@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState, type ReactNode } from "react"
 
 import type { CreatorHostWorkspace } from "../creator-host"
+import type { CreatorCapabilityPanelProps } from "../creator-contracts"
 import { originsApi, type CreatorContext } from "@/lib/api"
 import type { SavedVisualReference, WorkspaceFile } from "@/types/domain"
 import { visualFileName, visualFilePosterUrl } from "@/features/creator/library/visual-file-presentation"
@@ -61,17 +62,14 @@ function initialHiddenRequests(context: CreatorContext) {
   }
 }
 
-export function MediaCreator({ context, uploading, uploadLabel, libraryFiles, recentFileIds = [], usageCounts, onUploadReference, onGenerationOutputReady, onPreviewGenerated, onAddGeneratedToTimeline, libraryDetail, renderLibrary, renderWorkspace }: {
-  context: CreatorContext
+export function MediaCreator({ context, onResult, resultAction, uploading, uploadLabel, libraryFiles, recentFileIds = [], usageCounts, onUploadReference, onPreviewFile, libraryDetail, renderLibrary, renderWorkspace }: CreatorCapabilityPanelProps & {
   uploading: boolean
   uploadLabel: string
   libraryFiles: WorkspaceFile[]
   recentFileIds?: number[]
   usageCounts?: ReadonlyMap<number, number>
   onUploadReference: (file: File) => Promise<WorkspaceFile>
-  onGenerationOutputReady?: () => Promise<void>
-  onPreviewGenerated?: (file: WorkspaceFile) => void
-  onAddGeneratedToTimeline?: (file: WorkspaceFile) => Promise<void>
+  onPreviewFile?: (file: WorkspaceFile) => void
   libraryDetail?: string
   renderLibrary?: (generatedOutputIds: Set<number>, generationItems: CreatorLibraryCreationItem[]) => ReactNode
   renderWorkspace: (workspace: CreatorHostWorkspace) => ReactNode
@@ -163,13 +161,13 @@ export function MediaCreator({ context, uploading, uploadLabel, libraryFiles, re
       .filter(({ status }) => status === "ready")
       .flatMap(({ output_file_ids: outputFileIds }) => outputFileIds)
       .filter((fileId) => !refreshedOutputIds.current.has(fileId))
-    if (!newOutputIds.length || !onGenerationOutputReady) return
+    if (!newOutputIds.length || !onResult) return
     newOutputIds.forEach((fileId) => refreshedOutputIds.current.add(fileId))
-    void onGenerationOutputReady().catch((reason) => {
+    void Promise.resolve(onResult({ file_ids: newOutputIds })).catch((reason) => {
       newOutputIds.forEach((fileId) => refreshedOutputIds.current.delete(fileId))
       setCreatorError(operatorMessage(reason instanceof Error ? reason.message : "The generated media could not be loaded."))
     })
-  }, [generations, onGenerationOutputReady])
+  }, [generations, onResult])
 
   const families = useMemo(() => catalog ? modelFamilies(catalog.models.filter((candidate) => (
     !preferredOutputType || candidate.operations.some(({ output_media_type }) => output_media_type === preferredOutputType)
@@ -531,15 +529,19 @@ export function MediaCreator({ context, uploading, uploadLabel, libraryFiles, re
     const outputFile = outputFiles[0]
     return <MediaGenerationCard
       key={generation.id} compact={compact} operations={catalog?.operations || []} generation={generation}
-      usedCount={outputFile ? usageCounts?.get(outputFile.id) || 0 : 0}
+      usageCount={outputFile ? usageCounts?.get(outputFile.id) || 0 : 0}
       canCancel={Boolean(generationCapability?.supports_cancel)} outputFiles={outputFiles} working={workingId === generation.id}
       onCancel={() => void cancel(generation)} onRegenerate={() => createGeneration(generation)}
       onConfirm={() => void confirm(generation)} onRetrySaving={() => void retryIngestion(generation)}
       onUseSettings={() => useSettings(generation)}
-      onPreview={outputFile && onPreviewGenerated ? () => onPreviewGenerated(outputFile) : undefined}
-      onAddToTimeline={outputFile && onAddGeneratedToTimeline ? () => {
-        void onAddGeneratedToTimeline(outputFile).catch((reason) => setCreatorError(operatorMessage(
-          reason instanceof Error ? reason.message : "The generated media could not be added to Timeline.")))
+      onPreview={outputFile && onPreviewFile ? () => onPreviewFile(outputFile) : undefined}
+      outputAction={outputFile && resultAction ? {
+        label: resultAction.label,
+        detail: resultAction.detail,
+        run: () => {
+          void Promise.resolve(resultAction.run({ file_ids: generation.output_file_ids })).catch((reason) => setCreatorError(operatorMessage(
+            reason instanceof Error ? reason.message : "The generated media action could not be completed.")))
+        },
       } : undefined}
       onDismiss={generation.status === "failed" || generation.status === "canceled" || (generation.status === "ready" && generation.output_file_ids.length === 0)
         ? () => hideGeneration(generation.id) : undefined}

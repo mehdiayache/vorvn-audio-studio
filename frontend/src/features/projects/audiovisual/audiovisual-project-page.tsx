@@ -354,7 +354,8 @@ export function AudiovisualProjectPage({ project, soundScene, visualScene, folde
   const creatorInsertAt = insertBeforePartId ? Math.max(0, sourceParts.findIndex((part) => part.public_id === insertBeforePartId)) : null
 
   const inspector = creatorOpen ? <ProjectSpeechCreatorStage
-    projectId={project.id} nextPartNumber={sourceParts.length + 1} insertAt={creatorInsertAt} insertBeforePartId={insertBeforePartId}
+    context={{ workspace_id: project.workspace_id, folder_id: project.folder_id, project_id: project.id, project_type: "audiovisual", selection: { capability: "speech", target: "script_part" } }}
+    nextPartNumber={sourceParts.length + 1} insertAt={creatorInsertAt} insertBeforePartId={insertBeforePartId}
     part={creatorPart} config={config} directory={directory} playingKey={player.source?.key} playerPlaying={actions.playerPlaying}
     onSave={async (payload) => { await actions.saveDraft(payload); closeCreator() }}
     onUpdateEditorial={async (values) => { if (!creatorPart) throw new Error("That Part is no longer open."); await actions.updatePartEditorial(creatorPart, values) }}
@@ -550,7 +551,6 @@ export function AudiovisualProjectPage({ project, soundScene, visualScene, folde
       onUploadFile={actions.uploadFile}
       onUpdateFile={actions.updateFile}
       onKeepFile={async (_category, input) => actions.keepFreesound(input)}
-      onKeepGenerated={async (_category, input) => actions.keepGeneratedAudio(input)}
       onImported={() => { actions.invalidatePreview(); void refresh().then(() => setTool(null)) }}
       onPlay={(source) => void playSource(source)} onConfirmAction={setConfirmAction} onRetryFiles={refreshFiles}
     />}

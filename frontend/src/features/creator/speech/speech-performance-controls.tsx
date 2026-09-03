@@ -3,8 +3,8 @@ import { Input } from "@/components/ui/input"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Slider } from "@/components/ui/slider"
 import { DEFAULT_RECORDING_VOLUME } from "@/lib/creator-contract"
-import { CreatorPromptField } from "./panel/creator-capability-panel"
-import { useSpeechCreator } from "./speech/speech-creator-controller"
+import { CreatorPromptField } from "../panel/creator-capability-panel"
+import { useSpeechCreator } from "./speech-creator-controller"
 
 function modeLabel(mode: string) {
   if (mode === "exact") return "Keep the script"
@@ -12,7 +12,7 @@ function modeLabel(mode: string) {
   return mode.replace(/[_-]+/g, " ").replace(/^./, (letter) => letter.toUpperCase())
 }
 
-export function CreatorPerformance() {
+export function SpeechPerformanceControls() {
   const creator = useSpeechCreator()
   const controls = creator.capabilityControls
   const selectedPreset = creator.performancePresets.find((preset) => preset.instruction === creator.instruction)

@@ -21,7 +21,7 @@ export function loadAudioCreatorStatus({ refresh = false }: { refresh?: boolean 
   return audioStatusRequest
 }
 
-export function preloadCreatorModelCatalog(capabilities: readonly string[]) {
+export function preloadAudioModelCatalog(capabilities: readonly string[]) {
   if (capabilities.some((capability) => capability === "music" || capability === "sfx") && typeof originsApi.audioGenerationStatus === "function") {
     void loadAudioCreatorStatus().catch(() => undefined)
   }

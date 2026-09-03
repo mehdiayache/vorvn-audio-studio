@@ -1,7 +1,7 @@
 import { useState } from "react"
 
 import { ProjectToolDialog, type ProjectToolKind } from "@/features/projects/audiovisual/project-tools"
-import type { FileUpdateInput, FileUploadInput, CatalogKeepInput, GeneratedKeepInput } from "@/features/workspace/library/audio-library"
+import type { FileUpdateInput, FileUploadInput, CatalogKeepInput } from "@/features/workspace/library/audio-library"
 import { ProjectSpeechCreatorDialog } from "@/features/creator/speech/project-speech-creator-host"
 import { DeleteConfirmationDialog } from "@/components/delete-confirmation-dialog"
 import { ActionButton } from "@/components/operator-action"
@@ -9,11 +9,11 @@ import { Button } from "@/components/ui/button"
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { formatAuthoredRole, formatPartNumber } from "@/lib/format"
 import type { ProjectFileResources } from "@/hooks/use-project-resources"
-import type { CatalogKeepResult, DurableJob, GeneratePayload, GenerateResult, GeneratedKeepResult, LoadState, PartEditorialUpdate, PlayerSource, Project, ProjectPart, StudioConfig, WorkspaceFile, VoiceDirectory } from "@/types/domain"
+import type { CatalogKeepResult, DurableJob, GeneratePayload, GenerateResult, LoadState, PartEditorialUpdate, PlayerSource, Project, ProjectPart, StudioConfig, WorkspaceFile, VoiceDirectory } from "@/types/domain"
 
 export type ConfirmAction = { title: string; description: string; action: () => void | Promise<void>; confirmLabel?: string; kind?: "confirm" | "delete"; variant?: "default" | "destructive" }
 
-export default function ProjectOverlays({ tool, project, nextPartNumber, insertAt, insertBeforePartId, creatorPart, replacingFileId, initialAudioFileId, config, directory, files, fileState, usedFileIds, playingKey, playerPlaying, confirmAction, onCloseTool, onSaveDraft, onUpdateEditorial, onGenerate, onAddSilence, onInsertFile, onPlaceAudio, onUploadFile, onUpdateFile, onKeepFile, onKeepGenerated, onImported, onPlay, onConfirmAction, onRetryFiles }: {
+export default function ProjectOverlays({ tool, project, nextPartNumber, insertAt, insertBeforePartId, creatorPart, replacingFileId, initialAudioFileId, config, directory, files, fileState, usedFileIds, playingKey, playerPlaying, confirmAction, onCloseTool, onSaveDraft, onUpdateEditorial, onGenerate, onAddSilence, onInsertFile, onPlaceAudio, onUploadFile, onUpdateFile, onKeepFile, onImported, onPlay, onConfirmAction, onRetryFiles }: {
   tool: ProjectToolKind
   project: Project
   nextPartNumber: number
@@ -40,7 +40,6 @@ export default function ProjectOverlays({ tool, project, nextPartNumber, insertA
   onUploadFile: (folder: string, input: FileUploadInput) => Promise<WorkspaceFile>
   onUpdateFile: (file: WorkspaceFile, input: FileUpdateInput) => Promise<WorkspaceFile>
   onKeepFile: (folder: string, input: CatalogKeepInput) => Promise<CatalogKeepResult>
-  onKeepGenerated: (folder: string, input: GeneratedKeepInput) => Promise<GeneratedKeepResult>
   onImported: () => void
   onPlay: (source: PlayerSource) => void
   onConfirmAction: (action: ConfirmAction | null) => void
@@ -64,7 +63,7 @@ export default function ProjectOverlays({ tool, project, nextPartNumber, insertA
     {tool === "speech" && <ProjectSpeechCreatorDialog
       title={creatorPart ? `Edit ${formatAuthoredRole(creatorPart.authored_role) || "speech"} · Part ${formatPartNumber(creatorPart.position ?? 0)}` : "Add speech"}
       description={creatorPart?.clip_id ? "Change the words, Voice or delivery, then generate again to replace the current audio." : creatorPart ? "Finish this Draft and generate its first recording." : insertBeforePartId ? "Insert at the selected Script position." : `Add as Part ${nextPartNumber}.`}
-      projectId={projectId}
+      context={{ workspace_id: project.workspace_id, folder_id: project.folder_id, project_id: projectId, project_type: "audiovisual", selection: { capability: "speech", target: "script_part" } }}
       nextPartNumber={nextPartNumber}
       insertAt={insertAt}
       insertBeforePartId={insertBeforePartId}
@@ -79,7 +78,7 @@ export default function ProjectOverlays({ tool, project, nextPartNumber, insertA
       onGenerate={onGenerate}
       onPlay={onPlay}
     />}
-    <ProjectToolDialog open={tool === "speech" ? null : tool} project={project} config={config} nextPartNumber={nextPartNumber} beforePartId={insertBeforePartId} replacingFileId={replacingFileId} initialAudioFileId={initialAudioFileId} files={files} fileState={fileState} usedFileIds={usedFileIds} directory={directory} playingKey={playingKey} playerPlaying={playerPlaying} onClose={onCloseTool} onAddSilence={onAddSilence} onInsertFile={onInsertFile} onPlaceAudio={onPlaceAudio} onUploadFile={onUploadFile} onUpdateFile={onUpdateFile} onKeepFile={onKeepFile} onKeepGenerated={onKeepGenerated} onImported={onImported} onPlay={onPlay} onRetryFiles={onRetryFiles} />
+    <ProjectToolDialog open={tool === "speech" ? null : tool} project={project} config={config} nextPartNumber={nextPartNumber} beforePartId={insertBeforePartId} replacingFileId={replacingFileId} initialAudioFileId={initialAudioFileId} files={files} fileState={fileState} usedFileIds={usedFileIds} directory={directory} playingKey={playingKey} playerPlaying={playerPlaying} onClose={onCloseTool} onAddSilence={onAddSilence} onInsertFile={onInsertFile} onPlaceAudio={onPlaceAudio} onUploadFile={onUploadFile} onUpdateFile={onUpdateFile} onKeepFile={onKeepFile} onImported={onImported} onPlay={onPlay} onRetryFiles={onRetryFiles} />
     {confirmAction?.kind === "delete" ? <DeleteConfirmationDialog
       open
       onOpenChange={(open) => { if (!open && !confirmBusy) onConfirmAction(null) }}

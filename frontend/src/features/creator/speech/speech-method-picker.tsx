@@ -6,7 +6,7 @@ import { Command, CommandEmpty, CommandGroup, CommandItem, CommandList } from "@
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 import type { VoiceChoice } from "@/lib/voice-options"
 
-export function CreatorMethodPicker({ route, selectedCapabilityId, onSelect }: {
+export function SpeechMethodPicker({ route, selectedCapabilityId, onSelect }: {
   route: VoiceChoice | undefined
   selectedCapabilityId: string | null
   onSelect: (route: VoiceChoice, capabilityId?: string | null) => void

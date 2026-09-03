@@ -6,13 +6,13 @@ import { CreatorCapabilityDispatcher } from "./creator-capability-dispatcher"
 import { CreatorHost, type CreatorCapabilityId } from "./creator-host"
 
 vi.mock("./media/media-creator", () => ({
-  MediaCreator: ({ context }: { context: { selection?: Record<string, unknown> } }) => <div data-testid="implementation">media:{String(context.selection?.output_media_type)}</div>,
+  MediaCreator: ({ context, onResult }: { context: { workspace_id: number; selection?: Record<string, unknown> }; onResult?: unknown }) => <div data-testid="implementation" data-workspace={context.workspace_id} data-result-contract={String(Boolean(onResult))}>media:{String(context.selection?.output_media_type)}</div>,
 }))
 vi.mock("./audio/audio-creator", () => ({
-  AudioCreator: ({ fixedCapability }: { fixedCapability: string }) => <div data-testid="implementation">audio:{fixedCapability}</div>,
+  AudioCreator: ({ context, fixedCapability, onResult }: { context: { workspace_id: number; selection?: Record<string, unknown> }; fixedCapability: string; onResult?: unknown }) => <div data-testid="implementation" data-workspace={context.workspace_id} data-output={String(context.selection?.output_media_type || "")} data-result-contract={String(Boolean(onResult))}>audio:{fixedCapability}</div>,
 }))
 vi.mock("./speech/speech-creator-page", () => ({
-  SpeechCreatorPage: () => <div data-testid="implementation">speech</div>,
+  SpeechCreatorPage: ({ context, onResult }: { context: { workspace_id: number; selection?: Record<string, unknown> }; onResult?: unknown }) => <div data-testid="implementation" data-workspace={context.workspace_id} data-output={String(context.selection?.output_media_type || "")} data-result-contract={String(Boolean(onResult))}>speech</div>,
 }))
 
 afterEach(cleanup)
@@ -30,12 +30,18 @@ describe("CreatorCapabilityDispatcher", () => {
         session={session}
         libraryDetail="Workspace Files"
         mediaProps={{ uploading: false, uploadLabel: "", libraryFiles: [], onUploadReference: vi.fn() }}
-        speechCallbacks={{}}
-        audioProps={{ playerPlaying: false, onPlay: vi.fn(), onKeep: vi.fn(), onKept: vi.fn() }}
+        audioProps={{ playerPlaying: false, onPlay: vi.fn() }}
+        onResult={vi.fn()}
         renderLibrary={() => <div>Library</div>}
       />}
     </CreatorHost>)
 
-    expect((await screen.findByTestId("implementation")).textContent).toBe(implementation)
+    const panel = await screen.findByTestId("implementation")
+    expect(panel.textContent).toBe(implementation)
+    expect(panel.getAttribute("data-workspace")).toBe("4")
+    expect(panel.getAttribute("data-result-contract")).toBe("true")
+    if (capability === "speech" || capability === "music" || capability === "sfx") {
+      expect(panel.getAttribute("data-output")).toBe("")
+    }
   })
 })

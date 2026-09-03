@@ -39,21 +39,21 @@ function settingValue(value: unknown) {
   return String(value)
 }
 
-export function MediaGenerationCard({ operations, generation, canCancel, outputFiles = [], working, compact = false, usedCount = 0, onCancel, onConfirm, onRetrySaving, onRegenerate, onUseSettings, onPreview, onAddToTimeline, onDismiss }: {
+export function MediaGenerationCard({ operations, generation, canCancel, outputFiles = [], working, compact = false, usageCount = 0, onCancel, onConfirm, onRetrySaving, onRegenerate, onUseSettings, onPreview, outputAction, onDismiss }: {
   operations: MediaOperationInfo[]
   generation: MediaGeneration
   canCancel: boolean
   outputFiles?: WorkspaceFile[]
   working?: boolean
   compact?: boolean
-  usedCount?: number
+  usageCount?: number
   onCancel: () => void
   onConfirm: () => void
   onRetrySaving: () => void
   onRegenerate: () => void
   onUseSettings: () => void
   onPreview?: () => void
-  onAddToTimeline?: () => void
+  outputAction?: { label: string; detail?: string; run: () => void }
   onDismiss?: () => void
 }) {
   const [now, setNow] = useState(Date.now())
@@ -110,12 +110,12 @@ export function MediaGenerationCard({ operations, generation, canCancel, outputF
             : <div className="media-generation-result">{generation.status === "failed" || ready ? <AlertCircle /> : <OperationIcon />}<strong>{generation.local_ingestion_pending ? "Saving failed" : loadingResult ? "Loading result" : generation.status === "failed" ? "Generation failed" : ready ? "Result unavailable" : "Canceled"}</strong>{generation.error && <span>{operatorMessage(generation.error)}</span>}</div>}
         <Badge variant="secondary" className="media-generation-media-kind"><OperationIcon />{mediaLabel}</Badge>
         <Badge className="media-generation-origin"><Sparkles />AI</Badge>
-        {usedCount > 0 && <OperatorTooltip label="Used in Timeline" detail={usedCount === 1 ? "This creation has one Timeline placement." : `This creation has ${usedCount} Timeline placements.`} side="bottom"><span className="media-generation-used" tabIndex={0}><CircleCheck /></span></OperatorTooltip>}
+        {usageCount > 0 && <OperatorTooltip label="Used" detail={usageCount === 1 ? "This File is used once in the current context." : `This File is used ${usageCount} times in the current context.`} side="bottom"><span className="media-generation-used" tabIndex={0}><CircleCheck /></span></OperatorTooltip>}
         {reportedCost && <Badge variant="secondary" className="media-generation-cost" title={`${reportedCost.basis === "actual" ? "Actual" : "Estimated"} cost`}>{reportedCost.basis === "estimated" ? "Est. " : ""}{formatMoney(reportedCost.value)}</Badge>}
-        <div className="media-generation-menu"><DropdownMenu><DropdownMenuTrigger asChild><OperatorIconButton className="media-media-icon-action" label="More creation actions" size="icon-sm" variant="secondary"><MoreHorizontal /></OperatorIconButton></DropdownMenuTrigger><DropdownMenuContent align="end"><DropdownMenuGroup><DropdownMenuItem onSelect={() => setDetailsOpen(true)}><Eye />View details</DropdownMenuItem><DropdownMenuItem onSelect={onUseSettings}><SlidersHorizontal />Use settings</DropdownMenuItem><DropdownMenuItem onSelect={() => void navigator.clipboard?.writeText(generation.preset.prompt)}><Copy />Copy prompt</DropdownMenuItem></DropdownMenuGroup><DropdownMenuSeparator /><DropdownMenuGroup><DropdownMenuItem disabled={!outputReady} onSelect={onPreview}><Eye />Preview</DropdownMenuItem><DropdownMenuItem onSelect={onRegenerate}><RotateCcw />Regenerate</DropdownMenuItem><DropdownMenuItem onSelect={onUseSettings}><WandSparkles />Remix</DropdownMenuItem><DropdownMenuItem disabled={!outputReady} onSelect={onAddToTimeline}><Plus />Add to Timeline</DropdownMenuItem>{onDismiss && <DropdownMenuItem onSelect={onDismiss}><X />Remove from Library view</DropdownMenuItem>}</DropdownMenuGroup></DropdownMenuContent></DropdownMenu></div>
+        <div className="media-generation-menu"><DropdownMenu><DropdownMenuTrigger asChild><OperatorIconButton className="media-media-icon-action" label="More creation actions" size="icon-sm" variant="secondary"><MoreHorizontal /></OperatorIconButton></DropdownMenuTrigger><DropdownMenuContent align="end"><DropdownMenuGroup><DropdownMenuItem onSelect={() => setDetailsOpen(true)}><Eye />View details</DropdownMenuItem><DropdownMenuItem onSelect={onUseSettings}><SlidersHorizontal />Use settings</DropdownMenuItem><DropdownMenuItem onSelect={() => void navigator.clipboard?.writeText(generation.preset.prompt)}><Copy />Copy prompt</DropdownMenuItem></DropdownMenuGroup><DropdownMenuSeparator /><DropdownMenuGroup><DropdownMenuItem disabled={!outputReady} onSelect={onPreview}><Eye />Preview</DropdownMenuItem><DropdownMenuItem onSelect={onRegenerate}><RotateCcw />Regenerate</DropdownMenuItem><DropdownMenuItem onSelect={onUseSettings}><WandSparkles />Remix</DropdownMenuItem>{outputAction && <DropdownMenuItem disabled={!outputReady} onSelect={outputAction.run}><Plus />{outputAction.label}</DropdownMenuItem>}{onDismiss && <DropdownMenuItem onSelect={onDismiss}><X />Remove from Library view</DropdownMenuItem>}</DropdownMenuGroup></DropdownMenuContent></DropdownMenu></div>
         {outputReady && <div className="media-generation-hover-actions">
           {onPreview && <OperatorIconButton className="media-media-icon-action" label="Preview creation" detail="Open the generated media and its technical details." variant="secondary" onClick={onPreview}><Eye /></OperatorIconButton>}
-          {onAddToTimeline && <OperatorIconButton className="media-media-icon-action" label="Add creation to Timeline" detail="Place this generated result at the current playhead." variant="secondary" onClick={onAddToTimeline}><Plus /></OperatorIconButton>}
+          {outputAction && <OperatorIconButton className="media-media-icon-action" label={outputAction.label} detail={outputAction.detail} variant="secondary" onClick={outputAction.run}><Plus /></OperatorIconButton>}
         </div>}
       </div>
     </article>
@@ -127,12 +127,12 @@ export function MediaGenerationCard({ operations, generation, canCancel, outputF
       <Badge variant="secondary" className="media-generation-status">{generation.needs_confirmation ? "Approval needed" : generation.requires_review ? "Review needed" : generation.local_ingestion_pending ? "Saving failed" : saving ? "Saving" : generation.status === "queued" ? "Queued" : running ? "Generating" : loadingResult ? "Loading result" : ready ? "Ready" : generation.status === "failed" ? "Failed" : "Canceled"}</Badge>
       {compact && outputReady && <><span className="media-generation-ai" aria-label="AI generated"><Sparkles /></span><div className="media-generation-hover-actions">
         {onPreview && <OperatorIconButton label="Preview creation" detail="Open the generated media and its technical details." variant="secondary" onClick={onPreview}><Eye /></OperatorIconButton>}
-        {onAddToTimeline && <OperatorIconButton label="Add creation to Timeline" detail="Place this generated result at the current playhead." onClick={onAddToTimeline}><Plus /></OperatorIconButton>}
+        {outputAction && <OperatorIconButton label={outputAction.label} detail={outputAction.detail} onClick={outputAction.run}><Plus /></OperatorIconButton>}
       </div></>}
     </div>
     <div className="media-generation-copy">
       <header><div><strong>{generation.preset.prompt || operationLabel(operations, generation.preset.operation)}</strong><span>{generation.model_label} · {generation.preset.controls.ratio} · {generation.output_media_type === "image" ? generation.preset.controls.resolution : `${generation.preset.controls.duration}s · ${generation.preset.controls.resolution}`}</span></div>
-        <DropdownMenu><DropdownMenuTrigger asChild><OperatorIconButton label="More generation actions" size="icon-xs"><MoreHorizontal /></OperatorIconButton></DropdownMenuTrigger><DropdownMenuContent align="end"><DropdownMenuGroup><DropdownMenuItem onSelect={() => setDetailsOpen(true)}><Eye />View request details</DropdownMenuItem><DropdownMenuItem onSelect={onUseSettings}><SlidersHorizontal />Use settings</DropdownMenuItem><DropdownMenuItem onSelect={() => void navigator.clipboard?.writeText(generation.preset.prompt)}><Copy />Copy prompt</DropdownMenuItem>{compact && <><DropdownMenuSeparator /><DropdownMenuItem disabled={!outputReady} onSelect={onPreview}><Eye />Preview</DropdownMenuItem><DropdownMenuItem onSelect={onRegenerate}><RotateCcw />Regenerate</DropdownMenuItem><DropdownMenuItem onSelect={onUseSettings}><WandSparkles />Remix</DropdownMenuItem><DropdownMenuItem disabled={!outputReady} onSelect={onAddToTimeline}><Plus />Add to Timeline</DropdownMenuItem>{onDismiss && <><DropdownMenuSeparator /><DropdownMenuItem onSelect={onDismiss}><X />Hide from Library view</DropdownMenuItem></>}</>}</DropdownMenuGroup></DropdownMenuContent></DropdownMenu>
+        <DropdownMenu><DropdownMenuTrigger asChild><OperatorIconButton label="More generation actions" size="icon-xs"><MoreHorizontal /></OperatorIconButton></DropdownMenuTrigger><DropdownMenuContent align="end"><DropdownMenuGroup><DropdownMenuItem onSelect={() => setDetailsOpen(true)}><Eye />View request details</DropdownMenuItem><DropdownMenuItem onSelect={onUseSettings}><SlidersHorizontal />Use settings</DropdownMenuItem><DropdownMenuItem onSelect={() => void navigator.clipboard?.writeText(generation.preset.prompt)}><Copy />Copy prompt</DropdownMenuItem>{compact && <><DropdownMenuSeparator /><DropdownMenuItem disabled={!outputReady} onSelect={onPreview}><Eye />Preview</DropdownMenuItem><DropdownMenuItem onSelect={onRegenerate}><RotateCcw />Regenerate</DropdownMenuItem><DropdownMenuItem onSelect={onUseSettings}><WandSparkles />Remix</DropdownMenuItem>{outputAction && <DropdownMenuItem disabled={!outputReady} onSelect={outputAction.run}><Plus />{outputAction.label}</DropdownMenuItem>}{onDismiss && <><DropdownMenuSeparator /><DropdownMenuItem onSelect={onDismiss}><X />Hide from Library view</DropdownMenuItem></>}</>}</DropdownMenuGroup></DropdownMenuContent></DropdownMenu>
       </header>
       {running && <div className="media-generation-progress"><Progress value={hasMeasuredProgress ? generation.progress : undefined} /><span>{hasMeasuredProgress ? `${generation.progress}% · ` : ""}{elapsedLabel}</span></div>}
       {(generation.confirmation_message || generation.error) && <p className={generation.error ? "media-generation-error" : "media-generation-note"} role={generation.error ? "alert" : "status"}>{operatorMessage(generation.confirmation_message || generation.error)}</p>}
@@ -151,7 +151,7 @@ export function MediaGenerationCard({ operations, generation, canCancel, outputF
           <OperatorTooltip label="Preview" detail={outputReady ? "Open the generated media and its technical details." : "The generated media is still being saved."} disabledTrigger={!outputReady}><Button variant="outline" size="sm" disabled={!outputReady} onClick={onPreview}><Eye />Preview</Button></OperatorTooltip>
           <Button variant="outline" size="sm" onClick={onRegenerate}><RotateCcw />Regenerate</Button>
           <Button variant="outline" size="sm" onClick={onUseSettings}><WandSparkles />Remix</Button>
-          <OperatorTooltip label="Add to Timeline" detail={outputReady ? "Place the first generated result at the current playhead." : "The generated media is still being saved."} disabledTrigger={!outputReady}><Button size="sm" disabled={!outputReady} onClick={onAddToTimeline}>Add to Timeline</Button></OperatorTooltip>
+          {outputAction && <OperatorTooltip label={outputAction.label} detail={outputReady ? outputAction.detail : "The generated media is still being saved."} disabledTrigger={!outputReady}><Button size="sm" disabled={!outputReady} onClick={outputAction.run}>{outputAction.label}</Button></OperatorTooltip>}
         </>}
       </footer>
     </div>

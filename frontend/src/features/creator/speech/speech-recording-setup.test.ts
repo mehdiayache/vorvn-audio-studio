@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest"
 
-import { resolveRecordingSetup, type RecordingSetupValue } from "./recording-setup"
+import { resolveSpeechRecordingSetup, type SpeechRecordingSetupValue } from "./speech-recording-setup"
 import type { VoiceDirectory } from "@/types/domain"
 
 const directory = {
@@ -17,22 +17,22 @@ const directory = {
   },
 } as unknown as VoiceDirectory
 
-describe("RecordingSetup exact-route state", () => {
+describe("SpeechRecordingSetup exact-route state", () => {
   it("does not choose the first identity or route", () => {
-    const value: RecordingSetupValue = { identityId: "", route: null, language: "Auto" }
-    const resolved = resolveRecordingSetup(directory, value)
+    const value: SpeechRecordingSetupValue = { identityId: "", route: null, language: "Auto" }
+    const resolved = resolveSpeechRecordingSetup(directory, value)
     expect(resolved.identities).toHaveLength(1)
     expect(resolved.identity).toBeUndefined()
     expect(resolved.route).toBeNull()
   })
 
   it("keeps an explicit route when output language changes", () => {
-    const base: RecordingSetupValue = {
+    const base: SpeechRecordingSetupValue = {
       identityId: "identity-one",
       route: { kind: "owned", bindingId: "binding-one", capabilityId: null },
       language: "Arabic",
     }
-    expect(resolveRecordingSetup(directory, base).route?.bindingId).toBe("binding-one")
-    expect(resolveRecordingSetup(directory, { ...base, language: "English" }).route?.bindingId).toBe("binding-one")
+    expect(resolveSpeechRecordingSetup(directory, base).route?.bindingId).toBe("binding-one")
+    expect(resolveSpeechRecordingSetup(directory, { ...base, language: "English" }).route?.bindingId).toBe("binding-one")
   })
 })

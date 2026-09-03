@@ -25,20 +25,15 @@ vi.mock("@/components/global-player-provider", () => ({ useGlobalPlayer: () => (
 
 vi.mock("@/features/creator/audio/audio-creator", () => ({
   AudioCreator: (props: {
-    workspaceId: number
+    context: { workspace_id: number; folder_id?: number | null }
     fixedCapability: string
-    allowPlacement: boolean
-    onKeep: (folder: string, input: { candidateId: string; name: string; category: "music"; tags: string[] }) => Promise<unknown>
-    onKept: (file: unknown, category: "music") => Promise<void>
+    onResult?: (result: { file_ids: number[] }) => Promise<void>
   }) => <button
     type="button"
-    data-workspace-id={props.workspaceId}
+    data-workspace-id={props.context.workspace_id}
+    data-folder-id={props.context.folder_id}
     data-capability={props.fixedCapability}
-    data-placement={String(props.allowPlacement)}
-    onClick={async () => {
-      const kept = await props.onKeep("Files", { candidateId: "candidate-1", name: "Quiet score", category: "music", tags: ["calm"] })
-      await props.onKept(kept, "music")
-    }}
+    onClick={() => void props.onResult?.({ file_ids: [9] })}
   >Keep generated file</button>,
 }))
 
@@ -78,13 +73,10 @@ describe("CreateCreatorPage", () => {
     const workspace = screen.getByRole("button", { name: "Keep generated file" })
     expect(workspace.getAttribute("data-workspace-id")).toBe("4")
     expect(workspace.getAttribute("data-capability")).toBe("music")
-    expect(workspace.getAttribute("data-placement")).toBe("false")
+    expect(workspace.getAttribute("data-folder-id")).toBe("27")
 
     fireEvent.click(workspace)
-    await waitFor(() => expect(originsApi.keepGeneratedAudioInWorkspace).toHaveBeenCalledWith("candidate-1", 4, {
-      name: "Quiet score", category: "music", tags: ["calm"], folder_id: 27,
-    }))
-    expect(refresh).toHaveBeenCalled()
+    await waitFor(() => expect(refresh).toHaveBeenCalled())
   })
 
   it.each([

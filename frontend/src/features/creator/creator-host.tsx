@@ -1,11 +1,10 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type ComponentPropsWithoutRef, type ReactNode, type Ref } from "react"
 
 import type { CreatorContext } from "@/lib/api"
+import type { CreatorCapabilityId } from "./creator-contracts"
 import { CreatorLibraryWorkspace } from "./library/creator-library-workspace"
 import { CreatorCapabilityPicker } from "./panel/creator-capability-picker"
-import { preloadCreatorModelCatalog } from "./creator-model-catalog"
-
-export type CreatorCapabilityId = "image" | "video" | "speech" | "music" | "sfx"
+export type { CreatorCapabilityId } from "./creator-contracts"
 
 const defaultCreatorCapabilities: readonly CreatorCapabilityId[] = ["image", "video", "speech", "music", "sfx"]
 
@@ -20,6 +19,7 @@ export type CreatorHostWorkspace = {
 
 export type CreatorHostSession = {
   capability: CreatorCapabilityId
+  availableCapabilities: readonly CreatorCapabilityId[]
   context: CreatorContext
   renderWorkspace: (workspace: CreatorHostWorkspace) => ReactNode
 }
@@ -64,10 +64,6 @@ export function CreatorHost({
     })
   }, [available, initialCapability])
 
-  useEffect(() => {
-    preloadCreatorModelCatalog(available)
-  }, [available])
-
   const capabilityContext = useMemo<CreatorContext>(() => ({
     ...context,
     selection: {
@@ -103,5 +99,5 @@ export function CreatorHost({
     library={workspace.library}
   />, [available, capability, creatorOpen, libraryPaneProps, libraryPaneRef, onCapabilityChange, onCreatorOpenChange, presentation])
 
-  return children({ capability, context: capabilityContext, renderWorkspace })
+  return children({ capability, availableCapabilities: available, context: capabilityContext, renderWorkspace })
 }

@@ -19,7 +19,7 @@ describe("ProjectCreatorSession", () => {
     const stage = document.createElement("div")
     document.body.append(inline, stage)
     const props = {
-      projectId: 7,
+      context: { workspace_id: 4, project_id: 7, selection: { target: "script_part" } },
       config: null,
       directory: { config: null, cloned: [], meta: {}, catalog: [], identities: [], registry: null },
       playerPlaying: false,

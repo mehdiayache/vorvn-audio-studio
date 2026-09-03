@@ -27,6 +27,7 @@ function viewport(matches: boolean) {
 }
 
 const props = {
+  context: { workspace_id: 4 },
   config: null,
   directory: { config: null, cloned: [], meta: {}, catalog: [] },
   playerPlaying: false,

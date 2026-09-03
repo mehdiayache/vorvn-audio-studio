@@ -483,22 +483,22 @@ describe("Media creator", () => {
     expect(creationCount).toBe(8)
   })
 
-  it("refreshes canonical outputs and exposes preview and Timeline actions", async () => {
+  it("emits canonical outputs and exposes preview and contextual actions", async () => {
     const saved = { ...generation(), output_file_ids: [41] }
-    const onGenerationOutputReady = vi.fn().mockResolvedValue(undefined)
-    const onPreviewGenerated = vi.fn()
-    const onAddGeneratedToTimeline = vi.fn().mockResolvedValue(undefined)
+    const onResult = vi.fn().mockResolvedValue(undefined)
+    const onPreviewFile = vi.fn()
+    const run = vi.fn().mockResolvedValue(undefined)
     vi.mocked(originsApi.mediaGenerations).mockResolvedValue([saved] as never)
     const file = { id: 41, media_type: "image" as const, name: "Generated sunrise", filename: "sunrise.webp" }
     renderCreator({
-      libraryFiles: [file], onGenerationOutputReady,
-      onPreviewGenerated, onAddGeneratedToTimeline,
+      libraryFiles: [file], onResult,
+      onPreviewFile, resultAction: { label: "Use result", run },
     })
-    await waitFor(() => expect(onGenerationOutputReady).toHaveBeenCalledTimes(1))
+    await waitFor(() => expect(onResult).toHaveBeenCalledWith({ file_ids: [41] }))
     fireEvent.click(screen.getByRole("button", { name: "Preview" }))
-    expect(onPreviewGenerated).toHaveBeenCalledWith(file)
-    fireEvent.click(screen.getByRole("button", { name: "Add to Timeline" }))
-    await waitFor(() => expect(onAddGeneratedToTimeline).toHaveBeenCalledWith(file))
+    expect(onPreviewFile).toHaveBeenCalledWith(file)
+    fireEvent.click(screen.getByRole("button", { name: "Use result" }))
+    await waitFor(() => expect(run).toHaveBeenCalledWith({ file_ids: [41] }))
   })
 
   it("keeps cost approval and ingestion recovery at the generation that needs action", async () => {

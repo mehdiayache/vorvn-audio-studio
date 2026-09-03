@@ -13,11 +13,10 @@ import { CreatorLibraryBrowser, type CreatorLibraryKind } from "@/features/creat
 import { FilePreviewDialog } from "@/features/creator/library/file-preview-dialog"
 import { CreatorLibraryWorkspace } from "@/features/creator/library/creator-library-workspace"
 import { WorkspaceExplorerPage } from "@/features/workspace/explorer/workspace-explorer-page"
-import type { GeneratedAudioKeepInput } from "@/features/creator/audio/audio-creator-contracts"
 import "@/features/workspace/library/audio-library.css"
 import { useWorkspaceExplorer } from "@/hooks/use-workspace-explorer"
 import { originsApi, type CreatorContext } from "@/lib/api"
-import type { AudioFileCategory, WorkspaceFile } from "@/types/domain"
+import type { WorkspaceFile } from "@/types/domain"
 
 import "./create-creator-page.css"
 
@@ -121,18 +120,9 @@ export function CreateCreatorPage() {
   const workspaceName = overview.data?.workspace.name || workspaces.data?.find((workspace) => workspace.id === selectedWorkspaceId)?.name || "Current Workspace"
   const libraryFiles = overview.data?.files || []
 
-  async function keepGeneratedFile(_folder: string, input: GeneratedAudioKeepInput) {
-    return originsApi.keepGeneratedAudioInWorkspace(input.candidateId, selectedWorkspaceId!, {
-      name: input.name,
-      category: input.category,
-      tags: input.tags,
-      folder_id: folderId,
-    })
-  }
-
-  async function fileKept(_file: unknown, category: AudioFileCategory) {
+  async function handleCreatorResult() {
     await refresh()
-    toast.success(`${category === "music" ? "Music" : "Sound effect"} saved to Files.`, {
+    toast.success("Creation saved to Files.", {
       description: `It is now reusable everywhere in ${workspaceName}.`,
     })
   }
@@ -194,18 +184,13 @@ export function CreateCreatorPage() {
             uploadLabel: "",
             libraryFiles,
             onUploadReference: uploadReference,
-            onGenerationOutputReady: refresh,
           }}
-          speechCallbacks={{ onLibraryChange: refresh }}
           audioProps={{
-            workspaceId: selectedWorkspaceId,
-            allowPlacement: false,
             playingKey: player.source?.key,
             playerPlaying: player.state === "playing",
             onPlay: (source) => void player.toggleSource(source),
-            onKeep: keepGeneratedFile,
-            onKept: fileKept,
           }}
+          onResult={handleCreatorResult}
           renderLibrary={({ capability, creationItems }) => <CreatorLibraryBrowser files={libraryFiles} folders={overview.data?.folders || []} creationItems={creationItems} initialKind={capability} selectedFileId={previewFile?.id} playingKey={player.source?.key} playerPlaying={player.state === "playing"} onSelect={setPreviewFile} onPlay={(source) => void player.toggleSource(source)} onUpload={() => uploadInputRef.current?.click()} />}
         />}
       </CreatorHost>}

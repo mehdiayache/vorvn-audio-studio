@@ -10,7 +10,7 @@ vi.mock("@/components/global-player-provider", () => ({
   useGlobalPlayer: () => ({ transportHost: "shell", claimTransport: vi.fn(() => vi.fn()) }),
 }))
 
-import { ProjectSpeechCreatorStage as ProjectCreatorStage } from "./speech/project-speech-creator-host"
+import { ProjectSpeechCreatorStage as ProjectCreatorStage } from "./project-speech-creator-host"
 
 afterEach(() => { cleanup(); vi.clearAllMocks(); vi.useRealTimers(); vi.unstubAllGlobals() })
 
@@ -22,7 +22,7 @@ describe("Project Creator recovery", () => {
       stored = draft
       return { id: "draft-1", state: draft, version: 1, updatedAt: "now" }
     })
-    const props = { projectId: 7, config: null, directory: { config: null, cloned: [], meta: {}, catalog: [], identities: [], registry: null }, playerPlaying: false, onGenerate: vi.fn(), onPlay: vi.fn() }
+    const props = { context: { workspace_id: 4, project_id: 7, selection: { target: "script_part" } }, config: null, directory: { config: null, cloned: [], meta: {}, catalog: [], identities: [], registry: null }, playerPlaying: false, onGenerate: vi.fn(), onPlay: vi.fn() }
     const view = render(<ProjectCreatorStage {...props} />)
     await act(async () => { await Promise.resolve(); await Promise.resolve() })
     fireEvent.change(screen.getByPlaceholderText("Type or paste what should be said…"), { target: { value: "Fast collapse edit" } })

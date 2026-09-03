@@ -33,10 +33,11 @@ import {
   type VoiceIdentityChoice,
 } from "@/lib/voice-options"
 import { ssmlToPlainText, validateSsmlDocument, wrapPlainTextAsSsml } from "@/lib/ssml"
+import type { CreatorContext } from "@/lib/api"
 import type { DurableJob, GeneratePayload, GenerateResult, PartEditorialUpdate, PlayerSource, ProjectPart, StudioConfig, VoiceDirectory } from "@/types/domain"
 
 export type SpeechCreatorSurfaceProps = {
-  projectId?: number
+  context: CreatorContext
   nextPartNumber?: number
   insertAt?: number | null
   insertBeforePartId?: string | null
@@ -60,7 +61,10 @@ type PendingGeneration = {
   updateEditorial: boolean
 }
 
-export function useSpeechCreatorController({ projectId, nextPartNumber = 1, insertAt = null, insertBeforePartId = null, part = null, config, directory, playingKey, playerPlaying, onSave, onUpdateEditorial, onGenerate, onPlay, generationState = null, visible = true }: SpeechCreatorSurfaceProps) {
+export function useSpeechCreatorController({ context: creatorContext, nextPartNumber = 1, insertAt = null, insertBeforePartId = null, part = null, config, directory, playingKey, playerPlaying, onSave, onUpdateEditorial, onGenerate, onPlay, generationState = null, visible = true }: SpeechCreatorSurfaceProps) {
+  const projectId = creatorContext.selection?.target === "script_part"
+    ? creatorContext.project_id ?? undefined
+    : undefined
   const [route, setRoute] = useState(routeSelectionFromPart(part))
   const [selectedModelKey, setSelectedModelKey] = useState("")
   const [identityId, setIdentityId] = useState(part?.voice_identity_id || "")

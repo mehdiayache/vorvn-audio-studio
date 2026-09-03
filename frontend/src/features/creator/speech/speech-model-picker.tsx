@@ -11,7 +11,7 @@ function modelIdentity(route: VoiceChoice, config: StudioConfig | null) {
   return resolveSpeechModel({ provider: route.provider, engine: route.engine, tier: route.model, modelId: route.modelId, config })
 }
 
-export function CreatorModelPicker({ routes, selectedModelKey, selectedCapabilityId, config, onSelect }: {
+export function SpeechModelPicker({ routes, selectedModelKey, selectedCapabilityId, config, onSelect }: {
   routes: VoiceChoice[]
   selectedModelKey: string
   selectedCapabilityId: string | null

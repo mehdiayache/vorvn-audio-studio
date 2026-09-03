@@ -2,11 +2,11 @@ import { CheckCircle2, ChevronDown, CircleAlert, Mic2 } from "lucide-react"
 import { useState } from "react"
 
 import { cn } from "@/lib/utils"
-import type { SpeechCreatorPresentation } from "./speech/speech-creator-surface"
-import { useSpeechCreator } from "./speech/speech-creator-controller"
-import { CreatorWho } from "./creator-who"
+import type { SpeechCreatorPresentation } from "./speech-creator-surface"
+import { useSpeechCreator } from "./speech-creator-controller"
+import { SpeechCreationRoute } from "./speech-creation-route"
 
-export function CreatorRecordingContext({ presentation }: { presentation: SpeechCreatorPresentation }) {
+export function SpeechRecordingContext({ presentation }: { presentation: SpeechCreatorPresentation }) {
   const creator = useSpeechCreator()
   const incomplete = !creator.selectedIdentity || !creator.currentRoute
   const [open, setOpen] = useState(false)
@@ -21,6 +21,6 @@ export function CreatorRecordingContext({ presentation }: { presentation: Speech
       <div className="creator-recording-facts"><span>{creator.language}</span><span>{creator.format.toUpperCase()}</span><span>{presentation === "mega" ? "Speak" : "Project"}</span></div>
       <span className="creator-recording-trigger">{open ? "Collapse" : incomplete ? "Complete setup" : "Edit setup"}<ChevronDown className={cn(open && "is-open")} /></span>
     </summary>
-    <div className="creator-recording-content"><CreatorWho /></div>
+    <div className="creator-recording-content"><SpeechCreationRoute /></div>
   </details>
 }

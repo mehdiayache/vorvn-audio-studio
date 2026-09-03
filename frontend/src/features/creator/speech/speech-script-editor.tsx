@@ -11,7 +11,7 @@ import { Textarea } from "@/components/ui/textarea"
 import type { TextView } from "@/hooks/use-creator-text"
 import { formatMicroMoney } from "@/lib/format"
 import { cn } from "@/lib/utils"
-import { useSpeechCreator } from "./speech/speech-creator-controller"
+import { useSpeechCreator } from "./speech-creator-controller"
 
 function textLabel(view: TextView) {
   return view === "raw" ? "Original" : view === "shaped" ? "Spoken" : "Tagged"
@@ -24,7 +24,7 @@ function TaggedScriptEditor({ value, onChange, autoFocus }: { value: string; onC
   return <Textarea className="tagged-script-editor" dir="auto" aria-label="Tagged script" value={value} onChange={(event) => onChange(event.target.value)} placeholder="Type or paste what should be said…" autoFocus={autoFocus} />
 }
 
-export function CreatorWords() {
+export function SpeechScriptEditor() {
   const creator = useSpeechCreator()
   const text = creator.textSession
   const [compareOpen, setCompareOpen] = useState(false)

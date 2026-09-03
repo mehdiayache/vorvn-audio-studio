@@ -35,6 +35,7 @@ const config = {
 } as unknown as StudioConfig
 
 const common = {
+  context: { workspace_id: 4 },
   config,
   directory,
   playerPlaying: false,
@@ -44,7 +45,7 @@ const common = {
 
 describe("shared Creator contract", () => {
   it("keeps recording context attached above a dominant script workspace", async () => {
-    render(<CreatorSurface {...common} presentation="dialog" projectId={3} />)
+    render(<CreatorSurface {...common} presentation="dialog" context={{ workspace_id: 4, project_id: 3, selection: { target: "script_part" } }} />)
     expect(await screen.findByRole("region", { name: "Voice and recording context" })).toBeTruthy()
     expect(screen.getByRole("main", { name: "Script canvas" })).toBeTruthy()
     expect(screen.getByRole("complementary", { name: "Sound and output" })).toBeTruthy()
@@ -55,7 +56,7 @@ describe("shared Creator contract", () => {
   it("keeps the full Creator contract available in compact inline presentation with a 20k script", async () => {
     const script = "A deliberate long-form narration sentence with performance detail. ".repeat(350).slice(0, 20_000)
     const part = { id: 6, kind: "draft", text: script, text_raw: script, revision: 1, cost: 0, created_at: "", position: 4, voice_identity_id: "identity-sarah", binding_id: "binding-sarah" } as ProjectPart
-    render(<CreatorSurface {...common} presentation="inline" projectId={3} part={part} />)
+    render(<CreatorSurface {...common} presentation="inline" context={{ workspace_id: 4, project_id: 3, selection: { target: "script_part" } }} part={part} />)
     const editor = await screen.findByRole("textbox", { name: "Original script" }) as HTMLTextAreaElement
     expect(editor.value).toHaveLength(20_000)
     expect(screen.getByLabelText("Performance and output settings")).toBeTruthy()
@@ -74,6 +75,12 @@ describe("shared Creator contract", () => {
     expect(screen.getByRole("button", { name: "Generate audio" }).hasAttribute("disabled")).toBe(true)
   })
 
+  it("keeps a Project Library creation reusable unless the context explicitly targets a Script Part", async () => {
+    render(<CreatorSurface {...common} context={{ workspace_id: 4, project_id: 3 }} />)
+    await waitFor(() => expect(screen.getByRole("button", { name: "Generate audio" })).toBeTruthy())
+    expect(screen.queryByRole("button", { name: /Generate and add Part/ })).toBeNull()
+  })
+
   it("keeps standalone generation visibly locked for the full durable job", async () => {
     render(<CreatorSurface {...common} generationState="active" />)
     const button = await screen.findByRole("button", { name: "Generating audio…" })
@@ -82,7 +89,7 @@ describe("shared Creator contract", () => {
 
   it("restores the exact persisted Part route for editing", async () => {
     const part = { id: 7, kind: "speech", text: "Hello", cost: 0, created_at: "", position: 0, voice_identity_id: "identity-sarah", binding_id: "binding-sarah" } as ProjectPart
-    render(<CreatorSurface {...common} projectId={3} part={part} />)
+    render(<CreatorSurface {...common} context={{ workspace_id: 4, project_id: 3, selection: { target: "script_part" } }} part={part} />)
     await waitFor(() => expect(screen.getAllByText("Sarah").length).toBeGreaterThan(0))
     expect(screen.getAllByText("Expressive + tags").length).toBeGreaterThan(0)
     expect(screen.getByRole("button", { name: /Generate Part/ }).hasAttribute("disabled")).toBe(false)
@@ -108,14 +115,14 @@ describe("shared Creator contract", () => {
       model: "qwen-audio-flash",
       capability_id: "expressive_tags",
     } as ProjectPart
-    render(<CreatorSurface {...common} projectId={3} part={part} />)
+    render(<CreatorSurface {...common} context={{ workspace_id: 4, project_id: 3, selection: { target: "script_part" } }} part={part} />)
     await waitFor(() => expect(screen.getAllByText("Expressive + tags").length).toBeGreaterThan(0))
     expect(screen.getByRole("button", { name: /Generate Part/ }).hasAttribute("disabled")).toBe(false)
   })
 
   it("labels an existing recording as one safe replacement action", async () => {
     const part = { id: 7, kind: "speech", text: "Hello", text_raw: "Hello", clip_id: 44, cost: 0, created_at: "", position: 0, voice_identity_id: "identity-sarah", binding_id: "binding-sarah" } as ProjectPart
-    render(<CreatorSurface {...common} projectId={3} part={part} />)
+    render(<CreatorSurface {...common} context={{ workspace_id: 4, project_id: 3, selection: { target: "script_part" } }} part={part} />)
     await waitFor(() => expect(screen.getByRole("button", { name: "Generate again" }).hasAttribute("disabled")).toBe(false))
   })
 
@@ -141,7 +148,7 @@ describe("shared Creator contract", () => {
       binding_id: "binding-eva-cosy",
       capability_id: "controlled_exact",
     } as ProjectPart
-    render(<CreatorSurface {...common} projectId={3} part={part} />)
+    render(<CreatorSurface {...common} context={{ workspace_id: 4, project_id: 3, selection: { target: "script_part" } }} part={part} />)
 
     expect(await screen.findByText("This recording method cannot record the current Tagged version.")).toBeTruthy()
     expect(screen.getByText("Original and Spoken remain available. Nothing will be deleted.")).toBeTruthy()
@@ -169,7 +176,7 @@ describe("shared Creator contract", () => {
       binding_id: "binding-eva-cosy",
       capability_id: "controlled_exact",
     } as ProjectPart
-    render(<CreatorSurface {...common} projectId={3} part={part} onGenerate={onGenerate} onUpdateEditorial={onUpdateEditorial} />)
+    render(<CreatorSurface {...common} context={{ workspace_id: 4, project_id: 3, selection: { target: "script_part" } }} part={part} onGenerate={onGenerate} onUpdateEditorial={onUpdateEditorial} />)
 
     fireEvent.click(await screen.findByRole("button", { name: "Convert to SSML" }))
     expect((screen.getByRole("textbox", { name: "Original SSML document" }) as HTMLTextAreaElement).value)
@@ -203,7 +210,7 @@ describe("shared Creator contract", () => {
       binding_id: "binding-eva-cosy",
       capability_id: "controlled_exact",
     } as ProjectPart
-    render(<CreatorSurface {...common} projectId={3} part={part} onGenerate={onGenerate} />)
+    render(<CreatorSurface {...common} context={{ workspace_id: 4, project_id: 3, selection: { target: "script_part" } }} part={part} onGenerate={onGenerate} />)
 
     expect(await screen.findByText(/Invalid SSML:/)).toBeTruthy()
     expect(screen.getByRole("button", { name: /Generate Part/ }).hasAttribute("disabled")).toBe(true)
@@ -230,7 +237,7 @@ describe("shared Creator contract", () => {
       capability_id: "controlled_exact",
     } as ProjectPart
 
-    render(<CreatorSurface {...common} projectId={3} part={part} />)
+    render(<CreatorSurface {...common} context={{ workspace_id: 4, project_id: 3, selection: { target: "script_part" } }} part={part} />)
 
     await waitFor(() => expect(originsApi.creatorDraft).toHaveBeenCalled())
     fireEvent.change(screen.getByPlaceholderText("Type or paste what should be said…"), { target: { value: "The room became very quiet." } })
@@ -242,7 +249,7 @@ describe("shared Creator contract", () => {
   it("shows and edits the authored story role as Part metadata", async () => {
     const onUpdateEditorial = vi.fn().mockResolvedValue(undefined)
     const part = { id: 7, kind: "speech", text: "Hello", text_raw: "Hello", authored_role: "narrator", revision: 3, cost: 0, created_at: "", position: 0, voice_identity_id: "identity-sarah", binding_id: "binding-sarah" } as ProjectPart
-    render(<CreatorSurface {...common} presentation="dialog" projectId={3} part={part} onUpdateEditorial={onUpdateEditorial} />)
+    render(<CreatorSurface {...common} presentation="dialog" context={{ workspace_id: 4, project_id: 3, selection: { target: "script_part" } }} part={part} onUpdateEditorial={onUpdateEditorial} />)
     expect(await screen.findByText("Speech · Edit Narrator · Part 01")).toBeTruthy()
     fireEvent.click(screen.getByRole("button", { name: "Narrator" }))
     fireEvent.change(screen.getByLabelText("Story role"), { target: { value: "Esther" } })
@@ -254,7 +261,7 @@ describe("shared Creator contract", () => {
     vi.spyOn(originsApi, "creatorDraft").mockResolvedValue(null)
     vi.spyOn(originsApi, "saveCreatorDraft").mockResolvedValue({ id: "draft-role", state: {} as never, version: 1, updatedAt: "now" })
     const onGenerate = vi.fn().mockResolvedValue({ id: "job-new-role" })
-    render(<CreatorSurface {...common} presentation="dialog" projectId={3} onGenerate={onGenerate} />)
+    render(<CreatorSurface {...common} presentation="dialog" context={{ workspace_id: 4, project_id: 3, selection: { target: "script_part" } }} onGenerate={onGenerate} />)
 
     fireEvent.click(await screen.findByRole("button", { name: "Add story role" }))
     fireEvent.change(screen.getByLabelText("Story role"), { target: { value: "  Night   Guide  " } })
@@ -288,7 +295,7 @@ describe("shared Creator contract", () => {
       voice_identity_id: "identity-sarah",
       binding_id: "binding-sarah",
     } as ProjectPart
-    render(<CreatorSurface {...common} projectId={3} part={part} />)
+    render(<CreatorSurface {...common} context={{ workspace_id: 4, project_id: 3, selection: { target: "script_part" } }} part={part} />)
 
     expect((await screen.findByRole("textbox", { name: "Spoken script" }) as HTMLTextAreaElement).value).toBe("The signal is live…")
     fireEvent.click(screen.getByRole("button", { name: "Compare script versions" }))
@@ -314,7 +321,7 @@ describe("shared Creator contract", () => {
       voice_identity_id: "identity-sarah",
       binding_id: "binding-sarah",
     } as ProjectPart
-    render(<CreatorSurface {...common} projectId={3} part={part} />)
+    render(<CreatorSurface {...common} context={{ workspace_id: 4, project_id: 3, selection: { target: "script_part" } }} part={part} />)
 
     const editor = await screen.findByRole("textbox", { name: "Tagged script" }) as HTMLTextAreaElement
     editor.focus()
@@ -357,7 +364,7 @@ describe("shared Creator contract", () => {
         },
       },
     } as ProjectPart
-    render(<CreatorSurface {...common} projectId={3} part={part} onGenerate={onGenerate} />)
+    render(<CreatorSurface {...common} context={{ workspace_id: 4, project_id: 3, selection: { target: "script_part" } }} part={part} onGenerate={onGenerate} />)
 
     expect((await screen.findByRole("textbox", { name: "Tagged script" }) as HTMLTextAreaElement).value).toBe(taggedText)
     expect(screen.getByRole("button", { name: "Recording mode" }).textContent).toContain("Expressive + tags")
@@ -378,7 +385,7 @@ describe("shared Creator contract", () => {
     const onGenerate = vi.fn().mockResolvedValue({ id: "job-1" })
     const onUpdateEditorial = vi.fn().mockResolvedValue(undefined)
     const part = { id: 8, kind: "draft", text: "Original words", text_raw: "Original words", revision: 3, cost: 0, created_at: "", position: 0, voice_identity_id: "identity-sarah", binding_id: "binding-sarah" } as ProjectPart
-    render(<CreatorSurface {...common} projectId={3} part={part} onGenerate={onGenerate} onUpdateEditorial={onUpdateEditorial} />)
+    render(<CreatorSurface {...common} context={{ workspace_id: 4, project_id: 3, selection: { target: "script_part" } }} part={part} onGenerate={onGenerate} onUpdateEditorial={onUpdateEditorial} />)
     await waitFor(() => expect(screen.getByRole("button", { name: /Generate Part/ }).hasAttribute("disabled")).toBe(false))
     fireEvent.change(screen.getByPlaceholderText("Type or paste what should be said…"), { target: { value: "Revised words" } })
     fireEvent.click(screen.getByRole("button", { name: /Generate Part/ }))
