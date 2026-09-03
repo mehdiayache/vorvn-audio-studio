@@ -261,8 +261,6 @@ describe("shared Creator contract", () => {
     fireEvent.click(screen.getByRole("button", { name: "Save role" }))
     expect(await screen.findByRole("button", { name: "Night Guide" })).toBeTruthy()
 
-    fireEvent.click(screen.getByRole("combobox", { name: "Speech model" }))
-    fireEvent.click(await screen.findByRole("option", { name: /qwen-audio-flash/i }))
     await waitFor(() => expect(screen.getByRole("combobox", { name: "Speech model" }).textContent).toContain("Qwen"))
     fireEvent.click(screen.getByRole("button", { name: "Choose a voice" }))
     fireEvent.click(screen.getByRole("button", { name: /Sarah.*1 method/ }))

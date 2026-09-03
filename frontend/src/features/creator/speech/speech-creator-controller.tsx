@@ -111,6 +111,10 @@ export function useSpeechCreatorController({ projectId, nextPartNumber = 1, inse
     [directory.identities, directory.registry],
   )
   const modelRoutes = useMemo(() => speechModelRoutes(identities), [identities])
+  const configuredModelIds = useMemo(() => new Set(
+    Object.values(config?.capabilities || {}).flatMap((capability) => Object.values(capability.models || {})),
+  ), [config?.capabilities])
+  const defaultModelRoute = modelRoutes.find((item) => configuredModelIds.has(item.modelId)) || modelRoutes[0]
   const routeFromSelection = identities.flatMap((identity) => identity.routes)
     .find((item) => item.id === routeSelectionId(route))
   const selectedIdentity = identities.find((identity) => identity.identityId === identityId)
@@ -122,7 +126,7 @@ export function useSpeechCreatorController({ projectId, nextPartNumber = 1, inse
       ? speechModelKey(routeFromSelection)
       : replacementRoute
         ? speechModelKey(replacementRoute)
-      : modelRoutes[0] ? speechModelKey(modelRoutes[0]) : ""
+      : defaultModelRoute ? speechModelKey(defaultModelRoute) : ""
   const voiceOptions = useMemo(
     () => identitiesForSpeechModel(identities, activeModelKey),
     [activeModelKey, identities],
@@ -173,10 +177,6 @@ export function useSpeechCreatorController({ projectId, nextPartNumber = 1, inse
     const exactRoute = routeForSpeechModel(identity, activeModelKey)
     setRoute(exactRoute ? routeSelection(exactRoute, exactRoute.capabilities[0]?.id || null) : null)
   }
-
-  useEffect(() => {
-    if (activeModelKey && activeModelKey !== selectedModelKey) setSelectedModelKey(activeModelKey)
-  }, [activeModelKey, selectedModelKey])
 
   useEffect(() => {
     if (!identities.length) return
