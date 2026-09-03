@@ -12,7 +12,6 @@ import { originsApi, type CreatorContext } from "@/lib/api"
 import type { WorkspaceFile, WorkspaceFolder } from "@/types/domain"
 import { isVisualFile } from "@/features/creator/library/visual-file-presentation"
 import { ProjectLibraryGallery } from "./project-library-gallery"
-import { ProjectLibraryDialog } from "./project-library-dialog"
 import { FilePreviewDialog } from "@/features/creator/library/file-preview-dialog"
 import type { ProjectLibraryUploadItem } from "./project-library-upload-card"
 import "./project-library-stage.css"
@@ -25,14 +24,16 @@ function projectFileIssue(file: File) {
   if (file.size > 1_000_000_000) return `${file.name} is over the 1 GB File limit.`
   return null
 }
-export function ProjectLibraryStage({ centerPaneRef, projectId, workspaceId, createOpen, onCreateOpenChange, folders = [], files, libraryFileIds, usageCounts, playingFileId, onPlayAudio, onUpload, onRefresh, onAddToTimeline, onConfirmAction }: {
+export function ProjectLibraryStage({ centerPaneRef, projectId, workspaceId, folderId, createOpen, onCreateOpenChange, folders = [], files, projectFileIds = [], libraryFileIds, usageCounts, playingFileId, onPlayAudio, onUpload, onRefresh, onAddToTimeline, onConfirmAction }: {
   centerPaneRef?: RefObject<HTMLElement | null>
   projectId: number
   workspaceId: number
+  folderId?: number | null
   folders?: WorkspaceFolder[]
   createOpen?: boolean
   onCreateOpenChange?: (open: boolean) => void
   files: WorkspaceFile[]
+  projectFileIds?: number[]
   libraryFileIds: number[]
   usageCounts?: ReadonlyMap<number, number>
   playingFileId?: number | null
@@ -45,7 +46,6 @@ export function ProjectLibraryStage({ centerPaneRef, projectId, workspaceId, cre
   const player = useGlobalPlayer()
   const [internalCreatorOpen, setInternalCreatorOpen] = useState(true)
   const inputRef = useRef<HTMLInputElement>(null)
-  const [libraryOpen, setLibraryOpen] = useState(false)
   const [previewFile, setPreviewFile] = useState<WorkspaceFile | null>(null)
   const [pendingId, setPendingId] = useState<number | null>(null)
   const [uploads, setUploads] = useState<ProjectLibraryUploadItem[]>([])
@@ -57,17 +57,10 @@ export function ProjectLibraryStage({ centerPaneRef, projectId, workspaceId, cre
   const selectedIds = useMemo(() => new Set(libraryFileIds), [libraryFileIds])
   const creatorContext = useMemo<CreatorContext>(() => ({
     workspace_id: workspaceId,
+    folder_id: folderId ?? null,
     project_id: projectId,
     project_type: "audiovisual",
-  }), [projectId, workspaceId])
-  const collected = useMemo(() => {
-    const byId = new Map(files.map((file) => [file.id, file]))
-    return [...libraryFileIds].reverse().flatMap((id) => {
-      const file = byId.get(id)
-      return file ? [file] : []
-    })
-  }, [files, libraryFileIds])
-  const available = useMemo(() => files.filter((file) => !selectedIds.has(file.id)), [files, selectedIds])
+  }), [folderId, projectId, workspaceId])
   const panelOpen = createOpen ?? internalCreatorOpen
   const setPanelOpen = onCreateOpenChange ?? setInternalCreatorOpen
 
@@ -190,7 +183,7 @@ export function ProjectLibraryStage({ centerPaneRef, projectId, workspaceId, cre
       event.target.value = ""
     }} />
     {error && <div className="project-library-error" role="alert"><b>Library could not finish that action.</b><span>{error}</span></div>}
-    <ProjectLibraryGallery folders={folders} files={collected.filter(({ id }) => !generatedOutputIds.has(id))} uploads={uploads} creationItems={generationItems} usageCounts={usageCounts} pendingId={pendingId} playingFileId={playingFileId} onPlayAudio={onPlayAudio} onPreview={setPreviewFile} onAddToTimeline={onAddToTimeline ? (file) => {
+    <ProjectLibraryGallery folders={folders} files={files.filter(({ id }) => !generatedOutputIds.has(id))} projectFileIds={projectFileIds} libraryFileIds={libraryFileIds} currentFolderId={folderId} uploads={uploads} creationItems={generationItems} usageCounts={usageCounts} pendingId={pendingId} playingFileId={playingFileId} onPlayAudio={onPlayAudio} onPreview={setPreviewFile} onAddToProject={(file) => void attach(file)} onAddToTimeline={onAddToTimeline ? (file) => {
       setPendingId(file.id)
       void onAddToTimeline(file).catch((reason) => setError(reason instanceof Error ? reason.message : "The File could not be added to Timeline.")).finally(() => setPendingId(null))
     } : undefined} onRemove={(file) => {
@@ -201,7 +194,7 @@ export function ProjectLibraryStage({ centerPaneRef, projectId, workspaceId, cre
         description: "This removes the File from this Project Library. It remains reusable in the Workspace Library, and Timeline placements are not changed.",
         confirmLabel: "Remove from Project", variant: "default", action: () => remove(file),
       })
-    }} onRetryUpload={retryUpload} onDismissUpload={releaseUpload} onUpload={() => inputRef.current?.click()} onOpenLibrary={() => setLibraryOpen(true)} />
+    }} onRetryUpload={retryUpload} onDismissUpload={releaseUpload} onUpload={() => inputRef.current?.click()} />
   </>
   const libraryPaneProps: ComponentPropsWithoutRef<"main"> = {
     onDragEnter: (event) => {
@@ -238,12 +231,12 @@ export function ProjectLibraryStage({ centerPaneRef, projectId, workspaceId, cre
       onCreatorOpenChange={setPanelOpen}
     >{(session) => <CreatorCapabilityDispatcher
         session={session}
-        libraryDetail={`${collected.length} Project File${collected.length === 1 ? "" : "s"}`}
+        libraryDetail={`${projectFileIds.length} Project File${projectFileIds.length === 1 ? "" : "s"}`}
         mediaProps={{
           uploading: Boolean(activeUploads.length),
           uploadLabel,
           libraryFiles: files,
-          recentFileIds: [...libraryFileIds].reverse(),
+          recentFileIds: [...projectFileIds].reverse(),
           usageCounts,
           onUploadReference: uploadReference,
           onPreviewFile: setPreviewFile,
@@ -267,7 +260,6 @@ export function ProjectLibraryStage({ centerPaneRef, projectId, workspaceId, cre
         } : undefined}
         renderLibrary={({ generatedOutputIds, creationItems }) => projectLibrary(generatedOutputIds, creationItems)}
       />}</CreatorHost>
-    <ProjectLibraryDialog open={libraryOpen} folders={folders} files={available} usedFileIds={[...(usageCounts?.keys() || [])]} pendingId={pendingId} defaultSource="all" showProjectSource={false} onOpenChange={setLibraryOpen} onPreview={setPreviewFile} onAdd={(file) => void attach(file)} />
     <FilePreviewDialog file={previewFile} pending={Boolean(previewFile && pendingId === previewFile.id)} primaryLabel="Add to Timeline" onPrimaryAction={onAddToTimeline ? (file) => {
       setPendingId(file.id)
       void onAddToTimeline(file).then(() => setPreviewFile(null)).catch((reason) => setError(reason instanceof Error ? reason.message : "The File could not be added to Timeline.")).finally(() => setPendingId(null))

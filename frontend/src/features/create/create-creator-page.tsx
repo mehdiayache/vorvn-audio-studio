@@ -9,7 +9,8 @@ import { ErrorState, PageLoading } from "@/components/state-panel"
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { CreatorCapabilityDispatcher } from "@/features/creator/creator-capability-dispatcher"
 import { CreatorHost, type CreatorCapabilityId } from "@/features/creator/creator-host"
-import { CreatorLibraryBrowser, type CreatorLibraryKind } from "@/features/creator/library/creator-library-browser"
+import { CreatorLibraryBrowser } from "@/features/creator/library/creator-library-browser"
+import type { LibraryTypeFilter } from "@/features/library/library-query"
 import { FilePreviewDialog } from "@/features/creator/library/file-preview-dialog"
 import { CreatorLibraryWorkspace } from "@/features/creator/library/creator-library-workspace"
 import { WorkspaceExplorerPage } from "@/features/workspace/explorer/workspace-explorer-page"
@@ -170,7 +171,7 @@ export function CreateCreatorPage() {
         creatorDetail={action.title}
         libraryDetail={`${libraryFiles.length} reusable File${libraryFiles.length === 1 ? "" : "s"} · ${workspaceName}`}
         creator={<Suspense fallback={<PageLoading label="Opening subtitle controls" />}><SubtitleCreator embedded panelOnly onLibraryChange={refresh} /></Suspense>}
-        library={<CreatorLibraryBrowser files={libraryFiles} folders={overview.data?.folders || []} initialKind={action.capability as CreatorLibraryKind} selectedFileId={previewFile?.id} playingKey={player.source?.key} playerPlaying={player.state === "playing"} onSelect={setPreviewFile} onPlay={(source) => void player.toggleSource(source)} onUpload={() => uploadInputRef.current?.click()} />}
+        library={<CreatorLibraryBrowser files={libraryFiles} folders={overview.data?.folders || []} initialKind={action.capability as LibraryTypeFilter} selectedFileId={previewFile?.id} playingKey={player.source?.key} playerPlaying={player.state === "playing"} onSelect={setPreviewFile} onPlay={(source) => void player.toggleSource(source)} onUpload={() => uploadInputRef.current?.click()} />}
       /> : <CreatorHost context={context!} initialCapability={creatorCapability} onCapabilityChange={(capability) => {
         setActiveCapability(capability)
         const query = searchParams.toString()

@@ -1,7 +1,7 @@
 .creator-library-browser { min-width: 0; min-height: 100%; display: grid; grid-template-rows: auto minmax(0, 1fr); align-content: start; }
 .creator-library-browser-tools { position: sticky; z-index: 3; top: 0; display: grid; gap: .55rem; padding: .7rem .8rem; border-bottom: 1px solid var(--border); background: var(--surface-raised); }
-.creator-library-browser-primary { min-width: 0; display: grid; grid-template-columns: minmax(12rem, 1fr) auto auto; gap: .45rem; }
-.creator-library-browser-primary > label { position: relative; }
+.creator-library-browser-primary { min-width: 0; display: flex; align-items: center; flex-wrap: wrap; gap: .45rem; }
+.creator-library-browser-primary > label { position: relative; min-width: 12rem; flex: 1 1 18rem; }
 .creator-library-browser-primary > label > svg { position: absolute; z-index: 1; top: .63rem; left: .65rem; width: .9rem; color: var(--muted-foreground); }
 .creator-library-browser-primary input { padding-left: 2rem; }
 .creator-library-browser-primary [data-slot="select-trigger"] { min-width: 9rem; }

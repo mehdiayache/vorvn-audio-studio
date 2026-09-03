@@ -54,7 +54,12 @@ export function CreatorCapabilityDispatcher({
   const library = (generatedOutputIds = new Set<number>(), creationItems: CreatorLibraryCreationItem[] = []) => renderLibrary({
     capability,
     generatedOutputIds,
-    creationItems,
+    creationItems: creationItems.map((item) => ({
+      ...item,
+      folderId: context.folder_id ?? null,
+      projectAssociated: Boolean(context.project_id),
+      searchText: item.searchText || creatorCapabilityLabel(capability),
+    })),
   })
 
   useEffect(() => {

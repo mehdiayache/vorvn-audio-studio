@@ -15,7 +15,12 @@ import {
   Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle,
 } from "@/components/ui/dialog"
 import { Input } from "@/components/ui/input"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Textarea } from "@/components/ui/textarea"
+import {
+  createLibraryQuery, LIBRARY_SOURCE_OPTIONS, LIBRARY_TYPE_OPTIONS, queryLibraryFiles,
+  type LibrarySourceFilter, type LibraryTypeFilter,
+} from "@/features/library/library-query"
 import { useAsyncAction } from "@/hooks/use-async-action"
 import { useWorkspaceExplorer } from "@/hooks/use-workspace-explorer"
 import { originsApi } from "@/lib/api"
@@ -100,13 +105,19 @@ function ExplorerContent({ workspaceOverview, view, actions, actionsError, onRet
   onSelectedFolderId: (folderId: number | null) => void
 }) {
   const [query, setQuery] = useState("")
+  const [fileType, setFileType] = useState<LibraryTypeFilter>("all")
+  const [fileSource, setFileSource] = useState<LibrarySourceFilter>("all")
   const normalizedQuery = query.trim().toLowerCase()
   const projects = workspaceOverview.projects.filter((project) =>
     (selectedFolderId === null || project.folder_id === selectedFolderId)
     && (!normalizedQuery || project.name.toLowerCase().includes(normalizedQuery)))
-  const files = workspaceOverview.files.filter((file) =>
-    (selectedFolderId === null || file.folder_id === selectedFolderId)
-    && (!normalizedQuery || `${file.name} ${file.source} ${(file.tags || []).join(" ")}`.toLowerCase().includes(normalizedQuery)))
+  const libraryQuery = useMemo(() => createLibraryQuery({
+    search: query,
+    type: fileType,
+    source: fileSource,
+    folder: selectedFolderId === null ? "all" : String(selectedFolderId) as `${number}`,
+  }), [fileSource, fileType, query, selectedFolderId])
+  const files = useMemo(() => queryLibraryFiles(workspaceOverview.files, libraryQuery), [libraryQuery, workspaceOverview.files])
   const showProjects = view !== "files"
   const showFiles = view !== "projects"
 
@@ -125,6 +136,8 @@ function ExplorerContent({ workspaceOverview, view, actions, actionsError, onRet
 
     <div className="workspace-library-toolbar">
       <label><Search /><Input value={query} onChange={(event) => setQuery(event.target.value)} placeholder={`Search ${view === "projects" ? "Projects" : view === "files" ? "Files" : "this Workspace"}`} /></label>
+      {showFiles && <Select value={fileType} onValueChange={(value) => setFileType(value as LibraryTypeFilter)}><SelectTrigger aria-label="File type"><SelectValue /></SelectTrigger><SelectContent>{LIBRARY_TYPE_OPTIONS.map((item) => <SelectItem value={item.id} key={item.id}>{item.id === "all" ? "All Files" : item.label}</SelectItem>)}</SelectContent></Select>}
+      {showFiles && <Select value={fileSource} onValueChange={(value) => setFileSource(value as LibrarySourceFilter)}><SelectTrigger aria-label="File source"><SelectValue /></SelectTrigger><SelectContent>{LIBRARY_SOURCE_OPTIONS.map((item) => <SelectItem value={item.id} key={item.id}>{item.label}</SelectItem>)}</SelectContent></Select>}
       {showProjects && <Button variant="outline" onClick={onNewProject}><Plus /> New Project</Button>}
       {showFiles && <Button variant="outline" onClick={onUploadFile}><Upload /> Upload File</Button>}
       <OperatorIconButton label="New Folder" detail="Folders organize Projects and Files without changing their technical identity." variant="outline" onClick={onNewFolder}><FolderPlus /></OperatorIconButton>

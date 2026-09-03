@@ -14,8 +14,12 @@ import { Skeleton } from "@/components/ui/skeleton"
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { AUDIO_SOURCE_LABELS, AudioSourceBadge, FreesoundMark } from "@/features/sound-scene/audio-identity"
 import { audioFileCategory } from "@/features/sound-scene/audio-presentation"
+import {
+  createLibraryQuery, LIBRARY_SOURCE_OPTIONS, LIBRARY_USAGE_OPTIONS, queryLibraryFiles,
+  type LibrarySourceFilter, type LibraryUsageFilter,
+} from "@/features/library/library-query"
 import { audioUrl, originsApi } from "@/lib/api"
-import { fileSource, type FileSource } from "@/lib/file-provenance"
+import { fileSource } from "@/lib/file-provenance"
 import { formatBytes } from "@/lib/format"
 import type { AudioFileCategory, CatalogKeepResult, CatalogLicense, CatalogSound, PlayerSource, WorkspaceFile } from "@/types/domain"
 
@@ -31,9 +35,7 @@ export type CatalogKeepInput = { result: CatalogSound; name: string; category: A
 export type FileUpdateInput = { name: string; category: AudioFileCategory | null; tags: string[] }
 
 type LibraryView = "library" | "upload" | "search" | "generate"
-type SourceFilter = "all" | FileSource
 type DurationFilter = "all" | "under-3" | "3-10" | "10-30" | "30-120" | "over-120"
-type UsageFilter = "all" | "used" | "unused"
 type FileSort = "recent" | "name" | "duration"
 
 const FILE_LIBRARY = "Files"
@@ -55,9 +57,9 @@ export function AudioLibrary({ context, files, loading = false, refreshing = fal
   const [view, setView] = useState<LibraryView>("library")
   const [query, setQuery] = useState("")
   const [category, setCategory] = useState<"all" | "unclassified" | AudioFileCategory>("all")
-  const [sourceFilter, setSourceFilter] = useState<SourceFilter>("all")
+  const [sourceFilter, setSourceFilter] = useState<LibrarySourceFilter>("all")
   const [durationFilter, setDurationFilter] = useState<DurationFilter>("all")
-  const [usageFilter, setUsageFilter] = useState<UsageFilter>("all")
+  const [usageFilter, setUsageFilter] = useState<LibraryUsageFilter>("any")
   const [tagFilters, setTagFilters] = useState<string[]>([])
   const [fileSort, setFileSort] = useState<FileSort>("recent")
   const [dragging, setDragging] = useState(false)
@@ -82,17 +84,24 @@ export function AudioLibrary({ context, files, loading = false, refreshing = fal
   const [kept, setKept] = useState<Record<string, number>>({})
 
   const audioFiles = useMemo(
-    () => files.filter((file) => (file.media_type || "audio") === "audio"),
+    () => queryLibraryFiles(files, createLibraryQuery({ type: "audio" })),
     [files],
   )
   const usedIds = useMemo(() => new Set(usedFileIds), [usedFileIds])
   const existingTags = useMemo(() => [...new Set(audioFiles.flatMap((file) => file.tags || []))]
     .sort((left, right) => left.localeCompare(right)), [audioFiles])
-  const eligible = useMemo(() => audioFiles.filter((file) => {
+  const commonQuery = useMemo(() => createLibraryQuery({
+    type: "audio",
+    source: sourceFilter,
+    search: query,
+    usage: usageFilter,
+    sort: fileSort === "name" ? "name" : "recent",
+  }), [fileSort, query, sourceFilter, usageFilter])
+  const commonFiles = useMemo(() => queryLibraryFiles(audioFiles, commonQuery, { usedFileIds: usedIds }), [audioFiles, commonQuery, usedIds])
+  const eligible = useMemo(() => commonFiles.filter((file) => {
     const fileCategory = audioFileCategory(file)
     const matchesCategory = category === "all"
       || (category === "unclassified" ? !fileCategory : fileCategory === category)
-    const used = usedIds.has(file.id)
     const seconds = Number(file.duration_ms || 0) / 1000
     const matchesDuration = durationFilter === "all"
       || durationFilter === "under-3" && seconds < 3
@@ -101,25 +110,14 @@ export function AudioLibrary({ context, files, loading = false, refreshing = fal
       || durationFilter === "30-120" && seconds >= 30 && seconds < 120
       || durationFilter === "over-120" && seconds >= 120
     const matchesTags = tagFilters.every((tag) => (file.tags || []).includes(tag))
-    const matchesUsage = usageFilter === "all"
-      || (usageFilter === "used" && used)
-      || (usageFilter === "unused" && !used)
-    return matchesCategory && matchesDuration && matchesTags && matchesUsage
-      && (sourceFilter === "all" || fileSource(file) === sourceFilter)
-  }), [audioFiles, category, durationFilter, sourceFilter, tagFilters, usageFilter, usedIds])
-  const normalizedQuery = query.trim().toLocaleLowerCase()
-  const shown = eligible.filter((file) => {
-    const sourceTags = Array.isArray(file.metadata?.source_tags) ? file.metadata.source_tags.join(" ") : ""
-    return `${audioFileTitle(file)} ${file.category || ""} ${(file.tags || []).join(" ")} ${sourceTags}`.toLocaleLowerCase().includes(normalizedQuery)
-  }).sort((left, right) => {
-    if (fileSort === "name") return audioFileTitle(left).localeCompare(audioFileTitle(right))
+    return matchesCategory && matchesDuration && matchesTags
+  }), [category, commonFiles, durationFilter, tagFilters])
+  const shown = [...eligible].sort((left, right) => {
     if (fileSort === "duration") return Number(left.duration_ms || 0) - Number(right.duration_ms || 0)
-    const leftTime = Date.parse(String(left.created_at || left.updated_at || "")) || left.id
-    const rightTime = Date.parse(String(right.created_at || right.updated_at || "")) || right.id
-    return rightTime - leftTime
+    return 0
   })
-  const activeFilterCount = [category !== "all", sourceFilter !== "all", durationFilter !== "all", usageFilter !== "all", fileSort !== "recent"].filter(Boolean).length + tagFilters.length
-  const clearFilters = () => { setCategory("all"); setSourceFilter("all"); setDurationFilter("all"); setUsageFilter("all"); setTagFilters([]); setFileSort("recent") }
+  const activeFilterCount = [category !== "all", sourceFilter !== "all", durationFilter !== "all", usageFilter !== "any", fileSort !== "recent"].filter(Boolean).length + tagFilters.length
+  const clearFilters = () => { setCategory("all"); setSourceFilter("all"); setDurationFilter("all"); setUsageFilter("any"); setTagFilters([]); setFileSort("recent") }
   const selected = audioFiles.find((file) => file.id === selectedId) || null
   const selectedCatalog = catalogResults.find((result) => result.external_id === selectedCatalogId) || null
   const selectCatalog = (result: CatalogSound) => {
@@ -230,8 +228,8 @@ export function AudioLibrary({ context, files, loading = false, refreshing = fal
             <div className="file-filter-grid">
               <label><span>Category</span><Select value={category} onValueChange={(value) => setCategory(value as "all" | "unclassified" | AudioFileCategory)}><SelectTrigger aria-label="File category"><SelectValue /></SelectTrigger><SelectContent><SelectItem value="all">All categories</SelectItem><SelectItem value="unclassified">No category</SelectItem>{FILE_CATEGORIES.map(([value, label]) => <SelectItem key={value} value={value}>{label}</SelectItem>)}</SelectContent></Select></label>
               <label><span>Duration</span><Select value={durationFilter} onValueChange={(value) => setDurationFilter(value as DurationFilter)}><SelectTrigger aria-label="File duration"><SelectValue /></SelectTrigger><SelectContent><SelectItem value="all">Any duration</SelectItem><SelectItem value="under-3">Under 3 seconds</SelectItem><SelectItem value="3-10">3–10 seconds</SelectItem><SelectItem value="10-30">10–30 seconds</SelectItem><SelectItem value="30-120">30 seconds–2 min</SelectItem><SelectItem value="over-120">2 min or longer</SelectItem></SelectContent></Select></label>
-              <label><span>Source</span><Select value={sourceFilter} onValueChange={(value) => setSourceFilter(value as SourceFilter)}><SelectTrigger aria-label="File source"><SelectValue /></SelectTrigger><SelectContent><SelectItem value="all">All sources</SelectItem>{(Object.keys(AUDIO_SOURCE_LABELS) as FileSource[]).map((source) => <SelectItem key={source} value={source}>{AUDIO_SOURCE_LABELS[source]}</SelectItem>)}</SelectContent></Select></label>
-              <label><span>Usage</span><Select value={usageFilter} onValueChange={(value) => setUsageFilter(value as UsageFilter)}><SelectTrigger aria-label="File usage in this Project"><SelectValue /></SelectTrigger><SelectContent><SelectItem value="all">Any usage</SelectItem><SelectItem value="used">Used in this Project</SelectItem><SelectItem value="unused">Unused here</SelectItem></SelectContent></Select></label>
+              <label><span>Source</span><Select value={sourceFilter} onValueChange={(value) => setSourceFilter(value as LibrarySourceFilter)}><SelectTrigger aria-label="File source"><SelectValue /></SelectTrigger><SelectContent>{LIBRARY_SOURCE_OPTIONS.map((option) => <SelectItem key={option.id} value={option.id}>{option.label}</SelectItem>)}</SelectContent></Select></label>
+              <label><span>Usage</span><Select value={usageFilter} onValueChange={(value) => setUsageFilter(value as LibraryUsageFilter)}><SelectTrigger aria-label="File usage in this Project"><SelectValue /></SelectTrigger><SelectContent>{LIBRARY_USAGE_OPTIONS.map((option) => <SelectItem key={option.id} value={option.id}>{option.label}</SelectItem>)}</SelectContent></Select></label>
               <label><span>Sort</span><Select value={fileSort} onValueChange={(value) => setFileSort(value as FileSort)}><SelectTrigger aria-label="Sort files"><SelectValue /></SelectTrigger><SelectContent><SelectItem value="recent">Recently added</SelectItem><SelectItem value="name">Name</SelectItem><SelectItem value="duration">Duration</SelectItem></SelectContent></Select></label>
             </div>
             <fieldset className="file-tag-filters"><legend>Tags</legend>{existingTags.length ? <div>{existingTags.map((tag) => <label key={tag}><Checkbox checked={tagFilters.includes(tag)} onCheckedChange={(checked) => setTagFilters((current) => checked ? [...current, tag] : current.filter((item) => item !== tag))} /><span>{tag}</span></label>)}</div> : <p>No tags exist in this Library yet.</p>}</fieldset>

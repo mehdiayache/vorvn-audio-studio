@@ -42,6 +42,7 @@ beforeEach(() => {
   ])
 })
 afterEach(() => { cleanup(); vi.clearAllMocks() })
+Element.prototype.scrollIntoView = vi.fn()
 
 describe("WorkspaceExplorerPage", () => {
   it("makes Create the entry while keeping Projects and Files visible", async () => {
@@ -79,6 +80,28 @@ describe("WorkspaceExplorerPage", () => {
     expect(await screen.findByRole("heading", { name: "Files" })).toBeTruthy()
     expect(screen.queryByRole("heading", { name: "Projects" })).toBeNull()
     expect(document.querySelector(".workspace-library-layout.has-single-column")).toBeTruthy()
+  })
+
+  it("searches and filters Workspace Files with the universal Library semantics", async () => {
+    vi.mocked(originsApi.workspace).mockResolvedValue({
+      ...overview,
+      files: [
+        { id: 30, public_id: "file-30", workspace_id: 4, name: "Campaign narration", media_type: "audio", source: "generated", category: "speech", tags: ["launch"] },
+        { id: 31, public_id: "file-31", workspace_id: 4, name: "Campaign brief", media_type: "document", source: "uploaded", tags: ["launch"] },
+      ],
+    })
+    renderPage("files")
+    expect(await screen.findByText("Campaign narration")).toBeTruthy()
+    expect(screen.getByText("Campaign brief")).toBeTruthy()
+
+    fireEvent.click(screen.getByRole("combobox", { name: "File type" }))
+    fireEvent.click(await screen.findByRole("option", { name: "Speech" }))
+    expect(screen.getByText("Campaign narration")).toBeTruthy()
+    expect(screen.queryByText("Campaign brief")).toBeNull()
+
+    fireEvent.click(screen.getByRole("combobox", { name: "File source" }))
+    fireEvent.click(await screen.findByRole("option", { name: "Uploaded" }))
+    expect(screen.queryByText("Campaign narration")).toBeNull()
   })
 
   it("uploads a File directly into the selected Workspace and refreshes Files", async () => {

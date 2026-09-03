@@ -8,7 +8,7 @@ vi.mock("@/components/ui/scroll-area", () => ({ ScrollArea: ({ children }: { chi
 import { AudioLibrary } from "./audio-library"
 import { originsApi } from "@/lib/api"
 
-const files = [{ id: 11, title: "Harbor Intro", folder: "Intros", filename: "harbor.wav", duration_ms: 8_400 }]
+const files = [{ id: 11, title: "Harbor Intro", folder: "Intros", filename: "harbor.wav", media_type: "audio" as const, duration_ms: 8_400 }]
 Element.prototype.scrollIntoView = vi.fn()
 globalThis.ResizeObserver = class ResizeObserver {
   observe() {}
@@ -50,9 +50,9 @@ describe("AudioLibrary", () => {
     expect(screen.getByRole("combobox", { name: "File usage in this Project" }).textContent).toContain("Any usage")
     expect(screen.getByRole("combobox", { name: "Sort files" }).textContent).toContain("Recently added")
     fireEvent.click(screen.getByRole("combobox", { name: "File source" }))
-    expect(screen.getByRole("option", { name: "AI" })).toBeTruthy()
-    expect(screen.getByRole("option", { name: "Import" })).toBeTruthy()
-    expect(screen.getByRole("option", { name: "Upload" })).toBeTruthy()
+    expect(screen.getByRole("option", { name: "Generated" })).toBeTruthy()
+    expect(screen.getByRole("option", { name: "Imported" })).toBeTruthy()
+    expect(screen.getByRole("option", { name: "Uploaded" })).toBeTruthy()
     expect(container.querySelector(".file-source-rail")).toBeNull()
   })
 
@@ -329,8 +329,8 @@ describe("AudioLibrary", () => {
 
   it("searches canonical names and tags", () => {
     const library = [
-      { id: 21, name: "Night room", category: "ambience", tags: ["quiet"] },
-      { id: 22, name: "Wooden knock", category: "sfx", tags: ["door"] },
+      { id: 21, name: "Night room", media_type: "audio" as const, category: "ambience", tags: ["quiet"] },
+      { id: 22, name: "Wooden knock", media_type: "audio" as const, category: "sfx", tags: ["door"] },
     ]
     const { container } = render(<AudioLibrary files={library} mode="sound" playerPlaying={false} onChoose={vi.fn()} onPlay={vi.fn()} onUpload={vi.fn()} onKeep={vi.fn()} />)
     const view = within(container)
@@ -341,8 +341,8 @@ describe("AudioLibrary", () => {
 
   it("can focus the audio Library on Files already used in this Project", () => {
     const library = [
-      { id: 21, name: "Night room" },
-      { id: 22, name: "Wooden knock" },
+      { id: 21, name: "Night room", media_type: "audio" as const },
+      { id: 22, name: "Wooden knock", media_type: "audio" as const },
     ]
     const { container } = render(<AudioLibrary files={library} usedFileIds={[22]} mode="sound" playerPlaying={false} onChoose={vi.fn()} onPlay={vi.fn()} onUpload={vi.fn()} onKeep={vi.fn()} />)
     const view = within(container)
@@ -350,7 +350,7 @@ describe("AudioLibrary", () => {
     expect(view.getAllByRole("button", { name: "Add to Timeline" })).toHaveLength(2)
     fireEvent.click(view.getByRole("button", { name: "Filters" }))
     fireEvent.click(screen.getByRole("combobox", { name: "File usage in this Project" }))
-    fireEvent.click(screen.getByRole("option", { name: "Used in this Project" }))
+    fireEvent.click(screen.getByRole("option", { name: "Used here" }))
 
     expect(view.getByRole("button", { name: "Select Wooden knock" })).toBeTruthy()
     expect(view.queryByRole("button", { name: "Select Night room" })).toBeNull()
@@ -372,16 +372,16 @@ describe("AudioLibrary", () => {
 
   it("combines duration, actual tags and Project usage filters with a clear count", () => {
     const library = [
-      { id: 21, name: "Short rain", duration_ms: 2_000, tags: ["rain", "soft"] },
-      { id: 22, name: "Room rain", duration_ms: 8_000, tags: ["rain"] },
-      { id: 23, name: "Long wind", duration_ms: 140_000, tags: ["wind"] },
+      { id: 21, name: "Short rain", media_type: "audio" as const, duration_ms: 2_000, tags: ["rain", "soft"] },
+      { id: 22, name: "Room rain", media_type: "audio" as const, duration_ms: 8_000, tags: ["rain"] },
+      { id: 23, name: "Long wind", media_type: "audio" as const, duration_ms: 140_000, tags: ["wind"] },
     ]
     render(<AudioLibrary files={library} usedFileIds={[22]} mode="sound" playerPlaying={false} onChoose={vi.fn()} onPlay={vi.fn()} onUpload={vi.fn()} onKeep={vi.fn()} />)
     fireEvent.click(screen.getByRole("button", { name: "Filters" }))
     fireEvent.click(screen.getByRole("combobox", { name: "File duration" }))
     fireEvent.click(screen.getByRole("option", { name: "3–10 seconds" }))
     fireEvent.click(screen.getByRole("combobox", { name: "File usage in this Project" }))
-    fireEvent.click(screen.getByRole("option", { name: "Used in this Project" }))
+    fireEvent.click(screen.getByRole("option", { name: "Used here" }))
     fireEvent.click(screen.getByRole("checkbox", { name: "rain" }))
 
     expect(screen.getByRole("button", { name: "Select Room rain" })).toBeTruthy()

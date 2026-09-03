@@ -4,7 +4,7 @@ import { ActionButton } from "@/components/operator-action"
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { formatDuration } from "@/lib/format"
 import type { WorkspaceFile } from "@/types/domain"
-import { creatorLibraryKind } from "./creator-library-browser"
+import { libraryFileType } from "@/features/library/library-query"
 import { fileDetailGroups, fileDisplayName, fileDisplayUrl, filePlaybackUrl, filePosterUrl } from "./file-presentation"
 
 import "./file-preview-dialog.css"
@@ -18,7 +18,7 @@ export function FilePreviewDialog({ file, pending = false, primaryLabel = "Use F
 }) {
   if (!file) return null
   const name = fileDisplayName(file)
-  const kind = creatorLibraryKind(file)
+  const kind = libraryFileType(file)
   const url = fileDisplayUrl(file)
   const details = fileDetailGroups(file)
   const Icon = kind === "image" ? ImageIcon : kind === "video" ? Video : kind === "subtitle" ? FileText : AudioLines

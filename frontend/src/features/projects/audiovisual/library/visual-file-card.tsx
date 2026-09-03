@@ -8,7 +8,7 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuGroup, DropdownMenuItem,
 import type { WorkspaceFile } from "@/types/domain"
 import { visualFileFacts, visualFileName, visualFilePlaybackUrl, visualFilePosterUrl, visualFileUrl } from "@/features/creator/library/visual-file-presentation"
 
-export function VisualFileCard({ file, mode = "project-library", pending = false, addLabel = "Add", usedCount = 0, onPreview, onAdd, onAddToTimeline, onRemove }: {
+export function VisualFileCard({ file, mode = "project-library", pending = false, addLabel = "Add", usedCount = 0, onPreview, onAdd, onAddToProject, onAddToTimeline, onRemove }: {
   file: WorkspaceFile
   mode?: "project-library" | "workspace-library"
   pending?: boolean
@@ -16,6 +16,7 @@ export function VisualFileCard({ file, mode = "project-library", pending = false
   usedCount?: number
   onPreview: (file: WorkspaceFile) => void
   onAdd?: (file: WorkspaceFile) => void
+  onAddToProject?: (file: WorkspaceFile) => void
   onAddToTimeline?: (file: WorkspaceFile) => void
   onRemove?: (file: WorkspaceFile) => void
 }) {
@@ -25,6 +26,7 @@ export function VisualFileCard({ file, mode = "project-library", pending = false
   const ratio = file.width && file.height ? `${file.width} / ${file.height}` : "4 / 3"
   const actionButtons = mode === "project-library" ? <>
     <OperatorIconButton label={`Preview ${name}`} detail="Open the full media preview and technical details." side="bottom" variant="secondary" onClick={() => onPreview(file)}><Expand /></OperatorIconButton>
+    {onAddToProject && <OperatorIconButton label={`Add ${name} to this Project`} detail="Associates this Workspace File with the current Project." side="bottom" variant="secondary" busy={pending} busyLabel={`Adding ${name}…`} onClick={() => onAddToProject(file)}><Plus /></OperatorIconButton>}
     {onAddToTimeline && <OperatorIconButton label={`Add ${name} to Timeline`} detail="Places this visual at the current playhead." side="bottom" variant="secondary" busy={pending} busyLabel={`Adding ${name}…`} onClick={() => onAddToTimeline(file)}><Plus /></OperatorIconButton>}
     <DropdownMenu>
       <OperatorTooltip label={pending ? "Updating visual" : `More actions for ${name}`} side="bottom" disabledTrigger={pending}>
@@ -33,6 +35,7 @@ export function VisualFileCard({ file, mode = "project-library", pending = false
       <DropdownMenuContent align="end">
         <DropdownMenuGroup>
           <DropdownMenuItem onSelect={() => onPreview(file)}><Expand /> Preview details</DropdownMenuItem>
+          {onAddToProject && <DropdownMenuItem onSelect={() => onAddToProject(file)}><Plus /> Add to this Project</DropdownMenuItem>}
           {onAddToTimeline && <DropdownMenuItem onSelect={() => onAddToTimeline(file)}><Plus /> Add to Timeline</DropdownMenuItem>}
         </DropdownMenuGroup>
         {onRemove && <><DropdownMenuSeparator /><DropdownMenuGroup><DropdownMenuItem onSelect={() => onRemove(file)}><X /> Remove from Project…</DropdownMenuItem></DropdownMenuGroup></>}

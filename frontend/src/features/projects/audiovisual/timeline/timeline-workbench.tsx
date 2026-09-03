@@ -6,7 +6,8 @@ import { FileSourceIndicator } from "@/components/file-source-indicator"
 import { Input } from "@/components/ui/input"
 import { SoundMediaIcon } from "@/features/sound-scene/audio-presentation"
 import type { SoundSceneSession } from "@/features/sound-scene/engine/sound-scene-session"
-import { visualFileName, visualFilePlaybackUrl, visualFilePosterUrl, visualFileUrl } from "@/features/creator/library/visual-file-presentation"
+import { visualFilePlaybackUrl, visualFilePosterUrl, visualFileUrl } from "@/features/creator/library/visual-file-presentation"
+import { createLibraryQuery, libraryFileName, queryLibraryFiles, type LibraryScope, type LibraryTypeFilter } from "@/features/library/library-query"
 import type { VisualSceneSession } from "@/features/visual-scene/engine/visual-scene-session"
 import { cn } from "@/lib/utils"
 import type { WorkspaceFile, VisualSceneDocument } from "@/types/domain"
@@ -14,12 +15,8 @@ import { PreviewPane, type PreviewTarget } from "./timeline-preview"
 import type { WorkstationSelection } from "./workstation-selection"
 import { WorkstationPaneHeader } from "./workstation-pane-header"
 
-type MediaFilter = "all" | "image" | "video" | "audio"
-type ScopeFilter = "project" | "workspace"
-
-function fileLabel(file: WorkspaceFile) {
-  return String(file.name || file.title || file.filename || "Untitled media")
-}
+type MediaFilter = Extract<LibraryTypeFilter, "all" | "image" | "video" | "audio">
+type ScopeFilter = Extract<LibraryScope, "project" | "workspace">
 
 export const TimelineMediaBrowser = memo(function TimelineMediaBrowser({ files, projectFileIds, usedFileIds, collapsed, onCollapsedChange, selectedFileId, onPreview, onAdd }: {
   files: WorkspaceFile[]
@@ -37,16 +34,8 @@ export const TimelineMediaBrowser = memo(function TimelineMediaBrowser({ files, 
   const [pendingId, setPendingId] = useState<number | null>(null)
   const projectIds = useMemo(() => new Set(projectFileIds), [projectFileIds])
   const usedIds = useMemo(() => new Set(usedFileIds), [usedFileIds])
-  const visible = useMemo(() => {
-    const normalized = query.trim().toLowerCase()
-    return files.filter((file) => {
-      if (!file.media_type) return false
-      if (media !== "all" && file.media_type !== media) return false
-      if (scope === "project" && !projectIds.has(file.id) && !usedIds.has(file.id)) return false
-      if (normalized && !fileLabel(file).toLowerCase().includes(normalized) && !file.tags?.some((tag) => tag.toLowerCase().includes(normalized))) return false
-      return true
-    }).sort((left, right) => new Date(right.created_at || right.updated_at || 0).getTime() - new Date(left.created_at || left.updated_at || 0).getTime())
-  }, [files, media, projectIds, query, scope, usedIds])
+  const libraryQuery = useMemo(() => createLibraryQuery({ scope, type: media, search: query }), [media, query, scope])
+  const visible = useMemo(() => queryLibraryFiles(files, libraryQuery, { projectFileIds: projectIds, usedFileIds: usedIds }), [files, libraryQuery, projectIds, usedIds])
 
   if (collapsed) return <aside className="timeline-media-browser is-collapsed" aria-label="Media Browser">
     <OperatorIconButton label="Show Media Browser" detail="Browse Project and Workspace Files without leaving the Timeline." onClick={() => onCollapsedChange(false)}><PanelLeftOpen /></OperatorIconButton>
@@ -55,7 +44,7 @@ export const TimelineMediaBrowser = memo(function TimelineMediaBrowser({ files, 
   return <aside className="timeline-media-browser" aria-label="Media Browser">
     <WorkstationPaneHeader icon={<Library />} title="Media" actions={<OperatorIconButton label="Hide Media Browser" onClick={() => onCollapsedChange(true)}><PanelLeftClose /></OperatorIconButton>} />
     <div className="timeline-media-scope" aria-label="Media scope">
-      {(["project", "workspace"] as ScopeFilter[]).map((value) => <button key={value} aria-pressed={scope === value} onClick={() => setScope(value)}>{value === "project" ? "Project" : "Workspace"}</button>)}
+      {(["project", "workspace"] as ScopeFilter[]).map((value) => <button key={value} aria-pressed={scope === value} onClick={() => setScope(value)}>{value === "project" ? "This Project" : "Workspace"}</button>)}
     </div>
     <label className="timeline-media-search"><Search /><Input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Search media" /></label>
     <div className="timeline-media-types" aria-label="Media type">
@@ -63,7 +52,7 @@ export const TimelineMediaBrowser = memo(function TimelineMediaBrowser({ files, 
     </div>
     <div className="timeline-media-results">
       {visible.map((file) => {
-        const name = fileLabel(file)
+        const name = libraryFileName(file)
         const selected = file.id === selectedFileId
         return <article key={file.id} className={cn("timeline-media-card", selected && "is-selected")} data-media-type={file.media_type}>
           <button className="timeline-media-card-preview" aria-label={`Preview ${name}`} onClick={() => onPreview(file)}>

@@ -25,6 +25,7 @@ afterEach(() => {
   vi.clearAllMocks()
   window.localStorage.clear()
 })
+Element.prototype.scrollIntoView = vi.fn()
 
 import { ProjectLibraryStage } from "../library/project-library-stage"
 import { FilePreviewDialog } from "@/features/creator/library/file-preview-dialog"
@@ -46,7 +47,7 @@ describe("Project workflow", () => {
 
     expect(screen.getByRole("complementary", { name: "Creator" }).classList.contains("ws-left-pane")).toBe(true)
     expect(screen.getByRole("main", { name: "Library" }).classList.contains("ws-center-pane")).toBe(true)
-    expect(screen.getByRole("heading", { name: "No media collected yet" })).toBeTruthy()
+    expect(screen.getByRole("heading", { name: "No Files yet" })).toBeTruthy()
     expect(await screen.findByRole("textbox", { name: "Media prompt" })).toBeTruthy()
     expect(screen.getByRole("navigation", { name: "Creation capability" })).toBeTruthy()
     expect(["Image", "Video", "Speech", "Music", "Sound Effect"].map((name) => screen.getByRole("button", { name }).getAttribute("aria-pressed"))).toEqual(["false", "true", "false", "false", "false"])
@@ -70,8 +71,9 @@ describe("Project workflow", () => {
       onRefresh={refresh}
     />)
 
-    fireEvent.click(screen.getByRole("button", { name: "Open Workspace Library" }))
-    fireEvent.click(screen.getByRole("button", { name: "Add" }))
+    fireEvent.click(screen.getByRole("combobox", { name: "Library scope" }))
+    fireEvent.click(await screen.findByRole("option", { name: "Workspace" }))
+    fireEvent.click(screen.getByRole("button", { name: "Add Harbour dusk to this Project" }))
 
     await waitFor(() => expect(api.attachProjectLibraryFile).toHaveBeenCalledWith(7, 88))
     expect(refresh).toHaveBeenCalledOnce()
@@ -90,9 +92,10 @@ describe("Project workflow", () => {
       onRefresh={refresh}
     />)
 
-    fireEvent.click(screen.getByRole("button", { name: "Open Workspace Library" }))
-    expect(screen.getByRole("combobox", { name: "File type" })).toBeTruthy()
-    fireEvent.click(screen.getByRole("button", { name: "Add" }))
+    fireEvent.click(screen.getByRole("combobox", { name: "Library scope" }))
+    fireEvent.click(await screen.findByRole("option", { name: "Workspace" }))
+    expect(screen.getByRole("radiogroup", { name: "File type" })).toBeTruthy()
+    fireEvent.click(screen.getByRole("button", { name: "Add Quiet score to this Project" }))
 
     await waitFor(() => expect(api.attachProjectLibraryFile).toHaveBeenCalledWith(7, 89))
     expect(refresh).toHaveBeenCalledOnce()
@@ -241,7 +244,7 @@ describe("Project workflow", () => {
     const confirm = vi.fn()
     const file = { id: 88, media_type: "image" as const, name: "Harbour dusk", filename: "harbour.webp", width: 1200, height: 800 }
     api.detachProjectLibraryFile.mockResolvedValue({ file_id: 88 })
-    render(<ProjectLibraryStage projectId={7} workspaceId={1} files={[file]} libraryFileIds={[88]} onUpload={vi.fn()} onRefresh={refresh} onConfirmAction={confirm} />)
+    render(<ProjectLibraryStage projectId={7} workspaceId={1} files={[file]} projectFileIds={[88]} libraryFileIds={[88]} onUpload={vi.fn()} onRefresh={refresh} onConfirmAction={confirm} />)
 
     fireEvent.pointerDown(screen.getByRole("button", { name: "Actions for Harbour dusk" }), { button: 0, ctrlKey: false })
     fireEvent.click(await screen.findByText("Remove from Project…"))
@@ -266,10 +269,11 @@ describe("Project workflow", () => {
       media_type: "image" as const,
       name: `Visual ${index + 1}`,
       filename: `visual-${index + 1}.webp`,
+      created_at: `2026-01-${String(index + 1).padStart(2, "0")}T00:00:00Z`,
       width: 1200,
       height: 800,
     }))
-    render(<ProjectLibraryStage projectId={7} workspaceId={1} files={files} libraryFileIds={files.map(({ id }) => id)} onUpload={vi.fn()} onRefresh={vi.fn()} />)
+    render(<ProjectLibraryStage projectId={7} workspaceId={1} files={files} projectFileIds={files.map(({ id }) => id)} libraryFileIds={files.map(({ id }) => id)} onUpload={vi.fn()} onRefresh={vi.fn()} />)
 
     const gallery = document.querySelector<HTMLElement>(".project-library-gallery-items")
     expect(gallery).toBeTruthy()

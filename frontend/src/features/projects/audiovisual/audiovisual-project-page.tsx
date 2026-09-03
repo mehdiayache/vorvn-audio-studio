@@ -184,11 +184,13 @@ export function AudiovisualProjectPage({ project, soundScene, visualScene, folde
     ...soundState.scene.document.tracks.flatMap((track) => track.clips.map((clip) => clip.file_id)),
     ...visualState.document.tracks.flatMap((track) => track.clips.map((clip) => clip.file_id)),
   ])], [soundState.scene.document.tracks, sourceParts, visualState.document.tracks])
-  const visualUsageCounts = useMemo(() => {
+  const projectUsageCounts = useMemo(() => {
     const counts = new Map<number, number>()
+    sourceParts.forEach((part) => { if (part.file_id) counts.set(part.file_id, (counts.get(part.file_id) || 0) + 1) })
+    soundState.scene.document.tracks.forEach((track) => track.clips.forEach((clip) => counts.set(clip.file_id, (counts.get(clip.file_id) || 0) + 1)))
     visualState.document.tracks.forEach((track) => track.clips.forEach((clip) => counts.set(clip.file_id, (counts.get(clip.file_id) || 0) + 1)))
     return counts
-  }, [visualState.document.tracks])
+  }, [soundState.scene.document.tracks, sourceParts, visualState.document.tracks])
   const renameProject = useCallback(async (name: string) => {
     await originsApi.updateProject(project.id, { name })
     await refresh()
@@ -425,12 +427,14 @@ export function AudiovisualProjectPage({ project, soundScene, visualScene, folde
           centerPaneRef={centerPaneRef}
           projectId={project.id}
           workspaceId={project.workspace_id}
+          folderId={project.folder_id}
           folders={folders}
           createOpen={libraryCreatorOpen}
           onCreateOpenChange={setLibraryCreatorOpen}
           files={files}
+          projectFileIds={projectFileIds}
           libraryFileIds={libraryFileIds}
-          usageCounts={visualUsageCounts}
+          usageCounts={projectUsageCounts}
           playingFileId={player.state === "playing" && player.source?.key.startsWith("file:") ? Number(player.source.key.slice(5)) : null}
           onPlayAudio={(file) => {
             const url = file.url || (file.filename ? `/media/${encodeURIComponent(file.filename)}` : "")
@@ -457,7 +461,6 @@ export function AudiovisualProjectPage({ project, soundScene, visualScene, folde
         {stage === "sound" && <TimelineStage
           centerPaneRef={centerPaneRef}
           projectFileIds={projectFileIds}
-          libraryFileIds={libraryFileIds}
           session={soundSession}
           inspector={inspectorOpen ? inspector : undefined}
           inspectorTitle={inspectorTitle}
