@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest"
 
-import type { ProjectPart } from "@/types/domain"
+import type { ProductionPart } from "@/types/domain"
 import type { VoiceChoice } from "@/lib/voice-options"
 import {
   buildSpeechCommand,
@@ -49,19 +49,19 @@ function draft(route: CompositionDraft["route"]): CompositionDraft {
 }
 
 describe("provider-neutral Creator contract", () => {
-  it("uses the same draft and command contract for Standalone and Project", () => {
+  it("uses the same draft and command contract for Standalone and Production", () => {
     const selected = routeSelection(ownedRoute)
     const standalone = buildSpeechCommand({ context: compositionContext({}), draft: draft(selected) })
-    const project = buildSpeechCommand({ context: compositionContext({ projectId: 7, insertBeforePartId: "part-public-3" }), draft: draft(selected) })
-    expect(standalone.route).toEqual(project.route)
-    expect(standalone.text).toEqual(project.text)
+    const production = buildSpeechCommand({ context: compositionContext({ productionId: 7, insertBeforePartId: "part-public-3" }), draft: draft(selected) })
+    expect(standalone.route).toEqual(production.route)
+    expect(standalone.text).toEqual(production.text)
     expect(standalone.context).toEqual({ kind: "standalone" })
-    expect(project.context).toEqual({ kind: "project", projectId: 7, insertion: { kind: "before_part", partId: "part-public-3" } })
-    expect(toGeneratePayload(project, { workspace_id: 4, project_id: 7, project_type: "audiovisual", selection: { target: "script_part" } })).toMatchObject({
-      context: { workspace_id: 4, project_id: 7, project_type: "audiovisual", selection: { target: "script_part" } },
+    expect(production.context).toEqual({ kind: "production", productionId: 7, insertion: { kind: "before_part", partId: "part-public-3" } })
+    expect(toGeneratePayload(production, { workspace_id: 4, production_id: 7, production_type: "audiovisual", selection: { target: "script_part" } })).toMatchObject({
+      context: { workspace_id: 4, production_id: 7, production_type: "audiovisual", selection: { target: "script_part" } },
       insert_before_part_id: "part-public-3",
     })
-    expect(toGeneratePayload(project, { workspace_id: 4 })).not.toHaveProperty("operation")
+    expect(toGeneratePayload(production, { workspace_id: 4 })).not.toHaveProperty("operation")
   })
 
   it("refuses generation without an operator-selected exact route", () => {
@@ -111,15 +111,15 @@ describe("provider-neutral Creator contract", () => {
   })
 
   it("keeps existing Part truth as a read-only editorial baseline", () => {
-    const part = { id: 9, revision: 4, text: "Current script", clip_id: 12 } as ProjectPart
+    const part = { id: 9, revision: 4, text: "Current script", clip_id: 12 } as ProductionPart
     expect(editorialBaseline(part)).toEqual({ partId: 9, revision: 4, script: "Current script" })
   })
 
   it("restores the exact saved route for Drafts and active recordings", () => {
     const routeFields = { binding_id: "binding-1", capability_id: "expressive_tags" }
-    expect(routeSelectionFromPart({ kind: "speech", ...routeFields } as ProjectPart))
+    expect(routeSelectionFromPart({ kind: "speech", ...routeFields } as ProductionPart))
       .toEqual({ kind: "owned", bindingId: "binding-1", capabilityId: "expressive_tags" })
-    expect(routeSelectionFromPart({ kind: "draft", ...routeFields } as ProjectPart))
+    expect(routeSelectionFromPart({ kind: "draft", ...routeFields } as ProductionPart))
       .toEqual({ kind: "owned", bindingId: "binding-1", capabilityId: "expressive_tags" })
   })
 
@@ -132,13 +132,13 @@ describe("provider-neutral Creator contract", () => {
       engine: "audio",
       model: "qwen-audio-3.0-tts-flash",
       capability_id: "expressive_tags",
-    } as ProjectPart
+    } as ProductionPart
     expect(replacementRouteSelectionFromPart(part, [ownedRoute])).toEqual({
       kind: "owned",
       bindingId: "binding-1",
       capabilityId: "expressive_tags",
     })
-    expect(replacementRouteSelectionFromPart({ ...part, model: "another-model" } as ProjectPart, [ownedRoute])).toBeNull()
+    expect(replacementRouteSelectionFromPart({ ...part, model: "another-model" } as ProductionPart, [ownedRoute])).toBeNull()
   })
 
   it("rehydrates Generate Again from the exact attached recording request", () => {
@@ -159,7 +159,7 @@ describe("provider-neutral Creator contract", () => {
       clip_spoken_text: "Historical spoken fallback",
       clip_tagged_text: "[old] Historical tagged fallback",
       speech_job: { result: { clip_id: 44 }, request },
-    } as ProjectPart
+    } as ProductionPart
 
     expect(creatorTextFromPart(part)).toEqual({
       raw: "Canonical words",
@@ -182,7 +182,7 @@ describe("provider-neutral Creator contract", () => {
         result: { clip_id: 43 },
         request: { text: "Obsolete request", text_state: "raw" },
       },
-    } as ProjectPart
+    } as ProductionPart
 
     expect(creatorTextFromPart(part)).toEqual({
       raw: "Clip original",

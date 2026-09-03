@@ -466,7 +466,7 @@ export class VisualSceneSession {
   }
 }
 
-const EMPTY_SCENE: VisualScene = { project_id: 0, revision: 0, document: { version: 1, canvas: { width: 1920, height: 1080 }, tracks: [] }, updated_at: "" }
+const EMPTY_SCENE: VisualScene = { production_id: 0, revision: 0, document: { version: 1, canvas: { width: 1920, height: 1080 }, tracks: [] }, updated_at: "" }
 const EMPTY_SNAPSHOT: Snapshot = { scene: EMPTY_SCENE, document: EMPTY_SCENE.document, selection: null, saving: false, error: "", canUndo: false, canRedo: false }
 const noopSubscribe = () => () => undefined
 const emptySnapshot = () => EMPTY_SNAPSHOT

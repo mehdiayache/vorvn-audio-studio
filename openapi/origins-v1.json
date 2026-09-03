@@ -275,7 +275,7 @@
             ],
             "title": "Price Version"
           },
-          "project_id": {
+          "production_id": {
             "anyOf": [
               {
                 "type": "integer"
@@ -284,9 +284,9 @@
                 "type": "null"
               }
             ],
-            "title": "Project Id"
+            "title": "Production Id"
           },
-          "project_name": {
+          "production_name": {
             "anyOf": [
               {
                 "type": "string"
@@ -295,7 +295,7 @@
                 "type": "null"
               }
             ],
-            "title": "Project Name"
+            "title": "Production Name"
           },
           "provider_attempt_id": {
             "anyOf": [
@@ -463,8 +463,8 @@
           "usage",
           "provider_diagnostics",
           "provider_request_ids",
-          "project_id",
-          "project_name",
+          "production_id",
+          "production_name",
           "where",
           "cost_basis",
           "cost_basis_raw",
@@ -632,8 +632,8 @@
             "type": "integer"
           },
           "type": {
-            "const": "project",
-            "default": "project",
+            "const": "production",
+            "default": "production",
             "title": "Type",
             "type": "string"
           }
@@ -1008,7 +1008,7 @@
             ],
             "title": "Generation Brief"
           },
-          "project_id": {
+          "production_id": {
             "anyOf": [
               {
                 "exclusiveMinimum": 0.0,
@@ -1018,7 +1018,7 @@
                 "type": "null"
               }
             ],
-            "title": "Project Id"
+            "title": "Production Id"
           },
           "prompt": {
             "anyOf": [
@@ -1415,7 +1415,7 @@
         "title": "AudioPeaksResponse",
         "type": "object"
       },
-      "AudioProject": {
+      "AudioProduction": {
         "additionalProperties": false,
         "properties": {
           "id": {
@@ -1431,7 +1431,7 @@
             "title": "Id"
           },
           "name": {
-            "default": "Untitled Project",
+            "default": "Untitled Production",
             "maxLength": 160,
             "minLength": 1,
             "title": "Name",
@@ -1445,7 +1445,7 @@
           },
           "tracks": {
             "items": {
-              "$ref": "#/components/schemas/ProjectTrack"
+              "$ref": "#/components/schemas/ProductionTrack"
             },
             "maxItems": 64,
             "minItems": 1,
@@ -1456,10 +1456,10 @@
         "required": [
           "tracks"
         ],
-        "title": "AudioProject",
+        "title": "AudioProduction",
         "type": "object"
       },
-      "AudiovisualProjectCreateRequest": {
+      "AudiovisualProductionCreateRequest": {
         "properties": {
           "description": {
             "default": "",
@@ -1489,7 +1489,7 @@
         "required": [
           "name"
         ],
-        "title": "AudiovisualProjectCreateRequest",
+        "title": "AudiovisualProductionCreateRequest",
         "type": "object"
       },
       "CaptionCueResponse": {
@@ -2201,7 +2201,7 @@
             ],
             "title": "Object Id"
           },
-          "project_id": {
+          "production_id": {
             "anyOf": [
               {
                 "exclusiveMinimum": 0.0,
@@ -2211,9 +2211,9 @@
                 "type": "null"
               }
             ],
-            "title": "Project Id"
+            "title": "Production Id"
           },
-          "project_type": {
+          "production_type": {
             "anyOf": [
               {
                 "maxLength": 80,
@@ -2224,7 +2224,7 @@
                 "type": "null"
               }
             ],
-            "title": "Project Type"
+            "title": "Production Type"
           },
           "selection": {
             "additionalProperties": true,
@@ -3441,7 +3441,7 @@
           "context": {
             "discriminator": {
               "mapping": {
-                "project": "#/components/schemas/ProjectContext",
+                "production": "#/components/schemas/ProductionContext",
                 "standalone": "#/components/schemas/StandaloneContext"
               },
               "propertyName": "kind"
@@ -3451,7 +3451,7 @@
                 "$ref": "#/components/schemas/StandaloneContext"
               },
               {
-                "$ref": "#/components/schemas/ProjectContext"
+                "$ref": "#/components/schemas/ProductionContext"
               }
             ],
             "title": "Context"
@@ -3525,7 +3525,7 @@
           "context": {
             "discriminator": {
               "mapping": {
-                "project": "#/components/schemas/ProjectContext",
+                "production": "#/components/schemas/ProductionContext",
                 "standalone": "#/components/schemas/StandaloneContext"
               },
               "propertyName": "kind"
@@ -3535,7 +3535,7 @@
                 "$ref": "#/components/schemas/StandaloneContext"
               },
               {
-                "$ref": "#/components/schemas/ProjectContext"
+                "$ref": "#/components/schemas/ProductionContext"
               }
             ],
             "title": "Context"
@@ -3582,7 +3582,7 @@
           "context": {
             "discriminator": {
               "mapping": {
-                "project": "#/components/schemas/ProjectContext",
+                "production": "#/components/schemas/ProductionContext",
                 "standalone": "#/components/schemas/StandaloneContext"
               },
               "propertyName": "kind"
@@ -3592,7 +3592,7 @@
                 "$ref": "#/components/schemas/StandaloneContext"
               },
               {
-                "$ref": "#/components/schemas/ProjectContext"
+                "$ref": "#/components/schemas/ProductionContext"
               }
             ],
             "title": "Context"
@@ -3968,8 +3968,8 @@
             "title": "Preview Filename",
             "type": "string"
           },
-          "projects": {
-            "title": "Projects",
+          "productions": {
+            "title": "Productions",
             "type": "integer"
           },
           "provider_voice_id": {
@@ -3986,7 +3986,7 @@
           "engine",
           "model",
           "uses",
-          "projects"
+          "productions"
         ],
         "title": "HistoricalVoiceResponse",
         "type": "object"
@@ -5195,9 +5195,9 @@
       },
       "MoveBody": {
         "properties": {
-          "destination_project_id": {
+          "destination_production_id": {
             "exclusiveMinimum": 0.0,
-            "title": "Destination Project Id",
+            "title": "Destination Production Id",
             "type": "integer"
           },
           "ids": {
@@ -5210,7 +5210,7 @@
         },
         "required": [
           "ids",
-          "destination_project_id"
+          "destination_production_id"
         ],
         "title": "MoveBody",
         "type": "object"
@@ -5728,7 +5728,7 @@
         "title": "PerformancePresetResponse",
         "type": "object"
       },
-      "ProjectAccountingResponse": {
+      "ProductionAccountingResponse": {
         "properties": {
           "audio_spend": {
             "default": 0.0,
@@ -5768,10 +5768,10 @@
           "retained_generation_cost",
           "tracked_spend"
         ],
-        "title": "ProjectAccountingResponse",
+        "title": "ProductionAccountingResponse",
         "type": "object"
       },
-      "ProjectClip": {
+      "ProductionClip": {
         "additionalProperties": false,
         "properties": {
           "duration": {
@@ -5805,10 +5805,10 @@
           "duration",
           "file_url"
         ],
-        "title": "ProjectClip",
+        "title": "ProductionClip",
         "type": "object"
       },
-      "ProjectContext": {
+      "ProductionContext": {
         "additionalProperties": false,
         "properties": {
           "insert_before_part_id": {
@@ -5824,7 +5824,7 @@
             "title": "Insert Before Part Id"
           },
           "kind": {
-            "const": "project",
+            "const": "production",
             "title": "Kind",
             "type": "string"
           },
@@ -5840,36 +5840,36 @@
             ],
             "title": "Part Id"
           },
-          "project_id": {
+          "production_id": {
             "exclusiveMinimum": 0.0,
-            "title": "Project Id",
+            "title": "Production Id",
             "type": "integer"
           }
         },
         "required": [
           "kind",
-          "project_id"
+          "production_id"
         ],
-        "title": "ProjectContext",
+        "title": "ProductionContext",
         "type": "object"
       },
-      "ProjectEditorEnvelope": {
+      "ProductionEditorEnvelope": {
         "properties": {
           "data": {
-            "$ref": "#/components/schemas/ProjectEditorResponse"
+            "$ref": "#/components/schemas/ProductionEditorResponse"
           }
         },
         "required": [
           "data"
         ],
-        "title": "ProjectEditorEnvelope",
+        "title": "ProductionEditorEnvelope",
         "type": "object"
       },
-      "ProjectEditorResponse": {
+      "ProductionEditorResponse": {
         "additionalProperties": true,
         "properties": {
           "accounting": {
-            "$ref": "#/components/schemas/ProjectAccountingResponse"
+            "$ref": "#/components/schemas/ProductionAccountingResponse"
           },
           "current_sequence_cost": {
             "title": "Current Sequence Cost",
@@ -5882,7 +5882,7 @@
           "export_job": {
             "anyOf": [
               {
-                "$ref": "#/components/schemas/ProjectRenderJobResponse"
+                "$ref": "#/components/schemas/ProductionRenderJobResponse"
               },
               {
                 "type": "null"
@@ -5891,7 +5891,7 @@
           },
           "exports": {
             "items": {
-              "$ref": "#/components/schemas/ProjectExportResponse"
+              "$ref": "#/components/schemas/ProductionExportResponse"
             },
             "title": "Exports",
             "type": "array"
@@ -5917,15 +5917,15 @@
           },
           "parts": {
             "items": {
-              "$ref": "#/components/schemas/ProjectPartResponse"
+              "$ref": "#/components/schemas/ProductionPartResponse"
             },
             "title": "Parts",
             "type": "array"
           },
-          "project_type": {
+          "production_type": {
             "const": "audiovisual",
             "default": "audiovisual",
-            "title": "Project Type",
+            "title": "Production Type",
             "type": "string"
           },
           "public_id": {
@@ -5980,22 +5980,22 @@
           "accounting",
           "total_bytes"
         ],
-        "title": "ProjectEditorResponse",
+        "title": "ProductionEditorResponse",
         "type": "object"
       },
-      "ProjectEnvelope": {
+      "ProductionEnvelope": {
         "properties": {
           "data": {
-            "$ref": "#/components/schemas/AudioProject"
+            "$ref": "#/components/schemas/AudioProduction"
           }
         },
         "required": [
           "data"
         ],
-        "title": "ProjectEnvelope",
+        "title": "ProductionEnvelope",
         "type": "object"
       },
-      "ProjectExportResponse": {
+      "ProductionExportResponse": {
         "properties": {
           "created_at": {
             "title": "Created At",
@@ -6025,8 +6025,8 @@
             "title": "Manifest",
             "type": "object"
           },
-          "project_id": {
-            "title": "Project Id",
+          "production_id": {
+            "title": "Production Id",
             "type": "integer"
           },
           "renderer": {
@@ -6040,7 +6040,7 @@
         },
         "required": [
           "id",
-          "project_id",
+          "production_id",
           "filename",
           "manifest",
           "renderer",
@@ -6048,22 +6048,22 @@
           "size_bytes",
           "created_at"
         ],
-        "title": "ProjectExportResponse",
+        "title": "ProductionExportResponse",
         "type": "object"
       },
-      "ProjectFileLibraryEnvelope": {
+      "ProductionFileLibraryEnvelope": {
         "properties": {
           "data": {
-            "$ref": "#/components/schemas/ProjectFileLibraryResponse"
+            "$ref": "#/components/schemas/ProductionFileLibraryResponse"
           }
         },
         "required": [
           "data"
         ],
-        "title": "ProjectFileLibraryEnvelope",
+        "title": "ProductionFileLibraryEnvelope",
         "type": "object"
       },
-      "ProjectFileLibraryResponse": {
+      "ProductionFileLibraryResponse": {
         "properties": {
           "files": {
             "items": {
@@ -6086,11 +6086,11 @@
             "title": "Library File Ids",
             "type": "array"
           },
-          "project_file_ids": {
+          "production_file_ids": {
             "items": {
               "type": "integer"
             },
-            "title": "Project File Ids",
+            "title": "Production File Ids",
             "type": "array"
           },
           "workspace": {
@@ -6101,15 +6101,15 @@
           "workspace",
           "files"
         ],
-        "title": "ProjectFileLibraryResponse",
+        "title": "ProductionFileLibraryResponse",
         "type": "object"
       },
-      "ProjectImportBody": {
+      "ProductionImportBody": {
         "additionalProperties": false,
-        "description": "Append authored Parts to one existing audiovisual Project.",
+        "description": "Append authored Parts to one existing audiovisual Production.",
         "properties": {
           "document": {
-            "$ref": "#/components/schemas/ProjectImportDocument"
+            "$ref": "#/components/schemas/ProductionImportDocument"
           },
           "role_voices": {
             "additionalProperties": {
@@ -6123,10 +6123,10 @@
           "document",
           "role_voices"
         ],
-        "title": "ProjectImportBody",
+        "title": "ProductionImportBody",
         "type": "object"
       },
-      "ProjectImportDestination": {
+      "ProductionImportDestination": {
         "additionalProperties": false,
         "properties": {
           "folder_id": {
@@ -6149,7 +6149,7 @@
             "title": "Kind",
             "type": "string"
           },
-          "project_id": {
+          "production_id": {
             "anyOf": [
               {
                 "exclusiveMinimum": 0.0,
@@ -6159,7 +6159,7 @@
                 "type": "null"
               }
             ],
-            "title": "Project Id"
+            "title": "Production Id"
           },
           "workspace_id": {
             "anyOf": [
@@ -6177,10 +6177,10 @@
         "required": [
           "kind"
         ],
-        "title": "ProjectImportDestination",
+        "title": "ProductionImportDestination",
         "type": "object"
       },
-      "ProjectImportDocument": {
+      "ProductionImportDocument": {
         "additionalProperties": false,
         "properties": {
           "description": {
@@ -6226,7 +6226,7 @@
             "title": "Language"
           },
           "schema": {
-            "const": "origins-project-import",
+            "const": "origins-production-import",
             "title": "Schema",
             "type": "string"
           },
@@ -6248,22 +6248,22 @@
           "title",
           "items"
         ],
-        "title": "ProjectImportDocument",
+        "title": "ProductionImportDocument",
         "type": "object"
       },
-      "ProjectImportEnvelope": {
+      "ProductionImportEnvelope": {
         "properties": {
           "data": {
-            "$ref": "#/components/schemas/ProjectImportResponse"
+            "$ref": "#/components/schemas/ProductionImportResponse"
           }
         },
         "required": [
           "data"
         ],
-        "title": "ProjectImportEnvelope",
+        "title": "ProductionImportEnvelope",
         "type": "object"
       },
-      "ProjectImportExecuteBody": {
+      "ProductionImportExecuteBody": {
         "additionalProperties": false,
         "properties": {
           "description": {
@@ -6273,17 +6273,17 @@
             "type": "string"
           },
           "destination": {
-            "$ref": "#/components/schemas/ProjectImportDestination"
+            "$ref": "#/components/schemas/ProductionImportDestination"
           },
           "document": {
-            "$ref": "#/components/schemas/ProjectImportDocument"
+            "$ref": "#/components/schemas/ProductionImportDocument"
           },
           "preparation": {
-            "$ref": "#/components/schemas/ProjectImportPreparation"
+            "$ref": "#/components/schemas/ProductionImportPreparation"
           },
           "role_routes": {
             "additionalProperties": {
-              "$ref": "#/components/schemas/ProjectImportRouteSelection"
+              "$ref": "#/components/schemas/ProductionImportRouteSelection"
             },
             "title": "Role Routes",
             "type": "object"
@@ -6302,10 +6302,10 @@
           "role_routes",
           "preparation"
         ],
-        "title": "ProjectImportExecuteBody",
+        "title": "ProductionImportExecuteBody",
         "type": "object"
       },
-      "ProjectImportPreparation": {
+      "ProductionImportPreparation": {
         "additionalProperties": false,
         "properties": {
           "language": {
@@ -6350,10 +6350,10 @@
         "required": [
           "language"
         ],
-        "title": "ProjectImportPreparation",
+        "title": "ProductionImportPreparation",
         "type": "object"
       },
-      "ProjectImportResponse": {
+      "ProductionImportResponse": {
         "properties": {
           "items": {
             "title": "Items",
@@ -6373,10 +6373,10 @@
           "speech",
           "silence"
         ],
-        "title": "ProjectImportResponse",
+        "title": "ProductionImportResponse",
         "type": "object"
       },
-      "ProjectImportRoleResponse": {
+      "ProductionImportRoleResponse": {
         "properties": {
           "count": {
             "title": "Count",
@@ -6391,10 +6391,10 @@
           "name",
           "count"
         ],
-        "title": "ProjectImportRoleResponse",
+        "title": "ProductionImportRoleResponse",
         "type": "object"
       },
-      "ProjectImportRouteSelection": {
+      "ProductionImportRouteSelection": {
         "additionalProperties": false,
         "properties": {
           "binding_id": {
@@ -6421,10 +6421,10 @@
           "binding_id",
           "capability_id"
         ],
-        "title": "ProjectImportRouteSelection",
+        "title": "ProductionImportRouteSelection",
         "type": "object"
       },
-      "ProjectImportSummaryResponse": {
+      "ProductionImportSummaryResponse": {
         "properties": {
           "estimated_duration_ms": {
             "title": "Estimated Duration Ms",
@@ -6447,7 +6447,7 @@
           },
           "roles": {
             "items": {
-              "$ref": "#/components/schemas/ProjectImportRoleResponse"
+              "$ref": "#/components/schemas/ProductionImportRoleResponse"
             },
             "title": "Roles",
             "type": "array"
@@ -6469,63 +6469,63 @@
           "language",
           "estimated_duration_ms"
         ],
-        "title": "ProjectImportSummaryResponse",
+        "title": "ProductionImportSummaryResponse",
         "type": "object"
       },
-      "ProjectImportValidationBody": {
+      "ProductionImportValidationBody": {
         "additionalProperties": false,
         "properties": {
           "document": {
-            "$ref": "#/components/schemas/ProjectImportDocument"
+            "$ref": "#/components/schemas/ProductionImportDocument"
           }
         },
         "required": [
           "document"
         ],
-        "title": "ProjectImportValidationBody",
+        "title": "ProductionImportValidationBody",
         "type": "object"
       },
-      "ProjectImportValidationEnvelope": {
+      "ProductionImportValidationEnvelope": {
         "properties": {
           "data": {
-            "$ref": "#/components/schemas/ProjectImportValidationResponse"
+            "$ref": "#/components/schemas/ProductionImportValidationResponse"
           }
         },
         "required": [
           "data"
         ],
-        "title": "ProjectImportValidationEnvelope",
+        "title": "ProductionImportValidationEnvelope",
         "type": "object"
       },
-      "ProjectImportValidationResponse": {
+      "ProductionImportValidationResponse": {
         "properties": {
           "document": {
-            "$ref": "#/components/schemas/ProjectImportDocument"
+            "$ref": "#/components/schemas/ProductionImportDocument"
           },
           "summary": {
-            "$ref": "#/components/schemas/ProjectImportSummaryResponse"
+            "$ref": "#/components/schemas/ProductionImportSummaryResponse"
           }
         },
         "required": [
           "document",
           "summary"
         ],
-        "title": "ProjectImportValidationResponse",
+        "title": "ProductionImportValidationResponse",
         "type": "object"
       },
-      "ProjectMutationEnvelope": {
+      "ProductionMutationEnvelope": {
         "properties": {
           "data": {
-            "$ref": "#/components/schemas/ProjectResponse"
+            "$ref": "#/components/schemas/ProductionResponse"
           }
         },
         "required": [
           "data"
         ],
-        "title": "ProjectMutationEnvelope",
+        "title": "ProductionMutationEnvelope",
         "type": "object"
       },
-      "ProjectPartResponse": {
+      "ProductionPartResponse": {
         "additionalProperties": true,
         "properties": {
           "authored_role": {
@@ -7190,22 +7190,22 @@
           "text",
           "cost"
         ],
-        "title": "ProjectPartResponse",
+        "title": "ProductionPartResponse",
         "type": "object"
       },
-      "ProjectRenderEnvelope": {
+      "ProductionRenderEnvelope": {
         "properties": {
           "data": {
-            "$ref": "#/components/schemas/ProjectRenderResult"
+            "$ref": "#/components/schemas/ProductionRenderResult"
           }
         },
         "required": [
           "data"
         ],
-        "title": "ProjectRenderEnvelope",
+        "title": "ProductionRenderEnvelope",
         "type": "object"
       },
-      "ProjectRenderJobResponse": {
+      "ProductionRenderJobResponse": {
         "properties": {
           "created_at": {
             "anyOf": [
@@ -7311,10 +7311,10 @@
           "detail",
           "retries"
         ],
-        "title": "ProjectRenderJobResponse",
+        "title": "ProductionRenderJobResponse",
         "type": "object"
       },
-      "ProjectRenderResult": {
+      "ProductionRenderResult": {
         "properties": {
           "cached": {
             "title": "Cached",
@@ -7368,10 +7368,10 @@
           "channels",
           "cached"
         ],
-        "title": "ProjectRenderResult",
+        "title": "ProductionRenderResult",
         "type": "object"
       },
-      "ProjectResponse": {
+      "ProductionResponse": {
         "properties": {
           "description": {
             "title": "Description",
@@ -7406,8 +7406,8 @@
             "title": "Part Count",
             "type": "integer"
           },
-          "project_type": {
-            "title": "Project Type",
+          "production_type": {
+            "title": "Production Type",
             "type": "string"
           },
           "public_id": {
@@ -7437,21 +7437,21 @@
           "public_id",
           "workspace_id",
           "folder_id",
-          "project_type",
+          "production_type",
           "name",
           "description",
           "status",
           "updated_at"
         ],
-        "title": "ProjectResponse",
+        "title": "ProductionResponse",
         "type": "object"
       },
-      "ProjectTrack": {
+      "ProductionTrack": {
         "additionalProperties": false,
         "properties": {
           "clips": {
             "items": {
-              "$ref": "#/components/schemas/ProjectClip"
+              "$ref": "#/components/schemas/ProductionClip"
             },
             "maxItems": 1000,
             "minItems": 1,
@@ -7499,7 +7499,7 @@
           "kind",
           "clips"
         ],
-        "title": "ProjectTrack",
+        "title": "ProductionTrack",
         "type": "object"
       },
       "PronunciationListEnvelope": {
@@ -7911,14 +7911,14 @@
             "title": "Operation",
             "type": "string"
           },
-          "project_id": {
+          "production_id": {
             "exclusiveMinimum": 0.0,
-            "title": "Project Id",
+            "title": "Production Id",
             "type": "integer"
           }
         },
         "required": [
-          "project_id",
+          "production_id",
           "operation"
         ],
         "title": "RenderJobCreate",
@@ -9203,7 +9203,7 @@
             "title": "Confirmed",
             "type": "boolean"
           },
-          "project_id": {
+          "production_id": {
             "anyOf": [
               {
                 "exclusiveMinimum": 0.0,
@@ -9213,7 +9213,7 @@
                 "type": "null"
               }
             ],
-            "title": "Project Id"
+            "title": "Production Id"
           },
           "semantic_state": {
             "additionalProperties": true,
@@ -9573,8 +9573,8 @@
           "document": {
             "$ref": "#/components/schemas/SoundSceneDocument"
           },
-          "project_id": {
-            "title": "Project Id",
+          "production_id": {
+            "title": "Production Id",
             "type": "integer"
           },
           "resolved": {
@@ -9593,7 +9593,7 @@
           }
         },
         "required": [
-          "project_id",
+          "production_id",
           "revision",
           "document",
           "can_undo",
@@ -11283,7 +11283,7 @@
             ],
             "title": "Part Id"
           },
-          "project_id": {
+          "production_id": {
             "anyOf": [
               {
                 "exclusiveMinimum": 0.0,
@@ -11293,7 +11293,7 @@
                 "type": "null"
               }
             ],
-            "title": "Project Id"
+            "title": "Production Id"
           },
           "spoken_profile": {
             "default": "spoken_1",
@@ -11614,7 +11614,7 @@
             "title": "Playable",
             "type": "string"
           },
-          "project_id": {
+          "production_id": {
             "anyOf": [
               {
                 "exclusiveMinimum": 0.0,
@@ -11624,7 +11624,7 @@
                 "type": "null"
               }
             ],
-            "title": "Project Id"
+            "title": "Production Id"
           },
           "size_bytes": {
             "default": 0,
@@ -12274,8 +12274,8 @@
           "document": {
             "$ref": "#/components/schemas/VisualSceneDocument"
           },
-          "project_id": {
-            "title": "Project Id",
+          "production_id": {
+            "title": "Production Id",
             "type": "integer"
           },
           "revision": {
@@ -12288,7 +12288,7 @@
           }
         },
         "required": [
-          "project_id",
+          "production_id",
           "revision",
           "document",
           "updated_at"
@@ -14043,8 +14043,8 @@
             "title": "Preview Filename",
             "type": "string"
           },
-          "projects": {
-            "title": "Projects",
+          "productions": {
+            "title": "Productions",
             "type": "integer"
           },
           "spend": {
@@ -14058,7 +14058,7 @@
         },
         "required": [
           "uses",
-          "projects",
+          "productions",
           "spend"
         ],
         "title": "VoiceProfileUsageResponse",
@@ -14806,8 +14806,8 @@
             ],
             "title": "Latest Preview"
           },
-          "projects": {
-            "title": "Projects",
+          "productions": {
+            "title": "Productions",
             "type": "integer"
           },
           "spend": {
@@ -14821,7 +14821,7 @@
         },
         "required": [
           "uses",
-          "projects",
+          "productions",
           "spend"
         ],
         "title": "VoiceUsageResponse",
@@ -15395,11 +15395,11 @@
             "title": "Folders",
             "type": "array"
           },
-          "projects": {
+          "productions": {
             "items": {
-              "$ref": "#/components/schemas/ProjectResponse"
+              "$ref": "#/components/schemas/ProductionResponse"
             },
-            "title": "Projects",
+            "title": "Productions",
             "type": "array"
           },
           "workspace": {
@@ -15409,7 +15409,7 @@
         "required": [
           "workspace",
           "folders",
-          "projects",
+          "productions",
           "files"
         ],
         "title": "WorkspaceOverviewResponse",
@@ -15443,9 +15443,9 @@
             "title": "Name",
             "type": "string"
           },
-          "project_count": {
+          "production_count": {
             "default": 0,
-            "title": "Project Count",
+            "title": "Production Count",
             "type": "integer"
           },
           "public_id": {
@@ -15612,16 +15612,16 @@
         ]
       }
     },
-    "/api/v1/audio-catalogs/freesound/projects/{project_id}/keep": {
+    "/api/v1/audio-catalogs/freesound/productions/{production_id}/keep": {
       "post": {
-        "operationId": "keepFreesoundFileInAudiovisualProject",
+        "operationId": "keepFreesoundFileInAudiovisualProduction",
         "parameters": [
           {
             "in": "path",
-            "name": "project_id",
+            "name": "production_id",
             "required": true,
             "schema": {
-              "title": "Project Id",
+              "title": "Production Id",
               "type": "integer"
             }
           }
@@ -15658,7 +15658,7 @@
             "description": "Validation Error"
           }
         },
-        "summary": "Keep Freesound In Audiovisual Project",
+        "summary": "Keep Freesound In Audiovisual Production",
         "tags": [
           "audio-catalogs"
         ]
@@ -15896,7 +15896,7 @@
         "parameters": [
           {
             "in": "query",
-            "name": "project_id",
+            "name": "production_id",
             "required": false,
             "schema": {
               "anyOf": [
@@ -15907,7 +15907,7 @@
                   "type": "null"
                 }
               ],
-              "title": "Project Id"
+              "title": "Production Id"
             }
           },
           {
@@ -16096,9 +16096,9 @@
         ]
       }
     },
-    "/api/v1/audio-generations/{candidate_id}/projects/{project_id}/keep": {
+    "/api/v1/audio-generations/{candidate_id}/productions/{production_id}/keep": {
       "post": {
-        "operationId": "keepGeneratedAudioFileInAudiovisualProject",
+        "operationId": "keepGeneratedAudioFileInAudiovisualProduction",
         "parameters": [
           {
             "in": "path",
@@ -16112,10 +16112,10 @@
           },
           {
             "in": "path",
-            "name": "project_id",
+            "name": "production_id",
             "required": true,
             "schema": {
-              "title": "Project Id",
+              "title": "Production Id",
               "type": "integer"
             }
           }
@@ -16152,7 +16152,7 @@
             "description": "Validation Error"
           }
         },
-        "summary": "Keep Generated Audio In Audiovisual Project",
+        "summary": "Keep Generated Audio In Audiovisual Production",
         "tags": [
           "audio-generations"
         ]
@@ -16442,7 +16442,7 @@
           },
           {
             "in": "query",
-            "name": "project_id",
+            "name": "production_id",
             "required": false,
             "schema": {
               "anyOf": [
@@ -16453,7 +16453,7 @@
                   "type": "null"
                 }
               ],
-              "title": "Project Id"
+              "title": "Production Id"
             }
           },
           {
@@ -17499,9 +17499,9 @@
         ]
       }
     },
-    "/api/v1/project-covers/upload": {
+    "/api/v1/production-covers/upload": {
       "post": {
-        "operationId": "uploadProjectCover",
+        "operationId": "uploadProductionCover",
         "parameters": [
           {
             "in": "header",
@@ -17536,15 +17536,15 @@
             "description": "Validation Error"
           }
         },
-        "summary": "Upload Project Cover",
+        "summary": "Upload Production Cover",
         "tags": [
           "uploads"
         ]
       }
     },
-    "/api/v1/project-imports": {
+    "/api/v1/production-imports": {
       "post": {
-        "operationId": "createProjectImport",
+        "operationId": "createProductionImport",
         "parameters": [
           {
             "in": "header",
@@ -17567,7 +17567,7 @@
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/ProjectImportExecuteBody"
+                "$ref": "#/components/schemas/ProductionImportExecuteBody"
               }
             }
           },
@@ -17597,18 +17597,18 @@
         },
         "summary": "Create Import",
         "tags": [
-          "project-imports"
+          "production-imports"
         ]
       }
     },
-    "/api/v1/project-imports/validate": {
+    "/api/v1/production-imports/validate": {
       "post": {
-        "operationId": "validateProjectImport",
+        "operationId": "validateProductionImport",
         "requestBody": {
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/ProjectImportValidationBody"
+                "$ref": "#/components/schemas/ProductionImportValidationBody"
               }
             }
           },
@@ -17619,7 +17619,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/ProjectImportValidationEnvelope"
+                  "$ref": "#/components/schemas/ProductionImportValidationEnvelope"
                 }
               }
             },
@@ -17638,18 +17638,18 @@
         },
         "summary": "Validate Import",
         "tags": [
-          "project-imports"
+          "production-imports"
         ]
       }
     },
-    "/api/v1/projects/render": {
+    "/api/v1/productions/render": {
       "post": {
-        "operationId": "renderAudioProject",
+        "operationId": "renderAudioProduction",
         "requestBody": {
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/AudioProject"
+                "$ref": "#/components/schemas/AudioProduction"
               }
             }
           },
@@ -17660,7 +17660,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/ProjectRenderEnvelope"
+                  "$ref": "#/components/schemas/ProductionRenderEnvelope"
                 }
               }
             },
@@ -17677,22 +17677,22 @@
             "description": "Validation Error"
           }
         },
-        "summary": "Render Audio Project",
+        "summary": "Render Audio Production",
         "tags": [
-          "audio-projects"
+          "audio-productions"
         ]
       }
     },
-    "/api/v1/projects/{project_identifier}": {
+    "/api/v1/productions/{production_identifier}": {
       "get": {
-        "operationId": "getAudiovisualProject",
+        "operationId": "getAudiovisualProduction",
         "parameters": [
           {
             "in": "path",
-            "name": "project_identifier",
+            "name": "production_identifier",
             "required": true,
             "schema": {
-              "title": "Project Identifier",
+              "title": "Production Identifier",
               "type": "string"
             }
           }
@@ -17702,7 +17702,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/ProjectMutationEnvelope"
+                  "$ref": "#/components/schemas/ProductionMutationEnvelope"
                 }
               }
             },
@@ -17719,22 +17719,22 @@
             "description": "Validation Error"
           }
         },
-        "summary": "Get Audiovisual Project",
+        "summary": "Get Audiovisual Production",
         "tags": [
           "Workspaces"
         ]
       }
     },
-    "/api/v1/projects/{project_id}": {
+    "/api/v1/productions/{production_id}": {
       "delete": {
-        "operationId": "deleteProject",
+        "operationId": "deleteProduction",
         "parameters": [
           {
             "in": "path",
-            "name": "project_id",
+            "name": "production_id",
             "required": true,
             "schema": {
-              "title": "Project Id",
+              "title": "Production Id",
               "type": "integer"
             }
           }
@@ -17761,20 +17761,20 @@
             "description": "Validation Error"
           }
         },
-        "summary": "Delete Project",
+        "summary": "Delete Production",
         "tags": [
-          "Projects"
+          "Productions"
         ]
       },
       "patch": {
-        "operationId": "updateProject",
+        "operationId": "updateProduction",
         "parameters": [
           {
             "in": "path",
-            "name": "project_id",
+            "name": "production_id",
             "required": true,
             "schema": {
-              "title": "Project Id",
+              "title": "Production Id",
               "type": "integer"
             }
           }
@@ -17794,7 +17794,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/ProjectMutationEnvelope"
+                  "$ref": "#/components/schemas/ProductionMutationEnvelope"
                 }
               }
             },
@@ -17811,22 +17811,22 @@
             "description": "Validation Error"
           }
         },
-        "summary": "Update Project",
+        "summary": "Update Production",
         "tags": [
-          "Projects"
+          "Productions"
         ]
       }
     },
-    "/api/v1/projects/{project_id}/editor": {
+    "/api/v1/productions/{production_id}/editor": {
       "get": {
-        "operationId": "getAudiovisualProjectEditor",
+        "operationId": "getAudiovisualProductionEditor",
         "parameters": [
           {
             "in": "path",
-            "name": "project_id",
+            "name": "production_id",
             "required": true,
             "schema": {
-              "title": "Project Id",
+              "title": "Production Id",
               "type": "string"
             }
           }
@@ -17836,7 +17836,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/ProjectEditorEnvelope"
+                  "$ref": "#/components/schemas/ProductionEditorEnvelope"
                 }
               }
             },
@@ -17853,22 +17853,22 @@
             "description": "Validation Error"
           }
         },
-        "summary": "Get Project Editor",
+        "summary": "Get Production Editor",
         "tags": [
-          "Projects"
+          "Productions"
         ]
       }
     },
-    "/api/v1/projects/{project_id}/files": {
+    "/api/v1/productions/{production_id}/files": {
       "get": {
-        "operationId": "listProjectFiles",
+        "operationId": "listProductionFiles",
         "parameters": [
           {
             "in": "path",
-            "name": "project_id",
+            "name": "production_id",
             "required": true,
             "schema": {
-              "title": "Project Id",
+              "title": "Production Id",
               "type": "string"
             }
           }
@@ -17878,7 +17878,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/ProjectFileLibraryEnvelope"
+                  "$ref": "#/components/schemas/ProductionFileLibraryEnvelope"
                 }
               }
             },
@@ -17895,22 +17895,22 @@
             "description": "Validation Error"
           }
         },
-        "summary": "List Project Files",
+        "summary": "List Production Files",
         "tags": [
-          "Projects"
+          "Productions"
         ]
       }
     },
-    "/api/v1/projects/{project_id}/files/upload": {
+    "/api/v1/productions/{production_id}/files/upload": {
       "post": {
-        "operationId": "uploadAudiovisualProjectFile",
+        "operationId": "uploadAudiovisualProductionFile",
         "parameters": [
           {
             "in": "path",
-            "name": "project_id",
+            "name": "production_id",
             "required": true,
             "schema": {
-              "title": "Project Id",
+              "title": "Production Id",
               "type": "integer"
             }
           },
@@ -17995,22 +17995,22 @@
             "description": "Validation Error"
           }
         },
-        "summary": "Upload Audiovisual Project File",
+        "summary": "Upload Audiovisual Production File",
         "tags": [
           "uploads"
         ]
       }
     },
-    "/api/v1/projects/{project_id}/import": {
+    "/api/v1/productions/{production_id}/import": {
       "post": {
-        "operationId": "importProjectDocument",
+        "operationId": "importProductionDocument",
         "parameters": [
           {
             "in": "path",
-            "name": "project_id",
+            "name": "production_id",
             "required": true,
             "schema": {
-              "title": "Project Id",
+              "title": "Production Id",
               "type": "integer"
             }
           }
@@ -18019,7 +18019,7 @@
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/ProjectImportBody"
+                "$ref": "#/components/schemas/ProductionImportBody"
               }
             }
           },
@@ -18030,7 +18030,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/ProjectImportEnvelope"
+                  "$ref": "#/components/schemas/ProductionImportEnvelope"
                 }
               }
             },
@@ -18047,22 +18047,22 @@
             "description": "Validation Error"
           }
         },
-        "summary": "Import Project",
+        "summary": "Import Production",
         "tags": [
           "timeline"
         ]
       }
     },
-    "/api/v1/projects/{project_id}/library-files": {
+    "/api/v1/productions/{production_id}/library-files": {
       "post": {
-        "operationId": "attachProjectLibraryFile",
+        "operationId": "attachProductionLibraryFile",
         "parameters": [
           {
             "in": "path",
-            "name": "project_id",
+            "name": "production_id",
             "required": true,
             "schema": {
-              "title": "Project Id",
+              "title": "Production Id",
               "type": "string"
             }
           }
@@ -18099,22 +18099,22 @@
             "description": "Validation Error"
           }
         },
-        "summary": "Attach Project Library File",
+        "summary": "Attach Production Library File",
         "tags": [
-          "Projects"
+          "Productions"
         ]
       }
     },
-    "/api/v1/projects/{project_id}/library-files/{file_id}": {
+    "/api/v1/productions/{production_id}/library-files/{file_id}": {
       "delete": {
-        "operationId": "detachProjectLibraryFile",
+        "operationId": "detachProductionLibraryFile",
         "parameters": [
           {
             "in": "path",
-            "name": "project_id",
+            "name": "production_id",
             "required": true,
             "schema": {
-              "title": "Project Id",
+              "title": "Production Id",
               "type": "string"
             }
           },
@@ -18150,22 +18150,22 @@
             "description": "Validation Error"
           }
         },
-        "summary": "Detach Project Library File",
+        "summary": "Detach Production Library File",
         "tags": [
-          "Projects"
+          "Productions"
         ]
       }
     },
-    "/api/v1/projects/{project_id}/parts": {
+    "/api/v1/productions/{production_id}/parts": {
       "delete": {
-        "operationId": "deleteProjectParts",
+        "operationId": "deleteProductionParts",
         "parameters": [
           {
             "in": "path",
-            "name": "project_id",
+            "name": "production_id",
             "required": true,
             "schema": {
-              "title": "Project Id",
+              "title": "Production Id",
               "type": "integer"
             }
           }
@@ -18208,16 +18208,16 @@
         ]
       }
     },
-    "/api/v1/projects/{project_id}/parts/drafts": {
+    "/api/v1/productions/{production_id}/parts/drafts": {
       "post": {
-        "operationId": "addProjectDraft",
+        "operationId": "addProductionDraft",
         "parameters": [
           {
             "in": "path",
-            "name": "project_id",
+            "name": "production_id",
             "required": true,
             "schema": {
-              "title": "Project Id",
+              "title": "Production Id",
               "type": "integer"
             }
           }
@@ -18260,16 +18260,16 @@
         ]
       }
     },
-    "/api/v1/projects/{project_id}/parts/files": {
+    "/api/v1/productions/{production_id}/parts/files": {
       "post": {
-        "operationId": "insertProjectFile",
+        "operationId": "insertProductionFile",
         "parameters": [
           {
             "in": "path",
-            "name": "project_id",
+            "name": "production_id",
             "required": true,
             "schema": {
-              "title": "Project Id",
+              "title": "Production Id",
               "type": "integer"
             }
           }
@@ -18312,16 +18312,16 @@
         ]
       }
     },
-    "/api/v1/projects/{project_id}/parts/move": {
+    "/api/v1/productions/{production_id}/parts/move": {
       "post": {
-        "operationId": "moveProjectParts",
+        "operationId": "moveProductionParts",
         "parameters": [
           {
             "in": "path",
-            "name": "project_id",
+            "name": "production_id",
             "required": true,
             "schema": {
-              "title": "Project Id",
+              "title": "Production Id",
               "type": "integer"
             }
           }
@@ -18364,16 +18364,16 @@
         ]
       }
     },
-    "/api/v1/projects/{project_id}/parts/reorder": {
+    "/api/v1/productions/{production_id}/parts/reorder": {
       "post": {
-        "operationId": "reorderProjectParts",
+        "operationId": "reorderProductionParts",
         "parameters": [
           {
             "in": "path",
-            "name": "project_id",
+            "name": "production_id",
             "required": true,
             "schema": {
-              "title": "Project Id",
+              "title": "Production Id",
               "type": "integer"
             }
           }
@@ -18416,16 +18416,16 @@
         ]
       }
     },
-    "/api/v1/projects/{project_id}/parts/silence": {
+    "/api/v1/productions/{production_id}/parts/silence": {
       "post": {
-        "operationId": "addProjectSilence",
+        "operationId": "addProductionSilence",
         "parameters": [
           {
             "in": "path",
-            "name": "project_id",
+            "name": "production_id",
             "required": true,
             "schema": {
-              "title": "Project Id",
+              "title": "Production Id",
               "type": "integer"
             }
           }
@@ -18468,16 +18468,16 @@
         ]
       }
     },
-    "/api/v1/projects/{project_id}/parts/{part_id}/captions": {
+    "/api/v1/productions/{production_id}/parts/{part_id}/captions": {
       "get": {
-        "operationId": "listProjectPartCaptions",
+        "operationId": "listProductionPartCaptions",
         "parameters": [
           {
             "in": "path",
-            "name": "project_id",
+            "name": "production_id",
             "required": true,
             "schema": {
-              "title": "Project Id",
+              "title": "Production Id",
               "type": "integer"
             }
           },
@@ -18519,16 +18519,16 @@
         ]
       }
     },
-    "/api/v1/projects/{project_id}/parts/{part_id}/draft": {
+    "/api/v1/productions/{production_id}/parts/{part_id}/draft": {
       "patch": {
-        "operationId": "updateProjectPartDraft",
+        "operationId": "updateProductionPartDraft",
         "parameters": [
           {
             "in": "path",
-            "name": "project_id",
+            "name": "production_id",
             "required": true,
             "schema": {
-              "title": "Project Id",
+              "title": "Production Id",
               "type": "integer"
             }
           },
@@ -18580,16 +18580,16 @@
         ]
       }
     },
-    "/api/v1/projects/{project_id}/parts/{part_id}/duplicate": {
+    "/api/v1/productions/{production_id}/parts/{part_id}/duplicate": {
       "post": {
-        "operationId": "duplicateProjectPart",
+        "operationId": "duplicateProductionPart",
         "parameters": [
           {
             "in": "path",
-            "name": "project_id",
+            "name": "production_id",
             "required": true,
             "schema": {
-              "title": "Project Id",
+              "title": "Production Id",
               "type": "integer"
             }
           },
@@ -18631,16 +18631,16 @@
         ]
       }
     },
-    "/api/v1/projects/{project_id}/parts/{part_id}/editorial": {
+    "/api/v1/productions/{production_id}/parts/{part_id}/editorial": {
       "patch": {
-        "operationId": "updateProjectPartEditorial",
+        "operationId": "updateProductionPartEditorial",
         "parameters": [
           {
             "in": "path",
-            "name": "project_id",
+            "name": "production_id",
             "required": true,
             "schema": {
-              "title": "Project Id",
+              "title": "Production Id",
               "type": "integer"
             }
           },
@@ -18692,16 +18692,16 @@
         ]
       }
     },
-    "/api/v1/projects/{project_id}/parts/{part_id}/enabled": {
+    "/api/v1/productions/{production_id}/parts/{part_id}/enabled": {
       "patch": {
-        "operationId": "updateProjectPartEnabled",
+        "operationId": "updateProductionPartEnabled",
         "parameters": [
           {
             "in": "path",
-            "name": "project_id",
+            "name": "production_id",
             "required": true,
             "schema": {
-              "title": "Project Id",
+              "title": "Production Id",
               "type": "integer"
             }
           },
@@ -18753,16 +18753,16 @@
         ]
       }
     },
-    "/api/v1/projects/{project_id}/parts/{part_id}/file": {
+    "/api/v1/productions/{production_id}/parts/{part_id}/file": {
       "patch": {
-        "operationId": "replaceProjectFile",
+        "operationId": "replaceProductionFile",
         "parameters": [
           {
             "in": "path",
-            "name": "project_id",
+            "name": "production_id",
             "required": true,
             "schema": {
-              "title": "Project Id",
+              "title": "Production Id",
               "type": "integer"
             }
           },
@@ -18814,16 +18814,16 @@
         ]
       }
     },
-    "/api/v1/projects/{project_id}/parts/{part_id}/silence": {
+    "/api/v1/productions/{production_id}/parts/{part_id}/silence": {
       "patch": {
-        "operationId": "updateProjectSilence",
+        "operationId": "updateProductionSilence",
         "parameters": [
           {
             "in": "path",
-            "name": "project_id",
+            "name": "production_id",
             "required": true,
             "schema": {
-              "title": "Project Id",
+              "title": "Production Id",
               "type": "integer"
             }
           },
@@ -18875,16 +18875,16 @@
         ]
       }
     },
-    "/api/v1/projects/{project_id}/project-scene": {
+    "/api/v1/productions/{production_id}/production-scene": {
       "get": {
-        "operationId": "getProjectScene",
+        "operationId": "getProductionScene",
         "parameters": [
           {
             "in": "path",
-            "name": "project_id",
+            "name": "production_id",
             "required": true,
             "schema": {
-              "title": "Project Id",
+              "title": "Production Id",
               "type": "string"
             }
           }
@@ -18894,7 +18894,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/ProjectEnvelope"
+                  "$ref": "#/components/schemas/ProductionEnvelope"
                 }
               }
             },
@@ -18911,22 +18911,22 @@
             "description": "Validation Error"
           }
         },
-        "summary": "Get Project Scene",
+        "summary": "Get Production Scene",
         "tags": [
-          "audio-projects"
+          "audio-productions"
         ]
       }
     },
-    "/api/v1/projects/{project_id}/sound-scene": {
+    "/api/v1/productions/{production_id}/sound-scene": {
       "get": {
-        "operationId": "getProjectSoundScene",
+        "operationId": "getProductionSoundScene",
         "parameters": [
           {
             "in": "path",
-            "name": "project_id",
+            "name": "production_id",
             "required": true,
             "schema": {
-              "title": "Project Id",
+              "title": "Production Id",
               "type": "integer"
             }
           }
@@ -18959,14 +18959,14 @@
         ]
       },
       "patch": {
-        "operationId": "updateProjectSoundScene",
+        "operationId": "updateProductionSoundScene",
         "parameters": [
           {
             "in": "path",
-            "name": "project_id",
+            "name": "production_id",
             "required": true,
             "schema": {
-              "title": "Project Id",
+              "title": "Production Id",
               "type": "integer"
             }
           }
@@ -19009,16 +19009,16 @@
         ]
       }
     },
-    "/api/v1/projects/{project_id}/sound-scene/redo": {
+    "/api/v1/productions/{production_id}/sound-scene/redo": {
       "post": {
-        "operationId": "redoProjectSoundScene",
+        "operationId": "redoProductionSoundScene",
         "parameters": [
           {
             "in": "path",
-            "name": "project_id",
+            "name": "production_id",
             "required": true,
             "schema": {
-              "title": "Project Id",
+              "title": "Production Id",
               "type": "integer"
             }
           }
@@ -19051,16 +19051,16 @@
         ]
       }
     },
-    "/api/v1/projects/{project_id}/sound-scene/undo": {
+    "/api/v1/productions/{production_id}/sound-scene/undo": {
       "post": {
-        "operationId": "undoProjectSoundScene",
+        "operationId": "undoProductionSoundScene",
         "parameters": [
           {
             "in": "path",
-            "name": "project_id",
+            "name": "production_id",
             "required": true,
             "schema": {
-              "title": "Project Id",
+              "title": "Production Id",
               "type": "integer"
             }
           }
@@ -19093,16 +19093,16 @@
         ]
       }
     },
-    "/api/v1/projects/{project_id}/visual-scene": {
+    "/api/v1/productions/{production_id}/visual-scene": {
       "get": {
-        "operationId": "getProjectVisualScene",
+        "operationId": "getProductionVisualScene",
         "parameters": [
           {
             "in": "path",
-            "name": "project_id",
+            "name": "production_id",
             "required": true,
             "schema": {
-              "title": "Project Id",
+              "title": "Production Id",
               "type": "integer"
             }
           }
@@ -19135,14 +19135,14 @@
         ]
       },
       "patch": {
-        "operationId": "updateProjectVisualScene",
+        "operationId": "updateProductionVisualScene",
         "parameters": [
           {
             "in": "path",
-            "name": "project_id",
+            "name": "production_id",
             "required": true,
             "schema": {
-              "title": "Project Id",
+              "title": "Production Id",
               "type": "integer"
             }
           }
@@ -21208,9 +21208,9 @@
         ]
       }
     },
-    "/api/v1/workspaces/{workspace_id}/projects/audiovisual": {
+    "/api/v1/workspaces/{workspace_id}/productions/audiovisual": {
       "post": {
-        "operationId": "createAudiovisualProject",
+        "operationId": "createAudiovisualProduction",
         "parameters": [
           {
             "in": "path",
@@ -21226,7 +21226,7 @@
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/AudiovisualProjectCreateRequest"
+                "$ref": "#/components/schemas/AudiovisualProductionCreateRequest"
               }
             }
           },
@@ -21237,7 +21237,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/ProjectMutationEnvelope"
+                  "$ref": "#/components/schemas/ProductionMutationEnvelope"
                 }
               }
             },
@@ -21254,7 +21254,7 @@
             "description": "Validation Error"
           }
         },
-        "summary": "Create Audiovisual Project",
+        "summary": "Create Audiovisual Production",
         "tags": [
           "Workspaces"
         ]

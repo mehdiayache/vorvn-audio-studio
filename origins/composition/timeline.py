@@ -1,4 +1,4 @@
-"""Concrete Project timeline service assembly."""
+"""Concrete Production timeline service assembly."""
 
 from origins.application.timeline import TimelineService
 from origins.infrastructure.postgres.timeline import PostgresTimelineRecords

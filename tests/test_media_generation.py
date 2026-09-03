@@ -10,7 +10,7 @@ from origins.domain.jobs import Job, JobStatus
 class FakeFiles:
     def __init__(self):
         self.exists = True
-        self.project_available = True
+        self.production_available = True
         self.files = [
             {"id": 11, "media_type": "image", "mime_type": "image/png",
              "size_bytes": 12_000, "width": 1280, "height": 720},
@@ -34,11 +34,11 @@ class FakeFiles:
     def workspace_exists(self, workspace_id):
         return self.exists and workspace_id == 4
 
-    def project_exists(self, project_id):
-        return self.project_available and project_id == 7
+    def production_exists(self, production_id):
+        return self.production_available and production_id == 7
 
-    def list_for_project(self, project_id):
-        return self.files if project_id == 7 else []
+    def list_for_production(self, production_id):
+        return self.files if production_id == 7 else []
 
     def list_for_workspace(self, workspace_id):
         return self.files if workspace_id == 4 else []
@@ -55,7 +55,7 @@ class FakeJobs:
         self.jobs.insert(0, job)
         return job, True
 
-    def recent_for_project(self, project_id, *, kind, limit=8):
+    def recent_for_production(self, production_id, *, kind, limit=8):
         return self.jobs[:limit]
 
     def get(self, public_id):
@@ -78,7 +78,7 @@ def make_job(*, payload=None, status=JobStatus.QUEUED, public_id=None):
         id=1, public_id=public_id or uuid4(), kind="media_generate",
         status=status, payload=values, progress=0,
         workspace_id=values.get("workspace_id"),
-        project_id=values.get("project_id"),
+        production_id=values.get("production_id"),
         creation_context=values.get("creation_context") or {},
         created_at=datetime.now(timezone.utc),
     )
@@ -106,8 +106,8 @@ def preset(
 def context():
     return {
         "workspace_id": 4,
-        "project_id": 7,
-        "project_type": "audiovisual",
+        "production_id": 7,
+        "production_type": "audiovisual",
     }
 
 
@@ -426,7 +426,7 @@ class MediaGenerationTest(unittest.TestCase):
         self.assertEqual(payload["preset"]["inputs"], preset()["inputs"])
         self.assertNotIn("input_file_ids", payload["preset"])
         self.assertNotIn("input_roles", payload["preset"])
-        self.assertEqual(values["project_id"], 7)
+        self.assertEqual(values["production_id"], 7)
         self.assertEqual(projected["preset"], preset())
         self.assertEqual(payload["provider_model_id"], model_c_id())
         self.assertEqual(
@@ -461,13 +461,13 @@ class MediaGenerationTest(unittest.TestCase):
 
     def test_missing_production_never_creates_prompt_only_job(self):
         files = FakeFiles()
-        files.project_available = False
+        files.production_available = False
         jobs = FakeJobs()
         service = MediaGenerationService(jobs, files)
         still = preset(
             operation="text_to_video",
             model_id="kling-3.0-omni/text-to-video", inputs=[])
-        with self.assertRaisesRegex(LookupError, "Project"):
+        with self.assertRaisesRegex(LookupError, "Production"):
             service.enqueue(context(), still, idempotency_key="orphan")
         self.assertEqual(jobs.enqueued, [])
 

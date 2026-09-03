@@ -51,16 +51,16 @@ class FakeRepository:
     def today_spend(self):
         return self.spent
 
-    def part(self, part_id, project_id):
+    def part(self, part_id, production_id):
         if not self.current_part:
             return None
         return {**self.current_part, "id": part_id,
-                "project_id": project_id}
+                "production_id": production_id}
 
-    def attach_clip(self, part_id, project_id, expected_revision,
+    def attach_clip(self, part_id, production_id, expected_revision,
                     values):
         self.replaced.append(
-            (part_id, project_id, expected_revision, values))
+            (part_id, production_id, expected_revision, values))
         self.active_file_id = values.get("file_id")
         return {"attached": 1, "clip_id": 901, "subtitles_stale": 0,
                 "replaced_filename": self.replaced_filename}
@@ -301,10 +301,10 @@ class SpeechGenerationTests(unittest.TestCase):
         self.assertIsNone(provider.prepared[0].language)
         self.assertEqual(provider.prepared[0].engine, "audio")
 
-    def test_project_speech_requires_the_atomic_part_command(self):
+    def test_production_speech_requires_the_atomic_part_command(self):
         service, _, provider, workspace = self.service()
         with self.assertRaisesRegex(ValueError, "target the Part"):
-            service.run(payload(project_id=12))
+            service.run(payload(production_id=12))
         self.assertEqual((provider.calls, workspace.saved), ([], []))
 
     def service(self, repository=None, provider=None, preferences=None):
@@ -335,7 +335,7 @@ class SpeechGenerationTests(unittest.TestCase):
         repository = FakeRepository(part=existing("draft"))
         service, _, _, _ = self.service(repository=repository)
         result = service.run(payload(
-            operation="record", project_id=12, part_id=45,
+            operation="record", production_id=12, part_id=45,
             text="First recording"))
         self.assertEqual(result["id"], 45)
         self.assertEqual(repository.replaced[0][0], 45)
@@ -348,7 +348,7 @@ class SpeechGenerationTests(unittest.TestCase):
         service, _, _, workspace = self.service(repository=repository)
 
         result = service.run(payload(
-            operation="record", project_id=12, part_id=45,
+            operation="record", production_id=12, part_id=45,
             text="Updated recording"))
 
         self.assertEqual(result["clip_id"], 901)
@@ -371,7 +371,7 @@ class SpeechGenerationTests(unittest.TestCase):
             repository=repository, provider=provider)
 
         service.run(payload(
-            operation="record", project_id=12, part_id=45,
+            operation="record", production_id=12, part_id=45,
             engine="cosyvoice", text="Quiet now.", _job_id=77))
 
         transcript = repository.replaced[0][3]["_provider_transcript"]
@@ -391,7 +391,7 @@ class SpeechGenerationTests(unittest.TestCase):
         source_hash = hashlib.sha256(b"Canonical queued script").hexdigest()
 
         result = service.run(payload(
-            operation="record", project_id=12, part_id=44,
+            operation="record", production_id=12, part_id=44,
             text="Prepared words sent to the provider",
             _source_part_revision=3,
             _source_script_hash=source_hash,
@@ -407,7 +407,7 @@ class SpeechGenerationTests(unittest.TestCase):
         repository = FakeRepository(part=existing("draft"))
         service, _, provider, _ = self.service(repository=repository)
         service.run(payload(
-            operation="record", project_id=12, part_id=44,
+            operation="record", production_id=12, part_id=44,
             voice="Tina", voice_identity_id=None))
         self.assertIsNone(provider.prepared[0].voice_identity_id)
         self.assertIsNone(repository.replaced[0][3]["voice_identity_id"])
@@ -415,7 +415,7 @@ class SpeechGenerationTests(unittest.TestCase):
     def test_preflight_and_budget_guards_never_call_or_write_provider_audio(self):
         service, _, provider, workspace = self.service()
         with self.assertRaisesRegex(ValueError, "target the Part"):
-            service.run(payload(project_id=99))
+            service.run(payload(production_id=99))
         self.assertEqual((provider.calls, workspace.saved), ([], []))
 
         service, _, provider, workspace = self.service(
@@ -434,7 +434,7 @@ class SpeechGenerationTests(unittest.TestCase):
         repository = FakeRepository(part=existing("audio"))
         service, _, provider, workspace = self.service(repository=repository)
         with self.assertRaisesRegex(ValueError, "cannot contain speech"):
-            service.run(payload(operation="record", project_id=12,
+            service.run(payload(operation="record", production_id=12,
                                 part_id=4))
         self.assertEqual((provider.calls, workspace.saved), ([], []))
 
@@ -493,11 +493,11 @@ class SpeechGenerationTests(unittest.TestCase):
         handler = SpeechJobHandler(service, files)
         job = Job(
             9, uuid4(), "speech", JobStatus.RUNNING,
-            payload(operation="record", project_id=12, part_id=45),
-            part_id=45, workspace_id=7, project_id=12,
+            payload(operation="record", production_id=12, part_id=45),
+            part_id=45, workspace_id=7, production_id=12,
             creation_context={
-                "workspace_id": 7, "project_id": 12,
-                "project_type": "audiovisual",
+                "workspace_id": 7, "production_id": 12,
+                "production_type": "audiovisual",
                 "selection": {"target": "script_part"},
             },
         )
@@ -530,11 +530,11 @@ class SpeechGenerationTests(unittest.TestCase):
         def job(job_id):
             return Job(
                 job_id, uuid4(), "speech", JobStatus.RUNNING,
-                payload(operation="record", project_id=12, part_id=45),
-                part_id=45, workspace_id=7, project_id=12,
+                payload(operation="record", production_id=12, part_id=45),
+                part_id=45, workspace_id=7, production_id=12,
                 creation_context={
-                    "workspace_id": 7, "project_id": 12,
-                    "project_type": "audiovisual",
+                    "workspace_id": 7, "production_id": 12,
+                    "production_type": "audiovisual",
                     "selection": {"target": "script_part"},
                 },
             )
@@ -561,16 +561,16 @@ class SpeechGenerationTests(unittest.TestCase):
         SpeechJobCreate(
             text="Hello",
             catalogue_voice_id="alibaba:intl:qwen-audio-3.0-tts-plus:Cherry",
-            context={"workspace_id": 12, "project_id": 7,
-                     "project_type": "audiovisual",
+            context={"workspace_id": 12, "production_id": 7,
+                     "production_type": "audiovisual",
                      "selection": {"target": "script_part"}},
             part_id=8)
         anchor = uuid4()
         anchored = SpeechJobCreate(
             text="Hello",
             catalogue_voice_id="alibaba:intl:qwen-audio-3.0-tts-plus:Cherry",
-            context={"workspace_id": 12, "project_id": 7,
-                     "project_type": "audiovisual",
+            context={"workspace_id": 12, "production_id": 7,
+                     "production_type": "audiovisual",
                      "selection": {"target": "script_part"}},
             insert_before_part_id=anchor)
         self.assertEqual(anchored.insert_before_part_id, anchor)
@@ -594,8 +594,8 @@ class SpeechGenerationTests(unittest.TestCase):
         context = {
             "workspace_id": 12,
             "folder_id": 27,
-            "project_id": 7,
-            "project_type": "audiovisual",
+            "production_id": 7,
+            "production_type": "audiovisual",
             "object_id": None,
             "selection": {"capability": "speech"},
         }
@@ -620,12 +620,12 @@ class SpeechGenerationTests(unittest.TestCase):
                   return_value={"workspace": {"id": 12}}),
             patch("origins.http.routers.jobs.job_service.enqueue",
                   return_value=(queued, True)) as enqueue,
-            patch("origins.http.routers.jobs.project_speech_service.enqueue")
-                    as project_enqueue,
+            patch("origins.http.routers.jobs.production_speech_service.enqueue")
+                    as production_enqueue,
         ):
             create_speech_job(contract, "speech-folder-context")
 
-        project_enqueue.assert_not_called()
+        production_enqueue.assert_not_called()
         self.assertEqual(enqueue.call_args.kwargs["workspace_id"], 12)
         self.assertEqual(enqueue.call_args.kwargs["creation_context"], context)
 
@@ -633,8 +633,8 @@ class SpeechGenerationTests(unittest.TestCase):
         context = {
             "workspace_id": 12,
             "folder_id": 27,
-            "project_id": 7,
-            "project_type": "audiovisual",
+            "production_id": 7,
+            "production_type": "audiovisual",
             "object_id": None,
             "selection": {"capability": "speech", "target": "script_part"},
         }
@@ -646,7 +646,7 @@ class SpeechGenerationTests(unittest.TestCase):
         )
         queued = Job(
             10, uuid4(), "speech", JobStatus.QUEUED,
-            workspace_id=12, project_id=7, part_id=8,
+            workspace_id=12, production_id=7, part_id=8,
             creation_context=context,
         )
         resolved = {
@@ -657,16 +657,16 @@ class SpeechGenerationTests(unittest.TestCase):
         with (
             patch("origins.http.routers.jobs.catalog_service.resolve_voice",
                   return_value=resolved),
-            patch("origins.http.routers.jobs.project_speech_service.enqueue",
+            patch("origins.http.routers.jobs.production_speech_service.enqueue",
                   return_value=(queued, True)) as enqueue,
             patch("origins.http.routers.jobs.job_service.enqueue") as generic_enqueue,
         ):
             create_speech_job(contract, "speech-script-context")
 
         generic_enqueue.assert_not_called()
-        self.assertEqual(enqueue.call_args.kwargs["project_id"], 7)
+        self.assertEqual(enqueue.call_args.kwargs["production_id"], 7)
         self.assertEqual(enqueue.call_args.kwargs["creation_context"], context)
-        self.assertEqual(enqueue.call_args.args[0]["project_id"], 7)
+        self.assertEqual(enqueue.call_args.args[0]["production_id"], 7)
 
     def test_audio_workspace_uses_opaque_contained_names(self):
         with TemporaryDirectory() as directory:

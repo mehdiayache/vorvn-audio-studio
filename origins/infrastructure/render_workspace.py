@@ -1,4 +1,4 @@
-"""FFmpeg and filesystem implementation for Project finishing."""
+"""FFmpeg and filesystem implementation for Production finishing."""
 
 from __future__ import annotations
 
@@ -500,7 +500,7 @@ def _mix_scene(sequence: Path, scene: dict, target: Path) -> bool:
     sound_label = mix_group(sound_labels, "sound")
     if sound_label:
         filters.append(
-            # The canonical Sequence is the Project clock. Keep it as the
+            # The canonical Sequence is the Production clock. Keep it as the
             # first amix input so delayed/compressed parallel media cannot
             # contribute container-specific starting timestamps.
             f"[sequence]{sound_label}amix=inputs=2:duration=longest:"
@@ -667,7 +667,7 @@ def _render_visual_scene(
     os.replace(temporary, target)
 
 
-def _project_timeline_duration_ms(scene: dict, visual_scene: dict) -> int:
+def _production_timeline_duration_ms(scene: dict, visual_scene: dict) -> int:
     sound_duration = int(
         scene.get("duration_ms")
         or scene.get("sequence_projection", {}).get("duration_ms")
@@ -683,7 +683,7 @@ def _project_timeline_duration_ms(scene: dict, visual_scene: dict) -> int:
 
 class FFmpegRenderWorkspace:
     def sequence_stem(
-        self, project_id: int, parts: list[dict], signature: str,
+        self, production_id: int, parts: list[dict], signature: str,
     ) -> dict:
         """Cache one normalized serial Sequence file for browser playout."""
         if not parts:
@@ -692,7 +692,7 @@ class FFmpegRenderWorkspace:
                 "signature": signature, "cached": True,
             }
         digest = str(signature)[:20]
-        name = f"sequence-stem-{project_id}-{digest}.mp3"
+        name = f"sequence-stem-{production_id}-{digest}.mp3"
         target = _output() / name
         cached = target.is_file() and target.stat().st_size > 0
         if not cached:
@@ -701,7 +701,7 @@ class FFmpegRenderWorkspace:
             # Sequence edit produces this one. Keep a small bounded window so
             # that an in-flight player never receives a transient 404.
             stems = sorted(
-                _output().glob(f"sequence-stem-{project_id}-*.mp3"),
+                _output().glob(f"sequence-stem-{production_id}-*.mp3"),
                 key=lambda path: path.stat().st_mtime,
                 reverse=True,
             )
@@ -713,22 +713,22 @@ class FFmpegRenderWorkspace:
             "signature": signature, "cached": cached,
         }
 
-    def render_project(self, project: dict) -> dict:
+    def render_production(self, production: dict) -> dict:
         """Render a lightweight Tracks/Clips scene without a database Job."""
-        tracks = project.get("tracks") or []
+        tracks = production.get("tracks") or []
         entries = [
             (track, clip)
             for track in tracks
             for clip in (track.get("clips") or [])
         ]
         if not entries:
-            raise RenderError("The Project has no Clips to render.")
-        signature = json.dumps(project, sort_keys=True, default=str)
+            raise RenderError("The Production has no Clips to render.")
+        signature = json.dumps(production, sort_keys=True, default=str)
         digest = hashlib.sha256(signature.encode()).hexdigest()[:20]
-        filename = f"project-{digest}.mp3"
+        filename = f"production-{digest}.mp3"
         target = _output() / filename
         if target.is_file() and target.stat().st_size > 0:
-            return self._project_result(project, target, cached=True)
+            return self._production_result(production, target, cached=True)
 
         command = ["ffmpeg", "-y", "-nostdin", "-loglevel", "error"]
         sources: list[tuple[dict, dict, float]] = []
@@ -744,10 +744,10 @@ class FFmpegRenderWorkspace:
                 parsed = urlparse(file_url)
                 if parsed.scheme or not parsed.path.startswith("/audio/"):
                     raise RenderError(
-                        "Project Clips must use a local /audio/ file URL.")
+                        "Production Clips must use a local /audio/ file URL.")
                 source = (_output() / Path(unquote(parsed.path)).name).resolve()
                 if source.parent != _output() or not source.is_file():
-                    raise RenderError("A Project Clip audio file is unavailable.")
+                    raise RenderError("A Production Clip audio file is unavailable.")
                 if track.get("loop"):
                     command.extend(["-stream_loop", "-1"])
                 command.extend(["-i", str(source)])
@@ -783,24 +783,24 @@ class FFmpegRenderWorkspace:
             done = subprocess.run(command, capture_output=True, timeout=600)
         except (OSError, subprocess.TimeoutExpired) as exc:
             temporary.unlink(missing_ok=True)
-            raise RenderError(f"Project rendering failed: {exc}") from exc
+            raise RenderError(f"Production rendering failed: {exc}") from exc
         if done.returncode or not temporary.is_file() or temporary.stat().st_size <= 0:
             temporary.unlink(missing_ok=True)
             detail = done.stderr.decode(errors="replace").strip().splitlines()
             raise RenderError(
-                f"Project rendering failed: {(detail[-1] if detail else 'no audio')[:300]}")
+                f"Production rendering failed: {(detail[-1] if detail else 'no audio')[:300]}")
         os.replace(temporary, target)
-        return self._project_result(project, target, cached=False)
+        return self._production_result(production, target, cached=False)
 
     @staticmethod
-    def _project_result(project: dict, target: Path, *, cached: bool) -> dict:
+    def _production_result(production: dict, target: Path, *, cached: bool) -> dict:
         return {
             "url": f"/audio/{quote(target.name)}",
             "name": target.name,
             "duration_ms": _measure(target),
-            "tracks": len(project.get("tracks") or []),
+            "tracks": len(production.get("tracks") or []),
             "clips": sum(len(track.get("clips") or [])
-                         for track in (project.get("tracks") or [])),
+                         for track in (production.get("tracks") or [])),
             "sample_rate": 48_000,
             "channels": 2,
             "cached": cached,
@@ -811,7 +811,7 @@ class FFmpegRenderWorkspace:
         return _measure(_output() / filename) or 0
 
     def preview(
-        self, project_id: int, parts: list[dict], scene: dict,
+        self, production_id: int, parts: list[dict], scene: dict,
         *, skipped_drafts: int,
     ) -> dict:
         signature = {
@@ -820,12 +820,12 @@ class FFmpegRenderWorkspace:
         }
         digest = hashlib.sha256(json.dumps(
             signature, sort_keys=True, default=str).encode()).hexdigest()[:20]
-        name = f"preview-{project_id}-{digest}.mp3"
+        name = f"preview-{production_id}-{digest}.mp3"
         target = _output() / name
         cached = target.is_file() and target.stat().st_size > 0
         if not cached:
             sequence_data = self.sequence_stem(
-                project_id, parts,
+                production_id, parts,
                 scene.get("sequence_projection", {}).get("signature", ""),
             )
             sequence = _output() / Path(sequence_data["filename"]).name
@@ -834,7 +834,7 @@ class FFmpegRenderWorkspace:
             except Exception:
                 target.unlink(missing_ok=True)
                 raise
-            for old in _output().glob(f"preview-{project_id}-*.mp3"):
+            for old in _output().glob(f"preview-{production_id}-*.mp3"):
                 if old != target:
                     old.unlink(missing_ok=True)
         return {
@@ -851,17 +851,17 @@ class FFmpegRenderWorkspace:
         }
 
     def finish_export(
-        self, project_id: int, project_name: str, parts: list[dict],
+        self, production_id: int, production_name: str, parts: list[dict],
         scene: dict, subtitles: dict,
     ) -> FinishedExport:
-        name = _name(f"vrn-{project_name}")
+        name = _name(f"vrn-{production_name}")
         target = _output() / name
         manifest_path = _output() / f"{target.stem}.manifest.json"
         caption_paths: tuple[Path, ...] = ()
         blended: Path | None = None
         try:
             sequence_data = self.sequence_stem(
-                project_id, parts,
+                production_id, parts,
                 scene.get("sequence_projection", {}).get("signature", ""),
             )
             sequence = _output() / Path(sequence_data["filename"]).name
@@ -882,8 +882,8 @@ class FFmpegRenderWorkspace:
             duration = _measure(target)
             loudness = _measure_loudness(target)
             manifest = {
-                "version": 1, "project_id": project_id,
-                "project_name": project_name, "parts": manifest_parts,
+                "version": 1, "production_id": production_id,
+                "production_name": production_name, "parts": manifest_parts,
                 "sound_scene": {
                     "signature": scene.get("signature"),
                     "tracks": scene.get("tracks", []),
@@ -922,23 +922,23 @@ class FFmpegRenderWorkspace:
             raise
 
     def finish_video_export(
-        self, project_id: int, project_name: str, parts: list[dict],
+        self, production_id: int, production_name: str, parts: list[dict],
         scene: dict, visual_scene: dict, subtitles: dict,
     ) -> FinishedExport:
-        name = _name(f"vrn-{project_name}", "mp4")
+        name = _name(f"vrn-{production_name}", "mp4")
         target = _output() / name
         manifest_path = _output() / f"{target.stem}.manifest.json"
         audio = _output() / f".{target.stem}-{uuid4().hex}.audio.mp3"
         caption_paths: tuple[Path, ...] = ()
         try:
             sequence_data = self.sequence_stem(
-                project_id, parts,
+                production_id, parts,
                 scene.get("sequence_projection", {}).get("signature", ""),
             )
             sequence = _output() / Path(sequence_data["filename"]).name
             mixed = _mix_scene(sequence, scene, audio)
             duration = max(
-                _project_timeline_duration_ms(scene, visual_scene),
+                _production_timeline_duration_ms(scene, visual_scene),
                 int(_measure(audio) or 0),
             )
             if duration <= 0:
@@ -950,8 +950,8 @@ class FFmpegRenderWorkspace:
             renderer = "ffmpeg-visual-sound-scene-v1"
             manifest = {
                 "version": 1,
-                "project_id": project_id,
-                "project_name": project_name,
+                "production_id": production_id,
+                "production_name": production_name,
                 "sound_scene": {
                     "signature": scene.get("signature"),
                     "tracks": scene.get("tracks", []),

@@ -73,7 +73,7 @@ function scene(): SoundScene {
   }))
   const track = { id: "music", kind: "audio" as const, role: "music" as const, name: "Music", volume: .8, muted: false, clips }
   return {
-    project_id: 1, revision: 1, document: { version: 1, sequence_overrides: {}, tracks: [track] },
+    production_id: 1, revision: 1, document: { version: 1, sequence_overrides: {}, tracks: [track] },
     can_undo: false, can_redo: false, updated_at: "now",
     resolved: { version: 1, signature: "two-clips", duration_ms: 6_000, sequence_projection: { signature: "sequence", duration_ms: 4_000, sample_rate: 48_000, spans: [] }, tracks: [track], orphans: [] },
     sequence_stem: { url: "", filename: "", duration_ms: 4_000, signature: "sequence", cached: true },

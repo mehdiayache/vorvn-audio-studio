@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from "react"
 
 import { originsApi } from "@/lib/api"
-import type { ProjectPart, TextPassResult } from "@/types/domain"
+import type { ProductionPart, TextPassResult } from "@/types/domain"
 import { creatorTextFromPart, type CreatorText, type SpokenProfile, type TextReviewReference } from "@/lib/creator-contract"
 
 export type TextView = "raw" | "shaped" | "tagged"
@@ -12,19 +12,19 @@ type PreparationOptions = {
   onReviewReferenceChange?: (reference: TextReviewReference | null, text?: CreatorText) => Promise<void> | void
 }
 
-function initial(part?: ProjectPart | null) {
+function initial(part?: ProductionPart | null) {
   const { active: _active, ...states } = creatorTextFromPart(part)
   return states
 }
 
-function recordedSpokenProfile(part?: ProjectPart | null): SpokenProfile {
+function recordedSpokenProfile(part?: ProductionPart | null): SpokenProfile {
   const profile = part?.speech_job?.request?.spoken_profile || part?.spoken_profile
   return profile === "spoken_2" ? "spoken_2" : "spoken_1"
 }
 
 export function useCreatorText(
-  part: ProjectPart | null | undefined,
-  projectId: number | undefined,
+  part: ProductionPart | null | undefined,
+  productionId: number | undefined,
   capabilityId: string | null,
   options: PreparationOptions = {},
 ) {
@@ -119,7 +119,7 @@ export function useCreatorText(
     try {
       const job = await originsApi.enqueueTextPass(kind, {
         text: before,
-        ...(projectId ? { project_id: projectId } : {}),
+        ...(productionId ? { production_id: productionId } : {}),
         ...(part?.id ? { part_id: part.id } : {}),
         density,
         ...(kind === "shape" ? { spoken_profile: requestedProfile } : {}),
@@ -149,7 +149,7 @@ export function useCreatorText(
     const nextText = { ...nextStates, active: nextView } satisfies CreatorText
     setBusy(accepted.kind); setError("")
     try {
-      if (part && projectId) await originsApi.saveTextStates(projectId, part.id, { text: after, text_raw: nextStates.raw || null, text_shaped: nextStates.shaped || null, text_tagged: nextStates.tagged || null, text_state: nextView })
+      if (part && productionId) await originsApi.saveTextStates(productionId, part.id, { text: after, text_raw: nextStates.raw || null, text_shaped: nextStates.shaped || null, text_tagged: nextStates.tagged || null, text_state: nextView })
       await referenceChangeRef.current?.(null, nextText)
       setStates(nextStates); setView(nextView); setReview(null); setActiveReference(null)
       if (accepted.kind === "shape") setSpokenProfile(accepted.result.spoken_profile === "spoken_2" ? "spoken_2" : "spoken_1")

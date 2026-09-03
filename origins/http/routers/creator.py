@@ -276,7 +276,7 @@ def check_creator_input_compatibility(
             parameter_key=payload.parameter_key,
             variant_id=payload.variant_id, audio=payload.audio)}
     except LookupError as exc:
-        raise ApiProblem(404, "project_not_found", str(exc)) from exc
+        raise ApiProblem(404, "production_not_found", str(exc)) from exc
     except ValueError as exc:
         raise ApiProblem(400, "invalid_creator_input", str(exc)) from exc
 
@@ -285,11 +285,11 @@ def check_creator_input_compatibility(
             operation_id="listMediaGenerations",
             response_model=MediaGenerationListEnvelope)
 def list_generations(
-    workspace_id: int, project_id: int | None = None, limit: int = 20,
+    workspace_id: int, production_id: int | None = None, limit: int = 20,
 ) -> dict:
     context = {"workspace_id": workspace_id}
-    if project_id is not None:
-        context.update({"project_id": project_id, "project_type": "audiovisual"})
+    if production_id is not None:
+        context.update({"production_id": production_id, "production_type": "audiovisual"})
     return {"data": media_generation_service.recent(context, limit)}
 
 
@@ -305,7 +305,7 @@ def create_generation(payload: CreatorGenerationRequest,
             idempotency_key=idempotency_key)
         return {"data": generation, "meta": {"created": created}}
     except LookupError as exc:
-        raise ApiProblem(404, "project_not_found", str(exc)) from exc
+        raise ApiProblem(404, "production_not_found", str(exc)) from exc
     except ValueError as exc:
         raise ApiProblem(400, "invalid_media_generation", str(exc)) from exc
 

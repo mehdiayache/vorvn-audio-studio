@@ -42,16 +42,16 @@ def scene_with_clip(*, file_id: int = 9) -> dict:
 class Records:
     def __init__(self):
         self.scene = {
-            "project_id": 6, "revision": 1,
+            "production_id": 6, "revision": 1,
             "document": empty_scene(),
             "updated_at": "2026-08-26T00:00:00",
         }
 
-    def get(self, project_id):
-        return self.scene if project_id == 6 else None
+    def get(self, production_id):
+        return self.scene if production_id == 6 else None
 
-    def commit(self, project_id, expected_revision, document):
-        if project_id != 6:
+    def commit(self, production_id, expected_revision, document):
+        if production_id != 6:
             return None
         self.scene = {
             **self.scene, "revision": expected_revision + 1,
@@ -126,7 +126,7 @@ class VisualSceneTests(unittest.TestCase):
         with self.assertRaisesRegex(VisualSceneError, "track IDs"):
             normalize_scene(duplicate)
 
-    def test_service_exposes_one_revisioned_project_scene(self):
+    def test_service_exposes_one_revisioned_production_scene(self):
         service = VisualSceneService(Records())
         self.assertEqual(service.get(6)["document"], empty_scene())
         updated = service.update(6, 1, scene_with_clip())
@@ -159,32 +159,32 @@ class VisualSceneRepositoryTests(unittest.TestCase):
                 "DELETE FROM workspaces WHERE id=%s", (self.workspace["id"],))
             database.commit()
 
-    def test_fresh_audiovisual_project_has_a_loadable_visual_scene(self):
-        project = WorkspaceService(
-            WorkspaceRepository()).create_audiovisual_project(
-                self.workspace["id"], "Fresh audiovisual Project")
+    def test_fresh_audiovisual_production_has_a_loadable_visual_scene(self):
+        production = WorkspaceService(
+            WorkspaceRepository()).create_audiovisual_production(
+                self.workspace["id"], "Fresh audiovisual Production")
 
-        scene = VisualSceneRepository().get(project["id"])
+        scene = VisualSceneRepository().get(production["id"])
 
         self.assertIsNotNone(scene)
-        self.assertEqual(scene["project_id"], project["id"])
+        self.assertEqual(scene["production_id"], production["id"])
         self.assertEqual(scene["revision"], 1)
         self.assertEqual(scene["document"], empty_scene())
 
-    def test_archived_project_does_not_recreate_a_missing_visual_scene(self):
-        project = WorkspaceService(
-            WorkspaceRepository()).create_audiovisual_project(
-                self.workspace["id"], "Archived audiovisual Project")
+    def test_archived_production_does_not_recreate_a_missing_visual_scene(self):
+        production = WorkspaceService(
+            WorkspaceRepository()).create_audiovisual_production(
+                self.workspace["id"], "Archived audiovisual Production")
         with psycopg.connect(settings.database_url) as database:
             database.execute(
-                "UPDATE projects SET status='archived' WHERE id=%s",
-                (project["id"],),
+                "UPDATE productions SET status='archived' WHERE id=%s",
+                (production["id"],),
             )
             database.execute(
-                "DELETE FROM visual_scenes WHERE project_id=%s", (project["id"],))
+                "DELETE FROM visual_scenes WHERE production_id=%s", (production["id"],))
             database.commit()
 
-        self.assertIsNone(VisualSceneRepository().get(project["id"]))
+        self.assertIsNone(VisualSceneRepository().get(production["id"]))
 
 
 if __name__ == "__main__":

@@ -17,12 +17,12 @@ Follow these strict rules on every file, function, and architecture you generate
 
 **Pre-production state is disposable and exists only to support development and testing. It must never constrain the target architecture or justify backward compatibility, migration paths, compatibility layers, legacy support, preservation logic, or other technical debt unless explicitly required. Prefer clean breaking changes, resets, regeneration, and replacement whenever they produce a simpler and better architecture.**
 
-**Existing non-production fixtures, sample data, test artifacts, and development resources should be reused whenever they are fit for purpose, including across development tasks or projects where appropriate. Do not create, regenerate, duplicate, upload, transform, or maintain new test material unnecessarily when an existing resource can exercise the same behavior. Create new test resources only when the test requires characteristics that the existing ones do not provide.**
+**Existing non-production fixtures, sample data, test artifacts, and development resources should be reused whenever they are fit for purpose, including across development tasks or productions where appropriate. Do not create, regenerate, duplicate, upload, transform, or maintain new test material unnecessarily when an existing resource can exercise the same behavior. Create new test resources only when the test requires characteristics that the existing ones do not provide.**
 
 **Treat all such state as non-authoritative and replaceable. Optimize for correctness, simplicity, maintainability, and the intended final architecture—not for preservation of development history or temporary test state.**
 
 **Disposable architecture does not mean disposable operator work. Never delete,
-reset, replace, or regenerate Files, uploads, generated media, Projects, Objects,
+reset, replace, or regenerate Files, uploads, generated media, Productions, Objects,
 or other development resources created by the user merely because the product is
 in pre-production. Those resources are shared QA material for the user and the
 team. A destructive data reset requires an explicit user request or a strictly
@@ -42,12 +42,12 @@ Creator creates.
 Tools transform.
 Files exist.
 Objects organize knowledge.
-Projects organize work.
+Productions organize work.
 Links associate.
 Placements mean actual use.
 ```
 
-- **Workspace** is the sole ownership root for Folders, Files, Objects and Projects.
+- **Workspace** is the sole ownership root for Folders, Files, Objects and Productions.
 - **Explorer** is Folder navigation only. It answers where something is placed.
 - **Add** brings an existing resource into the Workspace through Upload or
   Import. FreeSound is an Import provider, not a Creator Capability.
@@ -66,29 +66,29 @@ Placements mean actual use.
   Creator. A Tool may use an ExecutionEngine and Job, and its kept output is a
   new canonical File related to its input through `FileRelation`.
 - **Create** is a human launcher/verb that may open Creator, Upload, Import, or
-  a Tool, or directly create a Folder, Object or Project. It is not a technical
+  a Tool, or directly create a Folder, Object or Production. It is not a technical
   parent type and does not justify shortcut-specific product implementations.
 - A Creator **Capability** is what Creator can produce, for example
   `image.generate`, `video.generate`, `speech.generate`, `music.generate` and
   `sfx.generate`. **ExecutionEngine** remains an internal implementation detail.
 - **Upload** brings a local File. **Import** brings a File from an external source.
   FreeSound is an Import provider, not a top-level provenance family.
-- **Project Type** selects Project modules, Creator Capabilities and Library
+- **Production Type** selects Production modules, Creator Capabilities and Library
   filters. Audiovisual exposes Script, Timeline, Library, Preview and Export.
 - The Audiovisual **Library** module replaces the old Visuals module. It may show
   Creator and Library panes together, but they retain separate responsibilities.
 - All Library hosts use one query and filter contract. Context changes the
   initial scope and available actions; it must not fork Library into standalone,
-  Project, Creator-reference and picker implementations.
+  Production, Creator-reference and picker implementations.
 - Timeline “Add media” opens Library only. Script “Generate speech” opens Creator
   in Speech mode with Script context. Workspace “Create image” opens Creator with
   Library available for references.
 - **Object** is a durable structured identity such as Brand, Product, Voice or
   Citizen. Its associated resources remain canonical Workspace Files.
 - A kept Creator, Upload or Import result becomes one canonical Workspace File;
-  Projects and Objects reference that File rather than copying it.
-- `ProjectFileLink` and `ObjectFileLink` associate canonical Files without
-  implying use. A Project-Type-owned Placement records actual use, such as
+  Productions and Objects reference that File rather than copying it.
+- `ProductionFileLink` and `ObjectFileLink` associate canonical Files without
+  implying use. A Production-Type-owned Placement records actual use, such as
   `TimelinePlacement` for Audiovisual. Do not use the word `Usage` for links.
 - Audiovisual is the first consumer of the platform grammar, not its ownership
   root and not the generic implementation of Creator, Library, Add or Tools.
@@ -123,11 +123,11 @@ Placements mean actual use.
 
 ### 4. HEADLESS AGENT & DAW COMPATIBILITY
 - The canonical source of truth remains the application domain and persistence
-  model. A lightweight Project JSON representation (`Project -> Tracks ->
+  model. A lightweight Production JSON representation (`Production -> Tracks ->
   Clips`) is a derived, versioned scene/render interchange contract for
   headless clients, agents and DAW-compatible export; it is never a competing
   persistence model.
-- Provide headless API endpoints (`POST /api/v1/projects/render`) so external CLI shells, scripts, and autonomous agents can build entire audio projects programmatically without touching the UI.
+- Provide headless API endpoints (`POST /api/v1/productions/render`) so external CLI shells, scripts, and autonomous agents can build entire audio productions programmatically without touching the UI.
 - Frontend Player Standard: Structure waveform audio responses for lightweight canvas renderers (e.g., Naomi Aro's Waveform Playlist) with pre-computed peak arrays to avoid client-side CPU lag.
 
 ---

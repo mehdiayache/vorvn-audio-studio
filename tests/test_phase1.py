@@ -100,7 +100,7 @@ with tempfile.TemporaryDirectory() as directory:
             "-of", "default=nw=1:nk=1", str(mixed),
         ], capture_output=True, text=True, check=True)
         mixed_duration = float(mixed_probe.stdout.strip())
-        check("music mix keeps the Project duration",
+        check("music mix keeps the Production duration",
               abs(mixed_duration - duration) <= 0.08, (mixed_duration, duration))
 
         missing_target = root / "must-not-exist.mp3"
@@ -121,7 +121,7 @@ print("\npaid-call destination gate")
 
 
 class MissingDestinationRepository:
-    def part(self, _part_id, _project_id):
+    def part(self, _part_id, _production_id):
         return None
 
 
@@ -143,7 +143,7 @@ service = SpeechGenerationService(
     lambda: {"warn_above": 0, "daily_cap": 0},
 )
 try:
-    service.run({"operation": "record", "project_id": 999999,
+    service.run({"operation": "record", "production_id": 999999,
                  "part_id": 888888,
                  "text": "Never send this", "voice": "Tina",
                  "engine": "audio", "model": "flash"})

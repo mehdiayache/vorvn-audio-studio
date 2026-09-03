@@ -59,7 +59,7 @@ export function CreatorLibraryBrowser({ files, folders = [], creationItems = [],
       folderId: item.folderId ?? null,
       searchText: (item.searchText || item.mediaType || "generation").toLocaleLowerCase(),
       createdAt: item.createdAt,
-      projectAssociated: item.projectAssociated,
+      productionAssociated: item.productionAssociated,
       pending: true,
     } satisfies LibraryEntry,
   })), libraryQuery).map(({ item }) => item), [creationItems, libraryQuery])

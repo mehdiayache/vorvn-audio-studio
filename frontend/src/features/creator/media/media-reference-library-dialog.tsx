@@ -11,7 +11,7 @@ import type { SavedVisualReference, WorkspaceFile } from "@/types/domain"
 import { visualFileName, visualFilePosterUrl, visualFileUrl } from "@/features/creator/library/visual-file-presentation"
 import type { MediaAttachmentKind } from "./media-creator-config"
 
-type SortMode = "project" | "added" | "name"
+type SortMode = "production" | "added" | "name"
 
 function mediaIcon(kind?: string) {
   return kind === "audio" ? AudioLines : kind === "video" ? Film : Image
@@ -33,7 +33,7 @@ export function MediaReferenceLibraryDialog({ open, title, files, recentFileIds 
 }) {
   const [query, setQuery] = useState("")
   const [scope, setScope] = useState<"recent" | "all">("recent")
-  const [sort, setSort] = useState<SortMode>("project")
+  const [sort, setSort] = useState<SortMode>("production")
   const recentOrder = useMemo(() => new Map(recentFileIds.map((id, index) => [id, index])), [recentFileIds])
   const mediaTypeCandidates = useMemo(() => files.filter((file) => acceptedMediaTypes.includes(file.media_type as MediaAttachmentKind)), [acceptedMediaTypes, files])
   const compatible = useMemo(() => mediaTypeCandidates.filter((file) => !compatibility || compatibility.get(file.id)?.state === "compatible"), [compatibility, mediaTypeCandidates])
@@ -43,7 +43,7 @@ export function MediaReferenceLibraryDialog({ open, title, files, recentFileIds 
       search: query,
       sort: sort === "name" ? "name" : "recent",
     }))
-    const sorted = sort === "project"
+    const sorted = sort === "production"
       ? [...queried].sort((left, right) => {
           const leftOrder = recentOrder.get(left.id) ?? Number.POSITIVE_INFINITY
           const rightOrder = recentOrder.get(right.id) ?? Number.POSITIVE_INFINITY
@@ -66,7 +66,7 @@ export function MediaReferenceLibraryDialog({ open, title, files, recentFileIds 
       </div>
       <div className="media-reference-picker-tools">
         <label className="media-library-search"><Search aria-hidden="true" /><Input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Search names or tags" /></label>
-        <Select value={sort} onValueChange={(value) => setSort(value as SortMode)}><SelectTrigger aria-label="Sort media"><SelectValue /></SelectTrigger><SelectContent><SelectItem value="project">Project Files first</SelectItem><SelectItem value="added">Recently added</SelectItem><SelectItem value="name">Name</SelectItem></SelectContent></Select>
+        <Select value={sort} onValueChange={(value) => setSort(value as SortMode)}><SelectTrigger aria-label="Sort media"><SelectValue /></SelectTrigger><SelectContent><SelectItem value="production">Production Files first</SelectItem><SelectItem value="added">Recently added</SelectItem><SelectItem value="name">Name</SelectItem></SelectContent></Select>
       </div>
       {savedReferences.length > 0 && <section className="media-saved-reference-list"><header>Saved reference sets</header><div>{savedReferences.map((reference) => <Button key={reference.id} type="button" variant="outline" size="sm" onClick={() => onAddReference?.(reference)}><Image />{reference.name}<small>{reference.file_ids.length}</small></Button>)}</div></section>}
       {unknownCount > 0 && !checking && <p className="media-reference-metadata-note">{unknownCount} {unknownCount === 1 ? "item needs" : "items need"} technical metadata before this model can use {unknownCount === 1 ? "it" : "them"}.</p>}

@@ -44,8 +44,8 @@ class JobHttpTests(unittest.TestCase):
                              "generate-sound-effect")
             self.assertEqual(data["context"], {
                 "workspace_id": workspace_id,
-                "project_id": None,
-                "project_type": None,
+                "production_id": None,
+                "production_type": None,
             })
             self.assertEqual(data["output_file_ids"], [])
         finally:

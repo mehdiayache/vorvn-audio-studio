@@ -311,14 +311,14 @@ class VoiceRepository:
                 SELECT coalesce(clip.voice_identity_id,
                                 binding.identity_id) AS identity_id,
                        count(*) AS uses,
-                       count(DISTINCT part.project_id) AS projects,
+                       count(DISTINCT part.production_id) AS productions,
                        coalesce(sum(clip.cost), 0),
                        max(clip.created_at),
                        (array_agg(clip.filename
                                   ORDER BY clip.created_at DESC)
                            FILTER (WHERE clip.filename <> ''))[1]
                   FROM clips clip
-                  LEFT JOIN project_parts part ON part.id=clip.part_id
+                  LEFT JOIN production_parts part ON part.id=clip.part_id
                   LEFT JOIN voice_bindings binding
                     ON binding.id = clip.binding_id
                  WHERE clip.provider_voice_id NOT IN ('', '-')
@@ -328,7 +328,7 @@ class VoiceRepository:
             rows = cursor.fetchall()
         return {
             row[0]: {
-                "uses": row[1], "projects": row[2],
+                "uses": row[1], "productions": row[2],
                 "spend": float(row[3]),
                 "last_used": row[4].isoformat() if row[4] else None,
                 "preview_filename": row[5] or "",
@@ -369,12 +369,12 @@ class VoiceRepository:
         with read_only() as cursor:
             cursor.execute("""
                 SELECT clip.provider_voice_id, '', coalesce(max(clip.model_id), ''),
-                       count(*), count(DISTINCT part.project_id),
+                       count(*), count(DISTINCT part.production_id),
                        max(clip.created_at),
                        (array_agg(clip.filename ORDER BY clip.created_at DESC)
                            FILTER (WHERE coalesce(clip.filename, '') <> ''))[1]
                   FROM clips clip
-                  LEFT JOIN project_parts part ON part.id=clip.part_id
+                  LEFT JOIN production_parts part ON part.id=clip.part_id
                  WHERE clip.voice_identity_id IS NULL
                    AND clip.binding_resolution_status = 'unresolved'
                    AND clip.provider_voice_id ~* '^qwen.*-[0-9a-f]{32}$'
@@ -384,7 +384,7 @@ class VoiceRepository:
             rows = cursor.fetchall()
         return [{
             "provider_voice_id": row[0], "engine": row[1], "model": row[2],
-            "uses": int(row[3]), "projects": int(row[4]),
+            "uses": int(row[3]), "productions": int(row[4]),
             "last_used": row[5].isoformat() if row[5] else None,
             "preview_filename": row[6] or "",
         } for row in rows]
@@ -545,26 +545,26 @@ class VoiceRepository:
         with read_only() as cursor:
             cursor.execute("""
                 SELECT clip.provider_voice_id, count(*) AS uses,
-                       count(DISTINCT part.project_id) AS projects,
+                       count(DISTINCT part.production_id) AS productions,
                        coalesce(sum(clip.cost), 0) AS spend,
                        max(clip.created_at) AS last_used,
                        (array_agg(clip.filename ORDER BY clip.created_at DESC)
                            FILTER (WHERE clip.filename <> ''))[1] AS latest
                   FROM clips clip
-                  LEFT JOIN project_parts part ON part.id=clip.part_id
+                  LEFT JOIN production_parts part ON part.id=clip.part_id
                  WHERE clip.provider_voice_id NOT IN ('-', '')
                  GROUP BY clip.provider_voice_id
             """)
             rows = cursor.fetchall()
         rolled: dict[str, dict] = {}
-        for voice, uses, projects, spend, last_used, latest in rows:
+        for voice, uses, productions, spend, last_used, latest in rows:
             key = voice_key(voice)
             seen = rolled.setdefault(key, {
-                "uses": 0, "projects": 0, "spend": 0.0,
+                "uses": 0, "productions": 0, "spend": 0.0,
                 "last_used": None, "latest_preview": None,
             })
             seen["uses"] += uses
-            seen["projects"] += projects
+            seen["productions"] += productions
             seen["spend"] += float(spend)
             stamp = last_used.isoformat()
             if not seen["last_used"] or stamp > seen["last_used"]:

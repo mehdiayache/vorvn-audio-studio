@@ -39,7 +39,7 @@ export function ControlledSpeechCreatorSurface({ creator, presentation = "mega",
         <div className="creator-context-actions">
           {!standalone && <SpeechRoleEditor creator={creator} />}
           {presentation === "inline" && onExpand && <Button variant="outline" size="sm" onClick={onExpand}><Expand /> Expand</Button>}
-          {onClose && <OperatorIconButton label="Close Creator" detail="Keeps the saved preparation and returns to the Project." onClick={onClose}><X /></OperatorIconButton>}
+          {onClose && <OperatorIconButton label="Close Creator" detail="Keeps the saved preparation and returns to the Production." onClick={onClose}><X /></OperatorIconButton>}
         </div>
       </header>}
       {capabilityPanel ? <CreatorCapabilityPanel className="speech-capability-panel">

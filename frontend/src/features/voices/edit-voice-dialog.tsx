@@ -78,7 +78,7 @@ export function EditVoiceDialog({ profile, onOpenChange, onSaved, onArchived }: 
   }
 
   async function archive() {
-    if (!profile || !window.confirm(`Archive ${profile.name}? Existing Projects keep their audio and voice reference.`)) return
+    if (!profile || !window.confirm(`Archive ${profile.name}? Existing Productions keep their audio and voice reference.`)) return
     setBusy("archive"); setError("")
     try {
       await originsApi.archiveVoiceProfile(profile.id)

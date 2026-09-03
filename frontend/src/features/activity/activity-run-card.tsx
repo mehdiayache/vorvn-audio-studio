@@ -20,7 +20,7 @@ export function ActivityRunCard({ run, onOpen }: { run: ActivityRun; onOpen: () 
     <span className="activity-run-icon"><Icon className={active ? "spin" : ""} /></span>
     <div className="activity-run-copy">
       <header><b>{run.operation}</b><span>{audit ? "Recorded" : operationStatusLabel(run.status, run)}</span></header>
-      <p>{audit ? run.detail : run.project_name || run.kind_label} · {run.actor_label}</p>
+      <p>{audit ? run.detail : run.production_name || run.kind_label} · {run.actor_label}</p>
       {!audit && run.model && <SpeechModelIdentity modelId={run.model} compact />}
       {run.error && <em>{operatorErrorMessage(run.error)}</em>}
       <footer><span>{new Date(run.when).toLocaleString()}</span><span>{audit ? "Permanent action" : costBasisLabel(run.cost_basis)}</span><span className="activity-id">{run.id.slice(0, 8)}</span></footer>

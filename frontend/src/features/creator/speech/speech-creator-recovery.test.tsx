@@ -10,11 +10,11 @@ vi.mock("@/components/global-player-provider", () => ({
   useGlobalPlayer: () => ({ transportHost: "shell", claimTransport: vi.fn(() => vi.fn()) }),
 }))
 
-import { ProjectSpeechCreatorStage as ProjectCreatorStage } from "./project-speech-creator-host"
+import { ProductionSpeechCreatorStage as ProductionCreatorStage } from "./production-speech-creator-host"
 
 afterEach(() => { cleanup(); vi.clearAllMocks(); vi.useRealTimers(); vi.unstubAllGlobals() })
 
-describe("Project Creator recovery", () => {
+describe("Production Creator recovery", () => {
   it("flushes a quick edit when the Stage closes and restores it when reopened", async () => {
     let stored: unknown = null
     api.creatorDraft.mockImplementation(async () => stored ? { id: "draft-1", state: stored, version: 1, updatedAt: "now" } : null)
@@ -22,14 +22,14 @@ describe("Project Creator recovery", () => {
       stored = draft
       return { id: "draft-1", state: draft, version: 1, updatedAt: "now" }
     })
-    const props = { context: { workspace_id: 4, project_id: 7, selection: { target: "script_part" } }, config: null, directory: { config: null, cloned: [], meta: {}, catalog: [], identities: [], registry: null }, playerPlaying: false, onGenerate: vi.fn(), onPlay: vi.fn() }
-    const view = render(<ProjectCreatorStage {...props} />)
+    const props = { context: { workspace_id: 4, production_id: 7, selection: { target: "script_part" } }, config: null, directory: { config: null, cloned: [], meta: {}, catalog: [], identities: [], registry: null }, playerPlaying: false, onGenerate: vi.fn(), onPlay: vi.fn() }
+    const view = render(<ProductionCreatorStage {...props} />)
     await act(async () => { await Promise.resolve(); await Promise.resolve() })
     fireEvent.change(screen.getByPlaceholderText("Type or paste what should be said…"), { target: { value: "Fast collapse edit" } })
     view.unmount()
     await waitFor(() => expect(api.saveCreatorDraft).toHaveBeenCalled())
     expect(stored).toMatchObject({ text: { raw: "Fast collapse edit" } })
-    render(<ProjectCreatorStage {...props} />)
+    render(<ProductionCreatorStage {...props} />)
     await waitFor(() => expect((screen.getByPlaceholderText("Type or paste what should be said…") as HTMLTextAreaElement).value).toBe("Fast collapse edit"))
     expect((screen.getByPlaceholderText("Type or paste what should be said…") as HTMLTextAreaElement).value).toBe("Fast collapse edit")
   })

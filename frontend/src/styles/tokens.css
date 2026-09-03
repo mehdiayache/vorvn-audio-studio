@@ -78,8 +78,8 @@
   --danger-border: oklch(0.84 0.08 27.3);
   --file: oklch(0.63 0.15 56);
   --file-soft: oklch(0.97 0.025 56);
-  --project: var(--muted-foreground);
-  --project-soft: var(--surface-subtle);
+  --production: var(--muted-foreground);
+  --production-soft: var(--surface-subtle);
   --series: oklch(0.56 0.14 245);
   --series-soft: oklch(0.97 0.02 245);
   --info: oklch(0.56 0.14 245);

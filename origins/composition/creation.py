@@ -11,7 +11,7 @@ for action in (
         "Turn authored text into a voice recording.", "speech",
         inputs=(CreationField("text", "Text", "text", True),),
         output_mime_types=("audio/mpeg", "audio/wav"),
-        supported_contexts=("workspace", "audiovisual-project"),
+        supported_contexts=("workspace", "audiovisual-production"),
         capability_id="speech.generate",
     ),
     CreationAction(
@@ -20,7 +20,7 @@ for action in (
         inputs=(CreationField("prompt", "Prompt", "text", True),),
         parameters=(CreationField("duration", "Duration", "number", True),),
         output_mime_types=("audio/wav",),
-        supported_contexts=("workspace", "audiovisual-project"),
+        supported_contexts=("workspace", "audiovisual-production"),
         capability_id="music.generate",
     ),
     CreationAction(
@@ -29,7 +29,7 @@ for action in (
         inputs=(CreationField("prompt", "Prompt", "text", True),),
         parameters=(CreationField("duration", "Duration", "number", True),),
         output_mime_types=("audio/wav",),
-        supported_contexts=("workspace", "audiovisual-project"),
+        supported_contexts=("workspace", "audiovisual-production"),
         capability_id="sfx.generate",
     ),
     CreationAction(
@@ -37,7 +37,7 @@ for action in (
         "Create an image with an available visual model.", "visual-generation",
         inputs=(CreationField("prompt", "Prompt", "text", True),),
         output_mime_types=("image/png", "image/jpeg", "image/webp"),
-        supported_contexts=("workspace", "audiovisual-project"),
+        supported_contexts=("workspace", "audiovisual-production"),
         capability_id="image.generate",
     ),
     CreationAction(
@@ -45,7 +45,7 @@ for action in (
         "Create a video from text, images or references.", "visual-generation",
         inputs=(CreationField("prompt", "Prompt", "text", True),),
         output_mime_types=("video/mp4",),
-        supported_contexts=("workspace", "audiovisual-project"),
+        supported_contexts=("workspace", "audiovisual-production"),
         capability_id="video.generate",
     ),
     CreationAction(
@@ -53,7 +53,7 @@ for action in (
         "Transcribe an audio or video File into timed captions.", "transcription",
         inputs=(CreationField("source", "Audio or video", "file", True),),
         output_mime_types=("application/x-subrip", "text/vtt"),
-        supported_contexts=("workspace", "audiovisual-project"),
+        supported_contexts=("workspace", "audiovisual-production"),
         capability_id="subtitle.create",
     ),
 ):

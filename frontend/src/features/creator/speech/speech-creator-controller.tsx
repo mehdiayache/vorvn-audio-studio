@@ -34,14 +34,14 @@ import {
 } from "@/lib/voice-options"
 import { ssmlToPlainText, validateSsmlDocument, wrapPlainTextAsSsml } from "@/lib/ssml"
 import type { CreatorContext } from "@/lib/api"
-import type { DurableJob, GeneratePayload, GenerateResult, PartEditorialUpdate, PlayerSource, ProjectPart, StudioConfig, VoiceDirectory } from "@/types/domain"
+import type { DurableJob, GeneratePayload, GenerateResult, PartEditorialUpdate, PlayerSource, ProductionPart, StudioConfig, VoiceDirectory } from "@/types/domain"
 
 export type SpeechCreatorSurfaceProps = {
   context: CreatorContext
   nextPartNumber?: number
   insertAt?: number | null
   insertBeforePartId?: string | null
-  part?: ProjectPart | null
+  part?: ProductionPart | null
   config: StudioConfig | null
   directory: VoiceDirectory
   playingKey?: string
@@ -62,8 +62,8 @@ type PendingGeneration = {
 }
 
 export function useSpeechCreatorController({ context: creatorContext, nextPartNumber = 1, insertAt = null, insertBeforePartId = null, part = null, config, directory, playingKey, playerPlaying, onSave, onUpdateEditorial, onGenerate, onPlay, generationState = null, visible = true }: SpeechCreatorSurfaceProps) {
-  const projectId = creatorContext.selection?.target === "script_part"
-    ? creatorContext.project_id ?? undefined
+  const productionId = creatorContext.selection?.target === "script_part"
+    ? creatorContext.production_id ?? undefined
     : undefined
   const [route, setRoute] = useState(routeSelectionFromPart(part))
   const [selectedModelKey, setSelectedModelKey] = useState("")
@@ -144,7 +144,7 @@ export function useSpeechCreatorController({ context: creatorContext, nextPartNu
   const selectedCapability = selectedRouteCapability(currentRoute, route?.capabilityId)
   const capabilityControls = creatorCapabilityControls(selectedCapability)
   const deliveryMode = resolvedDeliveryMode(capabilityControls, deliveryModeRequest)
-  const textSession = useCreatorText(part, projectId, selectedCapability?.id || null, {
+  const textSession = useCreatorText(part, productionId, selectedCapability?.id || null, {
     reviewReference: textReviewReference,
     onReviewReferenceChange: async (reference, nextText) => {
       setTextReviewReference(reference)
@@ -220,17 +220,17 @@ export function useSpeechCreatorController({ context: creatorContext, nextPartNu
   }
   const estimate = textSession.text.length * Number(currentRoute?.estimateRatePerMillionCharacters || 0) / 1_000_000
   const textPassEstimate = textSession.text.length * Number(config?.text_preparation?.estimated_price_per_million_characters || 0) / 1_000_000
-  const destination = !projectId
+  const destination = !productionId
     ? "Reusable recording"
     : part
       ? `Edit ${formatAuthoredRole(authoredRole) || "speech"} · Part ${formatPartNumber(part.position ?? 0)}`
       : insertAt === null ? `New speech · Part ${nextPartNumber}` : `New speech · before Part ${insertAt + 1}`
-  const draftContext = useMemo(() => compositionContext({ projectId, part, insertBeforePartId }), [insertBeforePartId, part, projectId])
+  const draftContext = useMemo(() => compositionContext({ productionId, part, insertBeforePartId }), [insertBeforePartId, part, productionId])
   const baseline = useMemo(() => editorialBaseline(part), [part])
   const draft: CompositionDraft = {
     authoredRole,
     // Every registry identity is stable enough to restore an operator choice.
-    // Generation still projects voice_identity_id only for owned routes.
+    // Generation still productions voice_identity_id only for owned routes.
     voiceIdentityId: selectedIdentity?.identityId || null,
     route,
     text: { raw: textSession.states.raw, shaped: textSession.states.shaped, tagged: textSession.states.tagged, active: textSession.view },
@@ -365,7 +365,7 @@ export function useSpeechCreatorController({ context: creatorContext, nextPartNu
   const methodLabel = selectedCapability?.name || "Choose a route first"
 
   return {
-    projectId, nextPartNumber, insertAt, insertBeforePartId, part, config, directory, playingKey, playerPlaying, onSave, onPlay, generationState,
+    productionId, nextPartNumber, insertAt, insertBeforePartId, part, config, directory, playingKey, playerPlaying, onSave, onPlay, generationState,
     route, identityId, language, format, deliveryModeRequest, instruction, rate, pitch, volume, seed, enableSsml,
     busy, roleBusy, authoredRole, confirmationEstimate, pendingCommand, editorialCommand, textReviewReference,
     identities: voiceOptions, selectedIdentity, compatibleRoutes, visibleRoutes, selectedModelKey: activeModelKey, currentRoute, selectedCapability, capabilityControls, deliveryMode,

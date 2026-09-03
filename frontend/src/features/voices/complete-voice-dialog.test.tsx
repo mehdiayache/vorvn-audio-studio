@@ -22,7 +22,7 @@ const profile: VoiceProfile = {
     { id: "ref-english", original_name: "sarah-english.wav", normalized_path: "ref-english.wav", source_language: "en", transcript: "", sha256: "en", created_at: "2026-08-10", updated_at: "2026-08-10" },
   ],
   bindings: [], jobs: [],
-  usage: { uses: 0, projects: 0, spend: 0, last_used: null, preview_filename: "" },
+  usage: { uses: 0, productions: 0, spend: 0, last_used: null, preview_filename: "" },
   available_routes: [{ provider_model_id: "alibaba:intl:audio-flash", provider: "alibaba", region: "intl", adapter_key: "audio", engine: "audio", tier: "flash", model_id: "audio-flash", label: "Qwen Audio · Flash", role: "Expressive", language: "en", source_language_documented: true, documented_output_languages: ["English"], estimated_creation_cost: 0 }],
 }
 

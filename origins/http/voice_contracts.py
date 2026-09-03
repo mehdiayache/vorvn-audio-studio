@@ -143,7 +143,7 @@ class VoicePackageJobResponse(BaseModel):
 
 class VoiceProfileUsageResponse(BaseModel):
     uses: int
-    projects: int
+    productions: int
     spend: float
     last_used: str | None = None
     preview_filename: str = ""
@@ -203,7 +203,7 @@ class HistoricalVoiceResponse(BaseModel):
     engine: str
     model: str
     uses: int
-    projects: int
+    productions: int
     last_used: str | None = None
     preview_filename: str = ""
 

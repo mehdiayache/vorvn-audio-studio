@@ -1,4 +1,4 @@
-"""Sound Scene use cases over canonical Project Sequence truth."""
+"""Sound Scene use cases over canonical Production Sequence truth."""
 
 from __future__ import annotations
 
@@ -12,23 +12,23 @@ from origins.domain.sound_scene import (
 
 
 class SoundSceneRecords(Protocol):
-    def get(self, project_id: int) -> dict[str, Any] | None: ...
+    def get(self, production_id: int) -> dict[str, Any] | None: ...
     def commit(
-        self, project_id: int, expected_revision: int,
+        self, production_id: int, expected_revision: int,
         document: dict[str, Any], mutation_kind: str = "operator",
     ) -> dict[str, Any] | None: ...
     def step(
-        self, project_id: int, direction: int,
+        self, production_id: int, direction: int,
     ) -> dict[str, Any] | None: ...
 
 
 class SequenceRecords(Protocol):
-    def parts(self, project_id: int) -> list[dict[str, Any]]: ...
+    def parts(self, production_id: int) -> list[dict[str, Any]]: ...
 
 
 class SequenceStemWorkspace(Protocol):
     def sequence_stem(
-        self, project_id: int, parts: list[dict[str, Any]],
+        self, production_id: int, parts: list[dict[str, Any]],
         signature: str,
     ) -> dict[str, Any]: ...
 
@@ -42,11 +42,11 @@ class SoundSceneService:
         self.sequence = sequence
         self.workspace = workspace
 
-    def _response(self, project_id: int) -> dict[str, Any]:
-        scene = self.records.get(project_id)
+    def _response(self, production_id: int) -> dict[str, Any]:
+        scene = self.records.get(production_id)
         if not scene:
-            raise SoundSceneError("That Project does not exist.")
-        parts = self.sequence.parts(project_id)
+            raise SoundSceneError("That Production does not exist.")
+        parts = self.sequence.parts(production_id)
         resolved = resolve_scene(
             scene.get("hydrated_document", scene["document"]), parts)
         projection = resolved["sequence_projection"]
@@ -66,35 +66,35 @@ class SoundSceneService:
             "signature": projection["signature"], "cached": False,
             "unavailable_reason": "Sequence contains unavailable audio.",
         } if unavailable else self.workspace.sequence_stem(
-            project_id, renderable, projection["signature"]))
+            production_id, renderable, projection["signature"]))
         return {
             key: value for key, value in {
                 **scene, "resolved": resolved, "sequence_stem": stem,
             }.items() if key != "hydrated_document"
         }
 
-    def get(self, project_id: int) -> dict[str, Any]:
-        return self._response(project_id)
+    def get(self, production_id: int) -> dict[str, Any]:
+        return self._response(production_id)
 
     def update(
-        self, project_id: int, expected_revision: int,
+        self, production_id: int, expected_revision: int,
         document: dict[str, Any], mutation_kind: str = "operator",
     ) -> dict[str, Any]:
         try:
             saved = self.records.commit(
-                project_id, expected_revision, document, mutation_kind)
+                production_id, expected_revision, document, mutation_kind)
         except (ValueError, SoundSceneRevisionConflict):
             raise
         if not saved:
-            raise SoundSceneError("That Project does not exist.")
-        return self._response(project_id)
+            raise SoundSceneError("That Production does not exist.")
+        return self._response(production_id)
 
-    def undo(self, project_id: int) -> dict[str, Any]:
-        if not self.records.step(project_id, -1):
-            raise SoundSceneError("That Project does not exist.")
-        return self._response(project_id)
+    def undo(self, production_id: int) -> dict[str, Any]:
+        if not self.records.step(production_id, -1):
+            raise SoundSceneError("That Production does not exist.")
+        return self._response(production_id)
 
-    def redo(self, project_id: int) -> dict[str, Any]:
-        if not self.records.step(project_id, 1):
-            raise SoundSceneError("That Project does not exist.")
-        return self._response(project_id)
+    def redo(self, production_id: int) -> dict[str, Any]:
+        if not self.records.step(production_id, 1):
+            raise SoundSceneError("That Production does not exist.")
+        return self._response(production_id)

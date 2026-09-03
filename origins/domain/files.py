@@ -1,4 +1,4 @@
-"""Durable File identity independent from storage paths and Project use."""
+"""Durable File identity independent from storage paths and Production use."""
 
 from __future__ import annotations
 

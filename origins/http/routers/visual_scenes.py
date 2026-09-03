@@ -17,7 +17,7 @@ from origins.http.errors import ApiProblem
 
 
 router = APIRouter(
-    prefix="/api/v1/projects/{project_id}/visual-scene",
+    prefix="/api/v1/productions/{production_id}/visual-scene",
     tags=["visual-scene"],
 )
 
@@ -71,7 +71,7 @@ class VisualSceneUpdateBody(BaseModel):
 
 
 class VisualSceneResponse(BaseModel):
-    project_id: int
+    production_id: int
     revision: int
     document: VisualSceneDocument
     updated_at: str
@@ -92,17 +92,17 @@ def _run(operation):
         raise ApiProblem(400, "visual_scene_error", str(exc)) from exc
 
 
-@router.get("", operation_id="getProjectVisualScene",
+@router.get("", operation_id="getProductionVisualScene",
             response_model=VisualSceneEnvelope)
-def get_visual_scene(project_id: int) -> dict:
-    return _run(lambda: visual_scene_service.get(project_id))
+def get_visual_scene(production_id: int) -> dict:
+    return _run(lambda: visual_scene_service.get(production_id))
 
 
-@router.patch("", operation_id="updateProjectVisualScene",
+@router.patch("", operation_id="updateProductionVisualScene",
               response_model=VisualSceneEnvelope)
 def update_visual_scene(
-    project_id: int, payload: VisualSceneUpdateBody,
+    production_id: int, payload: VisualSceneUpdateBody,
 ) -> dict:
     return _run(lambda: visual_scene_service.update(
-        project_id, payload.expected_revision,
+        production_id, payload.expected_revision,
         payload.document.model_dump(mode="json")))

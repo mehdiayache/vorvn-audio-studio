@@ -1,4 +1,4 @@
-"""Local media operations for Project timeline commands."""
+"""Local media operations for Production timeline commands."""
 
 from pathlib import Path
 import shutil

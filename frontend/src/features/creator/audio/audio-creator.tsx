@@ -151,7 +151,7 @@ export function AudioCreator({
   onCreationItemsChange?: (items: CreatorLibraryCreationItem[]) => void
 }) {
   const workspaceId = context.workspace_id
-  const projectId = context.project_id ?? undefined
+  const productionId = context.production_id ?? undefined
   const [capability, setCapability] = useState<PresetCapability>(fixedCapability || "sfx")
   const [promptMode, setPromptMode] = useState<"simple" | "expert">("simple")
   const [composeScreen, setComposeScreen] = useState<ComposeScreen>(fixedCapability ? "preset" : "setup")
@@ -322,7 +322,7 @@ export function AudioCreator({
         capability,
         semantic_state: preset,
         source_free_text: preset.creative_brief,
-        project_id: projectId,
+        production_id: productionId,
         workspace_id: workspaceId,
         confirmed: false,
       }) as SoundPresetNormalizationResult
@@ -347,7 +347,7 @@ export function AudioCreator({
           generation_brief: null,
           seconds: normalizedPreset.duration,
           seed: semanticState.seed < 0 ? null : semanticState.seed,
-          project_id: projectId,
+          production_id: productionId,
           workspace_id: workspaceId,
         })
         createdJobIds.push(job.id)

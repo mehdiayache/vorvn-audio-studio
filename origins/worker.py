@@ -31,7 +31,7 @@ from origins.application.transcription import (
     TranscriptionService,
 )
 from origins.application.voice_cloning import VoiceCloningService
-from origins.application.project_import import ProjectImportJobHandler
+from origins.application.production_import import ProductionImportJobHandler
 
 from origins.composition.jobs import job_service
 from origins.composition.renders import render_service
@@ -39,7 +39,7 @@ from origins.composition.audio_generation import audio_generation_service
 from origins.composition.creation_files import creation_file_service
 from origins.composition.catalog import catalog_service
 from origins.composition.timeline import timeline_service
-from origins.composition.projects import project_service
+from origins.composition.productions import production_service
 from origins.providers.alibaba.text_preparation import AlibabaTextProvider
 from origins.providers.alibaba.speech_generation import AlibabaSpeechProvider
 from origins.providers.alibaba.translation import AlibabaTranslationProvider
@@ -115,8 +115,8 @@ def main() -> int:
         PostgresTextPreparationRepository(), AlibabaTextProvider(),
         load_preferences, provider_operations)
     service.register("rewrite", TextPreparationJobHandler(text_preparation))
-    service.register("project_import", ProjectImportJobHandler(
-        project_service, timeline_service, catalog_service, text_preparation))
+    service.register("production_import", ProductionImportJobHandler(
+        production_service, timeline_service, catalog_service, text_preparation))
     service.register(
         "sound_preset_normalize",
         SoundPresetNormalizationJobHandler(SoundPresetNormalizationService(

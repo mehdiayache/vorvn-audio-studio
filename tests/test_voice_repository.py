@@ -38,10 +38,10 @@ class VoiceRepositoryTests(unittest.TestCase):
         metadata_id = f"qwen-audio-3.0-tts-plus-repo-{marker}"
         workspace = WorkspaceRepository().create_workspace(
             "Voice history Workspace", "Disposable voice regression fixture")
-        project = WorkspaceRepository().create_audiovisual_project(
-            workspace["id"], "Voice history Project", "", None)
-        if project is None:
-            self.fail("Could not create the canonical Project fixture")
+        production = WorkspaceRepository().create_audiovisual_production(
+            workspace["id"], "Voice history Production", "", None)
+        if production is None:
+            self.fail("Could not create the canonical Production fixture")
         part_id = None
         preview_job_id = None
         try:
@@ -100,12 +100,12 @@ class VoiceRepositoryTests(unittest.TestCase):
                         VALUES (%s, 'fixture.png', true, 'Fixture system voice')
                     """, (metadata_id,))
                     cursor.execute("""
-                        INSERT INTO project_parts
-                            (project_id, position, kind, script)
+                        INSERT INTO production_parts
+                            (production_id, position, kind, script)
                         VALUES (%s, (SELECT coalesce(max(position),-1)+1
-                                      FROM project_parts WHERE project_id=%s),
+                                      FROM production_parts WHERE production_id=%s),
                                 'speech', 'Fixture') RETURNING id
-                    """, (project["id"], project["id"]))
+                    """, (production["id"], production["id"]))
                     part_id = int(cursor.fetchone()[0])
                     cursor.execute("""
                         INSERT INTO clips
@@ -229,7 +229,7 @@ class VoiceRepositoryTests(unittest.TestCase):
                         cursor.execute("DELETE FROM jobs WHERE id=%s",
                                        (preview_job_id,))
                     if part_id:
-                        cursor.execute("DELETE FROM project_parts WHERE id = %s",
+                        cursor.execute("DELETE FROM production_parts WHERE id = %s",
                                        (part_id,))
                     cursor.execute("DELETE FROM voice_bindings WHERE identity_id = %s",
                                    (identity_id,))

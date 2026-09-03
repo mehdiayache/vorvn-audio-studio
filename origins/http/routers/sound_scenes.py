@@ -17,7 +17,7 @@ from origins.http.errors import ApiProblem
 
 
 router = APIRouter(
-    prefix="/api/v1/projects/{project_id}/sound-scene",
+    prefix="/api/v1/productions/{production_id}/sound-scene",
     tags=["sound-scene"],
 )
 
@@ -257,7 +257,7 @@ class SequenceStemResponse(BaseModel):
 
 
 class SoundSceneResponse(BaseModel):
-    project_id: int
+    production_id: int
     revision: int
     document: SoundSceneDocument
     can_undo: bool
@@ -282,33 +282,33 @@ def _run(operation):
         raise ApiProblem(400, "sound_scene_error", str(exc)) from exc
 
 
-@router.get("", operation_id="getProjectSoundScene",
+@router.get("", operation_id="getProductionSoundScene",
             response_model=SoundSceneEnvelope)
-def get_sound_scene(project_id: int) -> dict:
-    return _run(lambda: sound_scene_service.get(project_id))
+def get_sound_scene(production_id: int) -> dict:
+    return _run(lambda: sound_scene_service.get(production_id))
 
 
-@router.patch("", operation_id="updateProjectSoundScene",
+@router.patch("", operation_id="updateProductionSoundScene",
               response_model=SoundSceneEnvelope)
 def update_sound_scene(
-    project_id: int, payload: SoundSceneUpdateBody,
+    production_id: int, payload: SoundSceneUpdateBody,
 ) -> dict:
     document = payload.document.model_dump()
     if document.get("linked_visual_audio_settings") is None:
         document.pop("linked_visual_audio_settings", None)
     return _run(lambda: sound_scene_service.update(
-        project_id, payload.expected_revision,
+        production_id, payload.expected_revision,
         document, payload.mutation_kind,
     ))
 
 
-@router.post("/undo", operation_id="undoProjectSoundScene",
+@router.post("/undo", operation_id="undoProductionSoundScene",
              response_model=SoundSceneEnvelope)
-def undo_sound_scene(project_id: int) -> dict:
-    return _run(lambda: sound_scene_service.undo(project_id))
+def undo_sound_scene(production_id: int) -> dict:
+    return _run(lambda: sound_scene_service.undo(production_id))
 
 
-@router.post("/redo", operation_id="redoProjectSoundScene",
+@router.post("/redo", operation_id="redoProductionSoundScene",
              response_model=SoundSceneEnvelope)
-def redo_sound_scene(project_id: int) -> dict:
-    return _run(lambda: sound_scene_service.redo(project_id))
+def redo_sound_scene(production_id: int) -> dict:
+    return _run(lambda: sound_scene_service.redo(production_id))

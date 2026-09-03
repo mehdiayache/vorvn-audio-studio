@@ -13,15 +13,15 @@ class NamingPolicyTests(unittest.TestCase):
 
     def test_download_name_is_readable_safe_and_stably_numbered(self):
         result = naming.download_name(
-            {"project": "Sleep", "folder": "صلاة النوم — Evening", "part": 3},
-            naming.merged({"prefix": "origins", "include_project": True}, None),
+            {"production": "Sleep", "folder": "صلاة النوم — Evening", "part": 3},
+            naming.merged({"prefix": "origins", "include_production": True}, None),
         )
         self.assertEqual(result, "origins-Sleep-صلاة-النوم-Evening-part-03.mp3")
 
     def test_metadata_uses_human_context_and_omits_blank_fields(self):
         settings = naming.merged({}, None)
         result = naming.id3(
-            {"workspace": "Heartsnotes", "project": "Sleep", "folder": "Prayer", "part": 2},
+            {"workspace": "Heartsnotes", "production": "Sleep", "folder": "Prayer", "part": 2},
             settings,
         )
         self.assertEqual(result["artist"], "Heartsnotes")

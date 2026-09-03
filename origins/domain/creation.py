@@ -78,8 +78,8 @@ class CreationPreset:
 class CreationContext:
     workspace_id: int
     folder_id: int | None = None
-    project_id: int | None = None
-    project_type: str | None = None
+    production_id: int | None = None
+    production_type: str | None = None
     object_id: int | None = None
     selection: dict[str, Any] = field(default_factory=dict)
 
@@ -88,10 +88,10 @@ class CreationContext:
             raise ValueError("Creation context requires a Workspace.")
         if self.folder_id is not None and self.folder_id < 1:
             raise ValueError("Folder IDs must be positive.")
-        if self.project_id is not None and self.project_id < 1:
-            raise ValueError("Project IDs must be positive.")
-        if self.project_type is not None and not self.project_type.strip():
-            raise ValueError("Project types cannot be empty.")
+        if self.production_id is not None and self.production_id < 1:
+            raise ValueError("Production IDs must be positive.")
+        if self.production_type is not None and not self.production_type.strip():
+            raise ValueError("Production types cannot be empty.")
         if self.object_id is not None and self.object_id < 1:
             raise ValueError("Object IDs must be positive.")
 

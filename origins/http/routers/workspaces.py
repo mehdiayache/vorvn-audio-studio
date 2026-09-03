@@ -5,11 +5,11 @@ from fastapi import APIRouter, HTTPException, Query, status
 from origins.composition.creation import creation_registry
 from origins.composition.workspaces import workspace_service
 from origins.http.workspace_contracts import (
-    AudiovisualProjectCreateRequest,
+    AudiovisualProductionCreateRequest,
     CreationActionListEnvelope,
     FolderCreateRequest,
     FolderMutationEnvelope,
-    ProjectMutationEnvelope,
+    ProductionMutationEnvelope,
     WorkspaceCreateRequest,
     WorkspaceListEnvelope,
     WorkspaceMutationEnvelope,
@@ -54,33 +54,33 @@ def create_folder(workspace_id: int, payload: FolderCreateRequest) -> dict:
 
 
 @router.post(
-    "/workspaces/{workspace_id}/projects/audiovisual",
-    response_model=ProjectMutationEnvelope,
+    "/workspaces/{workspace_id}/productions/audiovisual",
+    response_model=ProductionMutationEnvelope,
     status_code=status.HTTP_201_CREATED,
-    operation_id="createAudiovisualProject",
+    operation_id="createAudiovisualProduction",
 )
-def create_audiovisual_project(
-    workspace_id: int, payload: AudiovisualProjectCreateRequest,
+def create_audiovisual_production(
+    workspace_id: int, payload: AudiovisualProductionCreateRequest,
 ) -> dict:
-    project = workspace_service.create_audiovisual_project(
+    production = workspace_service.create_audiovisual_production(
         workspace_id, payload.name, payload.description, payload.folder_id)
-    if not project:
+    if not production:
         raise HTTPException(status.HTTP_404_NOT_FOUND,
                             "Workspace or Folder not found.")
-    return {"data": project}
+    return {"data": production}
 
 
 @router.get(
-    "/projects/{project_identifier}",
-    response_model=ProjectMutationEnvelope,
-    operation_id="getAudiovisualProject",
+    "/productions/{production_identifier}",
+    response_model=ProductionMutationEnvelope,
+    operation_id="getAudiovisualProduction",
 )
-def get_audiovisual_project(project_identifier: str) -> dict:
-    project = workspace_service.project(project_identifier)
-    if not project:
+def get_audiovisual_production(production_identifier: str) -> dict:
+    production = workspace_service.production(production_identifier)
+    if not production:
         raise HTTPException(status.HTTP_404_NOT_FOUND,
-                            "Audiovisual Project not found.")
-    return {"data": project}
+                            "Audiovisual Production not found.")
+    return {"data": production}
 
 
 @router.get("/creation-actions", response_model=CreationActionListEnvelope,

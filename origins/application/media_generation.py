@@ -15,9 +15,9 @@ from origins.domain.jobs import Job
 
 
 class VisualFileStore(Protocol):
-    def project_exists(self, project_id: int) -> bool: ...
+    def production_exists(self, production_id: int) -> bool: ...
     def workspace_exists(self, workspace_id: int) -> bool: ...
-    def list_for_project(self, project_id: int) -> list[dict]: ...
+    def list_for_production(self, production_id: int) -> list[dict]: ...
     def list_for_workspace(self, workspace_id: int) -> list[dict]: ...
 
 
@@ -39,26 +39,26 @@ class MediaGenerationService:
 
     def _available_files(self, context: dict[str, Any]) -> list[dict]:
         workspace_id = int(context["workspace_id"])
-        project_id = context.get("project_id")
+        production_id = context.get("production_id")
         if not self.files.workspace_exists(workspace_id):
             raise LookupError("That Workspace no longer exists.")
-        if project_id is not None:
-            if not self.files.project_exists(int(project_id)):
-                raise LookupError("That Project no longer exists.")
-            return self.files.list_for_project(int(project_id))
+        if production_id is not None:
+            if not self.files.production_exists(int(production_id)):
+                raise LookupError("That Production no longer exists.")
+            return self.files.list_for_production(int(production_id))
         return self.files.list_for_workspace(workspace_id)
 
     def enqueue(self, context: dict[str, Any], preset: dict[str, Any], *,
                 idempotency_key: str) -> tuple[dict[str, Any], bool]:
         workspace_id = int(context["workspace_id"])
-        project_id = context.get("project_id")
+        production_id = context.get("production_id")
         available = {int(file["id"]): file
                      for file in self._available_files(context)}
         validate_preset(preset, available)
         model, operation = capability(preset["model_id"], preset["operation"])
         payload = {
             "workspace_id": workspace_id,
-            "project_id": int(project_id) if project_id is not None else None,
+            "production_id": int(production_id) if production_id is not None else None,
             "creation_context": context,
             "preset": preset,
             "provider": model["provider"],
@@ -76,20 +76,20 @@ class MediaGenerationService:
         job, created = self.jobs.enqueue(
             MEDIA_GENERATION_KIND, payload,
             idempotency_key=idempotency_key, workspace_id=workspace_id,
-            project_id=int(project_id) if project_id is not None else None,
+            production_id=int(production_id) if production_id is not None else None,
             creation_context=context,
             source_tool="creator", operation_label=preset["operation"],
         )
-        return self.project(job), created
+        return self.production(job), created
 
     def recent(self, context: dict[str, Any], limit: int = 20) -> list[dict[str, Any]]:
-        project_id = context.get("project_id")
-        jobs = (self.jobs.recent_for_project(
-            int(project_id), kind=MEDIA_GENERATION_KIND, limit=limit)
-            if project_id is not None else self.jobs.recent_for_workspace(
+        production_id = context.get("production_id")
+        jobs = (self.jobs.recent_for_production(
+            int(production_id), kind=MEDIA_GENERATION_KIND, limit=limit)
+            if production_id is not None else self.jobs.recent_for_workspace(
                 int(context["workspace_id"]), kind=MEDIA_GENERATION_KIND,
                 limit=limit))
-        return [self.project(job) for job in jobs]
+        return [self.production(job) for job in jobs]
 
     def input_compatibility(
         self, context: dict[str, Any], model_id: str, operation: str,
@@ -140,7 +140,7 @@ class MediaGenerationService:
         canceled = self.jobs.cancel(job_id)
         if not canceled:
             raise LookupError("That Media generation no longer exists.")
-        return self.project(canceled)
+        return self.production(canceled)
 
     def retry_ingestion(
         self, context: dict[str, Any], job_id: UUID,
@@ -149,10 +149,10 @@ class MediaGenerationService:
         if (not job or job.kind != MEDIA_GENERATION_KIND
                 or job.creation_context != context):
             raise LookupError("That Media generation no longer exists.")
-        return self.project(self.jobs.retry_local_ingestion(job_id))
+        return self.production(self.jobs.retry_local_ingestion(job_id))
 
     @staticmethod
-    def project(job: Job) -> dict[str, Any]:
+    def production(job: Job) -> dict[str, Any]:
         status = {
             "queued": "queued", "running": "generating",
             "retrying": "generating", "ok": "ready", "warning": "ready",

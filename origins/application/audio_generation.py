@@ -60,7 +60,7 @@ class AudioGenerationService:
                 source_free_text: str = "",
                 final_prompt_override: str | None = None,
                 authored_prompt: str | None = None,
-                idempotency_key: str, project_id: int | None = None,
+                idempotency_key: str, production_id: int | None = None,
                 workspace_id: int | None = None) \
             -> tuple[Job, bool]:
         compiled = None
@@ -105,17 +105,17 @@ class AudioGenerationService:
         return self.jobs.enqueue(
             "audio_generate", payload,
             idempotency_key=idempotency_key,
-            project_id=project_id,
+            production_id=production_id,
             workspace_id=workspace_id,
             creation_action_id=(
                 "generate-sound-effect" if capability == "sfx"
                 else "generate-music"),
             creation_context={
                 "workspace_id": workspace_id,
-                "project_id": project_id,
-                "project_type": "audiovisual" if project_id else None,
+                "production_id": production_id,
+                "production_type": "audiovisual" if production_id else None,
             },
-            source_tool="creator" if workspace_id and not project_id
+            source_tool="creator" if workspace_id and not production_id
             else "audio-library",
             operation_label=("Generate sound effect" if capability == "sfx"
                              else "Generate music"),
@@ -280,7 +280,7 @@ class AudioGenerationService:
         return existed
 
     def recent(
-        self, project_id: int | None = None, *, workspace_id: int | None = None,
+        self, production_id: int | None = None, *, workspace_id: int | None = None,
         limit: int = 8,
     ) -> list[dict]:
         """Return durable generation attempts with their current candidate truth."""
@@ -288,8 +288,8 @@ class AudioGenerationService:
         jobs = (
             self.jobs.recent_for_workspace(workspace_id, kind="audio_generate", limit=limit)
             if workspace_id is not None else
-            self.jobs.recent_for_project(
-                project_id, kind="audio_generate", limit=limit)
+            self.jobs.recent_for_production(
+                production_id, kind="audio_generate", limit=limit)
         )
         for job in jobs:
             candidate_id = str(job.public_id)

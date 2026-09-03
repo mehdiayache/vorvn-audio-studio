@@ -1,4 +1,4 @@
-"""Public contracts for Workspaces, typed Projects and Files."""
+"""Public contracts for Workspaces, typed Productions and Files."""
 
 from __future__ import annotations
 
@@ -14,19 +14,19 @@ class WorkspaceResponse(BaseModel):
     public_id: str
     name: str
     description: str
-    project_count: int = 0
+    production_count: int = 0
     file_count: int = 0
     folder_count: int = 0
     created_at: str
     updated_at: str
 
 
-class ProjectResponse(BaseModel):
+class ProductionResponse(BaseModel):
     id: int
     public_id: str
     workspace_id: int
     folder_id: int | None
-    project_type: str
+    production_type: str
     name: str
     description: str
     status: str
@@ -39,7 +39,7 @@ class ProjectResponse(BaseModel):
 class WorkspaceOverviewResponse(BaseModel):
     workspace: WorkspaceResponse
     folders: list[WorkspaceFolderResponse]
-    projects: list[ProjectResponse]
+    productions: list[ProductionResponse]
     files: list[WorkspaceFileResponse]
 
 
@@ -61,7 +61,7 @@ class FolderCreateRequest(BaseModel):
     parent_id: int | None = Field(default=None, gt=0)
 
 
-class AudiovisualProjectCreateRequest(BaseModel):
+class AudiovisualProductionCreateRequest(BaseModel):
     name: str = Field(min_length=1, max_length=180)
     description: str = Field(default="", max_length=2_000)
     folder_id: int | None = Field(default=None, gt=0)
@@ -75,8 +75,8 @@ class FolderMutationEnvelope(BaseModel):
     data: WorkspaceFolderResponse
 
 
-class ProjectMutationEnvelope(BaseModel):
-    data: ProjectResponse
+class ProductionMutationEnvelope(BaseModel):
+    data: ProductionResponse
 
 
 class CreationFieldResponse(BaseModel):

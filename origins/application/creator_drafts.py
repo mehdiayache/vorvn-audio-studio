@@ -21,12 +21,12 @@ def context_key(context: dict[str, Any]) -> str:
     """Build one deterministic owner key from an already validated context."""
     if context["kind"] == "standalone":
         return "standalone"
-    project_id = int(context["project_id"])
+    production_id = int(context["production_id"])
     part_id = context.get("part_id")
     if part_id is not None:
-        return f"project:{project_id}:part:{int(part_id)}"
+        return f"production:{production_id}:part:{int(part_id)}"
     anchor = context.get("insert_before_part_id") or "end"
-    return f"project:{project_id}:new_part:before:{anchor}"
+    return f"production:{production_id}:new_part:before:{anchor}"
 
 
 class CreatorDraftService:

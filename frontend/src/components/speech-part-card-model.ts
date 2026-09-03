@@ -2,7 +2,7 @@ import { durableOperationTruth } from "@/lib/operation-language"
 import { resolveSpeechModel } from "@/components/speech-model-identity"
 import { formatMoney, partDurationMs } from "@/lib/format"
 import { resolveRequestRoute, resolveVoice, type ResolvedVoice } from "@/lib/voice"
-import type { DurableJob, GenerateResult, ProjectPart, VoiceDirectory } from "@/types/domain"
+import type { DurableJob, GenerateResult, ProductionPart, VoiceDirectory } from "@/types/domain"
 
 export type SpeechPartAlert = {
   key: "draft" | "outdated" | "missing" | "route"
@@ -67,7 +67,7 @@ function recordingTextState(state?: string | null): SpeechPartCardFacts["scriptS
     : null
 }
 
-function displayedScript(part: ProjectPart, recorded: boolean) {
+function displayedScript(part: ProductionPart, recorded: boolean) {
   const state = recordingTextState(recorded
     ? part.recording_text_state
     : part.text_state)
@@ -107,7 +107,7 @@ function languageCode(value?: string | null) {
   return LANGUAGE_CODES[normalized] || normalized.slice(0, 2).toUpperCase()
 }
 
-function selectedCapability(part: ProjectPart, directory: VoiceDirectory) {
+function selectedCapability(part: ProductionPart, directory: VoiceDirectory) {
   if (part.capability_name) return part.capability_name
   const route = resolveRequestRoute({ binding_id: part.binding_id || null, catalogue_voice_id: part.catalogue_voice_id || null }, directory)
   const routeCapability = (route?.capabilities || []).find((item) => item.id === part.capability_id)
@@ -116,7 +116,7 @@ function selectedCapability(part: ProjectPart, directory: VoiceDirectory) {
   return configured?.operator_title || configured?.label || humanize(part.capability_id)
 }
 
-function captionFacts(part: ProjectPart, job: DurableJob<unknown> | null) {
+function captionFacts(part: ProductionPart, job: DurableJob<unknown> | null) {
   if (job) {
     const truth = durableOperationTruth(job)
     if (truth.active) return { summary: "Creating captions…", tone: "active" as const }
@@ -150,7 +150,7 @@ function operationFacts(job: DurableJob<GenerateResult> | null): SpeechPartOpera
 }
 
 export function speechPartCardFacts({ part, speechJob, captionJob, directory }: {
-  part: ProjectPart
+  part: ProductionPart
   speechJob: DurableJob<GenerateResult> | null
   captionJob?: DurableJob<unknown> | null
   directory: VoiceDirectory

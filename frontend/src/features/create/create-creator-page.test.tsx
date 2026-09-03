@@ -10,7 +10,7 @@ const refresh = vi.fn(async () => undefined)
 
 vi.mock("@/hooks/use-workspace-explorer", () => ({ useWorkspaceExplorer: () => ({
   workspaces: { status: "ready", data: [{ id: 4, name: "Sandbox" }] },
-  overview: { status: "ready", data: { workspace: { id: 4, name: "Sandbox", description: "Test Workspace" }, files: [], projects: [], folders: [] } },
+  overview: { status: "ready", data: { workspace: { id: 4, name: "Sandbox", description: "Test Workspace" }, files: [], productions: [], folders: [] } },
   actions: { status: "ready", data: [] },
   selectedWorkspaceId: 4,
   setSelectedWorkspaceId: vi.fn(),

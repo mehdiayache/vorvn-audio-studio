@@ -197,8 +197,8 @@ export function AudioLibrary({ context, files, loading = false, refreshing = fal
 
   const acceptCreatorResult = async (result: CreatorResult) => {
     if (!context) return
-    if (context.project_id) {
-      for (const fileId of [...new Set(result.file_ids)]) await originsApi.attachProjectLibraryFile(context.project_id, fileId)
+    if (context.production_id) {
+      for (const fileId of [...new Set(result.file_ids)]) await originsApi.attachProductionLibraryFile(context.production_id, fileId)
     }
     const created = await resolveCreatorFile(result)
     setSelectedId(created.id)
@@ -229,7 +229,7 @@ export function AudioLibrary({ context, files, loading = false, refreshing = fal
               <label><span>Category</span><Select value={category} onValueChange={(value) => setCategory(value as "all" | "unclassified" | AudioFileCategory)}><SelectTrigger aria-label="File category"><SelectValue /></SelectTrigger><SelectContent><SelectItem value="all">All categories</SelectItem><SelectItem value="unclassified">No category</SelectItem>{FILE_CATEGORIES.map(([value, label]) => <SelectItem key={value} value={value}>{label}</SelectItem>)}</SelectContent></Select></label>
               <label><span>Duration</span><Select value={durationFilter} onValueChange={(value) => setDurationFilter(value as DurationFilter)}><SelectTrigger aria-label="File duration"><SelectValue /></SelectTrigger><SelectContent><SelectItem value="all">Any duration</SelectItem><SelectItem value="under-3">Under 3 seconds</SelectItem><SelectItem value="3-10">3–10 seconds</SelectItem><SelectItem value="10-30">10–30 seconds</SelectItem><SelectItem value="30-120">30 seconds–2 min</SelectItem><SelectItem value="over-120">2 min or longer</SelectItem></SelectContent></Select></label>
               <label><span>Source</span><Select value={sourceFilter} onValueChange={(value) => setSourceFilter(value as LibrarySourceFilter)}><SelectTrigger aria-label="File source"><SelectValue /></SelectTrigger><SelectContent>{LIBRARY_SOURCE_OPTIONS.map((option) => <SelectItem key={option.id} value={option.id}>{option.label}</SelectItem>)}</SelectContent></Select></label>
-              <label><span>Usage</span><Select value={usageFilter} onValueChange={(value) => setUsageFilter(value as LibraryUsageFilter)}><SelectTrigger aria-label="File usage in this Project"><SelectValue /></SelectTrigger><SelectContent>{LIBRARY_USAGE_OPTIONS.map((option) => <SelectItem key={option.id} value={option.id}>{option.label}</SelectItem>)}</SelectContent></Select></label>
+              <label><span>Usage</span><Select value={usageFilter} onValueChange={(value) => setUsageFilter(value as LibraryUsageFilter)}><SelectTrigger aria-label="File usage in this Production"><SelectValue /></SelectTrigger><SelectContent>{LIBRARY_USAGE_OPTIONS.map((option) => <SelectItem key={option.id} value={option.id}>{option.label}</SelectItem>)}</SelectContent></Select></label>
               <label><span>Sort</span><Select value={fileSort} onValueChange={(value) => setFileSort(value as FileSort)}><SelectTrigger aria-label="Sort files"><SelectValue /></SelectTrigger><SelectContent><SelectItem value="recent">Recently added</SelectItem><SelectItem value="name">Name</SelectItem><SelectItem value="duration">Duration</SelectItem></SelectContent></Select></label>
             </div>
             <fieldset className="file-tag-filters"><legend>Tags</legend>{existingTags.length ? <div>{existingTags.map((tag) => <label key={tag}><Checkbox checked={tagFilters.includes(tag)} onCheckedChange={(checked) => setTagFilters((current) => checked ? [...current, tag] : current.filter((item) => item !== tag))} /><span>{tag}</span></label>)}</div> : <p>No tags exist in this Library yet.</p>}</fieldset>

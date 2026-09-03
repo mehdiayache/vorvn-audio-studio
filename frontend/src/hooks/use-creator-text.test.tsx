@@ -27,7 +27,7 @@ describe("useCreatorText text preparation contract", () => {
     vi.mocked(originsApi.saveTextStates).mockResolvedValue({} as never)
   })
 
-  it.each(["shape", "tag"] as const)("omits Project identifiers for standalone Speak %s", async (operation) => {
+  it.each(["shape", "tag"] as const)("omits Production identifiers for standalone Speak %s", async (operation) => {
     const { result } = renderHook(() => useCreatorText(undefined, undefined, "expressive_tags"))
     act(() => result.current.updateText("مرحبا"))
     await act(async () => { await result.current.run(operation) })
@@ -50,13 +50,13 @@ describe("useCreatorText text preparation contract", () => {
     expect(result.current.text).toBe("[whispers] مرحبا")
   })
 
-  it("includes Project and Part identifiers inside a Project", async () => {
+  it("includes Production and Part identifiers inside a Production", async () => {
     const part = { id: 121, text: "مرحبا", text_state: "raw" } as never
     const { result } = renderHook(() => useCreatorText(part, 28, "expressive_tags"))
     await act(async () => { await result.current.run("tag") })
 
     expect(originsApi.enqueueTextPass).toHaveBeenCalledWith("tag", expect.objectContaining({
-      project_id: 28, part_id: 121,
+      production_id: 28, part_id: 121,
     }))
   })
 
@@ -93,7 +93,7 @@ describe("useCreatorText text preparation contract", () => {
     expect(onReviewReferenceChange).toHaveBeenLastCalledWith(null, expect.objectContaining({ active: "tagged", tagged: "[whispers] مرحبا" }))
   })
 
-  it("keeps a Project candidate unresolved until its text variants are durably saved", async () => {
+  it("keeps a Production candidate unresolved until its text variants are durably saved", async () => {
     let releaseSave!: (value: never) => void
     vi.mocked(originsApi.saveTextStates).mockReturnValue(new Promise((resolve) => { releaseSave = resolve }))
     const part = { id: 121, text: "مرحبا", text_state: "raw" } as never

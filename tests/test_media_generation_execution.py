@@ -75,7 +75,7 @@ class FakeAdapter:
 
 
 class FakeFiles:
-    def list_for_project(self, project_id):
+    def list_for_production(self, production_id):
         return [
             {"id": 11, "name": "Front", "media_type": "image",
              "path": "/files/front.png", "mime_type": "image/png"},
@@ -178,7 +178,7 @@ class MediaGenerationExecutionTest(unittest.TestCase):
             id=9, public_id=uuid4(), kind="media_generate",
             status=JobStatus.QUEUED,
             payload={
-                "workspace_id": 4, "project_id": 7, "provider_id": "kie",
+                "workspace_id": 4, "production_id": 7, "provider_id": "kie",
                 "model": preset["model_id"],
                 "provider_model_id": preset["model_id"],
                 "preset": preset,
@@ -224,7 +224,7 @@ class MediaGenerationExecutionTest(unittest.TestCase):
             id=1, public_id=public_id, kind="media_generate",
             status=JobStatus.QUEUED,
             payload={
-                "workspace_id": 4, "project_id": 7, "provider_id": "kie",
+                "workspace_id": 4, "production_id": 7, "provider_id": "kie",
                 "model": "kling-3.0-omni/text-to-video",
                 "provider_model_id": "kling-3.0-omni/text-to-video",
                 "adapter_version": "adapter-1",
@@ -282,7 +282,7 @@ class MediaGenerationExecutionTest(unittest.TestCase):
             id=9, public_id=uuid4(), kind="media_generate",
             status=JobStatus.RETRYING,
             payload={
-                "workspace_id": 4, "project_id": 7, "provider_id": "kie",
+                "workspace_id": 4, "production_id": 7, "provider_id": "kie",
                 "model": "kling-3.0-omni/text-to-video",
                 "provider_model_id": "kling-3.0-omni/text-to-video",
                 "preset": preset,

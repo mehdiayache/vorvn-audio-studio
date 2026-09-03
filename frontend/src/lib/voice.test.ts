@@ -49,7 +49,7 @@ describe("voice identity", () => {
     const withIdentity: VoiceDirectory = { ...directory, identities: [{
       id: "voice_serenity", name: "Eve Serenity", metadata: { recording_language: "en", editorial_language: "en", trait: "gentle", image: "/icon/eve.png" },
       references: [], bindings: [], jobs: [], available_routes: [],
-      usage: { uses: 0, projects: 0, spend: 0, last_used: null, preview_filename: "" },
+      usage: { uses: 0, productions: 0, spend: 0, last_used: null, preview_filename: "" },
       created_at: "2026-08-01", updated_at: "2026-08-01",
     }] }
     expect(resolveVoice("qwen-audio-3.0-tts-flash-serinity1-aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa", withIdentity, "voice_serenity")).toMatchObject({

@@ -23,10 +23,10 @@ class StandaloneContext(BaseModel):
     kind: Literal["standalone"]
 
 
-class ProjectContext(BaseModel):
+class ProductionContext(BaseModel):
     model_config = ConfigDict(extra="forbid")
-    kind: Literal["project"]
-    project_id: int = Field(gt=0)
+    kind: Literal["production"]
+    production_id: int = Field(gt=0)
     part_id: int | None = Field(default=None, gt=0)
     insert_before_part_id: UUID | None = None
 
@@ -38,7 +38,7 @@ class ProjectContext(BaseModel):
 
 
 CreatorContext = Annotated[
-    StandaloneContext | ProjectContext, Field(discriminator="kind")]
+    StandaloneContext | ProductionContext, Field(discriminator="kind")]
 
 
 class RouteState(BaseModel):

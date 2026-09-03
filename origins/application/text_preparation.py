@@ -200,7 +200,7 @@ class TextProvider(Protocol):
 
 class TextPreparationRepository(Protocol):
     def prompt_settings(self) -> dict: ...
-    def style_for(self, project_id: int) -> str: ...
+    def style_for(self, production_id: int) -> str: ...
     def today_spend(self) -> float: ...
     def capability_controls(self, capability_id: str) -> dict: ...
 
@@ -329,7 +329,7 @@ class TextPreparationService:
         self.operations = operations
 
     def prepare(self, *, operation: str, text: str,
-                project_id: int | None = None,
+                production_id: int | None = None,
                 part_id: int | None = None, density: str = "normal",
                 spoken_profile: str = "spoken_1",
                 capability_id: str, confirmed: bool = False,
@@ -360,10 +360,10 @@ class TextPreparationService:
                     "warn_above": warning, "model": MODEL,
                     "cost_basis": "estimate", "price_version": PRICE_VERSION}
 
-        uses_project_style = not (
+        uses_production_style = not (
             operation == "shape" and spoken_profile == "spoken_2")
-        style = (self.repository.style_for(project_id)
-                 if project_id and uses_project_style else "")
+        style = (self.repository.style_for(production_id)
+                 if production_id and uses_production_style else "")
         saved = self.repository.prompt_settings()
         prompt = (shape_prompt(style, saved, spoken_profile) if operation == "shape"
                   else tag_prompt(density, style, saved))
@@ -447,7 +447,7 @@ class TextPreparationJobHandler:
         result = self.service.prepare(
             operation=operation,
             text=str(job.payload.get("text") or ""),
-            project_id=job.payload.get("project_id"),
+            production_id=job.payload.get("production_id"),
             part_id=job.payload.get("part_id"),
             density=str(job.payload.get("density") or "normal"),
             spoken_profile=str(job.payload.get("spoken_profile") or "spoken_1"),

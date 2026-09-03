@@ -26,10 +26,10 @@ import { useWorkspaceExplorer } from "@/hooks/use-workspace-explorer"
 import { originsApi } from "@/lib/api"
 import { formatDuration, formatUpdated } from "@/lib/format"
 import { cn } from "@/lib/utils"
-import type { CreationActionSummary, WorkspaceFile, WorkspaceOverview, WorkspaceProject } from "@/types/domain"
+import type { CreationActionSummary, WorkspaceFile, WorkspaceOverview, WorkspaceProduction } from "@/types/domain"
 import "./workspace-explorer.css"
 
-export type WorkspaceExplorerView = "create" | "projects" | "files"
+export type WorkspaceExplorerView = "create" | "productions" | "files"
 
 const actionPresentation: Record<string, { icon: LucideIcon; href?: string; tone: string }> = {
   "generate-speech": { icon: Mic2, href: "/origins/create/generate-speech", tone: "speech" },
@@ -68,12 +68,12 @@ function CreateActionButton({ action, folderId }: {
   return <Button asChild variant="ghost" className={cn("workspace-create-action", `is-${presentation.tone}`)}><Link to={href}>{content}</Link></Button>
 }
 
-function ProjectRow({ project }: { project: WorkspaceProject }) {
-  return <article className="workspace-project-row">
-    <Link to={`/origins/projects/audiovisual/${project.public_id}`} aria-label={`Open ${project.name}`} />
-    <span className="workspace-project-icon"><Clapperboard /></span>
-    <span className="workspace-project-copy"><b>{project.name}</b><small>Audiovisual Project</small></span>
-    <span className="workspace-project-meta"><b>{formatUpdated(project.updated_at) || "Recently"}</b><small>{project.part_count} Part{project.part_count === 1 ? "" : "s"}</small></span>
+function ProductionRow({ production }: { production: WorkspaceProduction }) {
+  return <article className="workspace-production-row">
+    <Link to={`/origins/productions/audiovisual/${production.public_id}`} aria-label={`Open ${production.name}`} />
+    <span className="workspace-production-icon"><Clapperboard /></span>
+    <span className="workspace-production-copy"><b>{production.name}</b><small>Audiovisual Production</small></span>
+    <span className="workspace-production-meta"><b>{formatUpdated(production.updated_at) || "Recently"}</b><small>{production.part_count} Part{production.part_count === 1 ? "" : "s"}</small></span>
     <ChevronRight />
   </article>
 }
@@ -92,13 +92,13 @@ function FileTile({ file }: { file: WorkspaceFile }) {
   </article>
 }
 
-function ExplorerContent({ workspaceOverview, view, actions, actionsError, onRetryActions, onNewProject, onNewFolder, onUploadFile, selectedFolderId, onSelectedFolderId }: {
+function ExplorerContent({ workspaceOverview, view, actions, actionsError, onRetryActions, onNewProduction, onNewFolder, onUploadFile, selectedFolderId, onSelectedFolderId }: {
   workspaceOverview: WorkspaceOverview
   view: WorkspaceExplorerView
   actions: CreationActionSummary[]
   actionsError?: string
   onRetryActions: () => void
-  onNewProject: () => void
+  onNewProduction: () => void
   onNewFolder: () => void
   onUploadFile: () => void
   selectedFolderId: number | null
@@ -108,9 +108,9 @@ function ExplorerContent({ workspaceOverview, view, actions, actionsError, onRet
   const [fileType, setFileType] = useState<LibraryTypeFilter>("all")
   const [fileSource, setFileSource] = useState<LibrarySourceFilter>("all")
   const normalizedQuery = query.trim().toLowerCase()
-  const projects = workspaceOverview.projects.filter((project) =>
-    (selectedFolderId === null || project.folder_id === selectedFolderId)
-    && (!normalizedQuery || project.name.toLowerCase().includes(normalizedQuery)))
+  const productions = workspaceOverview.productions.filter((production) =>
+    (selectedFolderId === null || production.folder_id === selectedFolderId)
+    && (!normalizedQuery || production.name.toLowerCase().includes(normalizedQuery)))
   const libraryQuery = useMemo(() => createLibraryQuery({
     search: query,
     type: fileType,
@@ -118,16 +118,16 @@ function ExplorerContent({ workspaceOverview, view, actions, actionsError, onRet
     folder: selectedFolderId === null ? "all" : String(selectedFolderId) as `${number}`,
   }), [fileSource, fileType, query, selectedFolderId])
   const files = useMemo(() => queryLibraryFiles(workspaceOverview.files, libraryQuery), [libraryQuery, workspaceOverview.files])
-  const showProjects = view !== "files"
-  const showFiles = view !== "projects"
+  const showProductions = view !== "files"
+  const showFiles = view !== "productions"
 
   return <>
     {view === "create" && <section className="workspace-create-stage" aria-labelledby="workspace-create-title">
       <span className="workspace-create-kicker"><WandSparkles /> Create</span>
       <h1 id="workspace-create-title">What do you want to create?</h1>
-      <p>Start with an idea or open an audiovisual Project. Files stay reusable across this Workspace.</p>
+      <p>Start with an idea or open an audiovisual Production. Files stay reusable across this Workspace.</p>
       <div className="workspace-create-action-catalog" role="list">
-        <Button className="workspace-create-action is-project" variant="ghost" onClick={onNewProject}><span className="workspace-create-action-icon"><Clapperboard /></span><span><b>New audiovisual project</b><small>Script, Timeline, Library, Preview and Export in one Project.</small></span><ChevronRight /></Button>
+        <Button className="workspace-create-action is-production" variant="ghost" onClick={onNewProduction}><span className="workspace-create-action-icon"><Clapperboard /></span><span><b>New audiovisual production</b><small>Script, Timeline, Library, Preview and Export in one Production.</small></span><ChevronRight /></Button>
         <Button className="workspace-create-action is-upload" variant="ghost" onClick={onUploadFile}><span className="workspace-create-action-icon"><Upload /></span><span><b>Upload a File</b><small>Add an existing file directly to this Workspace.</small></span><ChevronRight /></Button>
         {createShortcuts(actions).map((action) => <CreateActionButton action={action} folderId={selectedFolderId} key={action.id} />)}
       </div>
@@ -135,26 +135,26 @@ function ExplorerContent({ workspaceOverview, view, actions, actionsError, onRet
     </section>}
 
     <div className="workspace-library-toolbar">
-      <label><Search /><Input value={query} onChange={(event) => setQuery(event.target.value)} placeholder={`Search ${view === "projects" ? "Projects" : view === "files" ? "Files" : "this Workspace"}`} /></label>
+      <label><Search /><Input value={query} onChange={(event) => setQuery(event.target.value)} placeholder={`Search ${view === "productions" ? "Productions" : view === "files" ? "Files" : "this Workspace"}`} /></label>
       {showFiles && <Select value={fileType} onValueChange={(value) => setFileType(value as LibraryTypeFilter)}><SelectTrigger aria-label="File type"><SelectValue /></SelectTrigger><SelectContent>{LIBRARY_TYPE_OPTIONS.map((item) => <SelectItem value={item.id} key={item.id}>{item.id === "all" ? "All Files" : item.label}</SelectItem>)}</SelectContent></Select>}
       {showFiles && <Select value={fileSource} onValueChange={(value) => setFileSource(value as LibrarySourceFilter)}><SelectTrigger aria-label="File source"><SelectValue /></SelectTrigger><SelectContent>{LIBRARY_SOURCE_OPTIONS.map((item) => <SelectItem value={item.id} key={item.id}>{item.label}</SelectItem>)}</SelectContent></Select>}
-      {showProjects && <Button variant="outline" onClick={onNewProject}><Plus /> New Project</Button>}
+      {showProductions && <Button variant="outline" onClick={onNewProduction}><Plus /> New Production</Button>}
       {showFiles && <Button variant="outline" onClick={onUploadFile}><Upload /> Upload File</Button>}
-      <OperatorIconButton label="New Folder" detail="Folders organize Projects and Files without changing their technical identity." variant="outline" onClick={onNewFolder}><FolderPlus /></OperatorIconButton>
+      <OperatorIconButton label="New Folder" detail="Folders organize Productions and Files without changing their technical identity." variant="outline" onClick={onNewFolder}><FolderPlus /></OperatorIconButton>
     </div>
 
     {workspaceOverview.folders.length > 0 && <section className="workspace-folder-strip" aria-labelledby="workspace-folders-title"><header><h2 id="workspace-folders-title">Folders</h2><span>{workspaceOverview.folders.length}</span></header><div><button type="button" aria-pressed={selectedFolderId === null} onClick={() => onSelectedFolderId(null)}><Folder /><span>All</span></button>{workspaceOverview.folders.map((folder) => <button type="button" aria-pressed={selectedFolderId === folder.id} onClick={() => onSelectedFolderId(folder.id)} key={folder.id}><Folder /><span>{folder.name}</span></button>)}</div></section>}
 
-    <div className={cn("workspace-library-layout", showProjects !== showFiles && "has-single-column")}>
-      {showProjects && <section className="workspace-library-section" aria-labelledby="workspace-projects-title">
-        <header><div><h2 id="workspace-projects-title">Projects</h2><p>Long-running creative work with its own editor.</p></div><span>{projects.length}</span></header>
-        <div className="workspace-project-list">{projects.slice(0, view === "projects" ? undefined : 6).map((project) => <ProjectRow key={project.id} project={project} />)}
-          {!projects.length && <div className="workspace-quiet-empty"><Clapperboard /><b>No Projects here yet</b><span>Create one without adding another container.</span></div>}
+    <div className={cn("workspace-library-layout", showProductions !== showFiles && "has-single-column")}>
+      {showProductions && <section className="workspace-library-section" aria-labelledby="workspace-productions-title">
+        <header><div><h2 id="workspace-productions-title">Productions</h2><p>Long-running creative work with its own editor.</p></div><span>{productions.length}</span></header>
+        <div className="workspace-production-list">{productions.slice(0, view === "productions" ? undefined : 6).map((production) => <ProductionRow key={production.id} production={production} />)}
+          {!productions.length && <div className="workspace-quiet-empty"><Clapperboard /><b>No Productions here yet</b><span>Create one without adding another container.</span></div>}
         </div>
       </section>}
 
       {showFiles && <section className="workspace-library-section" aria-labelledby="workspace-files-title">
-        <header><div><h2 id="workspace-files-title">Files</h2><p>Reusable outputs and uploads, independent from Projects.</p></div><span>{files.length}</span></header>
+        <header><div><h2 id="workspace-files-title">Files</h2><p>Reusable outputs and uploads, independent from Productions.</p></div><span>{files.length}</span></header>
         <div className="workspace-file-grid">{files.slice(0, view === "files" ? undefined : 8).map((file) => <FileTile key={file.id} file={file} />)}
           {!files.length && <div className="workspace-quiet-empty"><FileImage /><b>No Files here yet</b><span>Your generated and uploaded Files will appear here.</span></div>}
         </div>
@@ -221,7 +221,7 @@ function FileUploadDialog({ open, onOpenChange, workspaceId, folderId, onUploade
 }
 
 function ResourceDialog({ kind, open, onOpenChange, workspaceId, folderId = null, onCreated }: {
-  kind: "workspace" | "project" | "folder"
+  kind: "workspace" | "production" | "folder"
   open: boolean
   onOpenChange: (open: boolean) => void
   workspaceId: number | null
@@ -239,12 +239,12 @@ function ResourceDialog({ kind, open, onOpenChange, workspaceId, folderId = null
         if (kind === "workspace") {
           const workspace = await originsApi.createWorkspace(name.trim(), description.trim())
           onOpenChange(false); onCreated(workspace.id)
-        } else if (kind === "project") {
-          if (!workspaceId) throw new Error("Choose a Workspace before creating a Project.")
-          const project = await originsApi.createAudiovisualProject(
+        } else if (kind === "production") {
+          if (!workspaceId) throw new Error("Choose a Workspace before creating a Production.")
+          const production = await originsApi.createAudiovisualProduction(
             workspaceId, name.trim(), description.trim(), folderId)
           onOpenChange(false); onCreated()
-          navigate(`/origins/projects/audiovisual/${project.public_id}`)
+          navigate(`/origins/productions/audiovisual/${production.public_id}`)
         } else {
           if (!workspaceId) throw new Error("Choose a Workspace before creating a Folder.")
           await originsApi.createFolder(workspaceId, name.trim(), folderId)
@@ -257,16 +257,16 @@ function ResourceDialog({ kind, open, onOpenChange, workspaceId, folderId = null
       }
     })
   }
-  const title = kind === "workspace" ? "New Workspace" : kind === "project" ? "New audiovisual Project" : "New Folder"
-  const descriptionText = kind === "workspace" ? "A Workspace is the only root for reusable Files and Projects." : kind === "project" ? "Create the Project directly in this Workspace, without another container." : "Organize Projects and Files without changing what they are."
-  const namePlaceholder = kind === "workspace" ? "Workspace name" : kind === "project" ? "Project name" : "Folder name"
-  const createLabel = kind === "workspace" ? "Workspace" : kind === "project" ? "Project" : "Folder"
+  const title = kind === "workspace" ? "New Workspace" : kind === "production" ? "New audiovisual Production" : "New Folder"
+  const descriptionText = kind === "workspace" ? "A Workspace is the only root for reusable Files and Productions." : kind === "production" ? "Create the Production directly in this Workspace, without another container." : "Organize Productions and Files without changing what they are."
+  const namePlaceholder = kind === "workspace" ? "Workspace name" : kind === "production" ? "Production name" : "Folder name"
+  const createLabel = kind === "workspace" ? "Workspace" : kind === "production" ? "Production" : "Folder"
   return <Dialog open={open} onOpenChange={(next) => { if (!creating) onOpenChange(next) }}><DialogContent className="workspace-resource-dialog"><DialogHeader><DialogTitle>{title}</DialogTitle><DialogDescription>{descriptionText}</DialogDescription></DialogHeader><form id={`workspace-${kind}-form`} onSubmit={(event) => { event.preventDefault(); if (name.trim()) void submit() }}><label><span>Name</span><Input autoFocus value={name} onChange={(event) => setName(event.target.value)} placeholder={namePlaceholder} /></label>{kind !== "folder" && <label><span>Description <small>optional</small></span><Textarea value={description} onChange={(event) => setDescription(event.target.value)} placeholder={kind === "workspace" ? "What belongs in this Workspace?" : "What are you making?"} /></label>}</form><DialogFooter><Button type="button" variant="outline" disabled={creating} onClick={() => onOpenChange(false)}>Cancel</Button><ActionButton type="submit" form={`workspace-${kind}-form`} disabled={!name.trim()} busy={creating} busyLabel="Creating…">Create {createLabel}</ActionButton></DialogFooter></DialogContent></Dialog>
 }
 
 export function WorkspaceExplorerPage({ view = "create" }: { view?: WorkspaceExplorerView }) {
   const { workspaces, overview, actions, selectedWorkspaceId, setSelectedWorkspaceId, refresh, refreshWorkspaces, refreshActions } = useWorkspaceExplorer()
-  const [dialog, setDialog] = useState<"workspace" | "project" | "folder" | null>(null)
+  const [dialog, setDialog] = useState<"workspace" | "production" | "folder" | null>(null)
   const [uploadOpen, setUploadOpen] = useState(false)
   const [selectedFolderId, setSelectedFolderId] = useState<number | null>(null)
   const availableWorkspaces = workspaces.data || []
@@ -279,9 +279,9 @@ export function WorkspaceExplorerPage({ view = "create" }: { view?: WorkspaceExp
   if (!workspaceOverview && overview.status === "error") return <main className="workspace-explorer"><div className="workspace-explorer-loading"><b>Workspace unavailable</b><span>{overview.error}</span><Button onClick={() => void refresh()}>Try again</Button></div></main>
 
   return <main className="workspace-explorer">
-    <header className="workspace-explorer-header"><div><select aria-label="Current Workspace" value={selectedWorkspaceId} onChange={(event) => { setSelectedFolderId(null); setSelectedWorkspaceId(Number(event.target.value)) }}>{availableWorkspaces.map((workspace) => <option value={workspace.id} key={workspace.id}>{workspace.name}</option>)}</select><OperatorIconButton label="New Workspace" detail="Create another root for independent Projects and Files." size="icon-sm" variant="ghost" onClick={() => setDialog("workspace")}><Plus /></OperatorIconButton><span>{workspaceOverview?.workspace.description || "Your creative Workspace"}</span></div><small>{workspaceOverview ? `${workspaceOverview.projects.length} Projects · ${workspaceOverview.files.length} Files` : "Loading…"}</small></header>
+    <header className="workspace-explorer-header"><div><select aria-label="Current Workspace" value={selectedWorkspaceId} onChange={(event) => { setSelectedFolderId(null); setSelectedWorkspaceId(Number(event.target.value)) }}>{availableWorkspaces.map((workspace) => <option value={workspace.id} key={workspace.id}>{workspace.name}</option>)}</select><OperatorIconButton label="New Workspace" detail="Create another root for independent Productions and Files." size="icon-sm" variant="ghost" onClick={() => setDialog("workspace")}><Plus /></OperatorIconButton><span>{workspaceOverview?.workspace.description || "Your creative Workspace"}</span></div><small>{workspaceOverview ? `${workspaceOverview.productions.length} Productions · ${workspaceOverview.files.length} Files` : "Loading…"}</small></header>
     {workspaceOverview ? <div className={cn("workspace-explorer-content", view !== "create" && "is-library-view")}>
-      <ExplorerContent workspaceOverview={workspaceOverview} view={view} actions={createActions} actionsError={actions.status === "error" ? actions.error : undefined} onRetryActions={() => void refreshActions()} onNewProject={() => setDialog("project")} onNewFolder={() => setDialog("folder")} onUploadFile={() => setUploadOpen(true)} selectedFolderId={selectedFolderId} onSelectedFolderId={setSelectedFolderId} />
+      <ExplorerContent workspaceOverview={workspaceOverview} view={view} actions={createActions} actionsError={actions.status === "error" ? actions.error : undefined} onRetryActions={() => void refreshActions()} onNewProduction={() => setDialog("production")} onNewFolder={() => setDialog("folder")} onUploadFile={() => setUploadOpen(true)} selectedFolderId={selectedFolderId} onSelectedFolderId={setSelectedFolderId} />
     </div> : <div className="workspace-explorer-loading"><Sparkles className="spin" /><span>Loading Workspace…</span></div>}
     {dialog && <ResourceDialog kind={dialog} open onOpenChange={(open) => { if (!open) setDialog(null) }} workspaceId={selectedWorkspaceId} folderId={selectedFolderId} onCreated={(workspaceId) => { if (workspaceId) { setSelectedFolderId(null); void refreshWorkspaces().then(() => setSelectedWorkspaceId(workspaceId)) } else { void refresh() } }} />}
     <FileUploadDialog open={uploadOpen} onOpenChange={setUploadOpen} workspaceId={selectedWorkspaceId} folderId={selectedFolderId} onUploaded={() => void refresh()} />

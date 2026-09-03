@@ -1,4 +1,4 @@
-"""Project timeline use cases."""
+"""Production timeline use cases."""
 
 from __future__ import annotations
 
@@ -8,45 +8,45 @@ from origins.domain.speech import DEFAULT_SPEECH_VOLUME
 
 
 class TimelineRecords(Protocol):
-    def project(self, project_id: int) -> dict | None: ...
-    def part(self, project_id: int, part_id: int) -> dict | None: ...
-    def reorder(self, project_id: int, order: list[int]) -> bool: ...
+    def production(self, production_id: int) -> dict | None: ...
+    def part(self, production_id: int, part_id: int) -> dict | None: ...
+    def reorder(self, production_id: int, order: list[int]) -> bool: ...
     def set_enabled(
-        self, project_id: int, part_id: int, enabled: bool,
+        self, production_id: int, part_id: int, enabled: bool,
     ) -> bool: ...
     def create_part(
-        self, project_id: int, values: dict,
+        self, production_id: int, values: dict,
         before_part_public_id: str | None = None,
     ) -> int | None: ...
     def import_parts(
-        self, project_id: int, items: list[dict],
+        self, production_id: int, items: list[dict],
         voice_identity_ids: set[str],
         exact_routes: list[dict] | None = None,
     ) -> dict[str, Any] | None: ...
     def file(self, file_id: int) -> dict | None: ...
     def file_allowed(
-        self, project_id: int, file_id: int,
+        self, production_id: int, file_id: int,
     ) -> bool: ...
     def insert_file(
-        self, project_id: int, file_id: int,
+        self, production_id: int, file_id: int,
         before_part_public_id: str | None = None,
     ) -> int | None: ...
     def replace_file(
-        self, project_id: int, part_id: int, file_id: int,
+        self, production_id: int, part_id: int, file_id: int,
     ) -> bool: ...
     def duplicate(
-        self, project_id: int, part_id: int, filename: str,
+        self, production_id: int, part_id: int, filename: str,
     ) -> int | None: ...
-    def delete(self, project_id: int, ids: list[int]) -> list[str] | None: ...
+    def delete(self, production_id: int, ids: list[int]) -> list[str] | None: ...
     def move(
-        self, source_project_id: int, ids: list[int],
-        destination_project_id: int,
+        self, source_production_id: int, ids: list[int],
+        destination_production_id: int,
     ) -> bool: ...
-    def save_script(self, project_id: int, part_id: int,
+    def save_script(self, production_id: int, part_id: int,
                     script: str, values: dict | None = None) -> bool: ...
-    def save_editorial(self, project_id: int, part_id: int,
+    def save_editorial(self, production_id: int, part_id: int,
                        expected_revision: int, values: dict) -> dict | None: ...
-    def save_draft(self, project_id: int, part_id: int,
+    def save_draft(self, production_id: int, part_id: int,
                    values: dict) -> bool: ...
 
 
@@ -79,39 +79,39 @@ class TimelineService:
         self.workspace = workspace
         self.transcripts = transcripts
 
-    def _project(self, project_id: int) -> dict:
-        project = self.records.project(project_id)
-        if not project:
-            raise TimelineError("That Project does not exist.")
-        return project
+    def _production(self, production_id: int) -> dict:
+        production = self.records.production(production_id)
+        if not production:
+            raise TimelineError("That Production does not exist.")
+        return production
 
-    def _part(self, project_id: int, part_id: int) -> dict[str, Any]:
-        part = self.records.part(project_id, part_id)
+    def _part(self, production_id: int, part_id: int) -> dict[str, Any]:
+        part = self.records.part(production_id, part_id)
         if not part:
             raise TimelineError("That Part does not exist.")
         return part
 
-    def reorder(self, project_id: int, order: list[int]) -> bool:
-        self._project(project_id)
+    def reorder(self, production_id: int, order: list[int]) -> bool:
+        self._production(production_id)
         return self.records.reorder(
-            project_id, [int(item) for item in order])
+            production_id, [int(item) for item in order])
 
     def set_enabled(
-        self, project_id: int, part_id: int, enabled: bool,
+        self, production_id: int, part_id: int, enabled: bool,
     ) -> dict[str, Any]:
-        self._part(project_id, part_id)
+        self._part(production_id, part_id)
         if not self.records.set_enabled(
-                project_id, part_id, bool(enabled)):
+                production_id, part_id, bool(enabled)):
             raise TimelineError("The Part inclusion state could not be saved.")
         return {"ok": True, "enabled": bool(enabled)}
 
     def add_silence(
-        self, project_id: int, seconds: float,
+        self, production_id: int, seconds: float,
         before_part_public_id: str | None = None,
     ) -> dict[str, Any]:
-        self._project(project_id)
+        self._production(production_id)
         seconds = max(0.1, min(120.0, float(seconds)))
-        new_id = self.records.create_part(project_id, {
+        new_id = self.records.create_part(production_id, {
             "text": f"{seconds:g} seconds of silence", "voice": "-",
             "engine": "system", "model": "-", "format": "mp3",
             "language": None, "instruction": None, "speech_mode": "silence",
@@ -126,13 +126,13 @@ class TimelineService:
         return {"id": new_id, "seconds": seconds}
 
     def add_draft(
-        self, project_id: int, values: dict[str, Any],
+        self, production_id: int, values: dict[str, Any],
     ) -> dict[str, Any]:
-        self._project(project_id)
+        self._production(production_id)
         text = str(values.get("text") or "").strip()
         if not text:
             raise TimelineError("Write something before saving a Draft.")
-        new_id = self.records.create_part(project_id, {
+        new_id = self.records.create_part(production_id, {
             "text": text, "text_raw": values.get("text_raw"),
             "text_shaped": values.get("text_shaped"),
             "text_tagged": values.get("text_tagged"),
@@ -161,12 +161,12 @@ class TimelineService:
         return {"id": new_id}
 
     def import_document(
-        self, project_id: int, document: dict[str, Any],
+        self, production_id: int, document: dict[str, Any],
         role_voices: dict[str, str | dict[str, Any]],
         preparation: dict[str, Any] | None = None,
     ) -> dict[str, Any]:
-        """Append validated V1 authoring items to the canonical Project."""
-        self._project(project_id)
+        """Append validated V1 authoring items to the canonical Production."""
+        self._production(production_id)
         items = list(document.get("items") or [])
         roles: dict[str, dict[str, Any]] = {}
         for index, item in enumerate(items, start=1):
@@ -262,7 +262,7 @@ class TimelineService:
             })
         try:
             result = self.records.import_parts(
-                project_id, canonical_items,
+                production_id, canonical_items,
                 {str(route.get("voice_identity_id") or route.get("identity_id"))
                  for _, route in mapped_roles.values()},
                 [route for _, route in mapped_roles.values()
@@ -270,19 +270,19 @@ class TimelineService:
         except ValueError as exc:
             raise TimelineError(str(exc)) from exc
         if result is None:
-            raise TimelineError("That Project no longer exists.")
+            raise TimelineError("That Production no longer exists.")
         if not durable_import:
             return {key: result[key] for key in ("items", "speech", "silence")}
         return result
 
     def edit_silence(
-        self, project_id: int, part_id: int, seconds: float,
+        self, production_id: int, part_id: int, seconds: float,
     ) -> dict[str, Any]:
-        part = self._part(project_id, part_id)
+        part = self._part(production_id, part_id)
         if part.get("kind") != "silence":
             raise TimelineError("That Part is not silence.")
         seconds = max(0.1, min(120.0, float(seconds)))
-        if not self.records.save_script(project_id, part_id,
+        if not self.records.save_script(production_id, part_id,
                                         f"{seconds:g} seconds of silence", {
                 "title": f"{seconds:g}",
                 "duration_ms": round(seconds * 1000)}):
@@ -290,29 +290,29 @@ class TimelineService:
         return {"id": part_id, "seconds": seconds}
 
     def insert_file(
-        self, project_id: int, file_id: int,
+        self, production_id: int, file_id: int,
         before_part_public_id: str | None = None,
     ) -> dict[str, Any]:
-        self._project(project_id)
+        self._production(production_id)
         file = self.records.file(file_id)
         if not file or not file.get("filename"):
             raise TimelineError("That File does not exist.")
         if file.get("media_type", "audio") != "audio":
             raise TimelineError(
                 "Only audio Files can be inserted into the Script.")
-        if not self.records.file_allowed(project_id, file_id):
+        if not self.records.file_allowed(production_id, file_id):
             raise TimelineError(
-                "That audio is not available to this Project.")
+                "That audio is not available to this Production.")
         part_id = self.records.insert_file(
-            project_id, file_id, before_part_public_id)
+            production_id, file_id, before_part_public_id)
         if not part_id:
             raise TimelineError("The File could not be inserted.")
         return {"id": part_id}
 
     def replace_file(
-        self, project_id: int, part_id: int, file_id: int,
+        self, production_id: int, part_id: int, file_id: int,
     ) -> dict[str, Any]:
-        part = self._part(project_id, part_id)
+        part = self._part(production_id, part_id)
         if part.get("kind") != "file":
             raise TimelineError("That Part is not linked to a Workspace File.")
         file = self.records.file(file_id)
@@ -321,17 +321,17 @@ class TimelineService:
         if file.get("media_type", "audio") != "audio":
             raise TimelineError(
                 "Only audio Files can replace a linked Script source.")
-        if not self.records.file_allowed(project_id, file_id):
+        if not self.records.file_allowed(production_id, file_id):
             raise TimelineError(
-                "That audio is not available to this Project.")
-        if not self.records.replace_file(project_id, part_id, file_id):
+                "That audio is not available to this Production.")
+        if not self.records.replace_file(production_id, part_id, file_id):
             raise TimelineError("The File Part could not be replaced.")
         return {"id": part_id}
 
-    def duplicate(self, project_id: int, part_id: int) -> dict[str, Any]:
-        part = self._part(project_id, part_id)
+    def duplicate(self, production_id: int, part_id: int) -> dict[str, Any]:
+        part = self._part(production_id, part_id)
         copied = self.workspace.duplicate(part.get("filename") or "")
-        new_id = self.records.duplicate(project_id, part_id, copied)
+        new_id = self.records.duplicate(production_id, part_id, copied)
         if not new_id:
             if copied:
                 self.workspace.discard(copied)
@@ -339,14 +339,14 @@ class TimelineService:
         return {"id": new_id, "filename": copied or None}
 
     def delete_parts(
-        self, project_id: int, ids: list[int],
+        self, production_id: int, ids: list[int],
     ) -> dict[str, Any]:
         selected = [int(item) for item in ids]
         if not selected:
             raise TimelineError("Choose at least one Part.")
         for part_id in selected:
-            self._part(project_id, part_id)
-        files = self.records.delete(project_id, selected)
+            self._part(production_id, part_id)
+        files = self.records.delete(production_id, selected)
         if files is None:
             raise TimelineError("Those Parts could not be deleted.")
         for filename in files:
@@ -354,44 +354,44 @@ class TimelineService:
         return {"deleted": len(selected)}
 
     def move_parts(
-        self, source_project_id: int, ids: list[int],
-        destination_project_id: int,
+        self, source_production_id: int, ids: list[int],
+        destination_production_id: int,
     ) -> dict[str, Any]:
         selected = [int(item) for item in ids]
         if not selected:
             raise TimelineError("Choose at least one Part.")
         for part_id in selected:
-            self._part(source_project_id, part_id)
-        self._project(destination_project_id)
+            self._part(source_production_id, part_id)
+        self._production(destination_production_id)
         if not self.records.move(
-                source_project_id, selected, destination_project_id):
+                source_production_id, selected, destination_production_id):
             raise TimelineError("Those Parts could not be moved.")
         return {"moved": len(selected)}
 
     def save_draft(
-        self, project_id: int, part_id: int, values: dict[str, Any],
+        self, production_id: int, part_id: int, values: dict[str, Any],
     ) -> dict[str, Any]:
-        self._part(project_id, part_id)
-        if not self.records.save_draft(project_id, part_id, values):
+        self._part(production_id, part_id)
+        if not self.records.save_draft(production_id, part_id, values):
             raise TimelineError("The text states could not be saved.")
         return {"ok": True}
 
     def save_script(
-        self, project_id: int, part_id: int, script: str,
+        self, production_id: int, part_id: int, script: str,
     ) -> dict[str, Any]:
-        part = self._part(project_id, part_id)
+        part = self._part(production_id, part_id)
         canonical = str(script).strip()
         if part.get("kind") in {"speech", "audio", "draft"} and not canonical:
             raise TimelineError("A speech Part needs a script.")
-        if not self.records.save_script(project_id, part_id, canonical):
+        if not self.records.save_script(production_id, part_id, canonical):
             raise TimelineError("The Part script could not be saved.")
         return {"ok": True}
 
     def save_editorial(
-        self, project_id: int, part_id: int, expected_revision: int,
+        self, production_id: int, part_id: int, expected_revision: int,
         values: dict[str, Any],
     ) -> dict[str, Any]:
-        part = self._part(project_id, part_id)
+        part = self._part(production_id, part_id)
         changes: dict[str, Any] = {}
         if "script" in values:
             canonical = str(values["script"] or "").strip()
@@ -404,7 +404,7 @@ class TimelineService:
             raise TimelineError("Choose a Part change before saving.")
         try:
             result = self.records.save_editorial(
-                project_id, part_id, expected_revision, changes)
+                production_id, part_id, expected_revision, changes)
         except ValueError as exc:
             raise TimelineError(str(exc)) from exc
         if not result:
@@ -418,7 +418,7 @@ class TimelineService:
                 "outdated": bool(result["outdated"])}
 
     def captions(
-        self, project_id: int, part_id: int,
+        self, production_id: int, part_id: int,
     ) -> list[dict[str, Any]]:
-        self._part(project_id, part_id)
+        self._part(production_id, part_id)
         return self.transcripts.list_for_part(part_id)

@@ -1,7 +1,7 @@
 import { fileSource, type FileSource } from "@/lib/file-provenance"
 import type { WorkspaceFile } from "@/types/domain"
 
-export type LibraryScope = "project" | "folder" | "workspace"
+export type LibraryScope = "production" | "folder" | "workspace"
 export type LibraryFileType = "image" | "video" | "audio" | "speech" | "music" | "sfx" | "document" | "data" | "subtitle"
 export type LibraryTypeFilter = "all" | LibraryFileType
 export type LibrarySourceFilter = "all" | FileSource
@@ -20,13 +20,13 @@ export type LibraryQuery = {
 }
 
 export type LibraryQueryContext = {
-  projectFileIds?: ReadonlySet<number>
+  productionFileIds?: ReadonlySet<number>
   usedFileIds?: ReadonlySet<number>
   currentFolderId?: number | null
 }
 
 export const LIBRARY_SCOPE_OPTIONS: ReadonlyArray<{ id: LibraryScope; label: string }> = [
-  { id: "project", label: "This Project" },
+  { id: "production", label: "This Production" },
   { id: "folder", label: "Current Folder" },
   { id: "workspace", label: "Workspace" },
 ]
@@ -115,7 +115,7 @@ export type LibraryEntry = {
   folderId: number | null
   searchText: string
   createdAt?: string | null
-  projectAssociated?: boolean
+  productionAssociated?: boolean
   usedHere?: boolean
   pending?: boolean
 }
@@ -128,15 +128,15 @@ export function libraryFileEntry(file: WorkspaceFile, context: LibraryQueryConte
     folderId: file.folder_id ?? null,
     searchText: libraryFileSearchText(file),
     createdAt: file.created_at || file.updated_at || null,
-    projectAssociated: context.projectFileIds?.has(file.id),
+    productionAssociated: context.productionFileIds?.has(file.id),
     usedHere: context.usedFileIds?.has(file.id),
   }
 }
 
 export function libraryEntryMatchesQuery(entry: LibraryEntry, query: LibraryQuery, context: LibraryQueryContext = {}) {
-  const projectAssociated = entry.projectAssociated ?? (entry.fileId !== undefined && context.projectFileIds?.has(entry.fileId)) ?? false
+  const productionAssociated = entry.productionAssociated ?? (entry.fileId !== undefined && context.productionFileIds?.has(entry.fileId)) ?? false
   const usedHere = entry.usedHere ?? (entry.fileId !== undefined && context.usedFileIds?.has(entry.fileId)) ?? false
-  if (query.scope === "project" && !projectAssociated) return false
+  if (query.scope === "production" && !productionAssociated) return false
   if (query.scope === "folder" && (context.currentFolderId === undefined || entry.folderId !== context.currentFolderId)) return false
   if (query.folder !== "all" && entry.folderId !== (query.folder === "root" ? null : Number(query.folder))) return false
   if (query.type === "audio" && !["audio", "speech", "music", "sfx"].includes(entry.type)) return false

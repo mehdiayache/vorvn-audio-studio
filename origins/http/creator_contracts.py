@@ -14,7 +14,7 @@ class CreatorContext(BaseModel):
 
     workspace_id: int = Field(gt=0)
     folder_id: int | None = Field(default=None, gt=0)
-    project_id: int | None = Field(default=None, gt=0)
-    project_type: str | None = Field(default=None, min_length=1, max_length=80)
+    production_id: int | None = Field(default=None, gt=0)
+    production_type: str | None = Field(default=None, min_length=1, max_length=80)
     object_id: int | None = Field(default=None, gt=0)
     selection: dict[str, Any] = Field(default_factory=dict)

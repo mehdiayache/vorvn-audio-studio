@@ -9,6 +9,6 @@ export type CreatorLibraryCreationItem = {
   mediaType?: LibraryFileType
   createdAt?: string | null
   folderId?: number | null
-  projectAssociated?: boolean
+  productionAssociated?: boolean
   searchText?: string
 }

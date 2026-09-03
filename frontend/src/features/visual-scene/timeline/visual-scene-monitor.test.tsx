@@ -12,7 +12,7 @@ afterEach(() => {
 })
 
 describe("VisualSceneMonitor", () => {
-  it("aligns a muted video preview to the shared Project playhead and source window", () => {
+  it("aligns a muted video preview to the shared Production playhead and source window", () => {
     const play = vi.spyOn(HTMLMediaElement.prototype, "play").mockResolvedValue()
     vi.spyOn(HTMLMediaElement.prototype, "pause").mockImplementation(() => undefined)
     const file = {

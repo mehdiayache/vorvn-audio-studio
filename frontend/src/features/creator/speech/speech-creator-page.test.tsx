@@ -73,8 +73,8 @@ describe("Speech Creator result contract", () => {
     const context = {
       workspace_id: 4,
       folder_id: 27,
-      project_id: 7,
-      project_type: "audiovisual",
+      production_id: 7,
+      production_type: "audiovisual",
       selection: { capability: "speech" },
     }
 

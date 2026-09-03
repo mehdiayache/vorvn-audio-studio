@@ -89,7 +89,7 @@ function setup() {
 }
 
 function renderCreator(overrides: Partial<React.ComponentProps<typeof MediaCreator>> = {}) {
-  const context = overrides.context || { workspace_id: 1, project_id: 7, project_type: "audiovisual", selection: { output_media_type: "image" } }
+  const context = overrides.context || { workspace_id: 1, production_id: 7, production_type: "audiovisual", selection: { output_media_type: "image" } }
   const initialCapability = (context.selection?.output_media_type || "image") as CreatorCapabilityId
   const { context: _context, renderWorkspace: _renderWorkspace, ...mediaOverrides } = overrides
   return render(<CreatorHost context={context} initialCapability={initialCapability} allowedCapabilities={[initialCapability]}>
@@ -110,8 +110,8 @@ function renderVideoCreator(overrides: Partial<React.ComponentProps<typeof Media
     ...overrides,
     context: {
       workspace_id: 1,
-      project_id: 7,
-      project_type: "audiovisual",
+      production_id: 7,
+      production_type: "audiovisual",
       selection: { output_media_type: "video" },
     },
   })
@@ -342,7 +342,7 @@ describe("Media creator", () => {
   })
 
   it("shows only compatible media in an exact semantic slot", async () => {
-    renderCreator({ context: { workspace_id: 1, project_id: 7, project_type: "audiovisual", selection: { output_media_type: "video" } }, libraryFiles: [
+    renderCreator({ context: { workspace_id: 1, production_id: 7, production_type: "audiovisual", selection: { output_media_type: "video" } }, libraryFiles: [
       { id: 41, media_type: "image", name: "Character", filename: "character.webp" },
       { id: 42, media_type: "audio", name: "Voice", filename: "voice.wav" },
     ] })
@@ -411,7 +411,7 @@ describe("Media creator", () => {
     expect(await screen.findByRole("option", { name: /Valid subject/ })).toBeTruthy()
     expect(screen.queryByRole("option", { name: /Too small subject/ })).toBeNull()
     expect(originsApi.mediaInputCompatibility).toHaveBeenCalledWith(
-      { workspace_id: 1, project_id: 7, project_type: "audiovisual", selection: { capability: "video", output_media_type: "video" } },
+      { workspace_id: 1, production_id: 7, production_type: "audiovisual", selection: { capability: "video", output_media_type: "video" } },
       expect.objectContaining({
         model_id: "kling-3.0-omni/text-to-video",
         operation: "text_to_video",
@@ -439,7 +439,7 @@ describe("Media creator", () => {
       { id: "single", name: "One look", type: "character", file_ids: [41] },
       { id: "bundle", name: "Two looks", type: "character", file_ids: [41, 42] },
     ] as never)
-    renderCreator({ context: { workspace_id: 8, project_id: 7, project_type: "audiovisual", selection: { output_media_type: "video" } }, libraryFiles: [
+    renderCreator({ context: { workspace_id: 8, production_id: 7, production_type: "audiovisual", selection: { output_media_type: "video" } }, libraryFiles: [
       { id: 41, media_type: "image", name: "Hero front" },
       { id: 42, media_type: "image", name: "Hero side" },
     ] })
@@ -456,7 +456,7 @@ describe("Media creator", () => {
     expect(await screen.findByText("Ready")).toBeTruthy()
     fireEvent.click(screen.getByRole("button", { name: "Regenerate" }))
     await waitFor(() => expect(originsApi.createMediaGeneration).toHaveBeenCalledWith({
-      context: { workspace_id: 1, project_id: 7, project_type: "audiovisual", selection: { capability: "image", output_media_type: "image" } },
+      context: { workspace_id: 1, production_id: 7, production_type: "audiovisual", selection: { capability: "image", output_media_type: "image" } },
       preset: saved.preset,
     }))
     fireEvent.click(screen.getByRole("button", { name: "Remix" }))
@@ -523,7 +523,7 @@ describe("Media creator", () => {
     expect(await screen.findByText("Saving failed")).toBeTruthy()
     fireEvent.click(screen.getByRole("button", { name: "Retry saving" }))
     await waitFor(() => expect(originsApi.retryMediaGenerationIngestion).toHaveBeenCalledWith(
-      { workspace_id: 1, project_id: 7, project_type: "audiovisual", selection: { capability: "image", output_media_type: "image" } },
+      { workspace_id: 1, production_id: 7, production_type: "audiovisual", selection: { capability: "image", output_media_type: "image" } },
       recovery.job_id,
     ))
   })

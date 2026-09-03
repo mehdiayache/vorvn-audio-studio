@@ -40,42 +40,42 @@ class WorkspaceRepositoryTests(unittest.TestCase):
                 cursor.execute("DELETE FROM workspaces WHERE id=%s", (workspace_id,))
             database.commit()
 
-    def test_folder_and_audiovisual_project_are_direct_workspace_children(self):
+    def test_folder_and_audiovisual_production_are_direct_workspace_children(self):
         workspace_id = int(self.workspace["id"])
         folder = self.service.create_folder(workspace_id, "Campaign")
-        project = self.service.create_audiovisual_project(
-            workspace_id, "Launch film", "Audiovisual Project", folder["id"])
+        production = self.service.create_audiovisual_production(
+            workspace_id, "Launch film", "Audiovisual Production", folder["id"])
 
         overview = self.service.overview(workspace_id)
         self.assertEqual(overview["workspace"]["name"],
                          f"Workspace fixture {self.marker}")
         self.assertEqual(overview["folders"][0]["name"], "Campaign")
-        self.assertEqual(overview["projects"][0]["id"], project["id"])
-        self.assertEqual(overview["projects"][0]["folder_id"], folder["id"])
-        self.assertEqual(overview["projects"][0]["project_type"],
+        self.assertEqual(overview["productions"][0]["id"], production["id"])
+        self.assertEqual(overview["productions"][0]["folder_id"], folder["id"])
+        self.assertEqual(overview["productions"][0]["production_type"],
                          "audiovisual")
 
         with psycopg.connect(settings.database_url) as database:
             ownership = database.execute("""
-                SELECT workspace_id, folder_id, project_type
-                  FROM projects WHERE id=%s
-            """, (project["id"],)).fetchone()
+                SELECT workspace_id, folder_id, production_type
+                  FROM productions WHERE id=%s
+            """, (production["id"],)).fetchone()
             self.assertEqual(
                 ownership, (workspace_id, folder["id"], "audiovisual"))
 
-        resolved = self.service.project(project["public_id"])
-        self.assertEqual(resolved["id"], project["id"])
+        resolved = self.service.production(production["public_id"])
+        self.assertEqual(resolved["id"], production["id"])
 
         listed = next(
             item for item in self.service.list_workspaces()
             if item["id"] == workspace_id)
-        self.assertEqual(listed["project_count"], 1)
+        self.assertEqual(listed["production_count"], 1)
         self.assertEqual(listed["folder_count"], 1)
 
     def test_workspace_file_needs_no_intermediate_container(self):
         workspace_id = int(self.workspace["id"])
-        project = self.service.create_audiovisual_project(
-            workspace_id, "Direct media project")
+        production = self.service.create_audiovisual_production(
+            workspace_id, "Direct media production")
         files = FileRepository()
         created = files.create_workspace_file(
             workspace_id, name="Direct still", filename="direct-still.png",
@@ -92,14 +92,14 @@ class WorkspaceRepositoryTests(unittest.TestCase):
             """, (created["id"],)).fetchone()
         self.assertEqual(owner, (workspace_id, None, "uploaded"))
         self.assertEqual(
-            [item["id"] for item in files.list_for_project(project["id"])],
+            [item["id"] for item in files.list_for_production(production["id"])],
             [created["id"]])
-        self.assertTrue(files.attach_to_project_library(
-            project["id"], created["id"]))
+        self.assertTrue(files.attach_to_production_library(
+            production["id"], created["id"]))
         overview = self.service.overview(workspace_id)
         self.assertEqual(overview["files"][0]["id"], created["id"])
         self.assertEqual(overview["files"][0]["media_type"], "image")
-        self.assertEqual(overview["projects"][0]["file_count"], 1)
+        self.assertEqual(overview["productions"][0]["file_count"], 1)
 
     def test_generated_file_lookup_never_crosses_space_ownership(self):
         files = FileRepository()
@@ -126,10 +126,10 @@ class WorkspaceRepositoryTests(unittest.TestCase):
                     "DELETE FROM workspaces WHERE id=%s", (other_space["id"],))
                 database.commit()
 
-    def test_audio_category_survives_workspace_and_project_library_reads(self):
+    def test_audio_category_survives_workspace_and_production_library_reads(self):
         workspace_id = int(self.workspace["id"])
-        project = self.service.create_audiovisual_project(
-            workspace_id, "Sound design project")
+        production = self.service.create_audiovisual_production(
+            workspace_id, "Sound design production")
         files = FileRepository()
         created = files.create_workspace_file(
             workspace_id, name="Door slam", filename="door-slam.wav",
@@ -138,16 +138,16 @@ class WorkspaceRepositoryTests(unittest.TestCase):
             media_type="audio", category="sfx", tags=("door", "impact"))
 
         self.assertEqual(created["category"], "sfx")
-        self.assertTrue(files.attach_to_project_library(
-            project["id"], created["id"]))
+        self.assertTrue(files.attach_to_production_library(
+            production["id"], created["id"]))
         overview_file = next(
             item for item in self.service.overview(workspace_id)["files"]
             if item["id"] == created["id"])
-        project_file = next(
-            item for item in files.list_for_project(project["id"])
+        production_file = next(
+            item for item in files.list_for_production(production["id"])
             if item["id"] == created["id"])
         self.assertEqual(overview_file["category"], "sfx")
-        self.assertEqual(project_file["category"], "sfx")
+        self.assertEqual(production_file["category"], "sfx")
 
     def test_direct_document_upload_commits_one_file_version_without_a_job(self):
         with TemporaryDirectory() as directory:

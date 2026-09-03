@@ -56,7 +56,7 @@ export function HistoricalVoicePanel({ profiles, onLinked, onPreview }: {
     <div className="voice-history-list">{items.map((item) => {
       const label = historicalName(item.provider_voice_id)
       return <article key={item.provider_voice_id}>
-        <div className="voice-history-copy"><b>{label}</b><small>{item.uses} recording{item.uses === 1 ? "" : "s"} · {item.projects} project{item.projects === 1 ? "" : "s"} · last used {item.last_used ? new Date(item.last_used).toLocaleDateString() : "unknown"}</small><code title={item.provider_voice_id}>{item.provider_voice_id}</code></div>
+        <div className="voice-history-copy"><b>{label}</b><small>{item.uses} recording{item.uses === 1 ? "" : "s"} · {item.productions} production{item.productions === 1 ? "" : "s"} · last used {item.last_used ? new Date(item.last_used).toLocaleDateString() : "unknown"}</small><code title={item.provider_voice_id}>{item.provider_voice_id}</code></div>
         {item.preview_filename && <OperatorIconButton label={`Preview ${label}`} detail="Auditions the historical provider voice before linking it." size="icon" onClick={() => onPreview(item, label)}><Play /></OperatorIconButton>}
         <select aria-label={`Identity for ${label}`} value={targets[item.provider_voice_id] || ""} onChange={(event) => setTargets((current) => ({ ...current, [item.provider_voice_id]: event.target.value }))}>
           <option value="">Choose the matching voice…</option>

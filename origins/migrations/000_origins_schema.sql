@@ -1,7 +1,7 @@
 -- Origins canonical PostgreSQL baseline.
 --
 -- Development state is disposable. This schema creates the target domain
--- directly: Workspace, Project, File, FileVersion, Job and creation context.
+-- directly: Workspace, Production, File, FileVersion, Job and creation context.
 -- It intentionally contains no retired hierarchy or compatibility bridge.
 
 
@@ -248,15 +248,15 @@ CREATE TABLE public.creator_working_drafts (
     context_key text NOT NULL,
     context_kind text NOT NULL,
     session_id uuid,
-    project_id bigint,
+    production_id bigint,
     part_id bigint,
     insert_before_part_public_id uuid,
     state jsonb NOT NULL,
     version integer DEFAULT 1 NOT NULL,
     created_at timestamp with time zone DEFAULT now() NOT NULL,
     updated_at timestamp with time zone DEFAULT now() NOT NULL,
-    CONSTRAINT creator_working_drafts_context_check CHECK ((((context_kind = 'standalone'::text) AND (session_id IS NOT NULL) AND (project_id IS NULL) AND (part_id IS NULL) AND (insert_before_part_public_id IS NULL)) OR ((context_kind = 'project'::text) AND (session_id IS NULL) AND (project_id IS NOT NULL) AND ((part_id IS NULL) OR (insert_before_part_public_id IS NULL))))),
-    CONSTRAINT creator_working_drafts_context_kind_check CHECK ((context_kind = ANY (ARRAY['standalone'::text, 'project'::text]))),
+    CONSTRAINT creator_working_drafts_context_check CHECK ((((context_kind = 'standalone'::text) AND (session_id IS NOT NULL) AND (production_id IS NULL) AND (part_id IS NULL) AND (insert_before_part_public_id IS NULL)) OR ((context_kind = 'production'::text) AND (session_id IS NULL) AND (production_id IS NOT NULL) AND ((part_id IS NULL) OR (insert_before_part_public_id IS NULL))))),
+    CONSTRAINT creator_working_drafts_context_kind_check CHECK ((context_kind = ANY (ARRAY['standalone'::text, 'production'::text]))),
     CONSTRAINT creator_working_drafts_version_check CHECK ((version > 0))
 );
 
@@ -288,7 +288,7 @@ CREATE TABLE public.composition_drafts (
     id bigint NOT NULL,
     public_id uuid DEFAULT gen_random_uuid() NOT NULL,
     part_id bigint,
-    project_id bigint NOT NULL,
+    production_id bigint NOT NULL,
     insert_at integer,
     state jsonb DEFAULT '{}'::jsonb NOT NULL,
     updated_at timestamp with time zone DEFAULT now() NOT NULL,
@@ -321,7 +321,7 @@ ALTER SEQUENCE public.composition_drafts_id_seq OWNED BY public.composition_draf
 
 CREATE TABLE public.exports (
     id bigint NOT NULL,
-    project_id bigint NOT NULL,
+    production_id bigint NOT NULL,
     filename text NOT NULL,
     manifest jsonb DEFAULT '{}'::jsonb NOT NULL,
     renderer text DEFAULT 'ffmpeg'::text NOT NULL,
@@ -540,7 +540,7 @@ CREATE TABLE public.jobs (
     tier text,
     done integer DEFAULT 0,
     total integer DEFAULT 0,
-    project_id bigint,
+    production_id bigint,
     public_id uuid DEFAULT gen_random_uuid() NOT NULL,
     idempotency_key text,
     actor_id text DEFAULT 'local-owner'::text,
@@ -644,11 +644,11 @@ ALTER SEQUENCE public.objects_id_seq OWNED BY public.objects.id;
 
 
 --
--- Name: project_file_usages; Type: TABLE; Schema: public; Owner: -
+-- Name: production_file_usages; Type: TABLE; Schema: public; Owner: -
 --
 
-CREATE TABLE public.project_file_usages (
-    project_id bigint NOT NULL,
+CREATE TABLE public.production_file_usages (
+    production_id bigint NOT NULL,
     file_id bigint NOT NULL,
     purpose text DEFAULT 'media'::text NOT NULL,
     created_at timestamp with time zone DEFAULT now() NOT NULL
@@ -656,11 +656,11 @@ CREATE TABLE public.project_file_usages (
 
 
 --
--- Name: project_parts; Type: TABLE; Schema: public; Owner: -
+-- Name: production_parts; Type: TABLE; Schema: public; Owner: -
 --
 
-CREATE TABLE public.project_parts (
-    project_id bigint NOT NULL,
+CREATE TABLE public.production_parts (
+    production_id bigint NOT NULL,
     "position" integer,
     created_at timestamp with time zone DEFAULT now() NOT NULL,
     id bigint NOT NULL,
@@ -678,29 +678,29 @@ CREATE TABLE public.project_parts (
     archived_position integer,
     enabled boolean DEFAULT true NOT NULL,
     authored_role text,
-    CONSTRAINT project_parts_revision_check CHECK ((revision > 0))
+    CONSTRAINT production_parts_revision_check CHECK ((revision > 0))
 );
 
 
 --
--- Name: COLUMN project_parts.archived_position; Type: COMMENT; Schema: public; Owner: -
+-- Name: COLUMN production_parts.archived_position; Type: COMMENT; Schema: public; Owner: -
 --
 
-COMMENT ON COLUMN public.project_parts.archived_position IS 'Sequence position at archive time; never participates in the active sequence.';
-
-
---
--- Name: COLUMN project_parts.enabled; Type: COMMENT; Schema: public; Owner: -
---
-
-COMMENT ON COLUMN public.project_parts.enabled IS 'Operator-controlled Sequence inclusion. Disabled Parts remain editable and recoverable but are excluded from preview and export.';
+COMMENT ON COLUMN public.production_parts.archived_position IS 'Sequence position at archive time; never participates in the active sequence.';
 
 
 --
--- Name: project_parts_id_seq; Type: SEQUENCE; Schema: public; Owner: -
+-- Name: COLUMN production_parts.enabled; Type: COMMENT; Schema: public; Owner: -
 --
 
-CREATE SEQUENCE public.project_parts_id_seq
+COMMENT ON COLUMN public.production_parts.enabled IS 'Operator-controlled Sequence inclusion. Disabled Parts remain editable and recoverable but are excluded from preview and export.';
+
+
+--
+-- Name: production_parts_id_seq; Type: SEQUENCE; Schema: public; Owner: -
+--
+
+CREATE SEQUENCE public.production_parts_id_seq
     START WITH 1
     INCREMENT BY 1
     NO MINVALUE
@@ -709,17 +709,17 @@ CREATE SEQUENCE public.project_parts_id_seq
 
 
 --
--- Name: project_parts_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: -
+-- Name: production_parts_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: -
 --
 
-ALTER SEQUENCE public.project_parts_id_seq OWNED BY public.project_parts.id;
+ALTER SEQUENCE public.production_parts_id_seq OWNED BY public.production_parts.id;
 
 
 --
--- Name: projects; Type: TABLE; Schema: public; Owner: -
+-- Name: productions; Type: TABLE; Schema: public; Owner: -
 --
 
-CREATE TABLE public.projects (
+CREATE TABLE public.productions (
     id bigint NOT NULL,
     public_id uuid DEFAULT gen_random_uuid() NOT NULL,
     name text NOT NULL,
@@ -730,17 +730,17 @@ CREATE TABLE public.projects (
     updated_at timestamp with time zone DEFAULT now() NOT NULL,
     workspace_id bigint NOT NULL,
     folder_id bigint,
-    project_type text DEFAULT 'audiovisual'::text NOT NULL,
-    CONSTRAINT projects_project_type_check CHECK ((project_type = 'audiovisual'::text)),
-    CONSTRAINT projects_status_check CHECK ((status = ANY (ARRAY['draft'::text, 'in_progress'::text, 'review'::text, 'approved'::text, 'released'::text, 'archived'::text])))
+    production_type text DEFAULT 'audiovisual'::text NOT NULL,
+    CONSTRAINT productions_production_type_check CHECK ((production_type = 'audiovisual'::text)),
+    CONSTRAINT productions_status_check CHECK ((status = ANY (ARRAY['draft'::text, 'in_progress'::text, 'review'::text, 'approved'::text, 'released'::text, 'archived'::text])))
 );
 
 
 --
--- Name: projects_id_seq; Type: SEQUENCE; Schema: public; Owner: -
+-- Name: productions_id_seq; Type: SEQUENCE; Schema: public; Owner: -
 --
 
-CREATE SEQUENCE public.projects_id_seq
+CREATE SEQUENCE public.productions_id_seq
     START WITH 1
     INCREMENT BY 1
     NO MINVALUE
@@ -749,10 +749,10 @@ CREATE SEQUENCE public.projects_id_seq
 
 
 --
--- Name: projects_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: -
+-- Name: productions_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: -
 --
 
-ALTER SEQUENCE public.projects_id_seq OWNED BY public.projects.id;
+ALTER SEQUENCE public.productions_id_seq OWNED BY public.productions.id;
 
 
 --
@@ -978,7 +978,7 @@ ALTER SEQUENCE public.scripts_id_seq OWNED BY public.scripts.id;
 --
 
 CREATE TABLE public.sound_scene_history (
-    project_id bigint NOT NULL,
+    production_id bigint NOT NULL,
     revision bigint NOT NULL,
     document jsonb NOT NULL,
     created_at timestamp with time zone DEFAULT now() NOT NULL,
@@ -992,7 +992,7 @@ CREATE TABLE public.sound_scene_history (
 --
 
 CREATE TABLE public.sound_scenes (
-    project_id bigint NOT NULL,
+    production_id bigint NOT NULL,
     revision bigint DEFAULT 1 NOT NULL,
     document jsonb NOT NULL,
     updated_at timestamp with time zone DEFAULT now() NOT NULL,
@@ -1086,7 +1086,7 @@ ALTER SEQUENCE public.transcripts_id_seq OWNED BY public.transcripts.id;
 --
 
 CREATE TABLE public.visual_scenes (
-    project_id bigint NOT NULL,
+    production_id bigint NOT NULL,
     revision bigint DEFAULT 1 NOT NULL,
     document jsonb DEFAULT '{"canvas": {"width": 1920, "height": 1080}, "tracks": [], "version": 1}'::jsonb NOT NULL,
     updated_at timestamp with time zone DEFAULT now() NOT NULL,
@@ -1420,17 +1420,17 @@ ALTER TABLE ONLY public.objects ALTER COLUMN id SET DEFAULT nextval('public.obje
 
 
 --
--- Name: project_parts id; Type: DEFAULT; Schema: public; Owner: -
+-- Name: production_parts id; Type: DEFAULT; Schema: public; Owner: -
 --
 
-ALTER TABLE ONLY public.project_parts ALTER COLUMN id SET DEFAULT nextval('public.project_parts_id_seq'::regclass);
+ALTER TABLE ONLY public.production_parts ALTER COLUMN id SET DEFAULT nextval('public.production_parts_id_seq'::regclass);
 
 
 --
--- Name: projects id; Type: DEFAULT; Schema: public; Owner: -
+-- Name: productions id; Type: DEFAULT; Schema: public; Owner: -
 --
 
-ALTER TABLE ONLY public.projects ALTER COLUMN id SET DEFAULT nextval('public.projects_id_seq'::regclass);
+ALTER TABLE ONLY public.productions ALTER COLUMN id SET DEFAULT nextval('public.productions_id_seq'::regclass);
 
 
 --
@@ -1692,43 +1692,43 @@ ALTER TABLE ONLY public.objects
 
 
 --
--- Name: project_file_usages project_file_usages_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+-- Name: production_file_usages production_file_usages_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
-ALTER TABLE ONLY public.project_file_usages
-    ADD CONSTRAINT project_file_usages_pkey PRIMARY KEY (project_id, file_id, purpose);
-
-
---
--- Name: project_parts project_parts_pkey; Type: CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.project_parts
-    ADD CONSTRAINT project_parts_pkey PRIMARY KEY (id);
+ALTER TABLE ONLY public.production_file_usages
+    ADD CONSTRAINT production_file_usages_pkey PRIMARY KEY (production_id, file_id, purpose);
 
 
 --
--- Name: project_parts project_parts_project_id_position_key; Type: CONSTRAINT; Schema: public; Owner: -
+-- Name: production_parts production_parts_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
-ALTER TABLE ONLY public.project_parts
-    ADD CONSTRAINT project_parts_project_id_position_key UNIQUE (project_id, "position") DEFERRABLE INITIALLY DEFERRED;
-
-
---
--- Name: projects projects_pkey; Type: CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.projects
-    ADD CONSTRAINT projects_pkey PRIMARY KEY (id);
+ALTER TABLE ONLY public.production_parts
+    ADD CONSTRAINT production_parts_pkey PRIMARY KEY (id);
 
 
 --
--- Name: projects projects_public_id_key; Type: CONSTRAINT; Schema: public; Owner: -
+-- Name: production_parts production_parts_production_id_position_key; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
-ALTER TABLE ONLY public.projects
-    ADD CONSTRAINT projects_public_id_key UNIQUE (public_id);
+ALTER TABLE ONLY public.production_parts
+    ADD CONSTRAINT production_parts_production_id_position_key UNIQUE (production_id, "position") DEFERRABLE INITIALLY DEFERRED;
+
+
+--
+-- Name: productions productions_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.productions
+    ADD CONSTRAINT productions_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: productions productions_public_id_key; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.productions
+    ADD CONSTRAINT productions_public_id_key UNIQUE (public_id);
 
 
 --
@@ -1840,7 +1840,7 @@ ALTER TABLE ONLY public.scripts
 --
 
 ALTER TABLE ONLY public.sound_scene_history
-    ADD CONSTRAINT sound_scene_history_pkey PRIMARY KEY (project_id, revision);
+    ADD CONSTRAINT sound_scene_history_pkey PRIMARY KEY (production_id, revision);
 
 
 --
@@ -1848,7 +1848,7 @@ ALTER TABLE ONLY public.sound_scene_history
 --
 
 ALTER TABLE ONLY public.sound_scenes
-    ADD CONSTRAINT sound_scenes_pkey PRIMARY KEY (project_id);
+    ADD CONSTRAINT sound_scenes_pkey PRIMARY KEY (production_id);
 
 
 --
@@ -1864,7 +1864,7 @@ ALTER TABLE ONLY public.transcripts
 --
 
 ALTER TABLE ONLY public.visual_scenes
-    ADD CONSTRAINT visual_scenes_pkey PRIMARY KEY (project_id);
+    ADD CONSTRAINT visual_scenes_pkey PRIMARY KEY (production_id);
 
 
 --
@@ -1983,17 +1983,17 @@ CREATE INDEX clips_part_idx ON public.clips USING btree (part_id, created_at DES
 
 
 --
--- Name: creator_working_drafts_project_idx; Type: INDEX; Schema: public; Owner: -
+-- Name: creator_working_drafts_production_idx; Type: INDEX; Schema: public; Owner: -
 --
 
-CREATE INDEX creator_working_drafts_project_idx ON public.creator_working_drafts USING btree (project_id, updated_at DESC);
+CREATE INDEX creator_working_drafts_production_idx ON public.creator_working_drafts USING btree (production_id, updated_at DESC);
 
 
 --
--- Name: exports_project_idx; Type: INDEX; Schema: public; Owner: -
+-- Name: exports_production_idx; Type: INDEX; Schema: public; Owner: -
 --
 
-CREATE INDEX exports_project_idx ON public.exports USING btree (project_id, created_at DESC);
+CREATE INDEX exports_production_idx ON public.exports USING btree (production_id, created_at DESC);
 
 
 --
@@ -2140,7 +2140,7 @@ CREATE INDEX jobs_workspace_created_idx ON public.jobs USING btree (workspace_id
 -- Name: jobs_creator_session_idx; Type: INDEX; Schema: public; Owner: -
 --
 
-CREATE INDEX jobs_creator_session_idx ON public.jobs USING btree (((payload ->> 'session_id'::text)), created_at DESC) WHERE ((kind = 'speech'::text) AND (source_tool = 'creator'::text) AND (project_id IS NULL));
+CREATE INDEX jobs_creator_session_idx ON public.jobs USING btree (((payload ->> 'session_id'::text)), created_at DESC) WHERE ((kind = 'speech'::text) AND (source_tool = 'creator'::text) AND (production_id IS NULL));
 
 
 --
@@ -2165,24 +2165,24 @@ CREATE INDEX objects_workspace_updated_idx ON public.objects USING btree (worksp
 
 
 --
--- Name: project_file_usages_file_idx; Type: INDEX; Schema: public; Owner: -
+-- Name: production_file_usages_file_idx; Type: INDEX; Schema: public; Owner: -
 --
 
-CREATE INDEX project_file_usages_file_idx ON public.project_file_usages USING btree (file_id, created_at DESC);
-
-
---
--- Name: project_parts_project_idx; Type: INDEX; Schema: public; Owner: -
---
-
-CREATE INDEX project_parts_project_idx ON public.project_parts USING btree (project_id, "position");
+CREATE INDEX production_file_usages_file_idx ON public.production_file_usages USING btree (file_id, created_at DESC);
 
 
 --
--- Name: project_parts_public_id_idx; Type: INDEX; Schema: public; Owner: -
+-- Name: production_parts_production_idx; Type: INDEX; Schema: public; Owner: -
 --
 
-CREATE UNIQUE INDEX project_parts_public_id_idx ON public.project_parts USING btree (public_id);
+CREATE INDEX production_parts_production_idx ON public.production_parts USING btree (production_id, "position");
+
+
+--
+-- Name: production_parts_public_id_idx; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE UNIQUE INDEX production_parts_public_id_idx ON public.production_parts USING btree (public_id);
 
 
 --
@@ -2369,7 +2369,7 @@ ALTER TABLE ONLY public.clips
 --
 
 ALTER TABLE ONLY public.clips
-    ADD CONSTRAINT clips_part_id_fkey FOREIGN KEY (part_id) REFERENCES public.project_parts(id) ON DELETE CASCADE;
+    ADD CONSTRAINT clips_part_id_fkey FOREIGN KEY (part_id) REFERENCES public.production_parts(id) ON DELETE CASCADE;
 
 
 --
@@ -2401,15 +2401,15 @@ ALTER TABLE ONLY public.clips
 --
 
 ALTER TABLE ONLY public.creator_working_drafts
-    ADD CONSTRAINT creator_working_drafts_part_id_fkey FOREIGN KEY (part_id) REFERENCES public.project_parts(id) ON DELETE CASCADE;
+    ADD CONSTRAINT creator_working_drafts_part_id_fkey FOREIGN KEY (part_id) REFERENCES public.production_parts(id) ON DELETE CASCADE;
 
 
 --
--- Name: creator_working_drafts creator_working_drafts_project_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+-- Name: creator_working_drafts creator_working_drafts_production_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.creator_working_drafts
-    ADD CONSTRAINT creator_working_drafts_project_id_fkey FOREIGN KEY (project_id) REFERENCES public.projects(id) ON DELETE CASCADE;
+    ADD CONSTRAINT creator_working_drafts_production_id_fkey FOREIGN KEY (production_id) REFERENCES public.productions(id) ON DELETE CASCADE;
 
 
 --
@@ -2417,23 +2417,23 @@ ALTER TABLE ONLY public.creator_working_drafts
 --
 
 ALTER TABLE ONLY public.composition_drafts
-    ADD CONSTRAINT composition_drafts_part_id_fkey FOREIGN KEY (part_id) REFERENCES public.project_parts(id) ON DELETE CASCADE;
+    ADD CONSTRAINT composition_drafts_part_id_fkey FOREIGN KEY (part_id) REFERENCES public.production_parts(id) ON DELETE CASCADE;
 
 
 --
--- Name: composition_drafts composition_drafts_project_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+-- Name: composition_drafts composition_drafts_production_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.composition_drafts
-    ADD CONSTRAINT composition_drafts_project_id_fkey FOREIGN KEY (project_id) REFERENCES public.projects(id) ON DELETE CASCADE;
+    ADD CONSTRAINT composition_drafts_production_id_fkey FOREIGN KEY (production_id) REFERENCES public.productions(id) ON DELETE CASCADE;
 
 
 --
--- Name: exports exports_project_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+-- Name: exports exports_production_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.exports
-    ADD CONSTRAINT exports_project_id_fkey FOREIGN KEY (project_id) REFERENCES public.projects(id) ON DELETE CASCADE;
+    ADD CONSTRAINT exports_production_id_fkey FOREIGN KEY (production_id) REFERENCES public.productions(id) ON DELETE CASCADE;
 
 
 --
@@ -2505,15 +2505,15 @@ ALTER TABLE ONLY public.jobs
 --
 
 ALTER TABLE ONLY public.jobs
-    ADD CONSTRAINT jobs_part_id_fkey FOREIGN KEY (part_id) REFERENCES public.project_parts(id) ON DELETE SET NULL;
+    ADD CONSTRAINT jobs_part_id_fkey FOREIGN KEY (part_id) REFERENCES public.production_parts(id) ON DELETE SET NULL;
 
 
 --
--- Name: jobs jobs_project_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+-- Name: jobs jobs_production_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.jobs
-    ADD CONSTRAINT jobs_project_id_fkey FOREIGN KEY (project_id) REFERENCES public.projects(id) ON DELETE SET NULL;
+    ADD CONSTRAINT jobs_production_id_fkey FOREIGN KEY (production_id) REFERENCES public.productions(id) ON DELETE SET NULL;
 
 
 --
@@ -2573,59 +2573,59 @@ ALTER TABLE ONLY public.objects
 
 
 --
--- Name: project_file_usages project_file_usages_file_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+-- Name: production_file_usages production_file_usages_file_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
-ALTER TABLE ONLY public.project_file_usages
-    ADD CONSTRAINT project_file_usages_file_id_fkey FOREIGN KEY (file_id) REFERENCES public.files(id) ON DELETE CASCADE;
-
-
---
--- Name: project_file_usages project_file_usages_project_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.project_file_usages
-    ADD CONSTRAINT project_file_usages_project_id_fkey FOREIGN KEY (project_id) REFERENCES public.projects(id) ON DELETE CASCADE;
+ALTER TABLE ONLY public.production_file_usages
+    ADD CONSTRAINT production_file_usages_file_id_fkey FOREIGN KEY (file_id) REFERENCES public.files(id) ON DELETE CASCADE;
 
 
 --
--- Name: project_parts project_parts_file_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+-- Name: production_file_usages production_file_usages_production_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
-ALTER TABLE ONLY public.project_parts
-    ADD CONSTRAINT project_parts_file_id_fkey FOREIGN KEY (file_id) REFERENCES public.files(id) ON DELETE SET NULL;
-
-
---
--- Name: project_parts project_parts_file_version_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.project_parts
-    ADD CONSTRAINT project_parts_file_version_id_fkey FOREIGN KEY (file_version_id) REFERENCES public.file_versions(id) ON DELETE SET NULL;
+ALTER TABLE ONLY public.production_file_usages
+    ADD CONSTRAINT production_file_usages_production_id_fkey FOREIGN KEY (production_id) REFERENCES public.productions(id) ON DELETE CASCADE;
 
 
 --
--- Name: project_parts project_parts_project_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+-- Name: production_parts production_parts_file_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
-ALTER TABLE ONLY public.project_parts
-    ADD CONSTRAINT project_parts_project_id_fkey FOREIGN KEY (project_id) REFERENCES public.projects(id) ON DELETE CASCADE;
-
-
---
--- Name: projects projects_folder_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.projects
-    ADD CONSTRAINT projects_folder_id_fkey FOREIGN KEY (folder_id) REFERENCES public.folders(id) ON DELETE SET NULL;
+ALTER TABLE ONLY public.production_parts
+    ADD CONSTRAINT production_parts_file_id_fkey FOREIGN KEY (file_id) REFERENCES public.files(id) ON DELETE SET NULL;
 
 
 --
--- Name: projects projects_workspace_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+-- Name: production_parts production_parts_file_version_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
-ALTER TABLE ONLY public.projects
-    ADD CONSTRAINT projects_workspace_id_fkey FOREIGN KEY (workspace_id) REFERENCES public.workspaces(id) ON DELETE CASCADE;
+ALTER TABLE ONLY public.production_parts
+    ADD CONSTRAINT production_parts_file_version_id_fkey FOREIGN KEY (file_version_id) REFERENCES public.file_versions(id) ON DELETE SET NULL;
+
+
+--
+-- Name: production_parts production_parts_production_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.production_parts
+    ADD CONSTRAINT production_parts_production_id_fkey FOREIGN KEY (production_id) REFERENCES public.productions(id) ON DELETE CASCADE;
+
+
+--
+-- Name: productions productions_folder_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.productions
+    ADD CONSTRAINT productions_folder_id_fkey FOREIGN KEY (folder_id) REFERENCES public.folders(id) ON DELETE SET NULL;
+
+
+--
+-- Name: productions productions_workspace_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.productions
+    ADD CONSTRAINT productions_workspace_id_fkey FOREIGN KEY (workspace_id) REFERENCES public.workspaces(id) ON DELETE CASCADE;
 
 
 --
@@ -2685,19 +2685,19 @@ ALTER TABLE ONLY public.saved_visual_references
 
 
 --
--- Name: sound_scene_history sound_scene_history_project_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+-- Name: sound_scene_history sound_scene_history_production_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.sound_scene_history
-    ADD CONSTRAINT sound_scene_history_project_id_fkey FOREIGN KEY (project_id) REFERENCES public.sound_scenes(project_id) ON DELETE CASCADE;
+    ADD CONSTRAINT sound_scene_history_production_id_fkey FOREIGN KEY (production_id) REFERENCES public.sound_scenes(production_id) ON DELETE CASCADE;
 
 
 --
--- Name: sound_scenes sound_scenes_project_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+-- Name: sound_scenes sound_scenes_production_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.sound_scenes
-    ADD CONSTRAINT sound_scenes_project_id_fkey FOREIGN KEY (project_id) REFERENCES public.projects(id) ON DELETE CASCADE;
+    ADD CONSTRAINT sound_scenes_production_id_fkey FOREIGN KEY (production_id) REFERENCES public.productions(id) ON DELETE CASCADE;
 
 
 --
@@ -2713,7 +2713,7 @@ ALTER TABLE ONLY public.transcripts
 --
 
 ALTER TABLE ONLY public.transcripts
-    ADD CONSTRAINT transcripts_part_id_fkey FOREIGN KEY (part_id) REFERENCES public.project_parts(id) ON DELETE SET NULL;
+    ADD CONSTRAINT transcripts_part_id_fkey FOREIGN KEY (part_id) REFERENCES public.production_parts(id) ON DELETE SET NULL;
 
 
 --
@@ -2741,11 +2741,11 @@ ALTER TABLE ONLY public.transcripts
 
 
 --
--- Name: visual_scenes visual_scenes_project_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+-- Name: visual_scenes visual_scenes_production_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.visual_scenes
-    ADD CONSTRAINT visual_scenes_project_id_fkey FOREIGN KEY (project_id) REFERENCES public.projects(id) ON DELETE CASCADE;
+    ADD CONSTRAINT visual_scenes_production_id_fkey FOREIGN KEY (production_id) REFERENCES public.productions(id) ON DELETE CASCADE;
 
 
 --

@@ -16,25 +16,25 @@ def _file_url(file: dict) -> str:
 
 
 class FileRepository:
-    """Persist reusable Files without project or provider-specific ownership."""
+    """Persist reusable Files without production or provider-specific ownership."""
 
     def workspace_exists(self, workspace_id: int) -> bool:
         with read_only() as cursor:
             cursor.execute("SELECT 1 FROM workspaces WHERE id=%s", (workspace_id,))
             return cursor.fetchone() is not None
 
-    def project_exists(self, project_id: int) -> bool:
+    def production_exists(self, production_id: int) -> bool:
         with read_only() as cursor:
             cursor.execute(
-                "SELECT 1 FROM projects WHERE id=%s AND project_type='audiovisual'",
-                (project_id,),
+                "SELECT 1 FROM productions WHERE id=%s AND production_type='audiovisual'",
+                (production_id,),
             )
             return cursor.fetchone() is not None
 
-    def output_workspace_for_project(self, project_id: int) -> int | None:
+    def output_workspace_for_production(self, production_id: int) -> int | None:
         with read_only() as cursor:
             cursor.execute(
-                "SELECT workspace_id FROM projects WHERE id=%s", (project_id,)
+                "SELECT workspace_id FROM productions WHERE id=%s", (production_id,)
             )
             row = cursor.fetchone()
         return int(row[0]) if row else None
@@ -65,10 +65,10 @@ class FileRepository:
                  ORDER BY file.updated_at DESC, file.id DESC
             """, parameters)
             rows = cursor.fetchall()
-        return [FileRepository._project_row(row) for row in rows]
+        return [FileRepository._production_row(row) for row in rows]
 
     @staticmethod
-    def _project_row(row) -> dict:
+    def _production_row(row) -> dict:
         item = {
             "id": int(row[0]), "public_id": str(row[1]),
             "workspace_id": int(row[2]), "folder_id": row[3],
@@ -93,80 +93,80 @@ class FileRepository:
     def list_for_workspace(self, workspace_id: int) -> list[dict]:
         return self._listed("file.workspace_id=%s", (workspace_id,))
 
-    def list_for_project(self, project_id: int) -> list[dict]:
-        """Return the owning Workspace Library available to a Project."""
+    def list_for_production(self, production_id: int) -> list[dict]:
+        """Return the owning Workspace Library available to a Production."""
         return self._listed("""
             file.workspace_id=(
-                SELECT workspace_id FROM projects WHERE id=%s
+                SELECT workspace_id FROM productions WHERE id=%s
             )
-        """, (project_id,))
+        """, (production_id,))
 
-    def project_files(self, project_id: int) -> list[dict]:
+    def production_files(self, production_id: int) -> list[dict]:
         return self._listed("""
             EXISTS (
-                SELECT 1 FROM project_file_usages usage
-                 WHERE usage.project_id=%s AND usage.file_id=file.id
+                SELECT 1 FROM production_file_usages usage
+                 WHERE usage.production_id=%s AND usage.file_id=file.id
             )
-        """, (project_id,))
+        """, (production_id,))
 
-    def library_file_ids(self, project_id: int) -> list[int]:
+    def library_file_ids(self, production_id: int) -> list[int]:
         with read_only() as cursor:
             cursor.execute("""
                 SELECT DISTINCT usage.file_id
-                  FROM project_file_usages usage
+                  FROM production_file_usages usage
                   JOIN files file ON file.id=usage.file_id
-                 WHERE usage.project_id=%s
+                 WHERE usage.production_id=%s
                    AND usage.purpose='library'
                  ORDER BY usage.file_id
-            """, (project_id,))
+            """, (production_id,))
             return [int(row[0]) for row in cursor.fetchall()]
 
-    def project_file_ids(self, project_id: int) -> list[int]:
+    def production_file_ids(self, production_id: int) -> list[int]:
         with read_only() as cursor:
             cursor.execute("""
-                SELECT DISTINCT file_id FROM project_file_usages
-                 WHERE project_id=%s ORDER BY file_id
-            """, (project_id,))
+                SELECT DISTINCT file_id FROM production_file_usages
+                 WHERE production_id=%s ORDER BY file_id
+            """, (production_id,))
             return [int(row[0]) for row in cursor.fetchall()]
 
-    def attach_to_project(
-        self, project_id: int, file_id: int, purpose: str = "media",
+    def attach_to_production(
+        self, production_id: int, file_id: int, purpose: str = "media",
     ) -> bool | None:
         with transaction() as cursor:
             cursor.execute("""
-                INSERT INTO project_file_usages (project_id, file_id, purpose)
-                SELECT project.id, file.id, %s
-                  FROM projects project
+                INSERT INTO production_file_usages (production_id, file_id, purpose)
+                SELECT production.id, file.id, %s
+                  FROM productions production
                   JOIN files file ON file.id=%s
-                 WHERE project.id=%s
-                   AND project.workspace_id=file.workspace_id
-                ON CONFLICT (project_id, file_id, purpose) DO NOTHING
-                RETURNING project_id
-            """, (purpose, file_id, project_id))
+                 WHERE production.id=%s
+                   AND production.workspace_id=file.workspace_id
+                ON CONFLICT (production_id, file_id, purpose) DO NOTHING
+                RETURNING production_id
+            """, (purpose, file_id, production_id))
             return cursor.fetchone() is not None
 
-    def attach_to_project_library(self, project_id: int, file_id: int) -> bool | None:
-        if not self.allowed_for_project(project_id, file_id):
+    def attach_to_production_library(self, production_id: int, file_id: int) -> bool | None:
+        if not self.allowed_for_production(production_id, file_id):
             return None
-        return self.attach_to_project(project_id, file_id, "library")
+        return self.attach_to_production(production_id, file_id, "library")
 
-    def detach_from_project_library(self, project_id: int, file_id: int) -> bool | None:
-        if not self.project_exists(project_id):
+    def detach_from_production_library(self, production_id: int, file_id: int) -> bool | None:
+        if not self.production_exists(production_id):
             return None
         with transaction() as cursor:
             cursor.execute("""
-                DELETE FROM project_file_usages
-                 WHERE project_id=%s AND file_id=%s AND purpose='library'
-            """, (project_id, file_id))
+                DELETE FROM production_file_usages
+                 WHERE production_id=%s AND file_id=%s AND purpose='library'
+            """, (production_id, file_id))
         return True
 
-    def allowed_for_project(self, project_id: int, file_id: int) -> bool:
+    def allowed_for_production(self, production_id: int, file_id: int) -> bool:
         with read_only() as cursor:
             cursor.execute("""
-                SELECT 1 FROM projects project
-                  JOIN files file ON file.workspace_id=project.workspace_id
-                 WHERE project.id=%s AND file.id=%s
-            """, (project_id, file_id))
+                SELECT 1 FROM productions production
+                  JOIN files file ON file.workspace_id=production.workspace_id
+                 WHERE production.id=%s AND file.id=%s
+            """, (production_id, file_id))
             return cursor.fetchone() is not None
 
     def get(self, file_id: int) -> dict | None:

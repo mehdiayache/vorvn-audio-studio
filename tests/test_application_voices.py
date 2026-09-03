@@ -35,7 +35,7 @@ class FakeProfilesStore:
 
     def profile_usage(self):
         return {"voice_fixture": {
-            "uses": 4, "projects": 2, "spend": .2,
+            "uses": 4, "productions": 2, "spend": .2,
             "last_used": "2026-08-09T01:00:00+00:00",
             "preview_filename": "preview.mp3",
         }}

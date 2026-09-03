@@ -22,19 +22,19 @@ class FakeRecords:
         self.fail_create = False
 
     @staticmethod
-    def project(project_id):
-        return ({"id": project_id, "name": "Evening Reset"}
-                if project_id == 6 else None)
+    def production(production_id):
+        return ({"id": production_id, "name": "Evening Reset"}
+                if production_id == 6 else None)
 
-    def parts(self, _project_id):
+    def parts(self, _production_id):
         return self.part_items
 
     @staticmethod
-    def sound_scene(_project_id):
+    def sound_scene(_production_id):
         return {"document": empty_scene()}
 
     @staticmethod
-    def visual_scene(_project_id):
+    def visual_scene(_production_id):
         return {
             "revision": 2,
             "document": {
@@ -54,10 +54,10 @@ class FakeRecords:
         return {"sentences": [{"start": 0, "end": 700,
                                 "text": "Rest now"}], "stale": False}
 
-    def create_export(self, project_id, *, artifact):
+    def create_export(self, production_id, *, artifact):
         if self.fail_create:
             raise RuntimeError("database unavailable")
-        self.created.append((project_id, artifact))
+        self.created.append((production_id, artifact))
         return {"export_id": 91, "generation_id": 150}
 
 
@@ -74,13 +74,13 @@ class FakeWorkspace:
         return 1000
 
     def preview(
-            self, project_id, parts, scene, *, skipped_drafts):
-        self.previews.append((project_id, parts, scene, skipped_drafts))
+            self, production_id, parts, scene, *, skipped_drafts):
+        self.previews.append((production_id, parts, scene, skipped_drafts))
         return {"name": "preview.mp3", "cached": False,
                 "skipped_drafts": skipped_drafts}
 
     def finish_export(
-            self, project_id, project_name, parts, scene, subtitles):
+            self, production_id, production_name, parts, scene, subtitles):
         artifact = FinishedExport(
             target=Path("/media/final.mp3"),
             manifest_path=Path("/media/final.manifest.json"),
@@ -95,7 +95,7 @@ class FakeWorkspace:
         return artifact
 
     def finish_video_export(
-            self, project_id, project_name, parts, scene,
+            self, production_id, production_name, parts, scene,
             visual_scene, subtitles):
         artifact = FinishedExport(
             target=Path("/media/final.mp4"),
@@ -218,7 +218,7 @@ class RenderServiceTests(unittest.TestCase):
     def test_mp4_requires_one_visible_timeline_visual(self):
         class EmptyVisualRecords(FakeRecords):
             @staticmethod
-            def visual_scene(_project_id):
+            def visual_scene(_production_id):
                 return {"document": {"version": 1, "canvas": {
                     "width": 1920, "height": 1080}, "tracks": []}}
 

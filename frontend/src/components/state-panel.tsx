@@ -5,9 +5,9 @@ import { Skeleton } from "@/components/ui/skeleton"
 
 import "./state-panel.css"
 
-export function PageLoading({ label = "Loading Project" }: { label?: string }) {
+export function PageLoading({ label = "Loading Production" }: { label?: string }) {
   const subject = label.replace(/^Loading\s+/i, "")
-  const library = /workspace|project|library/i.test(label)
+  const library = /workspace|production|library/i.test(label)
   return (
     <main className={`page-loading${library ? " is-library" : ""}`} aria-label={label} aria-live="polite" role="status">
       <header className="page-loading-header">
@@ -22,7 +22,7 @@ export function PageLoading({ label = "Loading Project" }: { label?: string }) {
   )
 }
 
-export function ErrorState({ title = "Project unavailable", message, retry }: { title?: string; message: string; retry: () => void }) {
+export function ErrorState({ title = "Production unavailable", message, retry }: { title?: string; message: string; retry: () => void }) {
   return (
     <main className="page-state state-centered" role="alert">
       <span className="state-icon error"><AlertCircle /></span>
@@ -40,7 +40,7 @@ export function EmptySequence({ onAdd }: { onAdd: () => void }) {
   return (
     <div className="empty-sequence">
       <span className="state-icon"><Inbox /></span>
-      <div><h3>This Project is ready for its first part</h3><p>Add speech, a reusable intro, or intentional silence.</p></div>
+      <div><h3>This Production is ready for its first part</h3><p>Add speech, a reusable intro, or intentional silence.</p></div>
       <Button onClick={onAdd}>Add speech</Button>
     </div>
   )

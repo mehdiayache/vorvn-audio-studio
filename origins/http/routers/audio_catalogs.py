@@ -81,26 +81,26 @@ def keep_freesound_in_workspace(
 
 
 @router.post(
-    "/freesound/projects/{project_id}/keep",
-    operation_id="keepFreesoundFileInAudiovisualProject",
+    "/freesound/productions/{production_id}/keep",
+    operation_id="keepFreesoundFileInAudiovisualProduction",
     status_code=201,
     response_model=CatalogKeepEnvelope,
 )
-def keep_freesound_in_audiovisual_project(
-    project_id: int, payload: KeepFreesoundBody,
+def keep_freesound_in_audiovisual_production(
+    production_id: int, payload: KeepFreesoundBody,
 ) -> dict:
-    project = workspace_service.project(str(project_id))
-    if not project:
-        raise ApiProblem(404, "project_not_found",
-                         "Audiovisual Project not found.")
+    production = workspace_service.production(str(production_id))
+    if not production:
+        raise ApiProblem(404, "production_not_found",
+                         "Audiovisual Production not found.")
     try:
         result = audio_catalog_service.keep(
-            workspace_id=project["workspace_id"], external_id=payload.external_id,
+            workspace_id=production["workspace_id"], external_id=payload.external_id,
             name=payload.name, category=payload.category,
-            tags=tuple(payload.tags), folder_id=project.get("folder_id"))
+            tags=tuple(payload.tags), folder_id=production.get("folder_id"))
         if not workspace_service.attach_file(
-                project_id, result["file"]["id"], "audio"):
-            raise RuntimeError("The File could not be associated with this Project.")
+                production_id, result["file"]["id"], "audio"):
+            raise RuntimeError("The File could not be associated with this Production.")
         return {"data": result}
     except AudioCatalogSetupError as exc:
         raise ApiProblem(503, "freesound_setup_required", str(exc)) from exc

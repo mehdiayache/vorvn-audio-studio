@@ -2,7 +2,7 @@
 
 Stored files have opaque names that never change. Everything a person reads —
 the download name, the MP3's title and artist — is built here, at the moment
-it's needed, from the Workspace / Project / Folder the recording sits in.
+it's needed, from the Workspace / Production / Folder the recording sits in.
 
 That separation is the whole point: rename a Workspace and every later download
 is correct without a single file being touched on disk.
@@ -17,10 +17,10 @@ FORBIDDEN = re.compile(r'[/\\:*?"<>|\x00-\x1f]')
 DEFAULTS = {
     "prefix": "origins",
     "digits": 2,             # part-01
-    "include_project": False,
+    "include_production": False,
     "separator": "-",
     "artist": "{workspace}",
-    "album": "{project}",
+    "album": "{production}",
     "title": "{folder} — Part {part}",
     "genre": "",
     "year": "",
@@ -29,7 +29,7 @@ DEFAULTS = {
     "cover": True,           # use the Workspace picture as the artwork
 }
 
-TOKENS = ("workspace", "project", "folder", "part", "clip", "voice", "date")
+TOKENS = ("workspace", "production", "folder", "part", "clip", "voice", "date")
 
 
 def merged(globals_: dict, workspace_overrides: dict | None) -> dict:
@@ -70,8 +70,8 @@ def download_name(context: dict, settings: dict, extension: str = "mp3") -> str:
     part = context.get("part")
 
     pieces = [settings.get("prefix") or ""]
-    if settings.get("include_project") and context.get("project"):
-        pieces.append(context["project"])
+    if settings.get("include_production") and context.get("production"):
+        pieces.append(context["production"])
     if context.get("folder"):
         pieces.append(context["folder"])
     if part is not None:

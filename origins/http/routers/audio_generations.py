@@ -66,18 +66,18 @@ def compile_preset(payload: SoundPresetCompileRequest) -> dict:
 @router.get("/recent", operation_id="listRecentAudioGenerations",
             response_model=AudioGenerationHistoryEnvelope)
 def recent_audio_generations(
-    project_id: int | None = None, workspace_id: int | None = None,
+    production_id: int | None = None, workspace_id: int | None = None,
 ) -> dict:
-    if (project_id is None) == (workspace_id is None):
+    if (production_id is None) == (workspace_id is None):
         raise ApiProblem(
             400, "invalid_creation_context",
-            "Choose exactly one Workspace or audiovisual Project.")
-    if project_id is not None and project_id <= 0:
-        raise ApiProblem(400, "invalid_project", "Choose an audiovisual Project.")
+            "Choose exactly one Workspace or audiovisual Production.")
+    if production_id is not None and production_id <= 0:
+        raise ApiProblem(400, "invalid_production", "Choose an audiovisual Production.")
     if workspace_id is not None and workspace_id <= 0:
         raise ApiProblem(400, "invalid_space", "Choose a Workspace.")
     return {"data": audio_generation_service.recent(
-        project_id, workspace_id=workspace_id)}
+        production_id, workspace_id=workspace_id)}
 
 
 def _candidate(candidate_id: UUID) -> tuple[dict, Path]:
@@ -129,26 +129,26 @@ def keep_generated_audio_in_workspace(
 
 
 @router.post(
-    "/{candidate_id}/projects/{project_id}/keep",
-    operation_id="keepGeneratedAudioFileInAudiovisualProject",
+    "/{candidate_id}/productions/{production_id}/keep",
+    operation_id="keepGeneratedAudioFileInAudiovisualProduction",
     status_code=201,
     response_model=GeneratedKeepEnvelope,
 )
-def keep_generated_audio_in_audiovisual_project(
-    candidate_id: UUID, project_id: int, payload: KeepGeneratedBody,
+def keep_generated_audio_in_audiovisual_production(
+    candidate_id: UUID, production_id: int, payload: KeepGeneratedBody,
 ) -> dict:
-    project = workspace_service.project(str(project_id))
-    if not project:
-        raise ApiProblem(404, "project_not_found",
-                         "Audiovisual Project not found.")
+    production = workspace_service.production(str(production_id))
+    if not production:
+        raise ApiProblem(404, "production_not_found",
+                         "Audiovisual Production not found.")
     try:
         result = audio_generation_service.keep(
-            candidate_id=candidate_id, workspace_id=project["workspace_id"],
+            candidate_id=candidate_id, workspace_id=production["workspace_id"],
             name=payload.name, category=payload.category,
-            tags=tuple(payload.tags), folder_id=project.get("folder_id"))
+            tags=tuple(payload.tags), folder_id=production.get("folder_id"))
         if not workspace_service.attach_file(
-                project_id, result["file"]["id"], "audio"):
-            raise RuntimeError("The File could not be associated with this Project.")
+                production_id, result["file"]["id"], "audio"):
+            raise RuntimeError("The File could not be associated with this Production.")
         return {"data": result}
     except LookupError as exc:
         raise ApiProblem(404, "generated_candidate_not_found", str(exc)) from exc

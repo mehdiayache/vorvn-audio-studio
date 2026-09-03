@@ -12,14 +12,14 @@ class _Files:
     def __init__(self, files):
         self.files = files
 
-    def project_exists(self, project_id):
-        return project_id == 7
+    def production_exists(self, production_id):
+        return production_id == 7
 
     def workspace_exists(self, workspace_id):
         return workspace_id == 4
 
-    def list_for_project(self, project_id):
-        return self.files if project_id == 7 else []
+    def list_for_production(self, production_id):
+        return self.files if production_id == 7 else []
 
     def list_for_workspace(self, workspace_id):
         return self.files if workspace_id == 4 else []
@@ -112,7 +112,7 @@ class CreatorCompatibilityTest(unittest.TestCase):
             _validate_input_file(slot, file)
         service = MediaGenerationService(object(), _Files([file]))
         result = service.input_compatibility(
-            {"workspace_id": 4, "project_id": 7},
+            {"workspace_id": 4, "production_id": 7},
             "kling-3.0-omni/image-to-video", "image_to_video",
             [11], role="source-image")
         self.assertEqual(result[0]["state"], "unknown")
@@ -147,10 +147,10 @@ class CreatorCompatibilityTest(unittest.TestCase):
         service = MediaGenerationService(
             object(), _Files([narrow_image, short_audio]))
         image_result = service.input_compatibility(
-            {"workspace_id": 4, "project_id": 7}, model_id, operation, [21],
+            {"workspace_id": 4, "production_id": 7}, model_id, operation, [21],
             parameter_key="elements", variant_id="images")
         audio_result = service.input_compatibility(
-            {"workspace_id": 4, "project_id": 7}, model_id, operation, [22],
+            {"workspace_id": 4, "production_id": 7}, model_id, operation, [22],
             parameter_key="elements", audio=True)
         self.assertEqual(image_result[0]["state"], "incompatible")
         self.assertIn("too narrow", image_result[0]["reasons"][0])

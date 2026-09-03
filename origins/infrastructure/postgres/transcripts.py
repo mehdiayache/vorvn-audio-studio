@@ -104,7 +104,7 @@ class TranscriptRepository:
                 for ident, name, language, duration_ms, parent, stale in rows]
 
     def source_for_part(self, part_id: int) -> dict | None:
-        """Newest source-language transcript used by Project rendering."""
+        """Newest source-language transcript used by Production rendering."""
         with read_only() as cursor:
             cursor.execute("""
                 SELECT id, duration_ms, sentences, stale
@@ -125,16 +125,16 @@ class TranscriptRepository:
             return cursor.rowcount
 
     def part_source(self, part_id: int,
-                    project_id: int | None = None) -> dict | None:
+                    production_id: int | None = None) -> dict | None:
         with read_only() as cursor:
             cursor.execute("""
                 SELECT part.id, clip.id, clip.filename, clip.path,
                        coalesce(clip.duration_ms, part.duration_ms)
-                  FROM project_parts part
+                  FROM production_parts part
                   JOIN clips clip ON clip.part_id = part.id
                  WHERE part.id = %s AND part.archived_at IS NULL
-                   AND (%s::bigint IS NULL OR part.project_id = %s)
-            """, (part_id, project_id, project_id))
+                   AND (%s::bigint IS NULL OR part.production_id = %s)
+            """, (part_id, production_id, production_id))
             row = cursor.fetchone()
         return (dict(zip(("id", "clip_id", "filename", "path", "duration_ms"), row))
                 if row else None)

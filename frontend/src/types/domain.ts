@@ -28,7 +28,7 @@ export type PronunciationRule = components["schemas"]["PronunciationRuleResponse
 
 export type DiskSnapshot = components["schemas"]["DiskSnapshotResponse"]
 
-export type ProjectPart = {
+export type ProductionPart = {
   id: number
   public_id?: string
   created_at: string
@@ -107,9 +107,9 @@ export type PartEditorialUpdate = {
   authored_role?: string | null
 }
 
-export type ProjectExport = {
+export type ProductionExport = {
   id: number
-  project_id: number
+  production_id: number
   filename: string
   manifest: Record<string, unknown>
   renderer: string
@@ -118,10 +118,10 @@ export type ProjectExport = {
   created_at: string
 }
 
-export type Project = {
+export type Production = {
   id: number
   public_id: string
-  project_type: "audiovisual"
+  production_type: "audiovisual"
   name: string
   description: string
   status: "draft" | "in_progress" | "review" | "approved" | "released" | "archived" | string
@@ -129,8 +129,8 @@ export type Project = {
   folder_id?: number | null
   settings: Record<string, unknown>
   updated_at?: string
-  parts: ProjectPart[]
-  exports: ProjectExport[]
+  parts: ProductionPart[]
+  exports: ProductionExport[]
   export_job?: DurableJob<{ url?: string; name?: string; error?: string }> | null
   total_cost: number
   current_sequence_cost: number
@@ -254,7 +254,7 @@ export type SequenceProjectionSpan = {
 }
 
 export type SoundScene = {
-  project_id: number
+  production_id: number
   revision: number
   document: SoundSceneDocument
   can_undo: boolean
@@ -321,7 +321,7 @@ export type VisualSceneDocument = {
 }
 
 export type VisualScene = {
-  project_id: number
+  production_id: number
   revision: number
   document: VisualSceneDocument
   updated_at: string
@@ -469,7 +469,7 @@ export type VoiceDirectory = {
   catalog: VoiceCatalogItem[]
   registry?: VoiceRegistry | null
   identities?: VoiceProfile[]
-  usage?: Record<string, { uses: number; projects: number; spend: number; last_used?: string | null; latest_preview?: string | null }>
+  usage?: Record<string, { uses: number; productions: number; spend: number; last_used?: string | null; latest_preview?: string | null }>
 }
 
 export type HistoricalVoiceReference = components["schemas"]["HistoricalVoiceResponse"]
@@ -514,7 +514,7 @@ export type DurableJob<T = Record<string, unknown>> = {
   output_file_ids?: number[]
   context?: {
     part_id?: number | null
-    project_id?: number | null
+    production_id?: number | null
     transcript_id?: number | null
     target?: string
     language?: string
@@ -641,7 +641,7 @@ export type WorkspaceSummary = {
   public_id: string
   name: string
   description: string
-  project_count: number
+  production_count: number
   file_count: number
   folder_count: number
   created_at: string
@@ -658,12 +658,12 @@ export type WorkspaceFolder = {
   updated_at: string
 }
 
-export type WorkspaceProject = {
+export type WorkspaceProduction = {
   id: number
   public_id: string
   workspace_id: number
   folder_id: number | null
-  project_type: string
+  production_type: string
   name: string
   description: string
   status: string
@@ -675,7 +675,7 @@ export type WorkspaceProject = {
 export type WorkspaceOverview = {
   workspace: WorkspaceSummary
   folders: WorkspaceFolder[]
-  projects: WorkspaceProject[]
+  productions: WorkspaceProduction[]
   files: WorkspaceFile[]
 }
 
@@ -696,7 +696,7 @@ export type PlayerSource = {
   sourceLabel?: string
   artwork?: string
   downloadable?: boolean
-  kind: "clip" | "project" | "voice" | "file" | "music" | "subtitle" | "standalone"
+  kind: "clip" | "production" | "voice" | "file" | "music" | "subtitle" | "standalone"
   captionTracks?: PlayerCaptionTrack[]
 }
 

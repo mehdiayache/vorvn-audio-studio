@@ -35,8 +35,8 @@ class MigrationTests(unittest.TestCase):
                      WHERE table_schema = 'public'
                 """).fetchall()}
                 self.assertTrue({
-                    "workspaces", "folders", "projects", "project_parts",
-                    "files", "file_versions", "project_file_usages",
+                    "workspaces", "folders", "productions", "production_parts",
+                    "files", "file_versions", "production_file_usages",
                     "objects", "object_file_usages", "jobs", "job_events",
                     "sound_scenes", "sound_scene_history", "visual_scenes",
                     "exports", "creator_working_drafts",
@@ -44,9 +44,9 @@ class MigrationTests(unittest.TestCase):
                     "schema_migrations",
                 }.issubset(tables))
                 self.assertTrue({
-                    "spaces", "ventures", "series", "productions",
-                    "production_parts", "assets", "asset_versions",
-                    "file_collections", "project_files",
+                    "spaces", "ventures", "series", "projects",
+                    "project_parts", "project_file_usages", "assets", "asset_versions",
+                    "file_collections", "production_files",
                 }.isdisjoint(tables))
                 file_columns = {row[0] for row in database.execute("""
                     SELECT column_name FROM information_schema.columns
@@ -56,14 +56,14 @@ class MigrationTests(unittest.TestCase):
                     file_columns))
                 self.assertNotIn("scope", file_columns)
                 self.assertNotIn("source_generation_id", file_columns)
-                project_columns = {row[0] for row in database.execute("""
+                production_columns = {row[0] for row in database.execute("""
                     SELECT column_name FROM information_schema.columns
-                     WHERE table_name='projects'
+                     WHERE table_name='productions'
                 """).fetchall()}
                 self.assertTrue({
-                    "workspace_id", "folder_id", "project_type"
-                }.issubset(project_columns))
-                for table in ("project_parts", "clips", "transcripts",
+                    "workspace_id", "folder_id", "production_type"
+                }.issubset(production_columns))
+                for table in ("production_parts", "clips", "transcripts",
                               "jobs", "exports"):
                     columns = {row[0] for row in database.execute("""
                         SELECT column_name FROM information_schema.columns

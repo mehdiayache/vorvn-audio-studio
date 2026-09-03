@@ -11,7 +11,7 @@ function scene(): SoundScene {
   const mix = { muted: false, gain: 1, fade_in_ms: 0, fade_out_ms: 0, effects: [] }
   const clip = { id: clipId, file_id: 9, duration_ms: null, source_offset_ms: 0, gain: .1, fade_in_ms: 2_000, fade_out_ms: 4_000, loop: true, ducking: true, muted: false, locked: false, effects: [], anchor: { kind: "absolute" as const, position_ms: 0 }, file_name: "Night bed", filename: "bed.mp3", source_duration_ms: 60_000, resolved_start_ms: 0, resolved_duration_ms: 10_000 }
   const track = { id: "music", kind: "audio" as const, role: "music" as const, name: "Music", volume: 1, muted: false, clips: [clip] }
-  return { project_id: 6, revision: 1, document: { version: 1, sequence_overrides: {}, tracks: [track] }, can_undo: false, can_redo: false, updated_at: "2026-08-18", resolved: { version: 1, signature: "scene", duration_ms: 10_000, sequence_projection: { signature: "sequence", duration_ms: 10_000, sample_rate: 48_000, spans: [{ part_id: 7, part_public_id: "part-7", position: 0, kind: "speech", title: "Opening", role: "Narrator", voice_name: "Eva", filename: "opening.mp3", start_ms: 0, duration_ms: 10_000, silence: false, missing: false, mix }] }, tracks: [track], orphans: [] }, sequence_stem: { url: "/audio/stem.mp3", filename: "stem.mp3", duration_ms: 10_000, signature: "sequence", cached: true } }
+  return { production_id: 6, revision: 1, document: { version: 1, sequence_overrides: {}, tracks: [track] }, can_undo: false, can_redo: false, updated_at: "2026-08-18", resolved: { version: 1, signature: "scene", duration_ms: 10_000, sequence_projection: { signature: "sequence", duration_ms: 10_000, sample_rate: 48_000, spans: [{ part_id: 7, part_public_id: "part-7", position: 0, kind: "speech", title: "Opening", role: "Narrator", voice_name: "Eva", filename: "opening.mp3", start_ms: 0, duration_ms: 10_000, silence: false, missing: false, mix }] }, tracks: [track], orphans: [] }, sequence_stem: { url: "/audio/stem.mp3", filename: "stem.mp3", duration_ms: 10_000, signature: "sequence", cached: true } }
 }
 
 describe("SoundSceneEngine", () => {
@@ -22,7 +22,7 @@ describe("SoundSceneEngine", () => {
     expect(soundTrackDisplayName({ ...track, name: "Operator mix", clips: [] })).toBe("Operator mix")
   })
 
-  it("projects looped waveform peaks instead of stretching one source copy", () => {
+  it("productions looped waveform peaks instead of stretching one source copy", () => {
     const projection = { clipDuration: 10, sourceDuration: 2, sourceOffset: 0, loop: true }
     expect([0, 20, 40, 60, 80].map((column) => waveformPeakIndex(column, 100, 20, projection)))
       .toEqual([0, 0, 0, 0, 0])
@@ -99,7 +99,7 @@ describe("SoundSceneEngine", () => {
     editor.dispose()
   })
 
-  it("fits a long Project inside the actual timeline viewport", () => {
+  it("fits a long Production inside the actual timeline viewport", () => {
     const viewport = 1_040
     const duration = 7 * 60 + 21
     const samplesPerPixel = soundSceneZoomLevel(soundSceneFitZoomIndex(duration, viewport))

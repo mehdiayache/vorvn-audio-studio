@@ -1,4 +1,4 @@
-"""Native Project timeline API."""
+"""Native Production timeline API."""
 
 from __future__ import annotations
 
@@ -11,7 +11,7 @@ from origins.application.timeline import TimelineConflict, TimelineError
 from origins.domain.speech import DEFAULT_SPEECH_VOLUME
 from origins.composition.timeline import timeline_service
 from origins.http.errors import ApiProblem
-from origins.http.project_import_contracts import ProjectImportBody
+from origins.http.production_import_contracts import ProductionImportBody
 from origins.http.timeline_contracts import (
     DeletedPartsEnvelope,
     MovedPartsEnvelope,
@@ -19,10 +19,10 @@ from origins.http.timeline_contracts import (
     PartCreatedEnvelope,
     TranscriptSummaryListEnvelope,
 )
-from origins.http.project_import_contracts import ProjectImportEnvelope
+from origins.http.production_import_contracts import ProductionImportEnvelope
 
 
-router = APIRouter(prefix="/api/v1/projects/{project_id}", tags=["timeline"])
+router = APIRouter(prefix="/api/v1/productions/{production_id}", tags=["timeline"])
 
 
 class OrderBody(BaseModel):
@@ -78,7 +78,7 @@ class DraftBody(BaseModel):
 
 class MoveBody(BaseModel):
     ids: list[int]
-    destination_project_id: int = Field(gt=0)
+    destination_production_id: int = Field(gt=0)
 
 
 class DeleteBody(BaseModel):
@@ -112,113 +112,113 @@ def _run(operation):
         raise ApiProblem(400, "timeline_error", str(exc)) from exc
 
 
-@router.post("/parts/reorder", operation_id="reorderProjectParts",
+@router.post("/parts/reorder", operation_id="reorderProductionParts",
              response_model=OkEnvelope)
-def reorder_parts(project_id: int, payload: OrderBody) -> dict:
+def reorder_parts(production_id: int, payload: OrderBody) -> dict:
     return _run(lambda: {
-        "ok": timeline_service.reorder(project_id, payload.order)})
+        "ok": timeline_service.reorder(production_id, payload.order)})
 
 
 @router.patch("/parts/{part_id}/enabled",
-              operation_id="updateProjectPartEnabled",
+              operation_id="updateProductionPartEnabled",
               response_model=OkEnvelope)
 def update_part_enabled(
-    project_id: int, part_id: int, payload: EnabledBody,
+    production_id: int, part_id: int, payload: EnabledBody,
 ) -> dict:
     return _run(lambda: timeline_service.set_enabled(
-        project_id, part_id, payload.enabled))
+        production_id, part_id, payload.enabled))
 
 
-@router.post("/parts/silence", operation_id="addProjectSilence",
+@router.post("/parts/silence", operation_id="addProductionSilence",
              response_model=PartCreatedEnvelope,
              response_model_exclude_none=True)
-def add_silence(project_id: int, payload: SilenceBody) -> dict:
+def add_silence(production_id: int, payload: SilenceBody) -> dict:
     return _run(lambda: timeline_service.add_silence(
-        project_id, payload.seconds, payload.insert_before_part_id))
+        production_id, payload.seconds, payload.insert_before_part_id))
 
 
-@router.post("/parts/drafts", operation_id="addProjectDraft",
+@router.post("/parts/drafts", operation_id="addProductionDraft",
              response_model=PartCreatedEnvelope,
              response_model_exclude_none=True)
-def add_draft(project_id: int, payload: DraftBody) -> dict:
+def add_draft(production_id: int, payload: DraftBody) -> dict:
     return _run(lambda: timeline_service.add_draft(
-        project_id, payload.model_dump()))
+        production_id, payload.model_dump()))
 
 
-@router.post("/import", operation_id="importProjectDocument",
-             response_model=ProjectImportEnvelope)
-def import_project(
-    project_id: int, payload: ProjectImportBody,
+@router.post("/import", operation_id="importProductionDocument",
+             response_model=ProductionImportEnvelope)
+def import_production(
+    production_id: int, payload: ProductionImportBody,
 ) -> dict:
     return _run(lambda: timeline_service.import_document(
-        project_id, payload.document.model_dump(
+        production_id, payload.document.model_dump(
             by_alias=True, exclude_none=True),
         payload.role_voices))
 
 
-@router.patch("/parts/{part_id}/silence", operation_id="updateProjectSilence",
+@router.patch("/parts/{part_id}/silence", operation_id="updateProductionSilence",
               response_model=PartCreatedEnvelope,
               response_model_exclude_none=True)
-def update_silence(project_id: int, part_id: int, payload: SilenceBody) -> dict:
+def update_silence(production_id: int, part_id: int, payload: SilenceBody) -> dict:
     return _run(lambda: timeline_service.edit_silence(
-        project_id, part_id, payload.seconds))
+        production_id, part_id, payload.seconds))
 
 
-@router.post("/parts/files", operation_id="insertProjectFile",
+@router.post("/parts/files", operation_id="insertProductionFile",
              response_model=PartCreatedEnvelope,
              response_model_exclude_none=True)
-def insert_file(project_id: int, payload: FileBody) -> dict:
+def insert_file(production_id: int, payload: FileBody) -> dict:
     return _run(lambda: timeline_service.insert_file(
-        project_id, payload.file_id, payload.insert_before_part_id))
+        production_id, payload.file_id, payload.insert_before_part_id))
 
 
-@router.patch("/parts/{part_id}/file", operation_id="replaceProjectFile",
+@router.patch("/parts/{part_id}/file", operation_id="replaceProductionFile",
               response_model=PartCreatedEnvelope,
               response_model_exclude_none=True)
-def replace_file(project_id: int, part_id: int,
+def replace_file(production_id: int, part_id: int,
                   payload: ReplaceFileBody) -> dict:
     return _run(lambda: timeline_service.replace_file(
-        project_id, part_id, payload.file_id))
+        production_id, part_id, payload.file_id))
 
 
-@router.post("/parts/{part_id}/duplicate", operation_id="duplicateProjectPart",
+@router.post("/parts/{part_id}/duplicate", operation_id="duplicateProductionPart",
              response_model=PartCreatedEnvelope,
              response_model_exclude_none=True)
-def duplicate_part(project_id: int, part_id: int) -> dict:
-    return _run(lambda: timeline_service.duplicate(project_id, part_id))
+def duplicate_part(production_id: int, part_id: int) -> dict:
+    return _run(lambda: timeline_service.duplicate(production_id, part_id))
 
 
-@router.delete("/parts", operation_id="deleteProjectParts",
+@router.delete("/parts", operation_id="deleteProductionParts",
                response_model=DeletedPartsEnvelope)
-def delete_parts(project_id: int, payload: DeleteBody) -> dict:
-    return _run(lambda: timeline_service.delete_parts(project_id, payload.ids))
+def delete_parts(production_id: int, payload: DeleteBody) -> dict:
+    return _run(lambda: timeline_service.delete_parts(production_id, payload.ids))
 
 
-@router.post("/parts/move", operation_id="moveProjectParts",
+@router.post("/parts/move", operation_id="moveProductionParts",
              response_model=MovedPartsEnvelope)
-def move_parts(project_id: int, payload: MoveBody) -> dict:
+def move_parts(production_id: int, payload: MoveBody) -> dict:
     return _run(lambda: timeline_service.move_parts(
-        project_id, payload.ids, payload.destination_project_id))
+        production_id, payload.ids, payload.destination_production_id))
 
 
-@router.patch("/parts/{part_id}/draft", operation_id="updateProjectPartDraft",
+@router.patch("/parts/{part_id}/draft", operation_id="updateProductionPartDraft",
               response_model=OkEnvelope)
-def update_part_text(project_id: int, part_id: int, payload: TextBody) -> dict:
+def update_part_text(production_id: int, part_id: int, payload: TextBody) -> dict:
     return _run(lambda: timeline_service.save_draft(
-        project_id, part_id, payload.model_dump(exclude_none=False)))
+        production_id, part_id, payload.model_dump(exclude_none=False)))
 
 
-@router.patch("/parts/{part_id}/editorial", operation_id="updateProjectPartEditorial",
+@router.patch("/parts/{part_id}/editorial", operation_id="updateProductionPartEditorial",
               response_model=OkEnvelope)
-def update_part_editorial(project_id: int, part_id: int,
+def update_part_editorial(production_id: int, part_id: int,
                           payload: EditorialBody) -> dict:
     values = payload.model_dump(exclude_unset=True)
     expected_revision = int(values.pop("expected_revision"))
     return _run(lambda: timeline_service.save_editorial(
-        project_id, part_id, expected_revision, values))
+        production_id, part_id, expected_revision, values))
 
 
-@router.get("/parts/{part_id}/captions", operation_id="listProjectPartCaptions",
+@router.get("/parts/{part_id}/captions", operation_id="listProductionPartCaptions",
             response_model=TranscriptSummaryListEnvelope)
-def list_part_captions(project_id: int, part_id: int) -> dict:
-    return _run(lambda: timeline_service.captions(project_id, part_id))
+def list_part_captions(production_id: int, part_id: int) -> dict:
+    return _run(lambda: timeline_service.captions(production_id, part_id))

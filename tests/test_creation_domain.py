@@ -30,7 +30,7 @@ class CreationDomainTests(unittest.TestCase):
             inputs=(CreationField("prompt", "Prompt", "text", True),),
             parameters=(CreationField("duration", "Duration", "number", True),),
             output_mime_types=("audio/wav",),
-            supported_contexts=("workspace", "audiovisual-project"),
+            supported_contexts=("workspace", "audiovisual-production"),
         )
 
     def test_registry_resolves_action_preset_and_engine(self):
@@ -62,18 +62,18 @@ class CreationDomainTests(unittest.TestCase):
                 "bad", "generate-music", "Bad", {"mood": "warm"}))
 
     def test_full_creation_context_keeps_workspace_as_the_only_root(self):
-        self.assertEqual(CreationContext(workspace_id=8).project_id, None)
+        self.assertEqual(CreationContext(workspace_id=8).production_id, None)
         context = CreationContext(
             workspace_id=8,
             folder_id=12,
-            project_id=14,
-            project_type="audiovisual",
+            production_id=14,
+            production_type="audiovisual",
             object_id=16,
             selection={"capability": "image"},
         )
         self.assertEqual(context.folder_id, 12)
-        self.assertEqual(context.project_id, 14)
-        self.assertEqual(context.project_type, "audiovisual")
+        self.assertEqual(context.production_id, 14)
+        self.assertEqual(context.production_type, "audiovisual")
         self.assertEqual(context.object_id, 16)
         with self.assertRaisesRegex(ValueError, "requires a Workspace"):
             CreationContext(workspace_id=0)

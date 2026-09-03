@@ -3,7 +3,7 @@ import { describe, expect, it, vi } from "vitest"
 import type { WorkspaceFile, VisualScene } from "@/types/domain"
 import { VisualSceneSession } from "./visual-scene-session"
 
-const scene = (revision = 1): VisualScene => ({ project_id: 7, revision, document: { version: 1, canvas: { width: 1920, height: 1080 }, tracks: [] }, updated_at: "2026-08-27" })
+const scene = (revision = 1): VisualScene => ({ production_id: 7, revision, document: { version: 1, canvas: { width: 1920, height: 1080 }, tracks: [] }, updated_at: "2026-08-27" })
 const image = { id: 44, media_type: "image", name: "Harbor", filename: "harbor.jpg", width: 1600, height: 900 } as WorkspaceFile
 const video = { id: 45, media_type: "video", name: "Harbor move", filename: "harbor.mp4", duration_ms: 12_000, width: 1920, height: 1080 } as WorkspaceFile
 

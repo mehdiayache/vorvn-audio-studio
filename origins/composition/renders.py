@@ -1,4 +1,4 @@
-"""Concrete Project render service assembly."""
+"""Concrete Production render service assembly."""
 
 from origins.application.renders import RenderService
 from origins.infrastructure.postgres.renders import PostgresRenderRecords

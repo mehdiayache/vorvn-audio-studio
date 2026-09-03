@@ -10,8 +10,8 @@ function defaultWorkspace(workspaces: WorkspaceSummary[]) {
   const remembered = workspaces.find((workspace) => workspace.id === stored)
   if (remembered) return remembered
   return [...workspaces].sort((left, right) => {
-    const leftUse = left.project_count * 4 + left.file_count * 2 + left.folder_count
-    const rightUse = right.project_count * 4 + right.file_count * 2 + right.folder_count
+    const leftUse = left.production_count * 4 + left.file_count * 2 + left.folder_count
+    const rightUse = right.production_count * 4 + right.file_count * 2 + right.folder_count
     return rightUse - leftUse || right.updated_at.localeCompare(left.updated_at)
   })[0]
 }

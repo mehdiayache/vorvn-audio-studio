@@ -1,4 +1,4 @@
-"""Canonical spend categories shared by Project and Activity read models."""
+"""Canonical spend categories shared by Production and Activity read models."""
 
 from __future__ import annotations
 

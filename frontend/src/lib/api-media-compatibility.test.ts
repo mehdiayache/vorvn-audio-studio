@@ -18,7 +18,7 @@ describe("Media compatibility API", () => {
     vi.stubGlobal("fetch", fetchMock)
     const fileIds = Array.from({ length: 1_001 }, (_, index) => index + 1)
 
-    const results = await originsApi.mediaInputCompatibility({ workspace_id: 3, project_id: 7, project_type: "audiovisual" }, {
+    const results = await originsApi.mediaInputCompatibility({ workspace_id: 3, production_id: 7, production_type: "audiovisual" }, {
       model_id: "kling-3.0-omni/text-to-video",
       operation: "text_to_video",
       parameter_key: "elements",

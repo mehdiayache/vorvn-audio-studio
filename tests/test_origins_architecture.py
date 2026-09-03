@@ -19,13 +19,13 @@ class OriginsArchitectureTests(unittest.TestCase):
             "/api/v1/workspaces",
             "/api/v1/workspaces/{workspace_id}",
             "/api/v1/workspaces/{workspace_id}/folders",
-            "/api/v1/workspaces/{workspace_id}/projects/audiovisual",
+            "/api/v1/workspaces/{workspace_id}/productions/audiovisual",
             "/api/v1/workspaces/{workspace_id}/files/upload",
-            "/api/v1/projects/{project_identifier}",
-            "/api/v1/projects/{project_id}/editor",
-            "/api/v1/projects/{project_id}/files",
-            "/api/v1/projects/{project_id}/library-files",
-            "/api/v1/projects/{project_id}/files/upload",
+            "/api/v1/productions/{production_identifier}",
+            "/api/v1/productions/{production_id}/editor",
+            "/api/v1/productions/{production_id}/files",
+            "/api/v1/productions/{production_id}/library-files",
+            "/api/v1/productions/{production_id}/files/upload",
             "/api/v1/creator/capabilities",
             "/api/v1/creator/models",
             "/api/v1/creator/input-compatibility",
@@ -35,8 +35,8 @@ class OriginsArchitectureTests(unittest.TestCase):
 
     def test_legacy_domain_roots_are_not_published(self):
         paths = app.openapi()["paths"]
-        forbidden = ("/spaces", "/ventures", "/series", "/productions",
-                     "/director", "/file-collections", "/audiovisual-projects")
+        forbidden = ("/spaces", "/ventures", "/series", "/projects",
+                     "/director", "/file-collections", "/audiovisual-productions")
         self.assertFalse([
             path for path in paths if any(token in path for token in forbidden)
         ])
@@ -44,9 +44,9 @@ class OriginsArchitectureTests(unittest.TestCase):
     def test_canonical_persistence_boundaries_exist(self):
         expected = (
             "origins/infrastructure/postgres/workspaces.py",
-            "origins/infrastructure/postgres/projects.py",
+            "origins/infrastructure/postgres/productions.py",
             "origins/infrastructure/postgres/files.py",
-            "origins/infrastructure/postgres/project_document.py",
+            "origins/infrastructure/postgres/production_document.py",
         )
         for relative in expected:
             path = ROOT / relative
@@ -57,8 +57,9 @@ class OriginsArchitectureTests(unittest.TestCase):
         obsolete = (
             "origins/infrastructure/postgres/venture_assets.py",
             "origins/infrastructure/postgres/work.py",
-            "origins/infrastructure/postgres/project_records.py",
-            "origins/infrastructure/postgres/production_document.py",
+            "origins/infrastructure/postgres/production_records.py",
+            "origins/infrastructure/postgres/project_document.py",
+            "origins/infrastructure/postgres/projects.py",
         )
         for relative in obsolete:
             self.assertFalse((ROOT / relative).exists(), relative)
@@ -67,12 +68,12 @@ class OriginsArchitectureTests(unittest.TestCase):
         schemas = app.openapi()["components"]["schemas"]
         context = schemas["CreatorContext"]["properties"]
         self.assertIn("workspace_id", context)
-        self.assertIn("project_id", context)
-        self.assertIn("project_type", context)
+        self.assertIn("production_id", context)
+        self.assertIn("production_type", context)
         self.assertIn("folder_id", context)
         self.assertIn("object_id", context)
         self.assertNotIn("space_id", context)
-        self.assertNotIn("production_id", context)
+        self.assertNotIn("project_id", context)
 
     def test_speech_uses_creator_context_as_its_only_public_destination(self):
         schema = app.openapi()["components"]["schemas"]["SpeechJobCreate"]
@@ -83,14 +84,14 @@ class OriginsArchitectureTests(unittest.TestCase):
             "#/components/schemas/CreatorContext",
         )
         self.assertNotIn("workspace_id", properties)
-        self.assertNotIn("project_id", properties)
+        self.assertNotIn("production_id", properties)
 
     def test_files_are_workspace_owned_and_versioned(self):
         migration = (ROOT / "origins/migrations/000_origins_schema.sql").read_text()
         self.assertIn("CREATE TABLE public.files", migration)
         self.assertIn("workspace_id bigint NOT NULL", migration)
         self.assertIn("CREATE TABLE public.file_versions", migration)
-        self.assertIn("CREATE TABLE public.project_file_usages", migration)
+        self.assertIn("CREATE TABLE public.production_file_usages", migration)
         self.assertIn("CREATE TABLE public.object_file_usages", migration)
         self.assertNotIn("source_generation_id", migration)
         self.assertNotIn("legacy_generation_id", migration)
@@ -106,7 +107,9 @@ class OriginsArchitectureTests(unittest.TestCase):
             "CREATE TABLE public.spaces",
             "CREATE TABLE public.ventures",
             "CREATE TABLE public.series",
-            "CREATE TABLE public.productions",
+            "CREATE TABLE public.projects",
+            "CREATE TABLE public.project_parts",
+            "CREATE TABLE public.project_file_usages",
             "CREATE TABLE public.assets",
             "CREATE TABLE public.generations",
         )

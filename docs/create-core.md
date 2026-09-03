@@ -13,18 +13,18 @@ Creator creates.
 Tools transform.
 Files exist.
 Objects organize knowledge.
-Projects organize work.
+Productions organize work.
 Links associate.
 Placements mean actual use.
 ```
 
 ## Workspace and Explorer
 
-`Workspace` is the sole ownership root for Folders, Files, Objects and Projects.
+`Workspace` is the sole ownership root for Folders, Files, Objects and Productions.
 It is not another database layer above a Space; there is no Space entity.
 
 Explorer only navigates the Workspace root and its freely named Folders. An
-optional `folder_id` places a File, Object or Project. Moving it changes where it
+optional `folder_id` places a File, Object or Production. Moving it changes where it
 appears, not what it is, who owns it, or where it is used.
 
 ## Files, Add and provenance
@@ -49,19 +49,19 @@ Upload nor Import is a Creator Capability.
 ## Library finds
 
 Library is one contextual browser over existing Workspace truth. It neither owns
-nor creates resources. Standalone Library, Project Library, Creator references,
+nor creates resources. Standalone Library, Production Library, Creator references,
 Tool inputs and Timeline pickers share one query and filter grammar.
 
 The host supplies initial context, not a new implementation:
 
 ```text
-scope: This Project | Current Folder | Workspace | Object | Other Project
+scope: This Production | Current Folder | Workspace | Object | Other Production
 type:  Image | Video | Audio | Speech | Document | Data | other File kinds
 source: Generated | Uploaded | Imported
 ```
 
 Folders remain Explorer placement. Library can expose Folder scope without
-inventing its own folder tree or copying Files. A Project can link a chosen File;
+inventing its own folder tree or copying Files. A Production can link a chosen File;
 Timeline “Add media” opens Library only.
 
 ## Creator creates
@@ -97,7 +97,7 @@ Stable Audio and future providers stay behind model declarations and provider
 adapters. `Media` may be an internal adapter shared by Image and Video, but it is
 never a human-facing Capability, title or shortcut.
 
-Creator can be hosted in a Project module, Script context, modal or standalone
+Creator can be hosted in a Production module, Script context, modal or standalone
 launcher. Geometry may adapt to the host. Capability logic, model selection,
 candidate handling, result keeping and Library contracts must not fork.
 
@@ -106,8 +106,8 @@ Creator receives explicit context:
 ```text
 workspace_id   required
 folder_id      optional
-project_id     optional
-project_type   optional
+production_id     optional
+production_type   optional
 object_id      optional
 selection      optional
 target         optional
@@ -118,7 +118,7 @@ Examples:
 ```text
 Workspace Create image      -> CreatorHost, Image active
 Script Generate/Edit speech -> CreatorHost, Speech active, Script target
-Project Creator Library     -> CreatorHost beside contextual Library
+Production Creator Library     -> CreatorHost beside contextual Library
 ```
 
 A shortcut such as “Create music” selects a Capability in the same CreatorHost.
@@ -147,27 +147,27 @@ not merge their product responsibilities.
 
 There is one canonical File. Contexts point to it without copying it:
 
-- `ProjectFileLink` associates a File with a Project.
+- `ProductionFileLink` associates a File with a Production.
 - `ObjectFileLink` associates a File with an Object.
 - `FileRelation` records derivation or semantic relationships between Files.
-- a Project-Type-owned Placement records actual use.
+- a Production-Type-owned Placement records actual use.
 
 For Audiovisual, `TimelinePlacement` contains timing and source-window data. A
-Project link does not imply a Timeline placement, and a relation does not imply
+Production link does not imply a Timeline placement, and a relation does not imply
 either. Do not call association records `Usage`.
 
-## Objects and Projects
+## Objects and Productions
 
 Objects are durable structured identities such as Brand, Product, Voice and
 Citizen. Their media and documents remain canonical Workspace Files connected by
 ObjectFileLink.
 
-Projects are typed working environments. `ProjectType` selects modules, allowed
+Productions are typed working environments. `ProductionType` selects modules, allowed
 Creator Capabilities, relevant Tools, Library defaults and its Placement kind.
-Creating a Project is direct domain creation; it does not pass through Creator,
+Creating a Production is direct domain creation; it does not pass through Creator,
 an ExecutionEngine or a Job.
 
-Audiovisual is the first Project Type consumer, not the platform root. It exposes
+Audiovisual is the first Production Type consumer, not the platform root. It exposes
 Script, Timeline, Creator Library, Preview and Export. “Creator Library” names the
 Audiovisual module that composes separate Creator and Library panes; it does not
 merge their responsibilities.
@@ -175,7 +175,7 @@ merge their responsibilities.
 ## Create is a launcher
 
 `Create` is a human verb that may launch Creator, Add, a Tool, or direct creation
-of a Folder, Object or typed Project. It is not a table, superclass, workflow or
+of a Folder, Object or typed Production. It is not a table, superclass, workflow or
 technical parent type.
 
 ## Execution stays lean
@@ -197,14 +197,14 @@ infrastructure. Do not rename or rebuild mature Job machinery for symmetry.
 ## Non-negotiable boundaries
 
 - No Space entity or Workspace compatibility shell.
-- No separate Creator implementations per route, Project or Capability.
+- No separate Creator implementations per route, Production or Capability.
 - No generic Creator component that imports Speech-, Audiovisual- or
   provider-specific state.
 - No shortcut-specific Creator or Library page architecture.
 - No subtitles, upscale or other transformation disguised as Creator intent.
-- No Add or Import flow owned by a Project-specific API.
+- No Add or Import flow owned by a Production-specific API.
 - No Library variant with its own resource-query grammar.
-- No File copy when another Project or Object references the resource.
+- No File copy when another Production or Object references the resource.
 - No association named `Usage`; links associate and Placements record use.
 - No provider name promoted to a provenance family.
 - No deletion of operator-created QA resources without explicit authorization.
@@ -218,11 +218,11 @@ Converge one complete path at a time and delete the replaced path:
 3. move Subtitles and other transformations to Tools;
 4. unify every Library host on one query/filter contract;
 5. move FreeSound keeping to Workspace Import, then optionally link it to context;
-6. rename Project/Object association records from Usage to Link;
+6. rename Production/Object association records from Usage to Link;
 7. keep actual Timeline use in TimelinePlacement;
-8. express Audiovisual through ProjectType configuration rather than generic
+8. express Audiovisual through ProductionType configuration rather than generic
    platform conditionals.
 
 This order is architectural guidance, not permission to preserve compatibility
 bridges. Pre-production schemas may change cleanly, while operator-created Files,
-Projects, Objects and generated or uploaded QA resources remain protected.
+Productions, Objects and generated or uploaded QA resources remain protected.

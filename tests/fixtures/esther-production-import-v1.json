@@ -1,0 +1,68 @@
+{
+  "schema": "origins-production-import",
+  "version": 1,
+  "title": "Courage Before the King — Esther 4–5",
+  "items": [
+    {
+      "type": "speech",
+      "role": "narrator",
+      "text": "The palace at Susa had learned to whisper. Behind carved doors, servants carried news that no one wished to say aloud: a decree had gone out, and an entire people stood beneath its shadow.",
+      "language": "English",
+      "instruction": "Measured historical narration, grave but not theatrical."
+    },
+    {
+      "type": "speech",
+      "role": "mordecai",
+      "text": "Do not imagine that because you live in the king's house, you alone will escape. Perhaps you have come to this place for a moment exactly like this one.",
+      "language": "English",
+      "instruction": "Urgent and intimate; conviction held beneath a quiet voice."
+    },
+    {
+      "type": "silence",
+      "seconds": 1.4
+    },
+    {
+      "type": "speech",
+      "role": "esther",
+      "text": "Go, gather everyone you can. Fast for me for three days. I and my attendants will do the same. Then I will go to the king, though the law stands against it.",
+      "language": "English",
+      "instruction": "Begin afraid, then arrive at a clear and steady decision."
+    },
+    {
+      "type": "speech",
+      "role": "esther",
+      "text": "If I perish, I perish.",
+      "language": "English",
+      "instruction": ""
+    },
+    {
+      "type": "silence",
+      "seconds": 2.2
+    },
+    {
+      "type": "speech",
+      "role": "narrator",
+      "text": "On the third day, Esther put on her royal robes and stood in the inner court. The king looked up. Between them lay the law, the silence of the room, and the weight of every life she had come to defend.",
+      "language": "English",
+      "instruction": "Slow the final sentence and leave space around the danger."
+    },
+    {
+      "type": "speech",
+      "role": "king",
+      "text": "What is it, Queen Esther? What is your request? Even to half the kingdom, it will be given to you.",
+      "language": "English",
+      "instruction": "Formal authority softened by genuine concern."
+    },
+    {
+      "type": "silence",
+      "seconds": 1.1
+    },
+    {
+      "type": "speech",
+      "role": "esther",
+      "text": "If I have found favor with you, let my life be granted to me, and spare my people. That is my petition. That is my request.",
+      "language": "English",
+      "instruction": "Controlled emotion; direct, dignified, and unmistakably brave."
+    }
+  ]
+}

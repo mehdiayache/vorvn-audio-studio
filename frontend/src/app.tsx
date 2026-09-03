@@ -10,53 +10,53 @@ import { GlobalPlayerProvider } from "@/components/global-player-provider"
 import { ProductReadinessProvider } from "@/components/product-readiness"
 import { TooltipProvider } from "@/components/ui/tooltip"
 import { Toaster } from "@/components/ui/sonner"
-import { useProject } from "@/hooks/use-project"
-import { useProjectResources } from "@/hooks/use-project-resources"
+import { useProduction } from "@/hooks/use-production"
+import { useProductionResources } from "@/hooks/use-production-resources"
 import { originsApi } from "@/lib/api"
 import { productIdentity } from "@/lib/product-identity"
 
 const VoicesPage = lazy(() => import("@/features/voices/voices-page").then((module) => ({ default: module.VoicesPage })))
 const ActivityPage = lazy(() => import("@/features/activity/activity-page").then((module) => ({ default: module.ActivityPage })))
 const SettingsPage = lazy(() => import("@/features/settings/settings-page").then((module) => ({ default: module.SettingsPage })))
-const AudiovisualProjectPage = lazy(() => import("@/features/projects/audiovisual/audiovisual-project-page").then((module) => ({ default: module.AudiovisualProjectPage })))
+const AudiovisualProductionPage = lazy(() => import("@/features/productions/audiovisual/audiovisual-production-page").then((module) => ({ default: module.AudiovisualProductionPage })))
 const WorkspaceExplorerPage = lazy(() => import("@/features/workspace/explorer/workspace-explorer-page").then((module) => ({ default: module.WorkspaceExplorerPage })))
 const CreateCreatorPage = lazy(() => import("@/features/create/create-creator-page").then((module) => ({ default: module.CreateCreatorPage })))
 
-function AudiovisualProjectWorkspace({ projectId }: { projectId: number }) {
-  const { project, soundScene, visualScene, refresh } = useProject(projectId)
-  const resources = useProjectResources(projectId)
-  const data = project.data
+function AudiovisualProductionWorkspace({ productionId }: { productionId: number }) {
+  const { production, soundScene, visualScene, refresh } = useProduction(productionId)
+  const resources = useProductionResources(productionId)
+  const data = production.data
   return <>
-    {project.status === "loading" && !data && <PageLoading />}
-    {!data && project.status === "error" && <ErrorState message={project.error || "Unable to load Project."} retry={() => void refresh()} />}
+    {production.status === "loading" && !data && <PageLoading />}
+    {!data && production.status === "error" && <ErrorState message={production.error || "Unable to load Production."} retry={() => void refresh()} />}
     {data && soundScene.status === "error" && <InlineResourceError message={`Timeline unavailable: ${soundScene.error}`} retry={() => void refresh()} />}
     {data && visualScene.status === "error" && <InlineResourceError message={`Visual timeline unavailable: ${visualScene.error}`} retry={() => void refresh()} />}
     {data && resources.fileError && resources.fileState.data && <InlineResourceError message={`File library refresh failed: ${resources.fileError}`} retry={() => void resources.refreshFiles().catch(() => undefined)} />}
     {data && resources.voiceError && <InlineResourceError message="Voice directory refresh failed. Existing voice data is preserved." retry={() => void resources.refreshVoices()} />}
-    {data && soundScene.data && visualScene.data && <LazyRoute label="Loading Project workspace"><AudiovisualProjectPage project={data} soundScene={soundScene.data} visualScene={visualScene.data} folders={resources.folders} files={resources.files} projectFileIds={resources.projectFileIds} libraryFileIds={resources.libraryFileIds} fileState={resources.fileState} config={resources.config} directory={resources.voiceDirectory} refresh={refresh} refreshFiles={resources.refreshFiles} /></LazyRoute>}
+    {data && soundScene.data && visualScene.data && <LazyRoute label="Loading Production workspace"><AudiovisualProductionPage production={data} soundScene={soundScene.data} visualScene={visualScene.data} folders={resources.folders} files={resources.files} productionFileIds={resources.productionFileIds} libraryFileIds={resources.libraryFileIds} fileState={resources.fileState} config={resources.config} directory={resources.voiceDirectory} refresh={refresh} refreshFiles={resources.refreshFiles} /></LazyRoute>}
   </>
 }
 
-function WorkspaceExplorerRoute({ view = "create" }: { view?: "create" | "projects" | "files" }) {
+function WorkspaceExplorerRoute({ view = "create" }: { view?: "create" | "productions" | "files" }) {
   return <LazyRoute label="Opening your Workspace"><WorkspaceExplorerPage view={view} /></LazyRoute>
 }
 
-function AudiovisualProjectRoute() {
+function AudiovisualProductionRoute() {
   const { identifier = "" } = useParams()
   const [state, setState] = useState<{ id?: number; error?: string }>({})
   useEffect(() => {
     let active = true
     setState({})
-    void originsApi.project(identifier).then((project) => {
-      if (active) setState({ id: project.id })
+    void originsApi.production(identifier).then((production) => {
+      if (active) setState({ id: production.id })
     }).catch((error) => {
-      if (active) setState({ error: error instanceof Error ? error.message : "Unable to open this Project." })
+      if (active) setState({ error: error instanceof Error ? error.message : "Unable to open this Production." })
     })
     return () => { active = false }
   }, [identifier])
-  if (state.id) return <AudiovisualProjectWorkspace projectId={state.id} />
-  if (state.error) return <ErrorState title="Project unavailable" message={state.error} retry={() => window.location.reload()} />
-  return <PageLoading label="Opening audiovisual Project" />
+  if (state.id) return <AudiovisualProductionWorkspace productionId={state.id} />
+  if (state.error) return <ErrorState title="Production unavailable" message={state.error} retry={() => window.location.reload()} />
+  return <PageLoading label="Opening audiovisual Production" />
 }
 
 function LazyRoute({ children, label }: { children: React.ReactNode; label: string }) {
@@ -70,8 +70,8 @@ function OriginsRoutes({ mode }: { mode: OriginsMountMode }) {
         <Route index element={<WorkspaceExplorerRoute />} />
         <Route path="create" element={<WorkspaceExplorerRoute />} />
         <Route path="create/:actionId" element={<LazyRoute label="Opening Create"><CreateCreatorPage /></LazyRoute>} />
-        <Route path="projects" element={<WorkspaceExplorerRoute view="projects" />} />
-        <Route path="projects/audiovisual/:identifier" element={<AudiovisualProjectRoute />} />
+        <Route path="productions" element={<WorkspaceExplorerRoute view="productions" />} />
+        <Route path="productions/audiovisual/:identifier" element={<AudiovisualProductionRoute />} />
         <Route path="files" element={<WorkspaceExplorerRoute view="files" />} />
         <Route path="voices" element={<LazyRoute label="Loading voices"><VoicesPage /></LazyRoute>} />
         <Route path="activity" element={<LazyRoute label="Loading activity"><ActivityPage /></LazyRoute>} />

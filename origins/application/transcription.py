@@ -29,7 +29,7 @@ class TranscriptionProvider(Protocol):
 class AudioSourceResolver(Protocol):
     def prepare(self, *, url: str, name: str, playable: str,
                 duration_ms: int, part_id: int | None,
-                project_id: int | None, file: str) -> PreparedAudio: ...
+                production_id: int | None, file: str) -> PreparedAudio: ...
     def publish(self, source: PreparedAudio) -> PreparedAudio: ...
 
 
@@ -55,7 +55,7 @@ class TranscriptionService:
     def transcribe(self, *, url: str = "", name: str = "", file: str = "",
                    playable: str = "", duration_ms: int = 0,
                    part_id: int | None = None, language: str = "",
-                   project_id: int | None = None,
+                   production_id: int | None = None,
                    enable_itn: bool = False,
                    vocabulary_id: str | None = None,
                    confirmed: bool = False, source_job_id: int | None = None,
@@ -66,7 +66,7 @@ class TranscriptionService:
             language = ""
         source = self.source_resolver.prepare(
             url=url, name=name, playable=playable, duration_ms=duration_ms,
-            part_id=part_id, project_id=project_id, file=file)
+            part_id=part_id, production_id=production_id, file=file)
         model = FUN_MODEL if vocabulary_id else QWEN_MODEL
         region = getattr(self.provider, "region", "intl") or "intl"
         estimate = transcription_cost(source.duration_ms, region, model)
@@ -184,7 +184,7 @@ class TranscriptionJobHandler:
             **{key: value for key, value in job.payload.items()
                if key in {"url", "name", "file", "playable", "duration_ms",
                           "part_id", "language", "enable_itn",
-                          "vocabulary_id", "confirmed", "project_id"}},
+                          "vocabulary_id", "confirmed", "production_id"}},
             source_job_id=job.id,
             workspace_id=job.workspace_id,
             on_progress=lambda done, total: repository.progress(

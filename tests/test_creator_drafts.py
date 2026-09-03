@@ -69,14 +69,14 @@ class CreatorDraftTests(unittest.TestCase):
     def test_context_keys_are_stable_and_insertion_specific(self):
         self.assertEqual(context_key({"kind": "standalone"}), "standalone")
         self.assertNotEqual(
-            context_key({"kind": "project", "project_id": 4,
+            context_key({"kind": "production", "production_id": 4,
                          "insert_before_part_id": str(uuid4())}),
-            context_key({"kind": "project", "project_id": 4,
+            context_key({"kind": "production", "production_id": 4,
                          "insert_before_part_id": None}))
 
     def test_contract_rejects_mixed_or_incomplete_routes_and_contexts(self):
         with self.assertRaises(ValueError):
-            DraftLookup(context={"kind": "project", "project_id": 4,
+            DraftLookup(context={"kind": "production", "production_id": 4,
                                  "part_id": 7,
                                  "insert_before_part_id": uuid4()})
         broken = state()
@@ -159,16 +159,16 @@ class CreatorDraftRepositoryTests(unittest.TestCase):
                     RETURNING id
                 """).fetchone()
                 cls.workspace_id = int(row[0])
-                cls.project_id = int(database.execute("""
-                    INSERT INTO projects
-                        (workspace_id, project_type, name, description, settings)
-                    VALUES (%s, 'audiovisual', 'Draft Project', '', '{}')
+                cls.production_id = int(database.execute("""
+                    INSERT INTO productions
+                        (workspace_id, production_type, name, description, settings)
+                    VALUES (%s, 'audiovisual', 'Draft Production', '', '{}')
                     RETURNING id
                 """, (cls.workspace_id,)).fetchone()[0])
                 part = database.execute("""
-                    INSERT INTO project_parts (project_id, position, title)
+                    INSERT INTO production_parts (production_id, position, title)
                     VALUES (%s, 0, 'Draft Part') RETURNING id, public_id
-                """, (cls.project_id,)).fetchone()
+                """, (cls.production_id,)).fetchone()
                 cls.part_id, cls.part_public_id = part
                 database.commit()
         except psycopg.OperationalError as exc:
@@ -204,17 +204,17 @@ class CreatorDraftRepositoryTests(unittest.TestCase):
         self.assertEqual(second["version"], first["version"] + 1)
         self.assertTrue(self.repository.delete(self.key, second["version"]))
 
-    def test_project_anchor_and_part_are_validated(self):
-        project = {
-            "kind": "project", "project_id": self.project_id,
+    def test_production_anchor_and_part_are_validated(self):
+        production = {
+            "kind": "production", "production_id": self.production_id,
             "operation": "new_part", "part_id": None,
             "insert_before_part_id": str(self.part_public_id),
         }
-        key = context_key(project)
+        key = context_key(production)
         try:
-            written = self.repository.put(project, key, state(), None)
+            written = self.repository.put(production, key, state(), None)
             self.assertEqual(written["version"], 1)
-            invalid = {**project, "insert_before_part_id": str(uuid4())}
+            invalid = {**production, "insert_before_part_id": str(uuid4())}
             with self.assertRaisesRegex(ValueError, "insertion point"):
                 self.repository.put(invalid, context_key(invalid), state(), None)
         finally:

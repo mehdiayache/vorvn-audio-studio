@@ -47,7 +47,7 @@ describe("AudioLibrary", () => {
     expect(screen.getByRole("combobox", { name: "File category" }).textContent).toContain("All categories")
     expect(screen.getByRole("combobox", { name: "File duration" }).textContent).toContain("Any duration")
     expect(screen.getByRole("combobox", { name: "File source" }).textContent).toContain("All sources")
-    expect(screen.getByRole("combobox", { name: "File usage in this Project" }).textContent).toContain("Any usage")
+    expect(screen.getByRole("combobox", { name: "File usage in this Production" }).textContent).toContain("Any usage")
     expect(screen.getByRole("combobox", { name: "Sort files" }).textContent).toContain("Recently added")
     fireEvent.click(screen.getByRole("combobox", { name: "File source" }))
     expect(screen.getByRole("option", { name: "Generated" })).toBeTruthy()
@@ -90,7 +90,7 @@ describe("AudioLibrary", () => {
         duration_ms: 0, audio_format: "wav", size_bytes: 0,
       },
     })
-    const { container } = render(<AudioLibrary files={files} mode="sound" context={{ workspace_id: 1, project_id: 81 }} playerPlaying={false} onChoose={vi.fn()} onPlay={vi.fn()} onUpload={vi.fn()} onKeep={vi.fn()} />)
+    const { container } = render(<AudioLibrary files={files} mode="sound" context={{ workspace_id: 1, production_id: 81 }} playerPlaying={false} onChoose={vi.fn()} onPlay={vi.fn()} onUpload={vi.fn()} onKeep={vi.fn()} />)
     const view = within(container)
     fireEvent.click(view.getByRole("tab", { name: "Generate" }))
     await waitFor(() => expect(status).toHaveBeenCalled())
@@ -110,7 +110,7 @@ describe("AudioLibrary", () => {
         variation_count: 1,
       }),
       source_free_text: "A dry match strikes once in a quiet room",
-      generation_brief: null, seconds: 5, seed: null, project_id: 81,
+      generation_brief: null, seconds: 5, seed: null, production_id: 81,
     })))
     status.mockRestore(); recent.mockRestore(); taxonomy.mockRestore(); compile.mockRestore(); normalize.mockRestore(); enqueue.mockRestore()
   })
@@ -144,7 +144,7 @@ describe("AudioLibrary", () => {
       compiler_version: "sfx-compiler-v2", taxonomy_version: "audio-taxonomy-v1",
     })
 
-    const { container } = render(<AudioLibrary files={files} mode="sound" context={{ workspace_id: 1, project_id: 81 }} playerPlaying={false} onChoose={vi.fn()} onPlay={vi.fn()} onUpload={vi.fn()} onKeep={vi.fn()} />)
+    const { container } = render(<AudioLibrary files={files} mode="sound" context={{ workspace_id: 1, production_id: 81 }} playerPlaying={false} onChoose={vi.fn()} onPlay={vi.fn()} onUpload={vi.fn()} onKeep={vi.fn()} />)
     const view = within(container)
     fireEvent.click(view.getByRole("tab", { name: "Generate" }))
     await waitFor(() => expect(recent).toHaveBeenCalled())
@@ -183,7 +183,7 @@ describe("AudioLibrary", () => {
       compiler_version: "sfx-compiler-v2", taxonomy_version: "audio-taxonomy-v1",
     })
 
-    const { container } = render(<AudioLibrary files={files} mode="sound" context={{ workspace_id: 1, project_id: 81 }} playerPlaying={false} onChoose={vi.fn()} onPlay={vi.fn()} onUpload={vi.fn()} onKeep={vi.fn()} />)
+    const { container } = render(<AudioLibrary files={files} mode="sound" context={{ workspace_id: 1, production_id: 81 }} playerPlaying={false} onChoose={vi.fn()} onPlay={vi.fn()} onUpload={vi.fn()} onKeep={vi.fn()} />)
     const view = within(container)
     fireEvent.click(view.getByRole("tab", { name: "Generate" }))
     expect(view.getByRole("button", { name: "Sound Effect" })).toBeTruthy()
@@ -245,7 +245,7 @@ describe("AudioLibrary", () => {
       }
     })
 
-    const { container } = render(<AudioLibrary files={files} mode="sound" context={{ workspace_id: 1, project_id: 81 }} playerPlaying={false} onChoose={vi.fn()} onPlay={vi.fn()} onUpload={vi.fn()} onKeep={vi.fn()} />)
+    const { container } = render(<AudioLibrary files={files} mode="sound" context={{ workspace_id: 1, production_id: 81 }} playerPlaying={false} onChoose={vi.fn()} onPlay={vi.fn()} onUpload={vi.fn()} onKeep={vi.fn()} />)
     const view = within(container)
     fireEvent.click(view.getByRole("tab", { name: "Generate" }))
     fireEvent.click(view.getByRole("button", { name: "Continue" }))
@@ -339,7 +339,7 @@ describe("AudioLibrary", () => {
     expect(view.queryByRole("button", { name: "Select Night room" })).toBeNull()
   })
 
-  it("can focus the audio Library on Files already used in this Project", () => {
+  it("can focus the audio Library on Files already used in this Production", () => {
     const library = [
       { id: 21, name: "Night room", media_type: "audio" as const },
       { id: 22, name: "Wooden knock", media_type: "audio" as const },
@@ -349,7 +349,7 @@ describe("AudioLibrary", () => {
     expect(view.getByLabelText("Used in Timeline")).toBeTruthy()
     expect(view.getAllByRole("button", { name: "Add to Timeline" })).toHaveLength(2)
     fireEvent.click(view.getByRole("button", { name: "Filters" }))
-    fireEvent.click(screen.getByRole("combobox", { name: "File usage in this Project" }))
+    fireEvent.click(screen.getByRole("combobox", { name: "File usage in this Production" }))
     fireEvent.click(screen.getByRole("option", { name: "Used here" }))
 
     expect(view.getByRole("button", { name: "Select Wooden knock" })).toBeTruthy()
@@ -370,7 +370,7 @@ describe("AudioLibrary", () => {
     expect(screen.getByRole("button", { name: "Select Night room" }).getAttribute("aria-pressed")).toBe("false")
   })
 
-  it("combines duration, actual tags and Project usage filters with a clear count", () => {
+  it("combines duration, actual tags and Production usage filters with a clear count", () => {
     const library = [
       { id: 21, name: "Short rain", media_type: "audio" as const, duration_ms: 2_000, tags: ["rain", "soft"] },
       { id: 22, name: "Room rain", media_type: "audio" as const, duration_ms: 8_000, tags: ["rain"] },
@@ -380,7 +380,7 @@ describe("AudioLibrary", () => {
     fireEvent.click(screen.getByRole("button", { name: "Filters" }))
     fireEvent.click(screen.getByRole("combobox", { name: "File duration" }))
     fireEvent.click(screen.getByRole("option", { name: "3–10 seconds" }))
-    fireEvent.click(screen.getByRole("combobox", { name: "File usage in this Project" }))
+    fireEvent.click(screen.getByRole("combobox", { name: "File usage in this Production" }))
     fireEvent.click(screen.getByRole("option", { name: "Used here" }))
     fireEvent.click(screen.getByRole("checkbox", { name: "rain" }))
 

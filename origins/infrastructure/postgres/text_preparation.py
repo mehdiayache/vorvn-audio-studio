@@ -13,13 +13,13 @@ class PostgresTextPreparationRepository:
             row = cursor.fetchone()
             return row[0] if row and isinstance(row[0], dict) else {}
 
-    def style_for(self, project_id: int) -> str:
+    def style_for(self, production_id: int) -> str:
         with read_only() as cursor:
             cursor.execute("""
                 SELECT coalesce(settings->>'style_prompt', '')
-                  FROM projects
+                  FROM productions
                  WHERE id = %s
-            """, (project_id,))
+            """, (production_id,))
             row = cursor.fetchone()
             return str(row[0] or "") if row else ""
 

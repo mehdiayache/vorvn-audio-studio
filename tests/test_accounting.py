@@ -5,7 +5,7 @@ import psycopg
 
 from origins.config import settings
 from origins.infrastructure.postgres.accounting import (
-    ProjectAccountingRepository,
+    ProductionAccountingRepository,
 )
 from origins.infrastructure.postgres.workspaces import WorkspaceRepository
 
@@ -14,13 +14,13 @@ def main() -> int:
     conn = psycopg.connect(settings.database_url)
     workspace = WorkspaceRepository().create_workspace(
         "Accounting smoke Workspace", "Disposable accounting smoke fixture")
-    project = WorkspaceRepository().create_audiovisual_project(
-        workspace["id"], "Accounting smoke Project", "", None)
-    if project is None:
-        raise AssertionError("Could not create the canonical Project fixture")
+    production = WorkspaceRepository().create_audiovisual_production(
+        workspace["id"], "Accounting smoke Production", "", None)
+    if production is None:
+        raise AssertionError("Could not create the canonical Production fixture")
     try:
-        project_id = int(project["id"])
-        values = ProjectAccountingRepository().one(project_id)
+        production_id = int(production["id"])
+        values = ProductionAccountingRepository().one(production_id)
         assert values["historical_spend"] >= 0
         assert values["current_sequence_cost"] >= 0
         assert values["retained_generation_cost"] >= 0

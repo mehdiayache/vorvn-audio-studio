@@ -23,7 +23,7 @@ class JobStore(JobProgress, Protocol):
     def enqueue(self, kind: str, payload: dict[str, Any], **values) \
             -> tuple[Job, bool]: ...
     def get(self, public_id: UUID) -> Job | None: ...
-    def recent_for_project(self, project_id: int, *, kind: str,
+    def recent_for_production(self, production_id: int, *, kind: str,
                            limit: int = 8) -> list[Job]: ...
     def recent_for_workspace(self, workspace_id: int, *, kind: str,
                          limit: int = 8) -> list[Job]: ...
@@ -51,10 +51,10 @@ class JobService:
     def get(self, public_id: UUID) -> Job | None:
         return self.repository.get(public_id)
 
-    def recent_for_project(self, project_id: int, *, kind: str,
+    def recent_for_production(self, production_id: int, *, kind: str,
                            limit: int = 8) -> list[Job]:
-        return self.repository.recent_for_project(
-            project_id, kind=kind, limit=limit)
+        return self.repository.recent_for_production(
+            production_id, kind=kind, limit=limit)
 
     def recent_for_workspace(self, workspace_id: int, *, kind: str,
                          limit: int = 8) -> list[Job]:

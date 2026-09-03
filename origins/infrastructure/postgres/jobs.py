@@ -23,7 +23,7 @@ _SELECT = """
            CASE WHEN total > 0 THEN done::float / total ELSE 0 END,
            coalesce(detail, ''), coalesce(error, ''), retries,
            created_at, started_at, finished_at, part_id,
-           workspace_id, project_id, creation_action_id, creation_preset_id,
+           workspace_id, production_id, creation_action_id, creation_preset_id,
            creation_context, output_file_ids
       FROM jobs
 """
@@ -76,7 +76,7 @@ class JobRepository:
     def enqueue(self, kind: str, payload: dict[str, Any], *,
                 idempotency_key: str, actor_id: str | None = None,
                 organization_id: str | None = None,
-                project_id: int | None = None,
+                production_id: int | None = None,
                 source_tool: str | None = None,
                 operation_label: str | None = None,
                 parent_id: int | None = None,
@@ -92,7 +92,7 @@ class JobRepository:
             return self.enqueue_in_transaction(
                 cursor, kind, payload, idempotency_key=idempotency_key,
                 actor_id=actor_id, organization_id=organization_id,
-                project_id=project_id,
+                production_id=production_id,
                 source_tool=source_tool, operation_label=operation_label,
                 parent_id=parent_id, part_id=part_id, workspace_id=workspace_id,
                 creation_action_id=creation_action_id,
@@ -102,7 +102,7 @@ class JobRepository:
     def enqueue_in_transaction(self, cursor, kind: str,
                  payload: dict[str, Any], *,
                  idempotency_key: str, actor_id: str | None,
-                 project_id: int | None = None,
+                 production_id: int | None = None,
                  organization_id: str | None,
                  source_tool: str | None = None,
                  operation_label: str | None = None,
@@ -126,7 +126,7 @@ class JobRepository:
             {
                 "kind": kind,
                 "payload": payload,
-                "project_id": project_id,
+                "production_id": production_id,
                 "workspace_id": workspace_id,
                 "creation_action_id": creation_action_id,
                 "creation_preset_id": creation_preset_id,
@@ -137,7 +137,7 @@ class JobRepository:
         cursor.execute("""
                 INSERT INTO jobs
                     (kind, status, payload, idempotency_key, actor_id,
-                     organization_id, project_id, estimated, cost,
+                     organization_id, production_id, estimated, cost,
                      requested_route, resolved_route, source_tool, operation_label,
                      model, voice, engine, tier, idempotency_fingerprint,
                      parent_id, part_id, workspace_id, creation_action_id,
@@ -151,7 +151,7 @@ class JobRepository:
                 DO NOTHING
                 RETURNING id
         """, (kind, json.dumps(payload), idempotency_key, actor_id,
-                  organization_id, project_id,
+                  organization_id, production_id,
                   json.dumps(requested_route), source_tool, operation_label,
                   requested_model, payload.get("voice"), payload.get("engine"),
                   payload.get("model"), fingerprint, parent_id, part_id,
@@ -192,7 +192,7 @@ class JobRepository:
         with transaction() as cursor:
             cursor.execute("""
                 SELECT id, kind, status, payload, result, actor_id,
-                       organization_id, project_id,
+                       organization_id, production_id,
                        source_tool, operation_label, provider_attempt_id,
                        part_id, workspace_id, creation_action_id,
                        creation_preset_id, creation_context
@@ -226,7 +226,7 @@ class JobRepository:
                 cursor, source[1], payload,
                 idempotency_key=idempotency_key,
                 actor_id=source[5], organization_id=source[6],
-                project_id=source[7],
+                production_id=source[7],
                 source_tool=source[8], operation_label=source[9],
                 parent_id=int(source[0]),
                 part_id=int(source[11]) if source[11] is not None else None,
@@ -291,10 +291,10 @@ class JobRepository:
             cursor.execute(_SELECT + " WHERE id=%s", (row[0],))
             return _job(cursor.fetchone())
 
-    def latest_for_project(
-        self, project_id: int, *, kind: str, operation: str,
+    def latest_for_production(
+        self, production_id: int, *, kind: str, operation: str,
     ) -> Job | None:
-        """Return the latest durable operation projected into a Project.
+        """Return the latest durable operation projected into a Production.
 
         This is a read model for recovering progress after the React host that
         created a Job has closed or reloaded. It does not own Job execution.
@@ -302,27 +302,27 @@ class JobRepository:
         with read_only() as cursor:
             cursor.execute(
                 _SELECT + """
-                 WHERE project_id = %s AND kind = %s
+                 WHERE production_id = %s AND kind = %s
                    AND payload->>'operation' = %s
                  ORDER BY created_at DESC, id DESC
                  LIMIT 1
                 """,
-                (project_id, kind, operation),
+                (production_id, kind, operation),
             )
             row = cursor.fetchone()
             return _job(row) if row else None
 
-    def recent_for_project(self, project_id: int, *, kind: str,
+    def recent_for_production(self, production_id: int, *, kind: str,
                            limit: int = 8) -> list[Job]:
-        """Project a small recent Job history for one creative workflow."""
+        """Production a small recent Job history for one creative workflow."""
         with read_only() as cursor:
             cursor.execute(
                 _SELECT + """
-                 WHERE project_id = %s AND kind = %s
+                 WHERE production_id = %s AND kind = %s
                  ORDER BY created_at DESC, id DESC
                  LIMIT %s
                 """,
-                (project_id, kind, max(1, min(limit, 20))),
+                (production_id, kind, max(1, min(limit, 20))),
             )
             return [_job(row) for row in cursor.fetchall()]
 

@@ -26,7 +26,7 @@ describe("PartCaptionPanel durable review state", () => {
     expect(screen.queryByRole("button", { name: /retry/i })).toBeNull()
   })
 
-  it("restores free Standard, Short, and Word-by-word layouts inside Project", async () => {
+  it("restores free Standard, Short, and Word-by-word layouts inside Production", async () => {
     api.subtitleLayout.mockResolvedValue({
       profile: { key: "short", label: "Short", description: "", max_words: 5, max_chars: 32, line_chars: 32, max_lines: 1, min_duration_ms: 500, max_duration_ms: 2500 },
       cues: [{ start: 0, end: 900, text: "A short phrase", words: [], timing: "word" }],

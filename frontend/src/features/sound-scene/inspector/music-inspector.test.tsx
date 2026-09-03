@@ -46,7 +46,7 @@ describe("AudioClipInspector", () => {
     expect((await screen.findByRole("alert")).textContent).toContain("Music settings are unavailable.")
   })
 
-  it("does not project sequential Part language onto an empty Audio Track", () => {
+  it("does not production sequential Part language onto an empty Audio Track", () => {
     render(<AudioClipInspector track={{ ...track, clips: [] }} clip={null} playing={false} onPlay={vi.fn()} onClipChange={vi.fn()} onClipCommit={vi.fn()} onTrackMixChange={vi.fn()} onTrackMixCommit={vi.fn()} onChoose={vi.fn()} />)
     expect(screen.getByText(/Add one reusable audio File/)).toBeTruthy()
     expect(screen.queryByText(/Clip|Voice/)).toBeNull()

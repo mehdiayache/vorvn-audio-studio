@@ -19,7 +19,7 @@ class TranscriptionSourceResolver:
 
     def prepare(self, *, url: str, name: str, playable: str,
                 duration_ms: int, part_id: int | None,
-                project_id: int | None, file: str) -> PreparedAudio:
+                production_id: int | None, file: str) -> PreparedAudio:
         if url.strip():
             parsed = urlparse(url.strip())
             if parsed.scheme not in {"http", "https"} or not parsed.netloc:
@@ -30,16 +30,16 @@ class TranscriptionSourceResolver:
 
         if not part_id:
             raise ValueError("Pick one of your audio files first.")
-        part = self.repository.part_source(part_id, project_id=project_id)
+        part = self.repository.part_source(part_id, production_id=production_id)
         if not part:
-            raise LookupError("That Project audio no longer exists.")
+            raise LookupError("That Production audio no longer exists.")
         output = media_root()
         filename = Path(str(part.get("filename") or file or "")).name
         raw_path = str(part.get("path") or "").strip()
         target = (Path(raw_path).expanduser().resolve()
                   if raw_path else (output / filename).resolve())
         if not filename or target.parent != output or not target.is_file():
-            raise LookupError("That Project audio file is unavailable.")
+            raise LookupError("That Production audio file is unavailable.")
         if not storage.configured():
             raise RuntimeError(
                 "Transcription needs reference audio storage. Set it up in Settings.")

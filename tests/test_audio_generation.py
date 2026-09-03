@@ -139,7 +139,7 @@ class FakeJobs:
     def get(self, public_id):
         return self.jobs.get(public_id)
 
-    def recent_for_project(self, _project_id, *, kind, limit=8):
+    def recent_for_production(self, _production_id, *, kind, limit=8):
         return [job for job in reversed(list(self.jobs.values()))
                 if job.kind == kind][:limit]
 
@@ -346,7 +346,7 @@ class AudioGenerationApplicationTests(unittest.TestCase):
                 capability="music", prompt="Purpose: quiet underscore.",
                 seconds=20, seed=9, prompt_mode="simple",
                 generation_brief={"purpose": "quiet underscore"},
-                idempotency_key="intent", project_id=81)
+                idempotency_key="intent", production_id=81)
             self.assertEqual(job.payload["resolved_prompt"],
                              "Purpose: quiet underscore.")
             self.assertEqual(job.payload["generation_brief"], {
@@ -374,8 +374,8 @@ class AudioGenerationApplicationTests(unittest.TestCase):
             self.assertEqual(job.workspace_id, 14)
             self.assertEqual(job.creation_action_id, "generate-sound-effect")
             self.assertEqual(job.creation_context, {
-                "workspace_id": 14, "project_id": None,
-                "project_type": None,
+                "workspace_id": 14, "production_id": None,
+                "production_type": None,
             })
             jobs.jobs[job.public_id] = replace(
                 job, status=JobStatus.SUCCEEDED,
@@ -451,7 +451,7 @@ class AudioGenerationApplicationTests(unittest.TestCase):
                 seconds=5, seed=None, prompt_mode="expert",
                 semantic_state=preset,
                 source_free_text=preset["creative_brief"],
-                idempotency_key="preset", project_id=81)
+                idempotency_key="preset", production_id=81)
 
             self.assertIn("TrackType: Music", job.payload["prompt"])
             self.assertNotIn("client prompt", job.payload["prompt"])

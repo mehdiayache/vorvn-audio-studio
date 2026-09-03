@@ -132,12 +132,12 @@ describe("useCreatorDraftRecovery", () => {
     expect(restore).toHaveBeenCalledWith(expect.objectContaining({ text: expect.objectContaining({ raw: "Last keystroke before close" }) }))
   })
 
-  it("flushes the standalone Draft before switching to a Project owner", async () => {
+  it("flushes the standalone Draft before switching to a Production owner", async () => {
     vi.useFakeTimers()
     api.creatorDraft.mockResolvedValue(null)
     api.saveCreatorDraft.mockImplementation(async (_context, next) => ({ id: "draft", state: next, version: 1, updatedAt: "now" }))
     const firstContext = { kind: "standalone" as const }
-    const secondContext = { kind: "project" as const, projectId: 7, operation: "new_part" as const, insertion: null }
+    const secondContext = { kind: "production" as const, productionId: 7, operation: "new_part" as const, insertion: null }
     let context: CompositionContext = firstContext
     let draft = emptyDraft()
     const { rerender } = renderHook(() => useCreatorDraftRecovery({ context, draft, onRestore: vi.fn() }))
@@ -146,12 +146,12 @@ describe("useCreatorDraftRecovery", () => {
     draft = firstDraft
     rerender()
     context = secondContext
-    draft = { ...emptyDraft(), text: { ...emptyDraft().text, raw: "Project draft" } }
+    draft = { ...emptyDraft(), text: { ...emptyDraft().text, raw: "Production draft" } }
     rerender()
     await act(async () => { await Promise.resolve(); await Promise.resolve() })
 
     expect(api.saveCreatorDraft).toHaveBeenCalledWith(firstContext, firstDraft, null)
-    expect(api.saveCreatorDraft).not.toHaveBeenCalledWith(firstContext, expect.objectContaining({ text: expect.objectContaining({ raw: "Project draft" }) }), expect.anything())
+    expect(api.saveCreatorDraft).not.toHaveBeenCalledWith(firstContext, expect.objectContaining({ text: expect.objectContaining({ raw: "Production draft" }) }), expect.anything())
   })
 
   it("does not resurrect a deliberately cleared draft during unmount", async () => {

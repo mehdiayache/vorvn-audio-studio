@@ -312,7 +312,7 @@ ITEMS = (
     _item("arrangement.low_heavy", "low_end_weight", "Weighty", "weighty prominent low end",
           definition="Bass is physically prominent.", audible="More power and scale.", use_when="Use for impact and music-forward cues.", models=M),
 
-    # Project and cue behaviour.
+    # Production and cue behaviour.
     _item("production.warm", "production_character", "Warm", "warm production with rounded transients and softened high frequencies",
           definition="A rounded tonal character without harsh brightness.", audible="Soft edges and comfortable body.", use_when="Use for intimacy, narration and human warmth.", models=M),
     _item("production.organic", "production_character", "Organic", "organic production",

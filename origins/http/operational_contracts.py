@@ -51,8 +51,8 @@ class ActivityRunResponse(BaseModel):
     requires_review: bool = False
     needs_confirmation: bool = False
     review_evidence: dict[str, Any] = Field(default_factory=dict)
-    project_id: int | None
-    project_name: str | None
+    production_id: int | None
+    production_name: str | None
     where: str
     cost_basis: str
     cost_basis_raw: str

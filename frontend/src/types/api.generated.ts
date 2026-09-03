@@ -21,7 +21,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/v1/audio-catalogs/freesound/projects/{project_id}/keep": {
+    "/api/v1/audio-catalogs/freesound/productions/{production_id}/keep": {
         parameters: {
             query?: never;
             header?: never;
@@ -30,8 +30,8 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        /** Keep Freesound In Audiovisual Project */
-        post: operations["keepFreesoundFileInAudiovisualProject"];
+        /** Keep Freesound In Audiovisual Production */
+        post: operations["keepFreesoundFileInAudiovisualProduction"];
         delete?: never;
         options?: never;
         head?: never;
@@ -192,7 +192,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/v1/audio-generations/{candidate_id}/projects/{project_id}/keep": {
+    "/api/v1/audio-generations/{candidate_id}/productions/{production_id}/keep": {
         parameters: {
             query?: never;
             header?: never;
@@ -201,8 +201,8 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        /** Keep Generated Audio In Audiovisual Project */
-        post: operations["keepGeneratedAudioFileInAudiovisualProject"];
+        /** Keep Generated Audio In Audiovisual Production */
+        post: operations["keepGeneratedAudioFileInAudiovisualProduction"];
         delete?: never;
         options?: never;
         head?: never;
@@ -656,7 +656,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/v1/project-covers/upload": {
+    "/api/v1/production-covers/upload": {
         parameters: {
             query?: never;
             header?: never;
@@ -665,15 +665,15 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        /** Upload Project Cover */
-        post: operations["uploadProjectCover"];
+        /** Upload Production Cover */
+        post: operations["uploadProductionCover"];
         delete?: never;
         options?: never;
         head?: never;
         patch?: never;
         trace?: never;
     };
-    "/api/v1/project-imports": {
+    "/api/v1/production-imports": {
         parameters: {
             query?: never;
             header?: never;
@@ -683,14 +683,14 @@ export interface paths {
         get?: never;
         put?: never;
         /** Create Import */
-        post: operations["createProjectImport"];
+        post: operations["createProductionImport"];
         delete?: never;
         options?: never;
         head?: never;
         patch?: never;
         trace?: never;
     };
-    "/api/v1/project-imports/validate": {
+    "/api/v1/production-imports/validate": {
         parameters: {
             query?: never;
             header?: never;
@@ -700,14 +700,14 @@ export interface paths {
         get?: never;
         put?: never;
         /** Validate Import */
-        post: operations["validateProjectImport"];
+        post: operations["validateProductionImport"];
         delete?: never;
         options?: never;
         head?: never;
         patch?: never;
         trace?: never;
     };
-    "/api/v1/projects/render": {
+    "/api/v1/productions/render": {
         parameters: {
             query?: never;
             header?: never;
@@ -716,23 +716,23 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        /** Render Audio Project */
-        post: operations["renderAudioProject"];
+        /** Render Audio Production */
+        post: operations["renderAudioProduction"];
         delete?: never;
         options?: never;
         head?: never;
         patch?: never;
         trace?: never;
     };
-    "/api/v1/projects/{project_identifier}": {
+    "/api/v1/productions/{production_identifier}": {
         parameters: {
             query?: never;
             header?: never;
             path?: never;
             cookie?: never;
         };
-        /** Get Audiovisual Project */
-        get: operations["getAudiovisualProject"];
+        /** Get Audiovisual Production */
+        get: operations["getAudiovisualProduction"];
         put?: never;
         post?: never;
         delete?: never;
@@ -741,110 +741,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/v1/projects/{project_id}": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        post?: never;
-        /** Delete Project */
-        delete: operations["deleteProject"];
-        options?: never;
-        head?: never;
-        /** Update Project */
-        patch: operations["updateProject"];
-        trace?: never;
-    };
-    "/api/v1/projects/{project_id}/editor": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** Get Project Editor */
-        get: operations["getAudiovisualProjectEditor"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/projects/{project_id}/files": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** List Project Files */
-        get: operations["listProjectFiles"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/projects/{project_id}/files/upload": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /** Upload Audiovisual Project File */
-        post: operations["uploadAudiovisualProjectFile"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/projects/{project_id}/import": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /** Import Project */
-        post: operations["importProjectDocument"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/projects/{project_id}/library-files": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /** Attach Project Library File */
-        post: operations["attachProjectLibraryFile"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/projects/{project_id}/library-files/{file_id}": {
+    "/api/v1/productions/{production_id}": {
         parameters: {
             query?: never;
             header?: never;
@@ -854,14 +751,117 @@ export interface paths {
         get?: never;
         put?: never;
         post?: never;
-        /** Detach Project Library File */
-        delete: operations["detachProjectLibraryFile"];
+        /** Delete Production */
+        delete: operations["deleteProduction"];
+        options?: never;
+        head?: never;
+        /** Update Production */
+        patch: operations["updateProduction"];
+        trace?: never;
+    };
+    "/api/v1/productions/{production_id}/editor": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Production Editor */
+        get: operations["getAudiovisualProductionEditor"];
+        put?: never;
+        post?: never;
+        delete?: never;
         options?: never;
         head?: never;
         patch?: never;
         trace?: never;
     };
-    "/api/v1/projects/{project_id}/parts": {
+    "/api/v1/productions/{production_id}/files": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List Production Files */
+        get: operations["listProductionFiles"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/productions/{production_id}/files/upload": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Upload Audiovisual Production File */
+        post: operations["uploadAudiovisualProductionFile"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/productions/{production_id}/import": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Import Production */
+        post: operations["importProductionDocument"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/productions/{production_id}/library-files": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Attach Production Library File */
+        post: operations["attachProductionLibraryFile"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/productions/{production_id}/library-files/{file_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /** Detach Production Library File */
+        delete: operations["detachProductionLibraryFile"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/productions/{production_id}/parts": {
         parameters: {
             query?: never;
             header?: never;
@@ -872,13 +872,13 @@ export interface paths {
         put?: never;
         post?: never;
         /** Delete Parts */
-        delete: operations["deleteProjectParts"];
+        delete: operations["deleteProductionParts"];
         options?: never;
         head?: never;
         patch?: never;
         trace?: never;
     };
-    "/api/v1/projects/{project_id}/parts/drafts": {
+    "/api/v1/productions/{production_id}/parts/drafts": {
         parameters: {
             query?: never;
             header?: never;
@@ -888,14 +888,14 @@ export interface paths {
         get?: never;
         put?: never;
         /** Add Draft */
-        post: operations["addProjectDraft"];
+        post: operations["addProductionDraft"];
         delete?: never;
         options?: never;
         head?: never;
         patch?: never;
         trace?: never;
     };
-    "/api/v1/projects/{project_id}/parts/files": {
+    "/api/v1/productions/{production_id}/parts/files": {
         parameters: {
             query?: never;
             header?: never;
@@ -905,14 +905,14 @@ export interface paths {
         get?: never;
         put?: never;
         /** Insert File */
-        post: operations["insertProjectFile"];
+        post: operations["insertProductionFile"];
         delete?: never;
         options?: never;
         head?: never;
         patch?: never;
         trace?: never;
     };
-    "/api/v1/projects/{project_id}/parts/move": {
+    "/api/v1/productions/{production_id}/parts/move": {
         parameters: {
             query?: never;
             header?: never;
@@ -922,14 +922,14 @@ export interface paths {
         get?: never;
         put?: never;
         /** Move Parts */
-        post: operations["moveProjectParts"];
+        post: operations["moveProductionParts"];
         delete?: never;
         options?: never;
         head?: never;
         patch?: never;
         trace?: never;
     };
-    "/api/v1/projects/{project_id}/parts/reorder": {
+    "/api/v1/productions/{production_id}/parts/reorder": {
         parameters: {
             query?: never;
             header?: never;
@@ -939,14 +939,14 @@ export interface paths {
         get?: never;
         put?: never;
         /** Reorder Parts */
-        post: operations["reorderProjectParts"];
+        post: operations["reorderProductionParts"];
         delete?: never;
         options?: never;
         head?: never;
         patch?: never;
         trace?: never;
     };
-    "/api/v1/projects/{project_id}/parts/silence": {
+    "/api/v1/productions/{production_id}/parts/silence": {
         parameters: {
             query?: never;
             header?: never;
@@ -956,14 +956,14 @@ export interface paths {
         get?: never;
         put?: never;
         /** Add Silence */
-        post: operations["addProjectSilence"];
+        post: operations["addProductionSilence"];
         delete?: never;
         options?: never;
         head?: never;
         patch?: never;
         trace?: never;
     };
-    "/api/v1/projects/{project_id}/parts/{part_id}/captions": {
+    "/api/v1/productions/{production_id}/parts/{part_id}/captions": {
         parameters: {
             query?: never;
             header?: never;
@@ -971,7 +971,7 @@ export interface paths {
             cookie?: never;
         };
         /** List Part Captions */
-        get: operations["listProjectPartCaptions"];
+        get: operations["listProductionPartCaptions"];
         put?: never;
         post?: never;
         delete?: never;
@@ -980,7 +980,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/v1/projects/{project_id}/parts/{part_id}/draft": {
+    "/api/v1/productions/{production_id}/parts/{part_id}/draft": {
         parameters: {
             query?: never;
             header?: never;
@@ -994,10 +994,10 @@ export interface paths {
         options?: never;
         head?: never;
         /** Update Part Text */
-        patch: operations["updateProjectPartDraft"];
+        patch: operations["updateProductionPartDraft"];
         trace?: never;
     };
-    "/api/v1/projects/{project_id}/parts/{part_id}/duplicate": {
+    "/api/v1/productions/{production_id}/parts/{part_id}/duplicate": {
         parameters: {
             query?: never;
             header?: never;
@@ -1007,14 +1007,14 @@ export interface paths {
         get?: never;
         put?: never;
         /** Duplicate Part */
-        post: operations["duplicateProjectPart"];
+        post: operations["duplicateProductionPart"];
         delete?: never;
         options?: never;
         head?: never;
         patch?: never;
         trace?: never;
     };
-    "/api/v1/projects/{project_id}/parts/{part_id}/editorial": {
+    "/api/v1/productions/{production_id}/parts/{part_id}/editorial": {
         parameters: {
             query?: never;
             header?: never;
@@ -1028,10 +1028,10 @@ export interface paths {
         options?: never;
         head?: never;
         /** Update Part Editorial */
-        patch: operations["updateProjectPartEditorial"];
+        patch: operations["updateProductionPartEditorial"];
         trace?: never;
     };
-    "/api/v1/projects/{project_id}/parts/{part_id}/enabled": {
+    "/api/v1/productions/{production_id}/parts/{part_id}/enabled": {
         parameters: {
             query?: never;
             header?: never;
@@ -1045,10 +1045,10 @@ export interface paths {
         options?: never;
         head?: never;
         /** Update Part Enabled */
-        patch: operations["updateProjectPartEnabled"];
+        patch: operations["updateProductionPartEnabled"];
         trace?: never;
     };
-    "/api/v1/projects/{project_id}/parts/{part_id}/file": {
+    "/api/v1/productions/{production_id}/parts/{part_id}/file": {
         parameters: {
             query?: never;
             header?: never;
@@ -1062,10 +1062,10 @@ export interface paths {
         options?: never;
         head?: never;
         /** Replace File */
-        patch: operations["replaceProjectFile"];
+        patch: operations["replaceProductionFile"];
         trace?: never;
     };
-    "/api/v1/projects/{project_id}/parts/{part_id}/silence": {
+    "/api/v1/productions/{production_id}/parts/{part_id}/silence": {
         parameters: {
             query?: never;
             header?: never;
@@ -1079,18 +1079,18 @@ export interface paths {
         options?: never;
         head?: never;
         /** Update Silence */
-        patch: operations["updateProjectSilence"];
+        patch: operations["updateProductionSilence"];
         trace?: never;
     };
-    "/api/v1/projects/{project_id}/project-scene": {
+    "/api/v1/productions/{production_id}/production-scene": {
         parameters: {
             query?: never;
             header?: never;
             path?: never;
             cookie?: never;
         };
-        /** Get Project Scene */
-        get: operations["getProjectScene"];
+        /** Get Production Scene */
+        get: operations["getProductionScene"];
         put?: never;
         post?: never;
         delete?: never;
@@ -1099,7 +1099,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/v1/projects/{project_id}/sound-scene": {
+    "/api/v1/productions/{production_id}/sound-scene": {
         parameters: {
             query?: never;
             header?: never;
@@ -1107,17 +1107,17 @@ export interface paths {
             cookie?: never;
         };
         /** Get Sound Scene */
-        get: operations["getProjectSoundScene"];
+        get: operations["getProductionSoundScene"];
         put?: never;
         post?: never;
         delete?: never;
         options?: never;
         head?: never;
         /** Update Sound Scene */
-        patch: operations["updateProjectSoundScene"];
+        patch: operations["updateProductionSoundScene"];
         trace?: never;
     };
-    "/api/v1/projects/{project_id}/sound-scene/redo": {
+    "/api/v1/productions/{production_id}/sound-scene/redo": {
         parameters: {
             query?: never;
             header?: never;
@@ -1127,14 +1127,14 @@ export interface paths {
         get?: never;
         put?: never;
         /** Redo Sound Scene */
-        post: operations["redoProjectSoundScene"];
+        post: operations["redoProductionSoundScene"];
         delete?: never;
         options?: never;
         head?: never;
         patch?: never;
         trace?: never;
     };
-    "/api/v1/projects/{project_id}/sound-scene/undo": {
+    "/api/v1/productions/{production_id}/sound-scene/undo": {
         parameters: {
             query?: never;
             header?: never;
@@ -1144,14 +1144,14 @@ export interface paths {
         get?: never;
         put?: never;
         /** Undo Sound Scene */
-        post: operations["undoProjectSoundScene"];
+        post: operations["undoProductionSoundScene"];
         delete?: never;
         options?: never;
         head?: never;
         patch?: never;
         trace?: never;
     };
-    "/api/v1/projects/{project_id}/visual-scene": {
+    "/api/v1/productions/{production_id}/visual-scene": {
         parameters: {
             query?: never;
             header?: never;
@@ -1159,14 +1159,14 @@ export interface paths {
             cookie?: never;
         };
         /** Get Visual Scene */
-        get: operations["getProjectVisualScene"];
+        get: operations["getProductionVisualScene"];
         put?: never;
         post?: never;
         delete?: never;
         options?: never;
         head?: never;
         /** Update Visual Scene */
-        patch: operations["updateProjectVisualScene"];
+        patch: operations["updateProductionVisualScene"];
         trace?: never;
     };
     "/api/v1/recordings/{recording_id}/download": {
@@ -1909,7 +1909,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/v1/workspaces/{workspace_id}/projects/audiovisual": {
+    "/api/v1/workspaces/{workspace_id}/productions/audiovisual": {
         parameters: {
             query?: never;
             header?: never;
@@ -1918,8 +1918,8 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        /** Create Audiovisual Project */
-        post: operations["createAudiovisualProject"];
+        /** Create Audiovisual Production */
+        post: operations["createAudiovisualProduction"];
         delete?: never;
         options?: never;
         head?: never;
@@ -2067,10 +2067,10 @@ export interface components {
             output_ids: components["schemas"]["OutputReference"][];
             /** Price Version */
             price_version: string | null;
-            /** Project Id */
-            project_id: number | null;
-            /** Project Name */
-            project_name: string | null;
+            /** Production Id */
+            production_id: number | null;
+            /** Production Name */
+            production_name: string | null;
             /** Provider Attempt Id */
             provider_attempt_id?: string | null;
             /** Provider Attempt Status */
@@ -2170,10 +2170,10 @@ export interface components {
             id: number;
             /**
              * Type
-             * @default project
+             * @default production
              * @constant
              */
-            type: "project";
+            type: "production";
         } & {
             [key: string]: unknown;
         };
@@ -2288,8 +2288,8 @@ export interface components {
             generation_brief?: {
                 [key: string]: unknown;
             } | null;
-            /** Project Id */
-            project_id?: number | null;
+            /** Production Id */
+            production_id?: number | null;
             /** Prompt */
             prompt?: string | null;
             /**
@@ -2421,13 +2421,13 @@ export interface components {
             /** Peaks */
             peaks: number[];
         };
-        /** AudioProject */
-        AudioProject: {
+        /** AudioProduction */
+        AudioProduction: {
             /** Id */
             id?: string | null;
             /**
              * Name
-             * @default Untitled Project
+             * @default Untitled Production
              */
             name: string;
             /**
@@ -2437,10 +2437,10 @@ export interface components {
              */
             sample_rate: 48000;
             /** Tracks */
-            tracks: components["schemas"]["ProjectTrack"][];
+            tracks: components["schemas"]["ProductionTrack"][];
         };
-        /** AudiovisualProjectCreateRequest */
-        AudiovisualProjectCreateRequest: {
+        /** AudiovisualProductionCreateRequest */
+        AudiovisualProductionCreateRequest: {
             /**
              * Description
              * @default
@@ -2723,10 +2723,10 @@ export interface components {
             folder_id?: number | null;
             /** Object Id */
             object_id?: number | null;
-            /** Project Id */
-            project_id?: number | null;
-            /** Project Type */
-            project_type?: string | null;
+            /** Production Id */
+            production_id?: number | null;
+            /** Production Type */
+            production_type?: string | null;
             /** Selection */
             selection?: {
                 [key: string]: unknown;
@@ -3174,7 +3174,7 @@ export interface components {
         /** DraftDelete */
         DraftDelete: {
             /** Context */
-            context: components["schemas"]["StandaloneContext"] | components["schemas"]["ProjectContext"];
+            context: components["schemas"]["StandaloneContext"] | components["schemas"]["ProductionContext"];
             /** Expected Version */
             expected_version?: number | null;
         };
@@ -3194,7 +3194,7 @@ export interface components {
         /** DraftLookup */
         DraftLookup: {
             /** Context */
-            context: components["schemas"]["StandaloneContext"] | components["schemas"]["ProjectContext"];
+            context: components["schemas"]["StandaloneContext"] | components["schemas"]["ProductionContext"];
         };
         /** DraftResponse */
         DraftResponse: {
@@ -3215,7 +3215,7 @@ export interface components {
         /** DraftWrite */
         DraftWrite: {
             /** Context */
-            context: components["schemas"]["StandaloneContext"] | components["schemas"]["ProjectContext"];
+            context: components["schemas"]["StandaloneContext"] | components["schemas"]["ProductionContext"];
             /** Expected Version */
             expected_version?: number | null;
             state: components["schemas"]["CreatorState"];
@@ -3380,8 +3380,8 @@ export interface components {
              * @default
              */
             preview_filename: string;
-            /** Projects */
-            projects: number;
+            /** Productions */
+            productions: number;
             /** Provider Voice Id */
             provider_voice_id: string;
             /** Uses */
@@ -3835,8 +3835,8 @@ export interface components {
         };
         /** MoveBody */
         MoveBody: {
-            /** Destination Project Id */
-            destination_project_id: number;
+            /** Destination Production Id */
+            destination_production_id: number;
             /** Ids */
             ids: number[];
         };
@@ -4044,8 +4044,8 @@ export interface components {
             /** Name */
             name: string;
         };
-        /** ProjectAccountingResponse */
-        ProjectAccountingResponse: {
+        /** ProductionAccountingResponse */
+        ProductionAccountingResponse: {
             /**
              * Audio Spend
              * @default 0
@@ -4070,8 +4070,8 @@ export interface components {
              */
             video_spend: number;
         };
-        /** ProjectClip */
-        ProjectClip: {
+        /** ProductionClip */
+        ProductionClip: {
             /** Duration */
             duration: number;
             /** File Url */
@@ -4081,34 +4081,34 @@ export interface components {
             /** Start Time */
             start_time: number;
         };
-        /** ProjectContext */
-        ProjectContext: {
+        /** ProductionContext */
+        ProductionContext: {
             /** Insert Before Part Id */
             insert_before_part_id?: string | null;
             /**
              * @description discriminator enum property added by openapi-typescript
              * @enum {string}
              */
-            kind: "project";
+            kind: "production";
             /** Part Id */
             part_id?: number | null;
-            /** Project Id */
-            project_id: number;
+            /** Production Id */
+            production_id: number;
         };
-        /** ProjectEditorEnvelope */
-        ProjectEditorEnvelope: {
-            data: components["schemas"]["ProjectEditorResponse"];
+        /** ProductionEditorEnvelope */
+        ProductionEditorEnvelope: {
+            data: components["schemas"]["ProductionEditorResponse"];
         };
-        /** ProjectEditorResponse */
-        ProjectEditorResponse: {
-            accounting: components["schemas"]["ProjectAccountingResponse"];
+        /** ProductionEditorResponse */
+        ProductionEditorResponse: {
+            accounting: components["schemas"]["ProductionAccountingResponse"];
             /** Current Sequence Cost */
             current_sequence_cost: number;
             /** Description */
             description: string;
-            export_job?: components["schemas"]["ProjectRenderJobResponse"] | null;
+            export_job?: components["schemas"]["ProductionRenderJobResponse"] | null;
             /** Exports */
-            exports: components["schemas"]["ProjectExportResponse"][];
+            exports: components["schemas"]["ProductionExportResponse"][];
             /** Folder Id */
             folder_id?: number | null;
             /** Id */
@@ -4116,13 +4116,13 @@ export interface components {
             /** Name */
             name: string;
             /** Parts */
-            parts: components["schemas"]["ProjectPartResponse"][];
+            parts: components["schemas"]["ProductionPartResponse"][];
             /**
-             * Project Type
+             * Production Type
              * @default audiovisual
              * @constant
              */
-            project_type: "audiovisual";
+            production_type: "audiovisual";
             /** Public Id */
             public_id: string;
             /** Settings */
@@ -4142,12 +4142,12 @@ export interface components {
         } & {
             [key: string]: unknown;
         };
-        /** ProjectEnvelope */
-        ProjectEnvelope: {
-            data: components["schemas"]["AudioProject"];
+        /** ProductionEnvelope */
+        ProductionEnvelope: {
+            data: components["schemas"]["AudioProduction"];
         };
-        /** ProjectExportResponse */
-        ProjectExportResponse: {
+        /** ProductionExportResponse */
+        ProductionExportResponse: {
             /** Created At */
             created_at: string;
             /** Duration Ms */
@@ -4160,42 +4160,42 @@ export interface components {
             manifest: {
                 [key: string]: unknown;
             };
-            /** Project Id */
-            project_id: number;
+            /** Production Id */
+            production_id: number;
             /** Renderer */
             renderer: string;
             /** Size Bytes */
             size_bytes: number;
         };
-        /** ProjectFileLibraryEnvelope */
-        ProjectFileLibraryEnvelope: {
-            data: components["schemas"]["ProjectFileLibraryResponse"];
+        /** ProductionFileLibraryEnvelope */
+        ProductionFileLibraryEnvelope: {
+            data: components["schemas"]["ProductionFileLibraryResponse"];
         };
-        /** ProjectFileLibraryResponse */
-        ProjectFileLibraryResponse: {
+        /** ProductionFileLibraryResponse */
+        ProductionFileLibraryResponse: {
             /** Files */
             files: components["schemas"]["WorkspaceFileResponse"][];
             /** Folders */
             folders?: components["schemas"]["WorkspaceFolderResponse"][];
             /** Library File Ids */
             library_file_ids?: number[];
-            /** Project File Ids */
-            project_file_ids?: number[];
+            /** Production File Ids */
+            production_file_ids?: number[];
             workspace: components["schemas"]["WorkspaceFileOwnerResponse"];
         };
         /**
-         * ProjectImportBody
-         * @description Append authored Parts to one existing audiovisual Project.
+         * ProductionImportBody
+         * @description Append authored Parts to one existing audiovisual Production.
          */
-        ProjectImportBody: {
-            document: components["schemas"]["ProjectImportDocument"];
+        ProductionImportBody: {
+            document: components["schemas"]["ProductionImportDocument"];
             /** Role Voices */
             role_voices: {
                 [key: string]: string;
             };
         };
-        /** ProjectImportDestination */
-        ProjectImportDestination: {
+        /** ProductionImportDestination */
+        ProductionImportDestination: {
             /** Folder Id */
             folder_id?: number | null;
             /**
@@ -4203,13 +4203,13 @@ export interface components {
              * @enum {string}
              */
             kind: "existing" | "new";
-            /** Project Id */
-            project_id?: number | null;
+            /** Production Id */
+            production_id?: number | null;
             /** Workspace Id */
             workspace_id?: number | null;
         };
-        /** ProjectImportDocument */
-        ProjectImportDocument: {
+        /** ProductionImportDocument */
+        ProductionImportDocument: {
             /**
              * Description
              * @default
@@ -4223,7 +4223,7 @@ export interface components {
              * Schema
              * @constant
              */
-            schema: "origins-project-import";
+            schema: "origins-production-import";
             /** Title */
             title: string;
             /**
@@ -4232,29 +4232,29 @@ export interface components {
              */
             version: 1;
         };
-        /** ProjectImportEnvelope */
-        ProjectImportEnvelope: {
-            data: components["schemas"]["ProjectImportResponse"];
+        /** ProductionImportEnvelope */
+        ProductionImportEnvelope: {
+            data: components["schemas"]["ProductionImportResponse"];
         };
-        /** ProjectImportExecuteBody */
-        ProjectImportExecuteBody: {
+        /** ProductionImportExecuteBody */
+        ProductionImportExecuteBody: {
             /**
              * Description
              * @default
              */
             description: string;
-            destination: components["schemas"]["ProjectImportDestination"];
-            document: components["schemas"]["ProjectImportDocument"];
-            preparation: components["schemas"]["ProjectImportPreparation"];
+            destination: components["schemas"]["ProductionImportDestination"];
+            document: components["schemas"]["ProductionImportDocument"];
+            preparation: components["schemas"]["ProductionImportPreparation"];
             /** Role Routes */
             role_routes: {
-                [key: string]: components["schemas"]["ProjectImportRouteSelection"];
+                [key: string]: components["schemas"]["ProductionImportRouteSelection"];
             };
             /** Title */
             title: string;
         };
-        /** ProjectImportPreparation */
-        ProjectImportPreparation: {
+        /** ProductionImportPreparation */
+        ProductionImportPreparation: {
             /** Language */
             language: string;
             /**
@@ -4276,8 +4276,8 @@ export interface components {
              */
             text_version: "imported" | "spoken_1" | "spoken_2";
         };
-        /** ProjectImportResponse */
-        ProjectImportResponse: {
+        /** ProductionImportResponse */
+        ProductionImportResponse: {
             /** Items */
             items: number;
             /** Silence */
@@ -4285,15 +4285,15 @@ export interface components {
             /** Speech */
             speech: number;
         };
-        /** ProjectImportRoleResponse */
-        ProjectImportRoleResponse: {
+        /** ProductionImportRoleResponse */
+        ProductionImportRoleResponse: {
             /** Count */
             count: number;
             /** Name */
             name: string;
         };
-        /** ProjectImportRouteSelection */
-        ProjectImportRouteSelection: {
+        /** ProductionImportRouteSelection */
+        ProductionImportRouteSelection: {
             /** Binding Id */
             binding_id: string;
             /** Capability Id */
@@ -4301,8 +4301,8 @@ export interface components {
             /** Voice Identity Id */
             voice_identity_id: string;
         };
-        /** ProjectImportSummaryResponse */
-        ProjectImportSummaryResponse: {
+        /** ProductionImportSummaryResponse */
+        ProductionImportSummaryResponse: {
             /** Estimated Duration Ms */
             estimated_duration_ms: number;
             /** Items */
@@ -4310,31 +4310,31 @@ export interface components {
             /** Language */
             language: string | null;
             /** Roles */
-            roles: components["schemas"]["ProjectImportRoleResponse"][];
+            roles: components["schemas"]["ProductionImportRoleResponse"][];
             /** Silence */
             silence: number;
             /** Speech */
             speech: number;
         };
-        /** ProjectImportValidationBody */
-        ProjectImportValidationBody: {
-            document: components["schemas"]["ProjectImportDocument"];
+        /** ProductionImportValidationBody */
+        ProductionImportValidationBody: {
+            document: components["schemas"]["ProductionImportDocument"];
         };
-        /** ProjectImportValidationEnvelope */
-        ProjectImportValidationEnvelope: {
-            data: components["schemas"]["ProjectImportValidationResponse"];
+        /** ProductionImportValidationEnvelope */
+        ProductionImportValidationEnvelope: {
+            data: components["schemas"]["ProductionImportValidationResponse"];
         };
-        /** ProjectImportValidationResponse */
-        ProjectImportValidationResponse: {
-            document: components["schemas"]["ProjectImportDocument"];
-            summary: components["schemas"]["ProjectImportSummaryResponse"];
+        /** ProductionImportValidationResponse */
+        ProductionImportValidationResponse: {
+            document: components["schemas"]["ProductionImportDocument"];
+            summary: components["schemas"]["ProductionImportSummaryResponse"];
         };
-        /** ProjectMutationEnvelope */
-        ProjectMutationEnvelope: {
-            data: components["schemas"]["ProjectResponse"];
+        /** ProductionMutationEnvelope */
+        ProductionMutationEnvelope: {
+            data: components["schemas"]["ProductionResponse"];
         };
-        /** ProjectPartResponse */
-        ProjectPartResponse: {
+        /** ProductionPartResponse */
+        ProductionPartResponse: {
             /** Authored Role */
             authored_role?: string | null;
             /** Binding Id */
@@ -4493,12 +4493,12 @@ export interface components {
         } & {
             [key: string]: unknown;
         };
-        /** ProjectRenderEnvelope */
-        ProjectRenderEnvelope: {
-            data: components["schemas"]["ProjectRenderResult"];
+        /** ProductionRenderEnvelope */
+        ProductionRenderEnvelope: {
+            data: components["schemas"]["ProductionRenderResult"];
         };
-        /** ProjectRenderJobResponse */
-        ProjectRenderJobResponse: {
+        /** ProductionRenderJobResponse */
+        ProductionRenderJobResponse: {
             /** Created At */
             created_at?: string | null;
             /** Detail */
@@ -4529,8 +4529,8 @@ export interface components {
             /** Type */
             type: string;
         };
-        /** ProjectRenderResult */
-        ProjectRenderResult: {
+        /** ProductionRenderResult */
+        ProductionRenderResult: {
             /** Cached */
             cached: boolean;
             /**
@@ -4554,8 +4554,8 @@ export interface components {
             /** Url */
             url: string;
         };
-        /** ProjectResponse */
-        ProjectResponse: {
+        /** ProductionResponse */
+        ProductionResponse: {
             /** Description */
             description: string;
             /**
@@ -4574,8 +4574,8 @@ export interface components {
              * @default 0
              */
             part_count: number;
-            /** Project Type */
-            project_type: string;
+            /** Production Type */
+            production_type: string;
             /** Public Id */
             public_id: string;
             /** Settings */
@@ -4589,10 +4589,10 @@ export interface components {
             /** Workspace Id */
             workspace_id: number;
         };
-        /** ProjectTrack */
-        ProjectTrack: {
+        /** ProductionTrack */
+        ProductionTrack: {
             /** Clips */
-            clips: components["schemas"]["ProjectClip"][];
+            clips: components["schemas"]["ProductionClip"][];
             /** Id */
             id: string;
             /**
@@ -4783,8 +4783,8 @@ export interface components {
              * @enum {string}
              */
             operation: "preview" | "export";
-            /** Project Id */
-            project_id: number;
+            /** Production Id */
+            production_id: number;
         };
         /** ReplaceFileBody */
         ReplaceFileBody: {
@@ -5224,8 +5224,8 @@ export interface components {
              * @default false
              */
             confirmed: boolean;
-            /** Project Id */
-            project_id?: number | null;
+            /** Production Id */
+            production_id?: number | null;
             /** Semantic State */
             semantic_state: {
                 [key: string]: unknown;
@@ -5358,8 +5358,8 @@ export interface components {
             /** Can Undo */
             can_undo: boolean;
             document: components["schemas"]["SoundSceneDocument"];
-            /** Project Id */
-            project_id: number;
+            /** Production Id */
+            production_id: number;
             resolved: components["schemas"]["SoundSceneResolution"];
             /** Revision */
             revision: number;
@@ -5991,8 +5991,8 @@ export interface components {
             operation: "shape" | "tag";
             /** Part Id */
             part_id?: number | null;
-            /** Project Id */
-            project_id?: number | null;
+            /** Production Id */
+            production_id?: number | null;
             /**
              * Spoken Profile
              * @default spoken_1
@@ -6140,8 +6140,8 @@ export interface components {
              * @default
              */
             playable: string;
-            /** Project Id */
-            project_id?: number | null;
+            /** Production Id */
+            production_id?: number | null;
             /**
              * Size Bytes
              * @default 0
@@ -6410,8 +6410,8 @@ export interface components {
         /** VisualSceneResponse */
         VisualSceneResponse: {
             document: components["schemas"]["VisualSceneDocument"];
-            /** Project Id */
-            project_id: number;
+            /** Production Id */
+            production_id: number;
             /** Revision */
             revision: number;
             /** Updated At */
@@ -7002,8 +7002,8 @@ export interface components {
              * @default
              */
             preview_filename: string;
-            /** Projects */
-            projects: number;
+            /** Productions */
+            productions: number;
             /** Spend */
             spend: number;
             /** Uses */
@@ -7240,8 +7240,8 @@ export interface components {
             last_used?: string | null;
             /** Latest Preview */
             latest_preview?: string | null;
-            /** Projects */
-            projects: number;
+            /** Productions */
+            productions: number;
             /** Spend */
             spend: number;
             /** Uses */
@@ -7406,8 +7406,8 @@ export interface components {
             files: components["schemas"]["WorkspaceFileResponse"][];
             /** Folders */
             folders: components["schemas"]["WorkspaceFolderResponse"][];
-            /** Projects */
-            projects: components["schemas"]["ProjectResponse"][];
+            /** Productions */
+            productions: components["schemas"]["ProductionResponse"][];
             workspace: components["schemas"]["WorkspaceResponse"];
         };
         /** WorkspaceResponse */
@@ -7431,10 +7431,10 @@ export interface components {
             /** Name */
             name: string;
             /**
-             * Project Count
+             * Production Count
              * @default 0
              */
-            project_count: number;
+            production_count: number;
             /** Public Id */
             public_id: string;
             /** Updated At */
@@ -7502,12 +7502,12 @@ export interface operations {
             };
         };
     };
-    keepFreesoundFileInAudiovisualProject: {
+    keepFreesoundFileInAudiovisualProduction: {
         parameters: {
             query?: never;
             header?: never;
             path: {
-                project_id: number;
+                production_id: number;
             };
             cookie?: never;
         };
@@ -7682,7 +7682,7 @@ export interface operations {
     listRecentAudioGenerations: {
         parameters: {
             query?: {
-                project_id?: number | null;
+                production_id?: number | null;
                 workspace_id?: number | null;
             };
             header?: never;
@@ -7822,13 +7822,13 @@ export interface operations {
             };
         };
     };
-    keepGeneratedAudioFileInAudiovisualProject: {
+    keepGeneratedAudioFileInAudiovisualProduction: {
         parameters: {
             query?: never;
             header?: never;
             path: {
                 candidate_id: string;
-                project_id: number;
+                production_id: number;
             };
             cookie?: never;
         };
@@ -8068,7 +8068,7 @@ export interface operations {
         parameters: {
             query: {
                 workspace_id: number;
-                project_id?: number | null;
+                production_id?: number | null;
                 limit?: number;
             };
             header?: never;
@@ -8754,7 +8754,7 @@ export interface operations {
             };
         };
     };
-    uploadProjectCover: {
+    uploadProductionCover: {
         parameters: {
             query?: never;
             header?: {
@@ -8785,7 +8785,7 @@ export interface operations {
             };
         };
     };
-    createProjectImport: {
+    createProductionImport: {
         parameters: {
             query?: never;
             header?: {
@@ -8796,7 +8796,7 @@ export interface operations {
         };
         requestBody: {
             content: {
-                "application/json": components["schemas"]["ProjectImportExecuteBody"];
+                "application/json": components["schemas"]["ProductionImportExecuteBody"];
             };
         };
         responses: {
@@ -8820,7 +8820,7 @@ export interface operations {
             };
         };
     };
-    validateProjectImport: {
+    validateProductionImport: {
         parameters: {
             query?: never;
             header?: never;
@@ -8829,7 +8829,7 @@ export interface operations {
         };
         requestBody: {
             content: {
-                "application/json": components["schemas"]["ProjectImportValidationBody"];
+                "application/json": components["schemas"]["ProductionImportValidationBody"];
             };
         };
         responses: {
@@ -8839,7 +8839,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["ProjectImportValidationEnvelope"];
+                    "application/json": components["schemas"]["ProductionImportValidationEnvelope"];
                 };
             };
             /** @description Validation Error */
@@ -8853,7 +8853,7 @@ export interface operations {
             };
         };
     };
-    renderAudioProject: {
+    renderAudioProduction: {
         parameters: {
             query?: never;
             header?: never;
@@ -8862,7 +8862,7 @@ export interface operations {
         };
         requestBody: {
             content: {
-                "application/json": components["schemas"]["AudioProject"];
+                "application/json": components["schemas"]["AudioProduction"];
             };
         };
         responses: {
@@ -8872,7 +8872,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["ProjectRenderEnvelope"];
+                    "application/json": components["schemas"]["ProductionRenderEnvelope"];
                 };
             };
             /** @description Validation Error */
@@ -8886,12 +8886,12 @@ export interface operations {
             };
         };
     };
-    getAudiovisualProject: {
+    getAudiovisualProduction: {
         parameters: {
             query?: never;
             header?: never;
             path: {
-                project_identifier: string;
+                production_identifier: string;
             };
             cookie?: never;
         };
@@ -8903,7 +8903,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["ProjectMutationEnvelope"];
+                    "application/json": components["schemas"]["ProductionMutationEnvelope"];
                 };
             };
             /** @description Validation Error */
@@ -8917,12 +8917,12 @@ export interface operations {
             };
         };
     };
-    deleteProject: {
+    deleteProduction: {
         parameters: {
             query?: never;
             header?: never;
             path: {
-                project_id: number;
+                production_id: number;
             };
             cookie?: never;
         };
@@ -8948,12 +8948,12 @@ export interface operations {
             };
         };
     };
-    updateProject: {
+    updateProduction: {
         parameters: {
             query?: never;
             header?: never;
             path: {
-                project_id: number;
+                production_id: number;
             };
             cookie?: never;
         };
@@ -8969,7 +8969,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["ProjectMutationEnvelope"];
+                    "application/json": components["schemas"]["ProductionMutationEnvelope"];
                 };
             };
             /** @description Validation Error */
@@ -8983,12 +8983,12 @@ export interface operations {
             };
         };
     };
-    getAudiovisualProjectEditor: {
+    getAudiovisualProductionEditor: {
         parameters: {
             query?: never;
             header?: never;
             path: {
-                project_id: string;
+                production_id: string;
             };
             cookie?: never;
         };
@@ -9000,7 +9000,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["ProjectEditorEnvelope"];
+                    "application/json": components["schemas"]["ProductionEditorEnvelope"];
                 };
             };
             /** @description Validation Error */
@@ -9014,12 +9014,12 @@ export interface operations {
             };
         };
     };
-    listProjectFiles: {
+    listProductionFiles: {
         parameters: {
             query?: never;
             header?: never;
             path: {
-                project_id: string;
+                production_id: string;
             };
             cookie?: never;
         };
@@ -9031,7 +9031,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["ProjectFileLibraryEnvelope"];
+                    "application/json": components["schemas"]["ProductionFileLibraryEnvelope"];
                 };
             };
             /** @description Validation Error */
@@ -9045,7 +9045,7 @@ export interface operations {
             };
         };
     };
-    uploadAudiovisualProjectFile: {
+    uploadAudiovisualProductionFile: {
         parameters: {
             query?: never;
             header?: {
@@ -9055,7 +9055,7 @@ export interface operations {
                 "x-file-tags"?: string | null;
             };
             path: {
-                project_id: number;
+                production_id: number;
             };
             cookie?: never;
         };
@@ -9081,18 +9081,18 @@ export interface operations {
             };
         };
     };
-    importProjectDocument: {
+    importProductionDocument: {
         parameters: {
             query?: never;
             header?: never;
             path: {
-                project_id: number;
+                production_id: number;
             };
             cookie?: never;
         };
         requestBody: {
             content: {
-                "application/json": components["schemas"]["ProjectImportBody"];
+                "application/json": components["schemas"]["ProductionImportBody"];
             };
         };
         responses: {
@@ -9102,7 +9102,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["ProjectImportEnvelope"];
+                    "application/json": components["schemas"]["ProductionImportEnvelope"];
                 };
             };
             /** @description Validation Error */
@@ -9116,12 +9116,12 @@ export interface operations {
             };
         };
     };
-    attachProjectLibraryFile: {
+    attachProductionLibraryFile: {
         parameters: {
             query?: never;
             header?: never;
             path: {
-                project_id: string;
+                production_id: string;
             };
             cookie?: never;
         };
@@ -9151,12 +9151,12 @@ export interface operations {
             };
         };
     };
-    detachProjectLibraryFile: {
+    detachProductionLibraryFile: {
         parameters: {
             query?: never;
             header?: never;
             path: {
-                project_id: string;
+                production_id: string;
                 file_id: number;
             };
             cookie?: never;
@@ -9183,12 +9183,12 @@ export interface operations {
             };
         };
     };
-    deleteProjectParts: {
+    deleteProductionParts: {
         parameters: {
             query?: never;
             header?: never;
             path: {
-                project_id: number;
+                production_id: number;
             };
             cookie?: never;
         };
@@ -9218,12 +9218,12 @@ export interface operations {
             };
         };
     };
-    addProjectDraft: {
+    addProductionDraft: {
         parameters: {
             query?: never;
             header?: never;
             path: {
-                project_id: number;
+                production_id: number;
             };
             cookie?: never;
         };
@@ -9253,12 +9253,12 @@ export interface operations {
             };
         };
     };
-    insertProjectFile: {
+    insertProductionFile: {
         parameters: {
             query?: never;
             header?: never;
             path: {
-                project_id: number;
+                production_id: number;
             };
             cookie?: never;
         };
@@ -9288,12 +9288,12 @@ export interface operations {
             };
         };
     };
-    moveProjectParts: {
+    moveProductionParts: {
         parameters: {
             query?: never;
             header?: never;
             path: {
-                project_id: number;
+                production_id: number;
             };
             cookie?: never;
         };
@@ -9323,12 +9323,12 @@ export interface operations {
             };
         };
     };
-    reorderProjectParts: {
+    reorderProductionParts: {
         parameters: {
             query?: never;
             header?: never;
             path: {
-                project_id: number;
+                production_id: number;
             };
             cookie?: never;
         };
@@ -9358,12 +9358,12 @@ export interface operations {
             };
         };
     };
-    addProjectSilence: {
+    addProductionSilence: {
         parameters: {
             query?: never;
             header?: never;
             path: {
-                project_id: number;
+                production_id: number;
             };
             cookie?: never;
         };
@@ -9393,12 +9393,12 @@ export interface operations {
             };
         };
     };
-    listProjectPartCaptions: {
+    listProductionPartCaptions: {
         parameters: {
             query?: never;
             header?: never;
             path: {
-                project_id: number;
+                production_id: number;
                 part_id: number;
             };
             cookie?: never;
@@ -9425,12 +9425,12 @@ export interface operations {
             };
         };
     };
-    updateProjectPartDraft: {
+    updateProductionPartDraft: {
         parameters: {
             query?: never;
             header?: never;
             path: {
-                project_id: number;
+                production_id: number;
                 part_id: number;
             };
             cookie?: never;
@@ -9461,12 +9461,12 @@ export interface operations {
             };
         };
     };
-    duplicateProjectPart: {
+    duplicateProductionPart: {
         parameters: {
             query?: never;
             header?: never;
             path: {
-                project_id: number;
+                production_id: number;
                 part_id: number;
             };
             cookie?: never;
@@ -9493,12 +9493,12 @@ export interface operations {
             };
         };
     };
-    updateProjectPartEditorial: {
+    updateProductionPartEditorial: {
         parameters: {
             query?: never;
             header?: never;
             path: {
-                project_id: number;
+                production_id: number;
                 part_id: number;
             };
             cookie?: never;
@@ -9529,12 +9529,12 @@ export interface operations {
             };
         };
     };
-    updateProjectPartEnabled: {
+    updateProductionPartEnabled: {
         parameters: {
             query?: never;
             header?: never;
             path: {
-                project_id: number;
+                production_id: number;
                 part_id: number;
             };
             cookie?: never;
@@ -9565,12 +9565,12 @@ export interface operations {
             };
         };
     };
-    replaceProjectFile: {
+    replaceProductionFile: {
         parameters: {
             query?: never;
             header?: never;
             path: {
-                project_id: number;
+                production_id: number;
                 part_id: number;
             };
             cookie?: never;
@@ -9601,12 +9601,12 @@ export interface operations {
             };
         };
     };
-    updateProjectSilence: {
+    updateProductionSilence: {
         parameters: {
             query?: never;
             header?: never;
             path: {
-                project_id: number;
+                production_id: number;
                 part_id: number;
             };
             cookie?: never;
@@ -9637,12 +9637,12 @@ export interface operations {
             };
         };
     };
-    getProjectScene: {
+    getProductionScene: {
         parameters: {
             query?: never;
             header?: never;
             path: {
-                project_id: string;
+                production_id: string;
             };
             cookie?: never;
         };
@@ -9654,7 +9654,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["ProjectEnvelope"];
+                    "application/json": components["schemas"]["ProductionEnvelope"];
                 };
             };
             /** @description Validation Error */
@@ -9668,12 +9668,12 @@ export interface operations {
             };
         };
     };
-    getProjectSoundScene: {
+    getProductionSoundScene: {
         parameters: {
             query?: never;
             header?: never;
             path: {
-                project_id: number;
+                production_id: number;
             };
             cookie?: never;
         };
@@ -9699,12 +9699,12 @@ export interface operations {
             };
         };
     };
-    updateProjectSoundScene: {
+    updateProductionSoundScene: {
         parameters: {
             query?: never;
             header?: never;
             path: {
-                project_id: number;
+                production_id: number;
             };
             cookie?: never;
         };
@@ -9734,12 +9734,12 @@ export interface operations {
             };
         };
     };
-    redoProjectSoundScene: {
+    redoProductionSoundScene: {
         parameters: {
             query?: never;
             header?: never;
             path: {
-                project_id: number;
+                production_id: number;
             };
             cookie?: never;
         };
@@ -9765,12 +9765,12 @@ export interface operations {
             };
         };
     };
-    undoProjectSoundScene: {
+    undoProductionSoundScene: {
         parameters: {
             query?: never;
             header?: never;
             path: {
-                project_id: number;
+                production_id: number;
             };
             cookie?: never;
         };
@@ -9796,12 +9796,12 @@ export interface operations {
             };
         };
     };
-    getProjectVisualScene: {
+    getProductionVisualScene: {
         parameters: {
             query?: never;
             header?: never;
             path: {
-                project_id: number;
+                production_id: number;
             };
             cookie?: never;
         };
@@ -9827,12 +9827,12 @@ export interface operations {
             };
         };
     };
-    updateProjectVisualScene: {
+    updateProductionVisualScene: {
         parameters: {
             query?: never;
             header?: never;
             path: {
-                project_id: number;
+                production_id: number;
             };
             cookie?: never;
         };
@@ -11313,7 +11313,7 @@ export interface operations {
             };
         };
     };
-    createAudiovisualProject: {
+    createAudiovisualProduction: {
         parameters: {
             query?: never;
             header?: never;
@@ -11324,7 +11324,7 @@ export interface operations {
         };
         requestBody: {
             content: {
-                "application/json": components["schemas"]["AudiovisualProjectCreateRequest"];
+                "application/json": components["schemas"]["AudiovisualProductionCreateRequest"];
             };
         };
         responses: {
@@ -11334,7 +11334,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["ProjectMutationEnvelope"];
+                    "application/json": components["schemas"]["ProductionMutationEnvelope"];
                 };
             };
             /** @description Validation Error */

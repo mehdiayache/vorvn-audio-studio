@@ -58,7 +58,7 @@ class Job:
     finished_at: datetime | None = None
     part_id: int | None = None
     workspace_id: int | None = None
-    project_id: int | None = None
+    production_id: int | None = None
     creation_action_id: str | None = None
     creation_preset_id: str | None = None
     creation_context: dict[str, Any] = field(default_factory=dict)

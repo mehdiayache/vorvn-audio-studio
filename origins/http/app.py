@@ -21,7 +21,7 @@ from origins.http.errors import (
 )
 from origins.domain.jobs import IdempotencyConflict
 from origins.http.routers.system import router as system_router
-from origins.http.routers.projects import router as projects_router
+from origins.http.routers.productions import router as productions_router
 from origins.http.routers.jobs import router as jobs_router
 from origins.http.routers.workspaces import router as workspaces_router
 from origins.http.routers.activity import router as activity_router
@@ -34,12 +34,12 @@ from origins.http.routers.voices import router as voices_router
 from origins.http.routers.uploads import router as uploads_router
 from origins.http.routers.creator_recordings import router as creator_recordings_router
 from origins.http.routers.creator_drafts import router as creator_drafts_router
-from origins.http.routers.audio_projects import router as audio_projects_router
+from origins.http.routers.audio_productions import router as audio_productions_router
 from origins.http.routers.sound_scenes import router as sound_scenes_router
 from origins.http.routers.visual_scenes import router as visual_scenes_router
 from origins.http.routers.audio_catalogs import router as audio_catalogs_router
 from origins.http.routers.audio_generations import router as audio_generations_router
-from origins.http.routers.project_imports import router as project_imports_router
+from origins.http.routers.production_imports import router as production_imports_router
 from origins.http.routers.creator import router as creator_router
 from origins.http.routers.provider_callbacks import router as provider_callbacks_router
 from origins.http.routers.saved_references import router as saved_references_router
@@ -70,7 +70,7 @@ app.add_exception_handler(ApiProblem, problem_handler)
 app.add_exception_handler(RequestValidationError, validation_handler)
 app.add_exception_handler(IdempotencyConflict, idempotency_handler)
 app.include_router(system_router)
-app.include_router(projects_router)
+app.include_router(productions_router)
 app.include_router(jobs_router)
 app.include_router(workspaces_router)
 app.include_router(activity_router)
@@ -83,12 +83,12 @@ app.include_router(voices_router)
 app.include_router(uploads_router)
 app.include_router(creator_recordings_router)
 app.include_router(creator_drafts_router)
-app.include_router(audio_projects_router)
+app.include_router(audio_productions_router)
 app.include_router(sound_scenes_router)
 app.include_router(visual_scenes_router)
 app.include_router(audio_catalogs_router)
 app.include_router(audio_generations_router)
-app.include_router(project_imports_router)
+app.include_router(production_imports_router)
 app.include_router(creator_router)
 app.include_router(provider_callbacks_router)
 app.include_router(saved_references_router)

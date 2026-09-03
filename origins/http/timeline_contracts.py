@@ -1,4 +1,4 @@
-"""Public response contracts for Project Timeline commands."""
+"""Public response contracts for Production Timeline commands."""
 
 from __future__ import annotations
 

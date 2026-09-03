@@ -56,7 +56,7 @@ export function useCaptionPresentation(): [CaptionProfile, (profile: CaptionProf
   return [profile, setCaptionPresentation]
 }
 
-function projectLayout(layout: CaptionLayout, partId: number | undefined, offsetMs: number): PlayerCaptionCue[] {
+function productionLayout(layout: CaptionLayout, partId: number | undefined, offsetMs: number): PlayerCaptionCue[] {
   return layout.cues.map((cue, index, cues) => ({
     startMs: offsetMs + Number(cue.start || 0),
     endMs: offsetMs + Number(cue.end ?? cues[index + 1]?.start ?? cue.start),
@@ -78,7 +78,7 @@ export async function loadCaptionPresentations({
 }): Promise<Record<CaptionProfile, PlayerCaptionCue[]>> {
   const entries = await Promise.all(CAPTION_PRESENTATION_MODES.map(async ({ key }) => {
     try {
-      return [key, projectLayout(await originsApi.subtitleLayout(transcriptId, key), partId, offsetMs)] as const
+      return [key, productionLayout(await originsApi.subtitleLayout(transcriptId, key), partId, offsetMs)] as const
     } catch {
       return [key, fallback] as const
     }

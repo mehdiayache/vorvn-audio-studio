@@ -81,10 +81,10 @@ async def _image(request: Request, filename: str) -> dict:
 
 
 @router.post(
-    "/project-covers/upload", operation_id="uploadProjectCover",
+    "/production-covers/upload", operation_id="uploadProductionCover",
     response_model=UploadedImageEnvelope,
 )
-async def upload_project_cover(request: Request,
+async def upload_production_cover(request: Request,
                                x_filename: str = Header(default="image.png")) -> dict:
     return await _image(request, x_filename)
 
@@ -146,22 +146,22 @@ async def upload_workspace_file(
 
 
 @router.post(
-    "/projects/{project_id}/files/upload",
-    operation_id="uploadAudiovisualProjectFile",
+    "/productions/{production_id}/files/upload",
+    operation_id="uploadAudiovisualProductionFile",
     status_code=201,
     response_model=UploadedFileEnvelope,
 )
-async def upload_audiovisual_project_file(
-    project_id: int, request: Request,
+async def upload_audiovisual_production_file(
+    production_id: int, request: Request,
     x_filename: str = Header(default="media.mp3"),
     x_file_category: str | None = Header(default=None),
     x_file_name: str | None = Header(default=None),
     x_file_tags: str | None = Header(default=None),
 ) -> dict:
-    project = workspace_service.project(str(project_id))
-    if not project:
-        raise ApiProblem(404, "project_not_found",
-                         "Audiovisual Project not found.")
+    production = workspace_service.production(str(production_id))
+    if not production:
+        raise ApiProblem(404, "production_not_found",
+                         "Audiovisual Production not found.")
     try:
         details = upload_service.prepare_file_upload(
             x_filename, name=x_file_name, category=x_file_category,
@@ -171,10 +171,10 @@ async def upload_audiovisual_project_file(
     incoming, size = await _stream_to_file(request, MAX_FILE_UPLOAD_BYTES)
     try:
         result = upload_service.save_workspace_file(
-            project["workspace_id"], incoming, size, x_filename, details=details,
-            folder_id=project.get("folder_id"))
-        if not workspace_service.attach_file(project_id, result["id"], "media"):
-            raise RuntimeError("The File could not be associated with this Project.")
+            production["workspace_id"], incoming, size, x_filename, details=details,
+            folder_id=production.get("folder_id"))
+        if not workspace_service.attach_file(production_id, result["id"], "media"):
+            raise RuntimeError("The File could not be associated with this Production.")
     except UploadError as exc:
         raise ApiProblem(400, "invalid_file", str(exc)) from exc
     except RuntimeError as exc:

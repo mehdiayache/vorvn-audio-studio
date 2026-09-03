@@ -35,7 +35,7 @@ const tracks: SoundSceneTrack[] = [
   }]),
 ]
 const scene: SoundScene = {
-  project_id: 1, revision: 1,
+  production_id: 1, revision: 1,
   document: { version: 1, sequence_overrides: {}, tracks },
   can_undo: false, can_redo: false, updated_at: new Date().toISOString(),
   resolved: {

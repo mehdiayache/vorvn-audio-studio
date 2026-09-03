@@ -14,11 +14,11 @@ from origins.infrastructure.postgres.session import read_only, transaction
 KIND_LABELS = {
     "speech": "Speech", "transcribe": "Subtitles",
     "translate": "Translation", "rewrite": "Text preparation",
-    "render": "Project render", "clone": "Voice cloning",
+    "render": "Production render", "clone": "Voice cloning",
     "audio_generate": "Audio generation",
     "sound_preset_normalize": "Sound Preset",
     "media_generate": "Media generation",
-    "project_deleted": "Project deleted",
+    "production_deleted": "Production deleted",
 }
 
 
@@ -58,7 +58,7 @@ def _run(row) -> dict[str, Any]:
      model, voice, detail, error, estimated, cost, chars, seconds, elapsed_ms,
      actor_id, organization_id, provider_request_id, provider_region,
      provider_endpoint, price_version, currency, output_ids, usage,
-     project_id, project_name, cost_basis, created_at, started_at,
+     production_id, production_name, cost_basis, created_at, started_at,
      finished_at, provider_diagnostics, provider_request_ids,
      provider_attempt_status, provider_attempt_id, result) = row
     label = KIND_LABELS.get(kind, kind.replace("_", " ").title())
@@ -95,8 +95,8 @@ def _run(row) -> dict[str, Any]:
             "estimate", "estimated_cost", "needs_confirmation",
             "requires_review", "ambiguous", "continued_by_job_id")
                             if key in (result or {})},
-        "project_id": project_id, "project_name": project_name,
-        "where": project_name or source_tool or PRODUCT_NAME,
+        "production_id": production_id, "production_name": production_name,
+        "where": production_name or source_tool or PRODUCT_NAME,
         "cost_basis": _basis(cost_basis),
         "cost_basis_raw": cost_basis or "unknown", "children": 0,
         "record_type": "job", "event_detail": {},
@@ -106,13 +106,13 @@ def _run(row) -> dict[str, Any]:
 def _deletion_receipt(row) -> dict[str, Any]:
     internal_id, public_id, when, actor_id, organization_id, detail = row
     receipt = detail or {}
-    summary = f"{receipt.get('name') or 'Project'} was permanently deleted."
+    summary = f"{receipt.get('name') or 'Production'} was permanently deleted."
     return {
         "id": str(public_id), "internal_id": int(internal_id),
         "when": when.isoformat(), "created_at": when.isoformat(),
         "started_at": None, "finished_at": when.isoformat(),
-        "kind": "project_deleted", "kind_label": "Permanent deletion",
-        "operation": "Project deleted", "source_tool": "projects",
+        "kind": "production_deleted", "kind_label": "Permanent deletion",
+        "operation": "Production deleted", "source_tool": "productions",
         "status": "ok", "model": None, "voice": None,
         "detail": summary, "error": "", "diagnostic_id": None,
         "estimated": 0.0, "cost": 0.0, "chars": 0, "seconds": 0.0,
@@ -124,8 +124,8 @@ def _deletion_receipt(row) -> dict[str, Any]:
         "usage": {}, "provider_diagnostics": [], "provider_request_ids": [],
         "provider_attempt_status": None, "provider_attempt_id": None,
         "requires_review": False, "needs_confirmation": False,
-        "review_evidence": {}, "project_id": None,
-        "project_name": receipt.get("name"),
+        "review_evidence": {}, "production_id": None,
+        "production_name": receipt.get("name"),
         "where": receipt.get("name") or PRODUCT_NAME,
         "cost_basis": "not_billed", "cost_basis_raw": "not_billed",
         "children": 0, "record_type": "audit", "event_detail": receipt,
@@ -153,14 +153,14 @@ class ActivityRepository:
                    job.organization_id, job.provider_request_id,
                    job.provider_region, job.provider_endpoint,
                    job.price_version, job.currency, job.output_ids, job.usage,
-                   job.project_id, project.name, job.cost_basis,
+                   job.production_id, production.name, job.cost_basis,
                    job.created_at, job.started_at, job.finished_at,
                    job.result->'provider_diagnostics',
                    job.result->'request_ids', attempt.status, attempt.public_id,
                    job.result
               FROM jobs job
-              LEFT JOIN projects project
-                ON project.id = job.project_id
+              LEFT JOIN productions production
+                ON production.id = job.production_id
               LEFT JOIN LATERAL (
                 SELECT (array_agg(status ORDER BY created_at DESC, id DESC))[1]
                            AS status,
@@ -179,15 +179,15 @@ class ActivityRepository:
         with read_only() as cursor:
             cursor.execute(query, (*parameters, limit))
             job_runs = [_run(row) for row in cursor.fetchall()]
-            include_receipts = not failed_only and kind in {"", "project_deleted"}
+            include_receipts = not failed_only and kind in {"", "production_deleted"}
             receipts = []
             if include_receipts:
                 cursor.execute("""
                     SELECT id, public_id, created_at, actor_id,
                            organization_id, detail
                       FROM audit_records
-                     WHERE action='project.deleted'
-                       AND resource_type='project'
+                     WHERE action='production.deleted'
+                       AND resource_type='production'
                      ORDER BY created_at DESC LIMIT %s
                 """, (limit,))
                 receipts = [_deletion_receipt(row) for row in cursor.fetchall()]
@@ -258,8 +258,8 @@ class ActivityRepository:
             totals = cursor.fetchone()
             cursor.execute("""
                 SELECT count(*) FROM audit_records
-                 WHERE action='project.deleted'
-                   AND resource_type='project'
+                 WHERE action='production.deleted'
+                   AND resource_type='production'
             """)
             deletion_count = int(cursor.fetchone()[0] or 0)
             cursor.execute("""
@@ -305,7 +305,7 @@ class ActivityRepository:
             } for row in cursor.fetchall()]
             if deletion_count:
                 by_kind.append({
-                    "kind": "project_deleted", "runs": deletion_count,
+                    "kind": "production_deleted", "runs": deletion_count,
                     "cost": 0.0, "problems": 0,
                 })
         return {

@@ -19,7 +19,7 @@ from origins.providers.media_generation import (
 
 
 class MediaGenerationFiles(Protocol):
-    def list_for_project(self, project_id: int) -> list[dict]: ...
+    def list_for_production(self, production_id: int) -> list[dict]: ...
     def list_for_workspace(self, workspace_id: int) -> list[dict]: ...
 
 
@@ -65,12 +65,12 @@ class MediaGenerationHandler:
         operation = next(iter(snapshot.get("operations") or []), None)
         if not operation:
             raise JobFailed("This generation has no capability snapshot.")
-        project_id = payload.get("project_id")
+        production_id = payload.get("production_id")
         workspace_id = int(payload["workspace_id"])
         available = {
             int(file["id"]): file
-            for file in (self.files.list_for_project(int(project_id))
-                         if project_id is not None
+            for file in (self.files.list_for_production(int(production_id))
+                         if production_id is not None
                          else self.files.list_for_workspace(workspace_id))
         }
         preset = payload.get("preset") or {}

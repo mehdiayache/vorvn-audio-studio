@@ -18,7 +18,7 @@ export function SpeechRecordingContext({ presentation }: { presentation: SpeechC
         <span><Mic2 /><b>{creator.selectedIdentity?.name || "Choose a Voice"}</b></span>
         <small>{creator.currentRoute ? `${creator.methodLabel} · ${creator.currentRoute.modelId}` : "Exact recording method required"}</small>
       </div>
-      <div className="creator-recording-facts"><span>{creator.language}</span><span>{creator.format.toUpperCase()}</span><span>{presentation === "mega" ? "Speak" : "Project"}</span></div>
+      <div className="creator-recording-facts"><span>{creator.language}</span><span>{creator.format.toUpperCase()}</span><span>{presentation === "mega" ? "Speak" : "Production"}</span></div>
       <span className="creator-recording-trigger">{open ? "Collapse" : incomplete ? "Complete setup" : "Edit setup"}<ChevronDown className={cn(open && "is-open")} /></span>
     </summary>
     <div className="creator-recording-content"><SpeechCreationRoute /></div>

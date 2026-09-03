@@ -15,34 +15,34 @@ from origins.infrastructure.postgres.session import read_only, transaction
 
 class VisualSceneRepository:
     @staticmethod
-    def _ensure(cursor, project_id: int) -> None:
+    def _ensure(cursor, production_id: int) -> None:
         cursor.execute("""
-            INSERT INTO visual_scenes (project_id, document)
-            SELECT id, %s::jsonb FROM projects
+            INSERT INTO visual_scenes (production_id, document)
+            SELECT id, %s::jsonb FROM productions
              WHERE id=%s AND status <> 'archived'
-            ON CONFLICT (project_id) DO NOTHING
-        """, (json.dumps(empty_scene()), project_id))
+            ON CONFLICT (production_id) DO NOTHING
+        """, (json.dumps(empty_scene()), production_id))
 
-    def get(self, project_id: int) -> dict[str, Any] | None:
+    def get(self, production_id: int) -> dict[str, Any] | None:
         with transaction() as cursor:
-            self._ensure(cursor, project_id)
+            self._ensure(cursor, production_id)
             cursor.execute("""
                 SELECT revision, document, updated_at
-                  FROM visual_scenes WHERE project_id=%s
-            """, (project_id,))
+                  FROM visual_scenes WHERE production_id=%s
+            """, (production_id,))
             row = cursor.fetchone()
         if not row:
             return None
         return {
-            "project_id": project_id,
+            "production_id": production_id,
             "revision": int(row[0]),
             "document": normalize_scene(row[1]),
             "updated_at": row[2].isoformat(),
         }
 
-    def for_render(self, project_id: int) -> dict[str, Any] | None:
+    def for_render(self, production_id: int) -> dict[str, Any] | None:
         """Return canonical placements with their current local media sources."""
-        scene = self.get(project_id)
+        scene = self.get(production_id)
         if not scene:
             return None
         file_ids = sorted({
@@ -50,7 +50,7 @@ class VisualSceneRepository:
             for track in scene["document"]["tracks"]
             for clip in track["clips"]
         })
-        sources = self._file_sources(project_id, file_ids)
+        sources = self._file_sources(production_id, file_ids)
         return {
             **scene,
             "sources": {
@@ -61,7 +61,7 @@ class VisualSceneRepository:
 
     @staticmethod
     def _file_sources(
-        project_id: int, file_ids: list[int],
+        production_id: int, file_ids: list[int],
     ) -> dict[int, dict[str, Any]]:
         if not file_ids:
             return {}
@@ -70,16 +70,16 @@ class VisualSceneRepository:
                 SELECT file.id, file.media_type, version.filename,
                        version.duration_ms
                   FROM files file
-                  JOIN projects project ON project.id=%s
+                  JOIN productions production ON production.id=%s
                   LEFT JOIN LATERAL (
                       SELECT item.filename, item.duration_ms
                         FROM file_versions item
                        WHERE item.file_id=file.id
                        ORDER BY item.version DESC LIMIT 1
                   ) version ON true
-                 WHERE file.workspace_id=project.workspace_id
+                 WHERE file.workspace_id=production.workspace_id
                    AND file.id = ANY(%s::bigint[])
-            """, (project_id, file_ids))
+            """, (production_id, file_ids))
             return {
                 int(row[0]): {
                     "media_type": row[1], "filename": row[2] or "",
@@ -89,14 +89,14 @@ class VisualSceneRepository:
             }
 
     def validate_files(
-        self, project_id: int, document: dict[str, Any],
+        self, production_id: int, document: dict[str, Any],
     ) -> dict[str, Any]:
         scene = normalize_scene(document)
         clips = [
             clip for track in scene["tracks"] for clip in track["clips"]
         ]
         sources = self._file_sources(
-            project_id, sorted({clip["file_id"] for clip in clips}))
+            production_id, sorted({clip["file_id"] for clip in clips}))
         for track in scene["tracks"]:
             for clip in track["clips"]:
                 source = sources.get(clip["file_id"])
@@ -124,29 +124,29 @@ class VisualSceneRepository:
         return scene
 
     def commit(
-        self, project_id: int, expected_revision: int,
+        self, production_id: int, expected_revision: int,
         document: dict[str, Any],
     ) -> dict[str, Any] | None:
         canonical = normalize_scene(document)
         with transaction() as cursor:
-            self._ensure(cursor, project_id)
+            self._ensure(cursor, production_id)
             cursor.execute("""
                 SELECT revision FROM visual_scenes
-                 WHERE project_id=%s FOR UPDATE
-            """, (project_id,))
+                 WHERE production_id=%s FOR UPDATE
+            """, (production_id,))
             row = cursor.fetchone()
             if not row:
                 return None
             current = int(row[0])
             if current != int(expected_revision):
                 raise VisualSceneRevisionConflict(current)
-            canonical = self.validate_files(project_id, canonical)
+            canonical = self.validate_files(production_id, canonical)
             cursor.execute("""
                 UPDATE visual_scenes
                    SET revision=%s, document=%s::jsonb, updated_at=now()
-                 WHERE project_id=%s
+                 WHERE production_id=%s
             """, (
-                current + 1, json.dumps(canonical), project_id,
+                current + 1, json.dumps(canonical), production_id,
             ))
             file_ids = sorted({
                 int(clip["file_id"])
@@ -155,13 +155,13 @@ class VisualSceneRepository:
             })
             if file_ids:
                 cursor.execute("""
-                    INSERT INTO project_file_usages (project_id, file_id, purpose)
-                    SELECT project.id, file.id, 'timeline'
-                      FROM projects project
+                    INSERT INTO production_file_usages (production_id, file_id, purpose)
+                    SELECT production.id, file.id, 'timeline'
+                      FROM productions production
                       JOIN files file ON file.id=ANY(%s)
-                     WHERE project.id=%s
-                       AND project.project_type='audiovisual'
-                       AND project.workspace_id=file.workspace_id
-                    ON CONFLICT (project_id, file_id, purpose) DO NOTHING
-                """, (file_ids, project_id))
-        return self.get(project_id)
+                     WHERE production.id=%s
+                       AND production.production_type='audiovisual'
+                       AND production.workspace_id=file.workspace_id
+                    ON CONFLICT (production_id, file_id, purpose) DO NOTHING
+                """, (file_ids, production_id))
+        return self.get(production_id)

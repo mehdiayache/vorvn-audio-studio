@@ -57,7 +57,7 @@ export function CreatorCapabilityDispatcher({
     creationItems: creationItems.map((item) => ({
       ...item,
       folderId: context.folder_id ?? null,
-      projectAssociated: Boolean(context.project_id),
+      productionAssociated: Boolean(context.production_id),
       searchText: item.searchText || creatorCapabilityLabel(capability),
     })),
   })

@@ -8,9 +8,9 @@ from origins.infrastructure.postgres.session import read_only
 
 
 CHECKS = {
-    "every Project belongs to a Workspace": """
-        SELECT count(*) FROM projects project
-        LEFT JOIN workspaces workspace ON workspace.id = project.workspace_id
+    "every Production belongs to a Workspace": """
+        SELECT count(*) FROM productions production
+        LEFT JOIN workspaces workspace ON workspace.id = production.workspace_id
         WHERE workspace.id IS NULL
     """,
     "nested Folders stay inside one Workspace": """
@@ -18,19 +18,19 @@ CHECKS = {
         JOIN folders parent ON parent.id = folder.parent_id
         WHERE parent.workspace_id <> folder.workspace_id
     """,
-    "every canonical Part belongs to an existing Project": """
-        SELECT count(*) FROM project_parts part
-        LEFT JOIN projects project ON project.id = part.project_id
-        WHERE project.id IS NULL
+    "every canonical Part belongs to an existing Production": """
+        SELECT count(*) FROM production_parts part
+        LEFT JOIN productions production ON production.id = part.production_id
+        WHERE production.id IS NULL
     """,
     "every recording Clip belongs to a canonical Part": """
         SELECT count(*) FROM clips clip
-        LEFT JOIN project_parts part ON part.id=clip.part_id
+        LEFT JOIN production_parts part ON part.id=clip.part_id
         WHERE part.id IS NULL
     """,
     "Clip revisions never come from the future": """
         SELECT count(*) FROM clips clip
-        JOIN project_parts part ON part.id=clip.part_id
+        JOIN production_parts part ON part.id=clip.part_id
         WHERE clip.source_part_revision>part.revision
     """,
     "enrollment Jobs persist an exact execution adapter": """
@@ -70,11 +70,11 @@ CHECKS = {
                 WHERE file.id IS NULL OR file.workspace_id<>job.workspace_id
            )
     """,
-    "Project Files stay inside their Project Workspace": """
-        SELECT count(*) FROM project_file_usages usage
-        JOIN projects project ON project.id = usage.project_id
+    "Production Files stay inside their Production Workspace": """
+        SELECT count(*) FROM production_file_usages usage
+        JOIN productions production ON production.id = usage.production_id
         JOIN files file ON file.id = usage.file_id
-        WHERE file.workspace_id <> project.workspace_id
+        WHERE file.workspace_id <> production.workspace_id
     """,
     "Object Files stay inside their Object Workspace": """
         SELECT count(*) FROM object_file_usages usage

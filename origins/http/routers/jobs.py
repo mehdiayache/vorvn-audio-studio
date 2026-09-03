@@ -16,7 +16,7 @@ from origins.application.text_preparation import MODEL as TEXT_PREPARATION_MODEL
 from origins.application.translation import MODELS as TRANSLATION_MODELS
 from origins.domain.transcription import FUN_MODEL, QWEN_MODEL
 from origins.composition.jobs import job_service
-from origins.composition.project_speech import project_speech_service
+from origins.composition.production_speech import production_speech_service
 from origins.composition.catalog import catalog_service
 from origins.composition.audio_generation import audio_generation_service
 from origins.composition.workspaces import workspace_service
@@ -131,8 +131,8 @@ class SpeechJobCreate(BaseModel):
         script_target = self.context.selection.get("target") == "script_part"
         if (self.part_id or self.insert_before_part_id) and not script_target:
             raise ValueError("A Part recording requires an explicit Script target.")
-        if script_target and self.context.project_id is None:
-            raise ValueError("A Script target requires its Project.")
+        if script_target and self.context.production_id is None:
+            raise ValueError("A Script target requires its Production.")
         if self.part_id and self.insert_before_part_id:
             raise ValueError("An existing Part cannot have an insertion point.")
         return self
@@ -145,7 +145,7 @@ class TranscriptionJobCreate(BaseModel):
     name: str = Field(default="", max_length=500)
     file: str = Field(default="", max_length=500)
     part_id: int | None = Field(default=None, gt=0)
-    project_id: int | None = Field(default=None, gt=0)
+    production_id: int | None = Field(default=None, gt=0)
     workspace_id: int | None = Field(default=None, gt=0)
     playable: str = Field(default="", max_length=1000)
     size_bytes: int = Field(default=0, ge=0, le=500_000_000)
@@ -160,16 +160,16 @@ class TranscriptionJobCreate(BaseModel):
         has_url, has_file = bool(self.url.strip()), bool(self.file.strip())
         if not has_url and not has_file:
             raise ValueError("Provide either an uploaded URL or an Origins file.")
-        if has_url and (has_file or self.part_id or self.project_id):
+        if has_url and (has_file or self.part_id or self.production_id):
             raise ValueError(
-                "Uploaded audio and Project Parts are separate sources.")
+                "Uploaded audio and Production Parts are separate sources.")
         if has_file and not self.part_id:
             raise ValueError("Origins files require their Part ID.")
-        if self.part_id and not self.project_id:
-            raise ValueError("A Part transcription requires its audiovisual Project.")
-        if self.project_id and not has_file:
-            raise ValueError("A Project ID requires one of its Parts.")
-        if self.project_id is None and self.workspace_id is None:
+        if self.part_id and not self.production_id:
+            raise ValueError("A Part transcription requires its audiovisual Production.")
+        if self.production_id and not has_file:
+            raise ValueError("A Production ID requires one of its Parts.")
+        if self.production_id is None and self.workspace_id is None:
             raise ValueError("Choose a Workspace for these subtitles.")
         return self
 
@@ -188,7 +188,7 @@ class TextJobCreate(BaseModel):
     model_config = ConfigDict(extra="forbid")
     operation: Literal["shape", "tag"]
     text: str = Field(min_length=1)
-    project_id: int | None = Field(default=None, gt=0)
+    production_id: int | None = Field(default=None, gt=0)
     part_id: int | None = Field(default=None, gt=0)
     density: Literal["none", "light", "normal", "heavy"] = "normal"
     spoken_profile: Literal["spoken_1", "spoken_2"] = "spoken_1"
@@ -198,7 +198,7 @@ class TextJobCreate(BaseModel):
 
 class RenderJobCreate(BaseModel):
     model_config = ConfigDict(extra="forbid")
-    project_id: int = Field(gt=0)
+    production_id: int = Field(gt=0)
     operation: Literal["preview", "export"]
     format: Literal["mp3", "mp4"] = "mp3"
     allow_incomplete: bool = False
@@ -218,7 +218,7 @@ class AudioGenerationJobCreate(BaseModel):
     authored_prompt: str | None = Field(default=None, max_length=500)
     seconds: int = Field(ge=1, le=120)
     seed: int | None = Field(default=None, ge=0, le=2_147_483_647)
-    project_id: int | None = Field(default=None, gt=0)
+    production_id: int | None = Field(default=None, gt=0)
     workspace_id: int | None = Field(default=None, gt=0)
 
     @model_validator(mode="after")
@@ -238,9 +238,9 @@ class AudioGenerationJobCreate(BaseModel):
         if self.semantic_state is not None and len(str(
                 self.semantic_state)) > 30_000:
             raise ValueError("The Sound Preset is too large.")
-        if self.project_id is None and self.workspace_id is None:
+        if self.production_id is None and self.workspace_id is None:
             raise ValueError(
-                "Choose a Workspace or an audiovisual Project for this creation.")
+                "Choose a Workspace or an audiovisual Production for this creation.")
         return self
 
 
@@ -250,7 +250,7 @@ class SoundPresetNormalizationJobCreate(BaseModel):
     capability: Literal["sfx", "music"]
     semantic_state: dict[str, Any]
     source_free_text: str = Field(default="", max_length=2_000)
-    project_id: int | None = Field(default=None, gt=0)
+    production_id: int | None = Field(default=None, gt=0)
     workspace_id: int | None = Field(default=None, gt=0)
     confirmed: bool = False
 
@@ -263,7 +263,7 @@ class SoundPresetNormalizationJobCreate(BaseModel):
 
 def _payload(job: Job) -> dict:
     context_keys = {
-        "part_id", "project_id", "transcript_id", "target", "language",
+        "part_id", "production_id", "transcript_id", "target", "language",
         "operation", "confirmed", "allow_incomplete", "capability", "seconds",
     }
     return {"id": str(job.public_id), "type": job.kind, "status": job.status,
@@ -307,13 +307,13 @@ def create_speech_job(payload: SpeechJobCreate,
     context = payload.context.model_dump(mode="json")
     script_target = payload.context.selection.get("target") == "script_part"
     if script_target:
-        # Project mutation is an internal execution fact, not a second public
+        # Production mutation is an internal execution fact, not a second public
         # destination contract.
-        values["project_id"] = payload.context.project_id
+        values["production_id"] = payload.context.production_id
         before_part = payload.insert_before_part_id
-        job, created = project_speech_service.enqueue(
+        job, created = production_speech_service.enqueue(
             values, idempotency_key=key,
-            project_id=payload.context.project_id,
+            production_id=payload.context.production_id,
             before_part_public_id=before_part,
             creation_context=context,
             operation_label=("Generate Part" if payload.part_id
@@ -335,15 +335,15 @@ def create_speech_job(payload: SpeechJobCreate,
 def create_render_job(payload: RenderJobCreate,
                       idempotency_key: str | None = Header(default=None, alias="Idempotency-Key")) -> dict:
     operation_label = (
-        "Preview project" if payload.operation == "preview"
+        "Preview production" if payload.operation == "preview"
         else "Export video" if payload.format == "mp4"
         else "Export audio"
     )
     job, created = job_service.enqueue(
         "render", payload.model_dump(),
         idempotency_key=(idempotency_key or f"render-{uuid4()}")[:200],
-        project_id=payload.project_id,
-        source_tool="project", operation_label=operation_label,
+        production_id=payload.production_id,
+        source_tool="production", operation_label=operation_label,
     )
     return {"data": _payload(job), "meta": {"created": created}}
 
@@ -355,17 +355,17 @@ def create_audio_generation_job(
     idempotency_key: str | None = Header(default=None, alias="Idempotency-Key"),
 ) -> dict:
     values = payload.model_dump()
-    if payload.project_id is not None:
-        project = workspace_service.project(str(payload.project_id))
-        if not project:
+    if payload.production_id is not None:
+        production = workspace_service.production(str(payload.production_id))
+        if not production:
             raise ApiProblem(
-                404, "project_not_found", "Audiovisual Project not found.")
-        project_workspace_id = int(project["workspace_id"])
-        if payload.workspace_id is not None and payload.workspace_id != project_workspace_id:
+                404, "production_not_found", "Audiovisual Production not found.")
+        production_workspace_id = int(production["workspace_id"])
+        if payload.workspace_id is not None and payload.workspace_id != production_workspace_id:
             raise ApiProblem(
                 400, "invalid_creation_context",
-                "The audiovisual Project does not belong to that Workspace.")
-        values["workspace_id"] = project_workspace_id
+                "The audiovisual Production does not belong to that Workspace.")
+        values["workspace_id"] = production_workspace_id
     try:
         job, created = audio_generation_service.enqueue(
             **values,
@@ -385,31 +385,31 @@ def create_sound_preset_normalization_job(
 ) -> dict:
     values = payload.model_dump()
     workspace_id = payload.workspace_id
-    if payload.project_id is not None:
-        project = workspace_service.project(str(payload.project_id))
-        if not project:
+    if payload.production_id is not None:
+        production = workspace_service.production(str(payload.production_id))
+        if not production:
             raise ApiProblem(
-                404, "project_not_found", "Audiovisual Project not found.")
-        project_workspace_id = int(project["workspace_id"])
-        if workspace_id is not None and workspace_id != project_workspace_id:
+                404, "production_not_found", "Audiovisual Production not found.")
+        production_workspace_id = int(production["workspace_id"])
+        if workspace_id is not None and workspace_id != production_workspace_id:
             raise ApiProblem(
                 400, "invalid_creation_context",
-                "The audiovisual Project does not belong to that Workspace.")
-        workspace_id = project_workspace_id
+                "The audiovisual Production does not belong to that Workspace.")
+        workspace_id = production_workspace_id
     values["workspace_id"] = workspace_id
     job, created = job_service.enqueue(
         "sound_preset_normalize", values,
         idempotency_key=(
             idempotency_key or f"sound-preset-normalization-{uuid4()}")[:200],
-        project_id=payload.project_id,
+        production_id=payload.production_id,
         workspace_id=workspace_id,
         creation_context={
             "workspace_id": workspace_id,
-            "project_id": payload.project_id,
-            "project_type": "audiovisual" if payload.project_id else None,
+            "production_id": payload.production_id,
+            "production_type": "audiovisual" if payload.production_id else None,
         },
-        source_tool="creator" if workspace_id and not payload.project_id
-        else "project",
+        source_tool="creator" if workspace_id and not payload.production_id
+        else "production",
         operation_label="Understand Sound Preset",
     )
     return {"data": _payload(job), "meta": {"created": created}}
@@ -420,33 +420,33 @@ def create_sound_preset_normalization_job(
 def create_transcription_job(payload: TranscriptionJobCreate,
                              idempotency_key: str | None = Header(default=None, alias="Idempotency-Key")) -> dict:
     workspace_id = payload.workspace_id
-    if payload.project_id is not None:
-        project = workspace_service.project(str(payload.project_id))
-        if not project:
+    if payload.production_id is not None:
+        production = workspace_service.production(str(payload.production_id))
+        if not production:
             raise ApiProblem(
-                404, "project_not_found", "Audiovisual Project not found.")
-        project_workspace_id = int(project["workspace_id"])
-        if workspace_id is not None and workspace_id != project_workspace_id:
+                404, "production_not_found", "Audiovisual Production not found.")
+        production_workspace_id = int(production["workspace_id"])
+        if workspace_id is not None and workspace_id != production_workspace_id:
             raise ApiProblem(
                 400, "invalid_creation_context",
-                "The audiovisual Project does not belong to that Workspace.")
-        workspace_id = project_workspace_id
+                "The audiovisual Production does not belong to that Workspace.")
+        workspace_id = production_workspace_id
     values = {**payload.model_dump(exclude_none=True),
               "workspace_id": workspace_id,
               "model": FUN_MODEL if payload.vocabulary_id else QWEN_MODEL}
     job, created = job_service.enqueue(
         "transcribe", values,
         idempotency_key=(idempotency_key or f"transcribe-{uuid4()}")[:200],
-        project_id=payload.project_id,
+        production_id=payload.production_id,
         part_id=payload.part_id,
         workspace_id=workspace_id,
         creation_action_id="create-subtitles",
         creation_context={
             "workspace_id": workspace_id,
-            "project_id": payload.project_id,
-            "project_type": "audiovisual" if payload.project_id else None,
+            "production_id": payload.production_id,
+            "production_type": "audiovisual" if payload.production_id else None,
         },
-        source_tool="project" if payload.project_id else "creator",
+        source_tool="production" if payload.production_id else "creator",
         operation_label="Create subtitles",
     )
     return {"data": _payload(job), "meta": {"created": created}}
@@ -486,8 +486,8 @@ def create_text_job(payload: TextJobCreate,
     job, created = job_service.enqueue(
         "rewrite", values,
         idempotency_key=(idempotency_key or f"rewrite-{uuid4()}")[:200],
-        project_id=payload.project_id,
-        source_tool="project" if payload.project_id else "creator",
+        production_id=payload.production_id,
+        source_tool="production" if payload.production_id else "creator",
         operation_label="Prepare spoken text" if payload.operation == "shape" else "Add delivery tags",
     )
     return {"data": _payload(job), "meta": {"created": created}}

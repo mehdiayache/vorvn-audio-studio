@@ -24,16 +24,16 @@ describe("LibraryQuery", () => {
     expect(queryLibraryFiles(files, createLibraryQuery({ type: "audio" })).map(({ id }) => id)).toEqual([2, 3, 4])
   })
 
-  it("distinguishes Project association, current Folder and Workspace scopes", () => {
-    const context = { projectFileIds: new Set([1, 3]), currentFolderId: 10 }
-    expect(queryLibraryFiles(files, createLibraryQuery({ scope: "project" }), context).map(({ id }) => id)).toEqual([1, 3])
+  it("distinguishes Production association, current Folder and Workspace scopes", () => {
+    const context = { productionFileIds: new Set([1, 3]), currentFolderId: 10 }
+    expect(queryLibraryFiles(files, createLibraryQuery({ scope: "production" }), context).map(({ id }) => id)).toEqual([1, 3])
     expect(queryLibraryFiles(files, createLibraryQuery({ scope: "folder" }), context).map(({ id }) => id)).toEqual([1, 2, 5])
     expect(queryLibraryFiles(files, createLibraryQuery({ scope: "workspace" }), context)).toHaveLength(files.length)
   })
 
-  it("uses actual Project usage independently from Project association", () => {
-    const context = { projectFileIds: new Set([1, 2, 3]), usedFileIds: new Set([2]) }
-    expect(queryLibraryFiles(files, createLibraryQuery({ scope: "project", usage: "used" }), context).map(({ id }) => id)).toEqual([2])
-    expect(queryLibraryFiles(files, createLibraryQuery({ scope: "project", usage: "unused" }), context).map(({ id }) => id)).toEqual([1, 3])
+  it("uses actual Production usage independently from Production association", () => {
+    const context = { productionFileIds: new Set([1, 2, 3]), usedFileIds: new Set([2]) }
+    expect(queryLibraryFiles(files, createLibraryQuery({ scope: "production", usage: "used" }), context).map(({ id }) => id)).toEqual([2])
+    expect(queryLibraryFiles(files, createLibraryQuery({ scope: "production", usage: "unused" }), context).map(({ id }) => id)).toEqual([1, 3])
   })
 })

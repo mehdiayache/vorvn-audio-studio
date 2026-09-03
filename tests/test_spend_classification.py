@@ -7,7 +7,7 @@ import psycopg
 
 from origins.config import settings
 from origins.domain.spend_classification import spend_category
-from origins.infrastructure.postgres.accounting import ProjectAccountingRepository
+from origins.infrastructure.postgres.accounting import ProductionAccountingRepository
 from origins.infrastructure.postgres.activity import ActivityRepository
 from origins.infrastructure.postgres.workspaces import WorkspaceRepository
 
@@ -17,7 +17,7 @@ class _AccountingCursor:
         pass
 
     def fetchall(self):
-        # project, all, speech, audio, video, retained, current
+        # production, all, speech, audio, video, retained, current
         return [(7, 6, 1, 1, 2, 1, 0)]
 
 
@@ -54,12 +54,12 @@ class SpendClassificationTest(unittest.TestCase):
         for kind in ("translate", "transcribe", "rewrite", "render"):
             self.assertEqual(spend_category(kind), "other")
 
-    def test_project_regression_sums_audio_video_other_and_historical(self):
+    def test_production_regression_sums_audio_video_other_and_historical(self):
         with patch(
             "origins.infrastructure.postgres.accounting.read_only",
             return_value=_cursor(_AccountingCursor()),
         ):
-            result = ProjectAccountingRepository().one(7)
+            result = ProductionAccountingRepository().one(7)
         self.assertEqual(result["audio_spend"], 1)
         self.assertEqual(result["video_spend"], 2)
         self.assertEqual(result["other_spend"], 3)
@@ -85,31 +85,31 @@ class SpendClassificationTest(unittest.TestCase):
         marker = f"accounting-regression-{uuid4().hex}"
         workspace = WorkspaceRepository().create_workspace(
             "Accounting Workspace", "Disposable accounting regression fixture")
-        project = WorkspaceRepository().create_audiovisual_project(
-            workspace["id"], "Accounting Project", "", None)
-        if project is None:
-            self.fail("Could not create the canonical Project fixture")
-        project_id = int(project["id"])
+        production = WorkspaceRepository().create_audiovisual_production(
+            workspace["id"], "Accounting Production", "", None)
+        if production is None:
+            self.fail("Could not create the canonical Production fixture")
+        production_id = int(production["id"])
         job_ids: list[int] = []
         try:
-            before = ProjectAccountingRepository().one(project_id)
+            before = ProductionAccountingRepository().one(production_id)
             with database.cursor() as cursor:
                 cursor.execute("""
                     INSERT INTO jobs
-                        (kind, status, cost, project_id, detail)
+                        (kind, status, cost, production_id, detail)
                     VALUES
                         ('speech', 'ok', 1, %s, %s),
                         ('media_generate', 'ok', 2, %s, %s),
                         ('translate', 'ok', 3, %s, %s)
                     RETURNING id
                 """, (
-                    project_id, marker,
-                    project_id, marker,
-                    project_id, marker,
+                    production_id, marker,
+                    production_id, marker,
+                    production_id, marker,
                 ))
                 job_ids = [int(row[0]) for row in cursor.fetchall()]
             database.commit()
-            after = ProjectAccountingRepository().one(project_id)
+            after = ProductionAccountingRepository().one(production_id)
             self.assertAlmostEqual(
                 after["audio_spend"] - before["audio_spend"], 1, places=6)
             self.assertAlmostEqual(

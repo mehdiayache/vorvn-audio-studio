@@ -1,4 +1,4 @@
-"""Project preview and export use cases."""
+"""Production preview and export use cases."""
 
 from __future__ import annotations
 
@@ -14,28 +14,28 @@ from origins.domain.sound_scene import audible_sequence, resolve_scene
 
 
 class RenderRecords(Protocol):
-    def project(self, project_id: int) -> dict | None: ...
-    def parts(self, project_id: int) -> list[dict]: ...
-    def sound_scene(self, project_id: int) -> dict | None: ...
-    def visual_scene(self, project_id: int) -> dict | None: ...
+    def production(self, production_id: int) -> dict | None: ...
+    def parts(self, production_id: int) -> list[dict]: ...
+    def sound_scene(self, production_id: int) -> dict | None: ...
+    def visual_scene(self, production_id: int) -> dict | None: ...
     def transcript(self, part_id: int) -> dict | None: ...
     def create_export(
-        self, project_id: int, *, artifact: FinishedExport,
+        self, production_id: int, *, artifact: FinishedExport,
     ) -> dict | None: ...
 
 
 class RenderWorkspace(Protocol):
     def duration_for_part(self, part: dict) -> int: ...
     def preview(
-        self, project_id: int, parts: list[dict], scene: dict,
+        self, production_id: int, parts: list[dict], scene: dict,
         *, skipped_drafts: int,
     ) -> dict: ...
     def finish_export(
-        self, project_id: int, project_name: str, parts: list[dict],
+        self, production_id: int, production_name: str, parts: list[dict],
         scene: dict, subtitles: dict,
     ) -> FinishedExport: ...
     def finish_video_export(
-        self, project_id: int, project_name: str, parts: list[dict],
+        self, production_id: int, production_name: str, parts: list[dict],
         scene: dict, visual_scene: dict, subtitles: dict,
     ) -> FinishedExport: ...
     def discard_export(self, artifact: FinishedExport) -> None: ...
@@ -46,16 +46,16 @@ class RenderService:
         self.records = records
         self.workspace = workspace
 
-    def _parts(self, project_id: int) -> tuple[dict, list[dict], list[dict]]:
-        project = self.records.project(project_id)
-        if not project:
-            raise RenderError("That Project does not exist.")
-        everything = [part for part in self.records.parts(project_id)
+    def _parts(self, production_id: int) -> tuple[dict, list[dict], list[dict]]:
+        production = self.records.production(production_id)
+        if not production:
+            raise RenderError("That Production does not exist.")
+        everything = [part for part in self.records.parts(production_id)
                       if part.get("enabled", True)]
         drafts = [part for part in everything if part["kind"] == "draft"]
         parts = audible_sequence(everything)
         if not parts:
-            raise RenderError("Nothing recorded in this Project yet.")
+            raise RenderError("Nothing recorded in this Production yet.")
         broken = [index + 1 for index, part in enumerate(parts)
                   if part.get("missing")]
         if broken:
@@ -63,19 +63,19 @@ class RenderService:
                 "Linked audio is missing from part"
                 + ("s " if len(broken) > 1 else " ")
                 + ", ".join(map(str, broken)) + ".")
-        return project, parts, drafts
+        return production, parts, drafts
 
-    def preview(self, project_id: int) -> dict:
-        _, parts, drafts = self._parts(project_id)
-        sound_scene = self.records.sound_scene(project_id)
+    def preview(self, production_id: int) -> dict:
+        _, parts, drafts = self._parts(production_id)
+        sound_scene = self.records.sound_scene(production_id)
         if not sound_scene:
-            raise RenderError("This Project has no Sound Scene.")
+            raise RenderError("This Production has no Sound Scene.")
         resolved = resolve_scene(
             sound_scene.get("hydrated_document", sound_scene["document"]),
             parts,
         )
         return self.workspace.preview(
-            project_id, parts, resolved,
+            production_id, parts, resolved,
             skipped_drafts=len(drafts))
 
     def _subtitles(self, parts: list[dict]) -> dict:
@@ -104,24 +104,24 @@ class RenderService:
         }
 
     def export(
-        self, project_id: int, *, allow_incomplete: bool = False,
+        self, production_id: int, *, allow_incomplete: bool = False,
         output_format: str = "mp3",
     ) -> dict:
-        project, parts, drafts = self._parts(project_id)
+        production, parts, drafts = self._parts(production_id)
         if drafts and not allow_incomplete:
             raise RenderError(
                 f"Confirm export without {len(drafts)} unrecorded Draft"
                 f"{'s' if len(drafts) > 1 else ''}.")
         subtitles = self._subtitles(parts)
-        sound_scene = self.records.sound_scene(project_id)
+        sound_scene = self.records.sound_scene(production_id)
         if not sound_scene:
-            raise RenderError("This Project has no Sound Scene.")
+            raise RenderError("This Production has no Sound Scene.")
         resolved = resolve_scene(
             sound_scene.get("hydrated_document", sound_scene["document"]),
             parts,
         )
         if output_format == "mp4":
-            visual_scene = self.records.visual_scene(project_id)
+            visual_scene = self.records.visual_scene(production_id)
             visible_clips = [
                 clip
                 for track in (visual_scene or {}).get("document", {}).get(
@@ -133,14 +133,14 @@ class RenderService:
                 raise RenderError(
                     "Add an image or video to Timeline before exporting MP4.")
             artifact = self.workspace.finish_video_export(
-                project_id, project["name"], parts, resolved,
+                production_id, production["name"], parts, resolved,
                 visual_scene, subtitles)
         else:
             artifact = self.workspace.finish_export(
-                project_id, project["name"], parts, resolved, subtitles)
+                production_id, production["name"], parts, resolved, subtitles)
         try:
             recorded = self.records.create_export(
-                project_id, artifact=artifact)
+                production_id, artifact=artifact)
             if not recorded:
                 raise RenderError("The finished Export could not be recorded.")
         except Exception:
@@ -162,11 +162,11 @@ class RenderService:
         }
 
     def handle_job(self, job, _repository) -> dict:
-        project_id = int(job.payload["project_id"])
-        return (self.preview(project_id)
+        production_id = int(job.payload["production_id"])
+        return (self.preview(production_id)
                 if job.payload["operation"] == "preview"
                 else self.export(
-                    project_id,
+                    production_id,
                     allow_incomplete=bool(
                         job.payload.get("allow_incomplete", False)),
                     output_format=str(job.payload.get("format") or "mp3"),

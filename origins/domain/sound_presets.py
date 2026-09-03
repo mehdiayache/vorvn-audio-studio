@@ -395,12 +395,12 @@ def _music_parts(state: dict[str, Any], brief: str,
                                  if "restrained dynamics" not in item]
         parts.append(_join_words(arrangement_parts))
     production = state["production"]
-    project_parts: list[str] = []
+    production_parts: list[str] = []
     for value in production.values():
         for identifier in _values(value):
-            project_parts.append(_item_prompt(identifier))
-    if project_parts:
-        parts.append(_join_words(project_parts))
+            production_parts.append(_item_prompt(identifier))
+    if production_parts:
+        parts.append(_join_words(production_parts))
     ending = state["cue_behaviour"].get("ending")
     if ending:
         parts.append(_item_prompt(ending))

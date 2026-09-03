@@ -51,7 +51,7 @@ export function OriginsRailToggle({ className, tooltipSide = "right" }: { classN
 }
 
 type StudioNavigationItem = {
-  id: "create" | "projects" | "files" | "voices" | "activity" | "settings"
+  id: "create" | "productions" | "files" | "voices" | "activity" | "settings"
   label: string
   icon: LucideIcon
   href: string
@@ -60,7 +60,7 @@ type StudioNavigationItem = {
 
 export const originsNavigation: StudioNavigationItem[] = [
   { id: "create", label: "Create", icon: Sparkles, href: "/origins/", group: "primary" },
-  { id: "projects", label: "Projects", icon: FolderKanban, href: "/origins/projects", group: "primary" },
+  { id: "productions", label: "Productions", icon: FolderKanban, href: "/origins/productions", group: "primary" },
   { id: "files", label: "Files", icon: Files, href: "/origins/files", group: "primary" },
   { id: "voices", label: "Voices", icon: UsersRound, href: "/origins/voices", group: "primary" },
   { id: "activity", label: "Activity", icon: Activity, href: "/origins/activity", group: "tools" },
@@ -73,8 +73,8 @@ export function activeOriginsDestination(pathname: string) {
       ? pathname === "/origins" || pathname === "/origins/"
         || pathname === "/origins/create"
         || pathname.startsWith("/origins/create/")
-      : item.id === "projects"
-        ? pathname === item.href || pathname.startsWith("/origins/projects/")
+      : item.id === "productions"
+        ? pathname === item.href || pathname.startsWith("/origins/productions/")
       : pathname === item.href || pathname.startsWith(`${item.href}/`)
   ))
   return match?.label || productIdentity.name
@@ -129,7 +129,7 @@ function PrimaryNavigation() {
       <div className="studio-deck-primary-links">
         {primaryItems.map((item) => {
           const Icon = item.icon
-          const itemActive = item.id === "create" || item.id === "projects"
+          const itemActive = item.id === "create" || item.id === "productions"
             ? activeOriginsDestination(location.pathname) === item.label
             : location.pathname === item.href || location.pathname.startsWith(`${item.href}/`)
           return (
@@ -188,7 +188,7 @@ function PrimaryNavigation() {
 }
 
 function railItemActive(item: StudioNavigationItem, pathname: string) {
-  return item.id === "create" || item.id === "projects"
+  return item.id === "create" || item.id === "productions"
     ? activeOriginsDestination(pathname) === item.label
     : pathname === item.href || pathname.startsWith(`${item.href}/`)
 }

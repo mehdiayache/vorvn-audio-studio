@@ -74,7 +74,7 @@ class VoiceService:
                 recording_language, installed_methods,
             )["available_routes"]
             identity["usage"] = usage.get(identity["id"], {
-                "uses": 0, "projects": 0, "spend": 0.0,
+                "uses": 0, "productions": 0, "spend": 0.0,
                 "last_used": None, "preview_filename": "",
             })
         return identities

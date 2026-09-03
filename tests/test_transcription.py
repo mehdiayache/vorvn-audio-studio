@@ -215,7 +215,7 @@ class TranscriptionTests(unittest.TestCase):
             duration_ms=2000, workspace_id=12)
         self.assertEqual(uploaded.duration_ms, 2000)
         local = TranscriptionJobCreate(
-            file="audio.mp3", part_id=44, project_id=7)
+            file="audio.mp3", part_id=44, production_id=7)
         self.assertEqual(local.part_id, 44)
         unknown_duration = TranscriptionJobCreate(
             url="https://storage.test/audio.mp3", name="audio.mp3", workspace_id=12)

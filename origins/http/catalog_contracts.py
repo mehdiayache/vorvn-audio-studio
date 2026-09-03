@@ -157,7 +157,7 @@ class VoiceMetadataEnvelope(BaseModel):
 
 class VoiceUsageResponse(BaseModel):
     uses: int
-    projects: int
+    productions: int
     spend: float
     last_used: str | None = None
     latest_preview: str | None = None

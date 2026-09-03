@@ -42,8 +42,8 @@ function operatorMessage(message: string) {
 }
 
 function hiddenRequestsKey(context: CreatorContext) {
-  const owner = context.project_id
-    ? `project-${context.project_id}`
+  const owner = context.production_id
+    ? `production-${context.production_id}`
     : context.object_id
       ? `object-${context.object_id}`
       : context.folder_id
@@ -551,7 +551,7 @@ export function MediaCreator({ context, onResult, resultAction, uploading, uploa
   if (preferredOutputUnavailable || !catalog || !model || !capability) return renderWorkspace({
     className: "media-creator-workspace",
     creatorDetail: preferredOutputUnavailable ? `${preferredOutputType === "image" ? "Image" : "Video"} unavailable` : preferredOutputType === "image" ? "Image" : "Video",
-    libraryDetail: libraryDetail || (context.project_id ? "Files collected for this Project" : "Reusable Workspace Files"),
+    libraryDetail: libraryDetail || (context.production_id ? "Files collected for this Production" : "Reusable Workspace Files"),
     creator: <div className="media-creator-loading">{preferredOutputUnavailable ? `Connect an ${preferredOutputType}-capable model to use this Creation Action.` : "Loading Media capabilities…"}{creatorError && <p className="media-creator-error" role="alert">{creatorError}</p>}</div>,
     library: renderLibrary?.(new Set(), []) || null,
   })
@@ -567,7 +567,7 @@ export function MediaCreator({ context, onResult, resultAction, uploading, uploa
     {renderWorkspace({
       className: "media-creator-workspace",
       creatorDetail: preferredOutputType === "image" ? "Image" : "Video",
-      libraryDetail: libraryDetail || `${context.project_id ? recentFileIds.length : libraryFiles.length} Files · ${generations.length} request${generations.length === 1 ? "" : "s"}${activeEstimate > 0 ? " · generation pending" : ""}`,
+      libraryDetail: libraryDetail || `${context.production_id ? recentFileIds.length : libraryFiles.length} Files · ${generations.length} request${generations.length === 1 ? "" : "s"}${activeEstimate > 0 ? " · generation pending" : ""}`,
       creator: <><MediaCreatorInput
       prompt={prompt} operations={catalog.operations.filter(({ id }) => modes.some((mode) => mode.operation === id))} operation={operation} capability={presentedCapability || capability}
       model={model} models={families} modelFamilyId={family?.id || ""} attachments={visibleAttachments} missingRoles={missing}

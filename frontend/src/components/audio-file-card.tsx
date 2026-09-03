@@ -63,7 +63,7 @@ export function AudioFileCard({ file, selected, used, playing, actionLabel = "Ad
   const provenance = fileProvenance(file)
   const replacing = actionLabel.toLocaleLowerCase().includes("replace")
   return <article className={cn("audio-file-card", `is-${category || "unclassified"}`, selected && "is-selected")}>
-    {used && <OperatorTooltip label="Used in Timeline" detail="This audio already has a placement in the current Project." side="bottom"><span className="audio-file-card-used" tabIndex={0} aria-label="Used in Timeline"><CircleCheck /></span></OperatorTooltip>}
+    {used && <OperatorTooltip label="Used in Timeline" detail="This audio already has a placement in the current Production." side="bottom"><span className="audio-file-card-used" tabIndex={0} aria-label="Used in Timeline"><CircleCheck /></span></OperatorTooltip>}
     <header className="audio-file-card-identity"><AudioSourceBadge source={provenance.source} providerId={provenance.provider} detail={provenance.detail} />{category && <AudioFamilyBadge family={category} />}</header>
     <AudioCardMain title={title} selected={selected} onSelect={onSelect} />
     <AudioCardTags tags={usage} />

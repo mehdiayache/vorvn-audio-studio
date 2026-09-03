@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest"
 
 import { clipText, formatDuration, formatExactDurationMs, formatMoney, formatTimecode, partDurationMs, textDirection } from "@/lib/format"
 
-describe("Project formatting contracts", () => {
+describe("Production formatting contracts", () => {
   it("uses the explicit duration for recorded audio", () => {
     expect(partDurationMs({ kind: "audio", duration_ms: 6360 })).toBe(6360)
   })
@@ -11,7 +11,7 @@ describe("Project formatting contracts", () => {
     expect(partDurationMs({ kind: "silence", duration_ms: null, title: "2.1" })).toBe(2100)
   })
 
-  it("formats long Project duration on one clock", () => {
+  it("formats long Production duration on one clock", () => {
     expect(formatDuration(3671)).toBe("1:01:11")
   })
 

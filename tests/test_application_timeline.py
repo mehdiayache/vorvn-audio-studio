@@ -20,47 +20,47 @@ class Records:
         self.editorial_values = []
 
     @staticmethod
-    def project(project_id):
-        return {"id": project_id} if project_id in {6, 9} else None
+    def production(production_id):
+        return {"id": production_id} if production_id in {6, 9} else None
 
-    def part(self, project_id, part_id):
-        return self.parts.get(part_id) if project_id == 6 else None
+    def part(self, production_id, part_id):
+        return self.parts.get(part_id) if production_id == 6 else None
 
     @staticmethod
-    def reorder(_project_id, _order):
+    def reorder(_production_id, _order):
         return True
 
-    def set_enabled(self, project_id, part_id, enabled):
-        self.enabled_values.append((project_id, part_id, enabled))
+    def set_enabled(self, production_id, part_id, enabled):
+        self.enabled_values.append((production_id, part_id, enabled))
         return True
 
-    def create_part(self, project_id, values,
+    def create_part(self, production_id, values,
                     before_part_public_id=None):
-        self.created.append((project_id, values, before_part_public_id))
+        self.created.append((production_id, values, before_part_public_id))
         return 101
 
     def file(self, file_id):
         return self.files.get(file_id)
 
-    def file_allowed(self, _project_id, _file_id):
+    def file_allowed(self, _production_id, _file_id):
         return self.allow_asset
 
-    def insert_file(self, project_id, file_id,
+    def insert_file(self, production_id, file_id,
                      before_part_public_id=None):
         self.inserted_assets.append(
-            (project_id, file_id, before_part_public_id))
+            (production_id, file_id, before_part_public_id))
         return 102
 
-    def replace_file(self, project_id, part_id, file_id):
-        self.replaced_assets.append((project_id, part_id, file_id))
+    def replace_file(self, production_id, part_id, file_id):
+        self.replaced_assets.append((production_id, part_id, file_id))
         return True
 
-    def duplicate(self, project_id, part_id, filename):
-        self.duplicated.append((project_id, part_id, filename))
+    def duplicate(self, production_id, part_id, filename):
+        self.duplicated.append((production_id, part_id, filename))
         return self.duplicate_id
 
-    def delete(self, project_id, ids):
-        self.deleted.append((project_id, ids))
+    def delete(self, production_id, ids):
+        self.deleted.append((production_id, ids))
         return ["part.mp3"]
 
     @staticmethod
@@ -68,10 +68,10 @@ class Records:
         return True
 
     @staticmethod
-    def save_script(_project_id, _part_id, _script, _values=None):
+    def save_script(_production_id, _part_id, _script, _values=None):
         return True
 
-    def save_editorial(self, _project_id, _part_id, expected_revision, values):
+    def save_editorial(self, _production_id, _part_id, expected_revision, values):
         self.editorial_values.append(values)
         if expected_revision != 3:
             return {"status": "conflict", "revision": 3}
@@ -79,7 +79,7 @@ class Records:
                 "outdated": True, "values": values}
 
     @staticmethod
-    def save_draft(_project_id, _part_id, _values):
+    def save_draft(_production_id, _part_id, _values):
         return True
 
 
@@ -117,7 +117,7 @@ class TimelineServiceTests(unittest.TestCase):
             self.records, self.workspace, self.transcripts)
 
     def test_missing_production_and_part_fail_before_mutation(self):
-        with self.assertRaisesRegex(TimelineError, "Project"):
+        with self.assertRaisesRegex(TimelineError, "Production"):
             self.service.add_silence(404, 2)
         with self.assertRaisesRegex(TimelineError, "Part"):
             self.service.duplicate(6, 404)

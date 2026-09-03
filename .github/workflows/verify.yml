@@ -48,16 +48,16 @@ jobs:
         run: |
           .venv/bin/python - <<'PY'
           from origins.application.workspaces import WorkspaceService
-          from origins.infrastructure.postgres.project_document import ProjectDocumentRepository
+          from origins.infrastructure.postgres.production_document import ProductionDocumentRepository
           from origins.infrastructure.postgres.workspaces import WorkspaceRepository
 
           service = WorkspaceService(WorkspaceRepository())
           workspace = service.create_workspace("CI Workspace")
-          project = service.create_audiovisual_project(
-              workspace["id"], "CI Audiovisual Project"
+          production = service.create_audiovisual_production(
+              workspace["id"], "CI Audiovisual Production"
           )
-          ProjectDocumentRepository().create_part(
-              project["id"], {"kind": "speech", "text": "CI fixture"}
+          ProductionDocumentRepository().create_part(
+              production["id"], {"kind": "speech", "text": "CI fixture"}
           )
           PY
       - name: Run full backend test suite
@@ -204,7 +204,7 @@ jobs:
           exit 1
         env:
           PYTHONWARNINGS: error
-      - name: Verify audiovisual Project workstation in Chromium
+      - name: Verify audiovisual Production workstation in Chromium
         run: pnpm test:browser:smoke
         env:
           ORIGINS_E2E_BASE_URL: http://127.0.0.1:7860

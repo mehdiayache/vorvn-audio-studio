@@ -37,8 +37,8 @@ class SpeechRepository(Protocol):
     def catalogue_voices(self) -> list[dict]: ...
     def pronunciations(self) -> list[dict]: ...
     def today_spend(self) -> float: ...
-    def part(self, part_id: int, project_id: int) -> dict | None: ...
-    def attach_clip(self, part_id: int, project_id: int,
+    def part(self, part_id: int, production_id: int) -> dict | None: ...
+    def attach_clip(self, part_id: int, production_id: int,
                     expected_revision: int,
                     values: dict[str, Any]) -> dict[str, Any]: ...
 
@@ -171,26 +171,26 @@ class SpeechGenerationService:
         commit_file: Callable[[dict[str, Any]], dict[str, Any]] | None = None,
     ) -> dict[str, Any]:
         operation = str(values.get("operation") or "create")
-        project_id = values.get("project_id")
-        project_id = int(project_id) if project_id is not None else None
+        production_id = values.get("production_id")
+        production_id = int(production_id) if production_id is not None else None
         part_id = values.get("part_id")
         part_id = int(part_id) if part_id is not None else None
         part = None
         if operation == "create":
-            if project_id is not None or part_id is not None:
+            if production_id is not None or part_id is not None:
                 raise ValueError(
-                    "Project speech must target the Part created by the command.")
+                    "Production speech must target the Part created by the command.")
             overrides = {key: value for key, value in values.items()
                          if key in _SETTING_FIELDS or key == "title"}
             effective = _defaults(overrides)
         else:
             if operation != "record":
                 raise ValueError("Unknown speech operation.")
-            if project_id is None or part_id is None:
-                raise ValueError("A Project and Part are required.")
-            part = self.repository.part(part_id, project_id)
+            if production_id is None or part_id is None:
+                raise ValueError("A Production and Part are required.")
+            part = self.repository.part(part_id, production_id)
             if not part:
-                raise LookupError("That Part no longer belongs to this Project.")
+                raise LookupError("That Part no longer belongs to this Production.")
             if part.get("kind") not in {"draft", "speech"}:
                 raise ValueError("That Part cannot contain speech.")
             inherited = {key: part.get(key) for key in _SETTING_FIELDS}
@@ -376,10 +376,10 @@ class SpeechGenerationService:
                 created_part_id = None
             else:
                 assert (part is not None and part_id is not None
-                        and project_id is not None)
+                        and production_id is not None)
                 created_part_id = part_id
                 mutation = self.repository.attach_clip(
-                    part_id, project_id,
+                    part_id, production_id,
                     int(values.get("_source_part_revision") or part["revision"]),
                     row)
                 mutation.pop("replaced_filename", None)

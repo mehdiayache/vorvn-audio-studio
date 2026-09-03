@@ -22,28 +22,28 @@ def _result(row) -> dict[str, Any]:
 class CreatorDraftRepository:
     @staticmethod
     def _validate_context(cursor, context: dict[str, Any]) -> None:
-        if context["kind"] != "project":
+        if context["kind"] != "production":
             return
-        project_id = int(context["project_id"])
+        production_id = int(context["production_id"])
         cursor.execute(
-            "SELECT 1 FROM projects WHERE id=%s",
-            (project_id,))
+            "SELECT 1 FROM productions WHERE id=%s",
+            (production_id,))
         if not cursor.fetchone():
-            raise ValueError("That Project does not exist.")
+            raise ValueError("That Production does not exist.")
         part_id = context.get("part_id")
         if part_id is not None:
             cursor.execute("""
-                SELECT 1 FROM project_parts
-                 WHERE id=%s AND project_id=%s AND archived_at IS NULL
-            """, (int(part_id), project_id))
+                SELECT 1 FROM production_parts
+                 WHERE id=%s AND production_id=%s AND archived_at IS NULL
+            """, (int(part_id), production_id))
             if not cursor.fetchone():
                 raise ValueError("That Creator Part does not exist.")
         anchor = context.get("insert_before_part_id")
         if anchor:
             cursor.execute("""
-                SELECT 1 FROM project_parts
-                 WHERE public_id=%s AND project_id=%s AND archived_at IS NULL
-            """, (str(anchor), project_id))
+                SELECT 1 FROM production_parts
+                 WHERE public_id=%s AND production_id=%s AND archived_at IS NULL
+            """, (str(anchor), production_id))
             if not cursor.fetchone():
                 raise ValueError("That insertion point no longer exists.")
 
@@ -84,7 +84,7 @@ class CreatorDraftRepository:
                         "This Creator Draft no longer exists.")
                 cursor.execute("""
                     INSERT INTO creator_working_drafts
-                        (context_key, context_kind, session_id, project_id,
+                        (context_key, context_kind, session_id, production_id,
                          part_id, insert_before_part_public_id, state)
                     VALUES (%s,%s,%s,%s,%s,%s,%s::jsonb)
                     RETURNING public_id, state, version, updated_at
@@ -92,7 +92,7 @@ class CreatorDraftRepository:
                     context_key, context["kind"],
                     (_STANDALONE_STORAGE_OWNER
                      if context["kind"] == "standalone" else None),
-                    context.get("project_id"),
+                    context.get("production_id"),
                     context.get("part_id"),
                     context.get("insert_before_part_id"), json.dumps(state),
                 ))

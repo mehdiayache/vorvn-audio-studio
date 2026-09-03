@@ -92,7 +92,7 @@ class SpeechRepository:
     def today_spend(self) -> float:
         return today_provider_spend()
 
-    def part(self, part_id: int, project_id: int) -> dict[str, Any] | None:
+    def part(self, part_id: int, production_id: int) -> dict[str, Any] | None:
         with read_only() as cursor:
             cursor.execute("""
                 SELECT part.id, part.created_at, part.kind, part.title,
@@ -103,12 +103,12 @@ class SpeechRepository:
                        clip.raw_text, clip.spoken_text, clip.tagged_text,
                        clip.binding_id, clip.catalogue_voice_id,
                        clip.capability_id, clip.snapshot
-                  FROM project_parts part
+                  FROM production_parts part
              LEFT JOIN composition_drafts draft ON draft.part_id = part.id
              LEFT JOIN clips clip ON clip.part_id = part.id
-                 WHERE part.id = %s AND part.project_id = %s
+                 WHERE part.id = %s AND part.production_id = %s
                    AND part.archived_at IS NULL
-            """, (part_id, project_id))
+            """, (part_id, production_id))
             row = cursor.fetchone()
         if not row:
             return None
@@ -143,7 +143,7 @@ class SpeechRepository:
             "capability_id": row[20] or draft.get("capability_id"),
         }
 
-    def attach_clip(self, part_id: int, project_id: int,
+    def attach_clip(self, part_id: int, production_id: int,
                     expected_revision: int,
                     values: dict[str, Any]) -> dict[str, Any]:
         with transaction() as cursor:
@@ -154,27 +154,27 @@ class SpeechRepository:
                     "A Speech recording must reference its canonical File.")
             cursor.execute("""
                 SELECT file.id, version.id
-                  FROM projects project
-                  JOIN files file ON file.workspace_id=project.workspace_id
+                  FROM productions production
+                  JOIN files file ON file.workspace_id=production.workspace_id
                   JOIN file_versions version
                     ON version.file_id=file.id AND version.id=%s
-                 WHERE project.id=%s AND file.id=%s
-                   AND project.project_type='audiovisual'
-            """, (file_version_id, project_id, file_id))
+                 WHERE production.id=%s AND file.id=%s
+                   AND production.production_type='audiovisual'
+            """, (file_version_id, production_id, file_id))
             if not cursor.fetchone():
                 raise ValueError(
-                    "That Speech File is not available in this Project Workspace.")
+                    "That Speech File is not available in this Production Workspace.")
             cursor.execute("""
                 SELECT revision, kind, script,
-                       (SELECT clip.id FROM clips clip WHERE clip.part_id = project_parts.id),
-                       (SELECT clip.filename FROM clips clip WHERE clip.part_id = project_parts.id)
-                  FROM project_parts
-                 WHERE id = %s AND project_id = %s
+                       (SELECT clip.id FROM clips clip WHERE clip.part_id = production_parts.id),
+                       (SELECT clip.filename FROM clips clip WHERE clip.part_id = production_parts.id)
+                  FROM production_parts
+                 WHERE id = %s AND production_id = %s
                    AND archived_at IS NULL FOR UPDATE
-            """, (part_id, project_id))
+            """, (part_id, production_id))
             current = cursor.fetchone()
             if not current:
-                raise LookupError("That Part no longer belongs to this Project.")
+                raise LookupError("That Part no longer belongs to this Production.")
             current_revision = int(current[0])
             kind = str(current[1] or "")
             if kind not in {"draft", "speech"}:
@@ -205,17 +205,17 @@ class SpeechRepository:
                     "clip_id": clip_id,
                 })
             cursor.execute("""
-                UPDATE project_parts
+                UPDATE production_parts
                    SET kind = 'speech', editorial_status = 'ready',
                        file_id=%s, file_version_id=%s, duration_ms=%s,
                        updated_at = now()
                  WHERE id = %s
             """, (file_id, file_version_id, values.get("duration_ms"), part_id))
             cursor.execute("""
-                INSERT INTO project_file_usages (project_id, file_id, purpose)
+                INSERT INTO production_file_usages (production_id, file_id, purpose)
                 VALUES (%s, %s, 'script')
-                ON CONFLICT (project_id, file_id, purpose) DO NOTHING
-            """, (project_id, file_id))
+                ON CONFLICT (production_id, file_id, purpose) DO NOTHING
+            """, (production_id, file_id))
             cursor.execute("DELETE FROM composition_drafts WHERE part_id = %s",
                            (part_id,))
             return {"subtitles_stale": subtitles_stale, "attached": 1,

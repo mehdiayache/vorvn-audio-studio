@@ -64,7 +64,7 @@ class ControlPlaneRepository:
             with psycopg.connect(settings.database_url) as connection:
                 with connection.cursor() as cursor:
                     cursor.execute("""
-                        SELECT (SELECT count(*) FROM project_parts),
+                        SELECT (SELECT count(*) FROM production_parts),
                                (SELECT count(*) FROM clips)
                     """)
                     parts, clips = cursor.fetchone()

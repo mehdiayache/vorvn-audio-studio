@@ -9,23 +9,23 @@ import psycopg
 
 from origins.config import settings
 from origins.infrastructure.postgres import jobs as jobs_module
-from origins.infrastructure.postgres import project_speech as project_speech_module
-from origins.infrastructure.postgres.project_speech import (
-    ProjectSpeechCommandRepository,
+from origins.infrastructure.postgres import production_speech as production_speech_module
+from origins.infrastructure.postgres.production_speech import (
+    ProductionSpeechCommandRepository,
 )
 from origins.infrastructure.postgres.workspaces import WorkspaceRepository
 from origins.domain.jobs import IdempotencyConflict
 
 
-def _create_project_fixture(label: str) -> tuple[int, int]:
+def _create_production_fixture(label: str) -> tuple[int, int]:
     repository = WorkspaceRepository()
     workspace = repository.create_workspace(
         f"{label} Workspace", "Disposable PostgreSQL regression fixture")
-    project = repository.create_audiovisual_project(
-        workspace["id"], f"{label} Project", "", None)
-    if project is None:
-        raise AssertionError("Could not create the canonical Project fixture")
-    return int(workspace["id"]), int(project["id"])
+    production = repository.create_audiovisual_production(
+        workspace["id"], f"{label} Production", "", None)
+    if production is None:
+        raise AssertionError("Could not create the canonical Production fixture")
+    return int(workspace["id"]), int(production["id"])
 
 
 def _delete_workspace(workspace_id: int) -> None:
@@ -96,21 +96,21 @@ class JobRepositoryTests(unittest.TestCase):
         except psycopg.OperationalError as exc:
             self.skipTest(str(exc))
         repository = jobs_module.JobRepository()
-        workspace_id, project_id = _create_project_fixture("Recent jobs")
+        workspace_id, production_id = _create_production_fixture("Recent jobs")
         job_ids = []
         try:
             first, _ = repository.enqueue(
                 "audio_generate", {"prompt": "first"},
                 idempotency_key=f"generation-recent-{uuid4()}",
-                project_id=project_id)
+                production_id=production_id)
             second, _ = repository.enqueue(
                 "audio_generate", {"prompt": "second"},
                 idempotency_key=f"generation-recent-{uuid4()}",
-                project_id=project_id)
+                production_id=production_id)
             job_ids.extend([first.id, second.id])
 
-            recent = repository.recent_for_project(
-                project_id, kind="audio_generate", limit=2)
+            recent = repository.recent_for_production(
+                production_id, kind="audio_generate", limit=2)
 
             self.assertEqual([job.id for job in recent],
                              [second.id, first.id])
@@ -123,29 +123,29 @@ class JobRepositoryTests(unittest.TestCase):
             connection.close()
             _delete_workspace(workspace_id)
 
-    def test_latest_render_job_recovers_export_progress_for_a_project(self):
+    def test_latest_render_job_recovers_export_progress_for_a_production(self):
         try:
             connection = psycopg.connect(settings.database_url)
         except psycopg.OperationalError as exc:
             self.skipTest(str(exc))
         repository = jobs_module.JobRepository()
-        workspace_id, project_id = _create_project_fixture("Render recovery")
+        workspace_id, production_id = _create_production_fixture("Render recovery")
         job_ids = []
         try:
             preview, _ = repository.enqueue(
-                "render", {"project_id": project_id,
+                "render", {"production_id": production_id,
                            "operation": "preview"},
                 idempotency_key=f"preview-recovery-{uuid4()}",
-                project_id=project_id)
+                production_id=production_id)
             export, _ = repository.enqueue(
-                "render", {"project_id": project_id,
+                "render", {"production_id": production_id,
                            "operation": "export"},
                 idempotency_key=f"export-recovery-{uuid4()}",
-                project_id=project_id)
+                production_id=production_id)
             job_ids.extend([preview.id, export.id])
 
-            recovered = repository.latest_for_project(
-                project_id, kind="render", operation="export")
+            recovered = repository.latest_for_production(
+                production_id, kind="render", operation="export")
             self.assertIsNotNone(recovered)
             self.assertEqual(recovered.id, export.id)
             self.assertNotEqual(recovered.id, preview.id)
@@ -158,45 +158,45 @@ class JobRepositoryTests(unittest.TestCase):
             connection.close()
             _delete_workspace(workspace_id)
 
-    def test_project_speech_creates_one_part_before_provider_and_reuses_it_on_retry(self):
+    def test_production_speech_creates_one_part_before_provider_and_reuses_it_on_retry(self):
         try:
             connection = psycopg.connect(settings.database_url)
         except psycopg.OperationalError as exc:
             self.skipTest(str(exc))
-        workspace_id, project_id = _create_project_fixture("Project speech")
-        original = project_speech_module.transaction
+        workspace_id, production_id = _create_production_fixture("Production speech")
+        original = production_speech_module.transaction
         original_jobs_transaction = jobs_module.transaction
 
         with connection.cursor() as cursor:
             cursor.execute("""
                 SELECT coalesce(max(position), -1) + 1
-                  FROM project_parts
-                 WHERE project_id=%s AND archived_at IS NULL
-            """, (project_id,))
+                  FROM production_parts
+                 WHERE production_id=%s AND archived_at IS NULL
+            """, (production_id,))
             anchor_position = int(cursor.fetchone()[0])
             cursor.execute("""
-                INSERT INTO project_parts
-                    (project_id, position, kind, script,
+                INSERT INTO production_parts
+                    (production_id, position, kind, script,
                      editorial_status, revision)
                 VALUES (%s, %s, 'silence', '', 'ready', 1)
                 RETURNING id, public_id
-            """, (project_id, anchor_position))
+            """, (production_id, anchor_position))
             anchor_id, anchor_public_id = cursor.fetchone()
             cursor.execute("""
-                INSERT INTO project_parts
-                    (project_id, position, kind, script,
+                INSERT INTO production_parts
+                    (production_id, position, kind, script,
                      editorial_status, revision, archived_at)
                 VALUES (%s, %s, 'speech', 'Archived by an older runtime',
                         'ready', 1, now())
                 RETURNING id
-            """, (project_id, anchor_position + 1))
+            """, (production_id, anchor_position + 1))
             stale_archived_id = int(cursor.fetchone()[0])
 
             @contextmanager
             def rolled_back_transaction():
                 yield cursor
 
-            project_speech_module.transaction = rolled_back_transaction
+            production_speech_module.transaction = rolled_back_transaction
             jobs_module.transaction = rolled_back_transaction
             try:
                 request = {
@@ -211,16 +211,16 @@ class JobRepositoryTests(unittest.TestCase):
                     "format": "mp3",
                     "language": "English",
                 }
-                key = f"project-speech-{uuid4()}"
-                repository = ProjectSpeechCommandRepository(
+                key = f"production-speech-{uuid4()}"
+                repository = ProductionSpeechCommandRepository(
                     jobs_module.JobRepository())
                 job, created = repository.enqueue(
                     request, idempotency_key=key,
-                    project_id=project_id,
+                    production_id=production_id,
                     creation_context={
                         "workspace_id": workspace_id,
-                        "project_id": project_id,
-                        "project_type": "audiovisual",
+                        "production_id": production_id,
+                        "production_type": "audiovisual",
                         "selection": {"target": "script_part"},
                     },
                     before_part_public_id=anchor_public_id)
@@ -230,19 +230,19 @@ class JobRepositoryTests(unittest.TestCase):
                     SELECT position, kind, script, editorial_status, revision,
                            authored_role,
                            (SELECT clip.id FROM clips clip
-                             WHERE clip.part_id = project_parts.id)
-                      FROM project_parts WHERE id=%s
+                             WHERE clip.part_id = production_parts.id)
+                      FROM production_parts WHERE id=%s
                 """, (job.part_id,))
                 self.assertEqual(cursor.fetchone(), (
                     anchor_position, "speech", "Canonical Part script",
                     "draft", 1, "Night Guide", None))
                 cursor.execute(
-                    "SELECT position FROM project_parts WHERE id=%s",
+                    "SELECT position FROM production_parts WHERE id=%s",
                     (anchor_id,))
                 self.assertEqual(cursor.fetchone()[0], anchor_position + 1)
                 cursor.execute("""
                     SELECT position, archived_position
-                      FROM project_parts WHERE id=%s
+                      FROM production_parts WHERE id=%s
                 """, (stale_archived_id,))
                 self.assertEqual(cursor.fetchone(), (
                     None, anchor_position + 1))
@@ -256,11 +256,11 @@ class JobRepositoryTests(unittest.TestCase):
                 repeated, repeated_created = (
                     repository.enqueue(
                         request, idempotency_key=key,
-                        project_id=project_id,
+                        production_id=production_id,
                         creation_context={
                             "workspace_id": workspace_id,
-                            "project_id": project_id,
-                            "project_type": "audiovisual",
+                            "production_id": production_id,
+                            "production_type": "audiovisual",
                             "selection": {"target": "script_part"},
                         },
                         before_part_public_id=anchor_public_id))
@@ -275,7 +275,7 @@ class JobRepositoryTests(unittest.TestCase):
                 """, (job.id,))
                 confirmed, confirmed_created = repository.jobs.confirm(
                     job.public_id,
-                    idempotency_key=f"project-confirm-{uuid4()}")
+                    idempotency_key=f"production-confirm-{uuid4()}")
                 self.assertTrue(confirmed_created)
                 self.assertEqual(confirmed.part_id, job.part_id)
                 self.assertEqual(confirmed.payload["operation"], "record")
@@ -285,20 +285,20 @@ class JobRepositoryTests(unittest.TestCase):
                 """, (confirmed.id,))
                 self.assertEqual(cursor.fetchone(), (job.id, job.part_id))
                 cursor.execute("""
-                    SELECT count(*) FROM project_parts
-                     WHERE project_id=%s AND script='Canonical Part script'
-                """, (project_id,))
+                    SELECT count(*) FROM production_parts
+                     WHERE production_id=%s AND script='Canonical Part script'
+                """, (production_id,))
                 self.assertEqual(cursor.fetchone()[0], 1)
 
                 retry, retry_created = (
                     repository.enqueue(
                         {**request, "part_id": job.part_id},
-                        idempotency_key=f"project-speech-retry-{uuid4()}",
-                        project_id=project_id,
+                        idempotency_key=f"production-speech-retry-{uuid4()}",
+                        production_id=production_id,
                         creation_context={
                             "workspace_id": workspace_id,
-                            "project_id": project_id,
-                            "project_type": "audiovisual",
+                            "production_id": production_id,
+                            "production_type": "audiovisual",
                             "selection": {"target": "script_part"},
                         }))
                 self.assertTrue(retry_created)
@@ -310,21 +310,21 @@ class JobRepositoryTests(unittest.TestCase):
                     repository.enqueue(
                         {**request, "part_id": job.part_id,
                          "text_raw": changed_text},
-                        idempotency_key=f"project-speech-invalid-{uuid4()}",
-                        project_id=project_id,
+                        idempotency_key=f"production-speech-invalid-{uuid4()}",
+                        production_id=production_id,
                         creation_context={
                             "workspace_id": workspace_id,
-                            "project_id": project_id,
-                            "project_type": "audiovisual",
+                            "production_id": production_id,
+                            "production_type": "audiovisual",
                             "selection": {"target": "script_part"},
                         })
                 cursor.execute("""
-                    SELECT count(*) FROM project_parts
-                     WHERE project_id=%s AND script='Canonical Part script'
-                """, (project_id,))
+                    SELECT count(*) FROM production_parts
+                     WHERE production_id=%s AND script='Canonical Part script'
+                """, (production_id,))
                 self.assertEqual(cursor.fetchone()[0], 1)
             finally:
-                project_speech_module.transaction = original
+                production_speech_module.transaction = original
                 jobs_module.transaction = original_jobs_transaction
                 connection.rollback()
                 connection.close()

@@ -5,7 +5,7 @@ import { audibleAudioClips } from "./sound-scene-audibility"
 
 function scene(tracks: SoundSceneTrack[]): SoundScene {
   return {
-    project_id: 1,
+    production_id: 1,
     revision: 1,
     document: { version: 1, sequence_overrides: {}, tracks },
     can_undo: false,

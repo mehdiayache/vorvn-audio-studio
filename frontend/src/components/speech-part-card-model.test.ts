@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest"
 
 import { recordingInputLabel, speechPartCardFacts } from "./speech-part-card-model"
-import type { DurableJob, GenerateResult, ProjectPart, VoiceDirectory } from "@/types/domain"
+import type { DurableJob, GenerateResult, ProductionPart, VoiceDirectory } from "@/types/domain"
 
 const directory = {
   config: {
@@ -16,7 +16,7 @@ const directory = {
   ],
 } as unknown as VoiceDirectory
 
-function part(values: Partial<ProjectPart> = {}): ProjectPart {
+function part(values: Partial<ProductionPart> = {}): ProductionPart {
   return {
     id: 12, created_at: "2026-08-13T10:00:00Z", position: 2, kind: "speech",
     text: "Selected immutable script", clip_id: 93,

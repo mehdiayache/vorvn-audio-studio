@@ -20,7 +20,7 @@ const profile: VoiceProfile = {
     { binding_id: "binding-2", provider_voice_id: "audio-serinity-studio", provider: "alibaba", region: "intl", provider_model_id: "alibaba:intl:audio-flash", reference_id: "ref-2", model_id: "audio-flash", engine: "audio", tier: "flash", status: "active", validation_state: "candidate", languages: ["en"], created_at: "2026-08-08" },
   ],
   jobs: [],
-  usage: { uses: 0, projects: 0, spend: 0, last_used: null, preview_filename: "" },
+  usage: { uses: 0, productions: 0, spend: 0, last_used: null, preview_filename: "" },
   available_routes: [
     { provider_model_id: "alibaba:intl:audio-flash", provider: "alibaba", region: "intl", adapter_key: "audio", engine: "audio", tier: "flash", model_id: "audio-flash", label: "Qwen Audio · Flash", role: "Exact production", language: "en", source_language_documented: true, documented_output_languages: ["English", "French"], estimated_creation_cost: 0 },
     { provider_model_id: "alibaba:intl:qwen3-tts", provider: "alibaba", region: "intl", adapter_key: "qwen_tts", engine: "qwen_tts", tier: "vc", model_id: "qwen3-tts-vc-2026-01-22", label: "Qwen3 TTS Voice Clone", role: "Exact long reading", language: "en", source_language_documented: true, documented_output_languages: ["English", "French"], estimated_creation_cost: .01 },

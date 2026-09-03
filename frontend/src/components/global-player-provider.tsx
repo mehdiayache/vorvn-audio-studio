@@ -3,7 +3,7 @@ import type { ReactNode } from "react"
 
 import { usePlayer } from "@/hooks/use-player"
 
-export type TransportHost = "shell" | "creator" | "project" | "library"
+export type TransportHost = "shell" | "creator" | "production" | "library"
 
 export type GlobalPlayerValue = ReturnType<typeof usePlayer> & {
   transportHost: TransportHost

@@ -50,7 +50,7 @@ class RecordingHistoryRepository:
                  WHERE job.kind = 'speech'
                    AND job.creation_action_id = 'generate-speech'
                    AND job.workspace_id = %s
-                   AND job.project_id IS NULL
+                   AND job.production_id IS NULL
                  ORDER BY job.created_at DESC, job.id DESC
             """, (workspace_id,))
             rows = cursor.fetchall()

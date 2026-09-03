@@ -62,7 +62,7 @@ function FilePicker({ label, files, selected, minimum, maximum, checking, unknow
       <SelectTrigger className="w-full" aria-label={`Choose ${label.toLowerCase()}`}><SelectValue placeholder={`Choose ${label.toLowerCase()}`} /></SelectTrigger>
       <SelectContent><SelectGroup>{available.map((file) => <SelectItem key={file.id} value={String(file.id)}>{fileLabel(file)}</SelectItem>)}</SelectGroup></SelectContent>
     </Select>}
-    {selected.length < maximum && available.length === 0 && <span className="media-subject-unavailable">{checking ? "Checking compatible media…" : error || "No compatible media is available in this Project."}</span>}
+    {selected.length < maximum && available.length === 0 && <span className="media-subject-unavailable">{checking ? "Checking compatible media…" : error || "No compatible media is available in this Production."}</span>}
     {!checking && !error && unknownCount > 0 && <span className="media-subject-unavailable">{unknownCount} {unknownCount === 1 ? "item needs" : "items need"} technical metadata before use.</span>}
     {missing > 0 && <p className="media-subject-requirement" role="status">Add {missing} more {missing === 1 ? "reference" : "references"}. This subject requires {minimum === maximum ? minimum : `${minimum}–${maximum}`}.</p>}
   </div>

@@ -7,7 +7,7 @@ import { CreatorActionBar } from "../panel/creator-capability-panel"
 function primaryLabel(creator: ReturnType<typeof useSpeechCreator>) {
   if (creator.generationState === "recovering") return "Checking current session…"
   if (creator.busy === "generate" || creator.generationState === "active") return "Generating audio…"
-  if (!creator.projectId) return "Generate audio"
+  if (!creator.productionId) return "Generate audio"
   if (creator.part?.clip_id) return "Generate again"
   if (creator.part) return `Generate Part ${(creator.part.position ?? 0) + 1}`
   return `Generate and add Part ${creator.insertAt === null ? creator.nextPartNumber : creator.insertAt + 1}`
@@ -28,7 +28,7 @@ export function SpeechCreatorActions({ capabilityPanel = false }: { capabilityPa
         {creator.recovery.status === "error" && <span className="creator-conflict"><small className="creator-save-error">Preparation could not be saved</small><Button size="sm" variant="outline" onClick={() => void creator.recovery.saveNow()}>Retry save</Button></span>}
       </div>
   const actions = <div className="creator-actions">
-        {!creator.part && creator.projectId && creator.onSave && <Button variant="outline" disabled={!creator.textSession.text.trim() || !creator.currentRoute || Boolean(creator.busy) || textUnresolved || creator.recovery.status === "loading" || creator.recovery.status === "conflict"} onClick={() => void creator.saveDraft().catch(() => undefined)}><Plus />{creator.busy === "draft" ? "Saving…" : "Save Draft"}</Button>}
+        {!creator.part && creator.productionId && creator.onSave && <Button variant="outline" disabled={!creator.textSession.text.trim() || !creator.currentRoute || Boolean(creator.busy) || textUnresolved || creator.recovery.status === "loading" || creator.recovery.status === "conflict"} onClick={() => void creator.saveDraft().catch(() => undefined)}><Plus />{creator.busy === "draft" ? "Saving…" : "Save Draft"}</Button>}
         <Button disabled={blocked} onClick={() => void creator.generate()}><WandSparkles />{primaryLabel(creator)}</Button>
       </div>
   if (capabilityPanel) return <CreatorActionBar className="creator-footer" status={status} actions={actions} error={!creator.config?.has_key ? "Add the provider API key in Settings before generating. Drafts still work." : undefined} />

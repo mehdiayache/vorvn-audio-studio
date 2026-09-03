@@ -1,4 +1,4 @@
-"""Filesystem rollback checks for the Project render workspace."""
+"""Filesystem rollback checks for the Production render workspace."""
 
 from pathlib import Path
 import json
@@ -22,7 +22,7 @@ class RenderWorkspaceTests(unittest.TestCase):
             {"start_ms": 7_000, "duration_ms": 5_000},
         ]}]}}
         self.assertEqual(
-            render_workspace._project_timeline_duration_ms(scene, visual),
+            render_workspace._production_timeline_duration_ms(scene, visual),
             12_000,
         )
 
@@ -405,7 +405,7 @@ class RenderWorkspaceTests(unittest.TestCase):
         with TemporaryDirectory() as folder:
             root = Path(folder).resolve()
 
-            def stem(_project_id, _parts, _signature):
+            def stem(_production_id, _parts, _signature):
                 (root / "sequence.mp3").write_bytes(b"sequence")
                 return {"filename": "sequence.mp3"}
 

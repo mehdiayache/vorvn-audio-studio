@@ -73,7 +73,7 @@ def _join(tokens: Iterable[dict]) -> str:
 
 
 def provider_word_transcript(diagnostics: list[dict]) -> dict | None:
-    """Project complete provider timing into canonical transcript rows.
+    """Production complete provider timing into canonical transcript rows.
 
     Each provider session owns a separate audio clock. Session durations come
     from the PCM actually returned, so later sessions can be offset without
