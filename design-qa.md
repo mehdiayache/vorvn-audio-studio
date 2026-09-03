@@ -3,7 +3,8 @@
 ## Comparison setup
 
 - Source visual truth: `/var/folders/cb/4m2zrd4916q19q1n5mrpc_jh0000gn/T/TemporaryItems/NSIRD_screencaptureui_IcCKH8/Screenshot 2026-09-03 at 14.28.37.png`
-- Rendered implementation: `/tmp/origins-shell-home-final.png`
+- Rendered implementation: `/tmp/origins-shell-no-inner-scroll-home.png`
+- Audiovisual fit check: `/tmp/origins-shell-audiovisual-fit.png`
 - Combined comparison: `/tmp/origins-shell-home-comparison.png`
 - Source viewport: 1308 × 876
 - App browser viewport: 2073 × 1150
@@ -34,6 +35,8 @@
 4. Replaced the white rail and white top bar with one continuous shell background, then promoted the rounded white surface to the actual content body.
 5. Removed muted styling from navigation and ordinary Home copy while preserving it for technical metadata.
 6. Re-captured the live app with human-readable sample names and compared the complete rendered state beside the source.
+7. Removed the nested body scroll and horizontal Recent Work scrollers; long Home content now extends the document naturally.
+8. Added the shared border token to the white body and changed rail selection to accent text without a colored background.
 
 ## Findings after correction
 
@@ -44,6 +47,7 @@
 - Spacing and layout: the primary regions and order match; the body has a clear rounded boundary after the two chrome rails, and responsive behavior collapses the board to one column below desktop width.
 - Color and tokens: restrained Origins tokens replace the wireframe grayscale without changing its structure.
 - Contrast: normal operator copy uses foreground contrast; subdued color remains limited to timestamps, status metadata, and unavailable future capabilities.
+- Scrolling: the rounded body is not a scroll container, Recent Work has no horizontal overflow, and the fixed-height Audiovisual workstation still fits its shell.
 - Asset quality: no fake raster placeholders or missing assets; the interface uses the established icon library and real data fallbacks.
 - Copy: labels are product-real while preserving the source hierarchy.
 

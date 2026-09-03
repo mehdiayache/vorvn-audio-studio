@@ -105,8 +105,8 @@
 .workspace-home-recents { display: grid; gap: clamp(2rem, 5vh, 3.5rem); }
 .workspace-home-recents .workspace-library-section > header > a { color: var(--muted-foreground); font-size: var(--type-caption); text-decoration: none; }
 .workspace-home-recents .workspace-library-section > header > a:hover { color: var(--primary); }
-.workspace-recent-rail { display: flex; gap: .75rem; overflow-x: auto; padding-block-end: .5rem; scroll-snap-type: inline proximity; scrollbar-width: thin; }
-.workspace-recent-card { position: relative; min-inline-size: 14rem; inline-size: 14rem; overflow: hidden; border: 1px solid var(--border); border-radius: var(--radius-lg); background: var(--surface-raised); scroll-snap-align: start; }
+.workspace-recent-rail { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: .75rem; }
+.workspace-recent-card { position: relative; min-inline-size: 0; inline-size: 100%; overflow: hidden; border: 1px solid var(--border); border-radius: var(--radius-lg); background: var(--surface-raised); }
 .workspace-recent-card > a { position: absolute; z-index: 1; inset: 0; }
 .workspace-recent-card:hover { border-color: color-mix(in oklab, var(--primary) 28%, var(--border)); }
 .workspace-recent-visual { aspect-ratio: 16 / 9; display: grid; place-items: center; color: var(--primary); background: color-mix(in oklab, var(--primary-soft) 64%, var(--surface-subtle)); }
@@ -121,7 +121,6 @@
 .workspace-home-side .workspace-library-section > header h2 { font-size: var(--type-heading-md); }
 .workspace-home-side .workspace-library-section > header a { color: var(--foreground); font-size: var(--type-caption); text-decoration: none; }
 .workspace-home-side .workspace-library-section > header a:hover { color: var(--primary); }
-.workspace-home-side .workspace-recent-card { min-inline-size: 8.5rem; inline-size: 8.5rem; }
 .workspace-home-side .workspace-recent-visual { aspect-ratio: 1; }
 .workspace-home-side .workspace-recent-copy span { display: none; }
 .workspace-home-side .workspace-recent-copy { padding: .55rem .6rem .65rem; }
