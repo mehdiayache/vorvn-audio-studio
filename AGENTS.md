@@ -17,3 +17,10 @@ Objects organize knowledge.
 Links associate.
 Placements mean actual use.
 ```
+
+## Human interface contrast
+
+Human-facing copy is never muted. Navigation, labels, instructions, empty-state
+guidance and ordinary descriptions use the normal foreground color. Reserve
+`muted-foreground` for genuinely secondary technical metadata such as IDs,
+timestamps, machine details and disabled states.

@@ -1,6 +1,6 @@
 .workspace-explorer {
   min-block-size: 100%;
-  background: var(--workspace-background);
+  background: transparent;
 }
 
 .workspace-gateway {
@@ -50,9 +50,9 @@
 
 .workspace-home { display: grid; gap: clamp(2.5rem, 6vh, 4.5rem); }
 .workspace-home-welcome { display: grid; justify-items: center; gap: .35rem; text-align: center; }
-.workspace-home-welcome p { color: var(--muted-foreground); font-size: var(--type-body); }
+.workspace-home-welcome p { color: var(--foreground); font-size: var(--type-body); }
 .workspace-home-welcome h1 { font-size: clamp(2rem, 3.2vw, 3.25rem); font-weight: var(--weight-title); letter-spacing: -.045em; line-height: 1.02; }
-.workspace-home-board { min-block-size: 35rem; display: grid; grid-template-columns: minmax(0, 1.55fr) minmax(20rem, .95fr); overflow: hidden; border: 1px solid var(--border); border-radius: clamp(1rem, 2vw, 1.5rem); background: var(--surface-raised); box-shadow: var(--shadow-xs); }
+.workspace-home-board { min-block-size: 35rem; display: grid; grid-template-columns: minmax(0, 1.55fr) minmax(20rem, .95fr); overflow: hidden; }
 .workspace-home-main, .workspace-home-side { min-inline-size: 0; padding: clamp(1.5rem, 3vw, 2.25rem); }
 .workspace-home-main { display: grid; align-content: start; gap: clamp(2.5rem, 6vh, 4.5rem); }
 .workspace-home-side { display: grid; align-content: start; gap: 2.5rem; border-inline-start: 1px solid var(--border); }
@@ -65,7 +65,7 @@
 .workspace-home-section { display: grid; gap: .875rem; }
 .workspace-home-section > header { display: flex; align-items: end; justify-content: space-between; gap: 1rem; }
 .workspace-home-section > header h2 { font-size: var(--type-heading-md); font-weight: var(--weight-title); }
-.workspace-home-section > header p { margin-block-start: .15rem; color: var(--muted-foreground); font-size: var(--type-caption); }
+.workspace-home-section > header p { margin-block-start: .15rem; color: var(--foreground); font-size: var(--type-caption); }
 .workspace-home-production-types { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: .75rem; }
 .workspace-home-production-types > button,
 .workspace-home-production-types > article {
@@ -87,13 +87,14 @@
   white-space: normal;
 }
 .workspace-home-production-types > button:hover { border-color: color-mix(in oklab, var(--primary) 30%, var(--border)); background: var(--surface-raised); }
-.workspace-home-production-types > article { color: var(--muted-foreground); background: color-mix(in oklab, var(--surface-subtle) 70%, transparent); }
+.workspace-home-production-types > article { color: var(--foreground); background: color-mix(in oklab, var(--surface-subtle) 70%, transparent); }
 .workspace-home-production-types > button > span,
 .workspace-home-production-types > article > span { grid-area: icon; align-self: start; inline-size: 2.5rem; block-size: 2.5rem; display: grid; place-items: center; border-radius: var(--radius-md); color: var(--primary); background: var(--primary-soft); }
 .workspace-home-production-types svg { inline-size: 1rem; }
-.workspace-home-production-types > button > svg { grid-area: arrow; color: var(--muted-foreground); }
+.workspace-home-production-types > button > svg { grid-area: arrow; color: var(--foreground); }
 .workspace-home-production-types b { grid-area: title; align-self: end; font-size: var(--type-body); font-weight: var(--weight-emphasis); }
-.workspace-home-production-types small { grid-area: detail; align-self: start; overflow: hidden; color: var(--muted-foreground); font-size: var(--type-caption); text-overflow: ellipsis; white-space: nowrap; }
+.workspace-home-production-types small { grid-area: detail; align-self: start; overflow: hidden; color: var(--foreground); font-size: var(--type-caption); text-overflow: ellipsis; white-space: nowrap; }
+.workspace-home-production-types > article small { color: var(--muted-foreground); }
 .workspace-home-creator-actions { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: .75rem; }
 .workspace-home-creator-actions .workspace-create-action { min-block-size: 5.75rem; grid-template-columns: 1fr; justify-items: center; align-content: center; gap: .5rem; padding: .25rem; border: 0; border-radius: var(--radius-lg); background: transparent; box-shadow: none; text-align: center; }
 .workspace-home-creator-actions .workspace-create-action:hover { background: var(--surface-subtle); }
@@ -118,7 +119,7 @@
 .workspace-recent-copy small { color: var(--muted-foreground); font-size: var(--type-caption); }
 .workspace-home-side .workspace-library-section > header { align-items: center; }
 .workspace-home-side .workspace-library-section > header h2 { font-size: var(--type-heading-md); }
-.workspace-home-side .workspace-library-section > header a { color: var(--muted-foreground); font-size: var(--type-caption); text-decoration: none; }
+.workspace-home-side .workspace-library-section > header a { color: var(--foreground); font-size: var(--type-caption); text-decoration: none; }
 .workspace-home-side .workspace-library-section > header a:hover { color: var(--primary); }
 .workspace-home-side .workspace-recent-card { min-inline-size: 8.5rem; inline-size: 8.5rem; }
 .workspace-home-side .workspace-recent-visual { aspect-ratio: 1; }
@@ -191,7 +192,7 @@
 .workspace-file-tile b, .workspace-file-tile small { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .workspace-file-tile b { font-size: var(--type-caption); font-weight: var(--weight-emphasis); }
 .workspace-file-tile small { color: var(--muted-foreground); font-family: var(--studio-font-mono); font-size: .625rem; text-transform: capitalize; }
-.workspace-quiet-empty { min-block-size: 8rem; grid-column: 1 / -1; display: grid; place-items: center; align-content: center; gap: .25rem; color: var(--muted-foreground); text-align: center; }
+.workspace-quiet-empty { min-block-size: 8rem; grid-column: 1 / -1; display: grid; place-items: center; align-content: center; gap: .25rem; color: var(--foreground); text-align: center; }
 .workspace-quiet-empty svg { inline-size: 1.25rem; }
 .workspace-quiet-empty b { color: var(--foreground); font-size: var(--type-small); font-weight: var(--weight-emphasis); }
 .workspace-quiet-empty span { font-size: var(--type-caption); }

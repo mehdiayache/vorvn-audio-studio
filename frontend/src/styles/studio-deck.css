@@ -17,7 +17,14 @@
   background: var(--workspace-background);
 }
 
-.studio-app-shell[data-navigation="rail"] .origins-viewport { grid-area: viewport; min-block-size: 0; overflow: auto; }
+.studio-app-shell[data-navigation="rail"] .origins-viewport {
+  grid-area: viewport;
+  min-block-size: 0;
+  margin: 0 .75rem .75rem 0;
+  overflow: auto;
+  border-radius: 1rem;
+  background: var(--background);
+}
 
 .studio-workspace-bar {
   grid-area: workspace-bar;
@@ -26,8 +33,7 @@
   align-items: center;
   gap: 1rem;
   padding-inline: 1rem;
-  border-block-end: 1px solid color-mix(in oklab, var(--border) 75%, transparent);
-  background: var(--background);
+  background: transparent;
 }
 .studio-workspace-bar .studio-workspace-selector { inline-size: auto; max-inline-size: min(28rem, 42vw); padding-inline: .5rem; }
 .studio-workspace-bar .studio-workspace-selector > span,
@@ -41,8 +47,7 @@
   grid-template-rows: minmax(0, 1fr) auto;
   gap: 0.625rem;
   padding: 1rem 0.5rem 0.75rem;
-  border-inline-end: 1px solid color-mix(in oklab, var(--border) 75%, transparent);
-  background: var(--background);
+  background: transparent;
   overflow: hidden;
 }
 
@@ -76,7 +81,7 @@
   overflow: hidden;
   padding-inline: 0.75rem;
   border-radius: 0.625rem;
-  color: var(--muted-foreground);
+  color: var(--foreground);
   font-size: var(--type-small);
   font-weight: var(--weight-emphasis);
   text-decoration: none;
