@@ -60,16 +60,9 @@ class ProjectRepository:
                        production.folder_id, production.project_id,
                        production.production_type, production.name,
                        production.description, production.status,
-                       production.updated_at,
-                       count(DISTINCT production_file.file_id),
-                       count(DISTINCT part.id)
+                       production.updated_at
                   FROM productions production
-                  LEFT JOIN production_file_usages production_file
-                    ON production_file.production_id=production.id
-                  LEFT JOIN production_parts part
-                    ON part.production_id=production.id AND part.archived_at IS NULL
                  WHERE production.project_id=%s
-                 GROUP BY production.id
                  ORDER BY production.updated_at DESC, production.id
             """, (project_id,))
             return [{
@@ -78,7 +71,6 @@ class ProjectRepository:
                 "project_id": row[4], "production_type": row[5],
                 "name": row[6], "description": row[7] or "",
                 "status": row[8], "updated_at": row[9].isoformat(),
-                "file_count": int(row[10]), "part_count": int(row[11]),
             } for row in cursor.fetchall()]
 
     def create(

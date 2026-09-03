@@ -10,16 +10,16 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } f
 import { useAsyncAction } from "@/hooks/use-async-action"
 import { originsApi } from "@/lib/api"
 import { formatUpdated } from "@/lib/format"
-import type { ProjectDetail, WorkspaceOverview, WorkspaceProduction } from "@/types/domain"
+import type { ProjectDetail, ProjectProductionSummary, WorkspaceOverview, WorkspaceProduction } from "@/types/domain"
 import "./project-page.css"
 
 function ProductionRow({ production, onDetach }: {
-  production: WorkspaceProduction
-  onDetach: (production: WorkspaceProduction) => void
+  production: ProjectProductionSummary
+  onDetach: (production: ProjectProductionSummary) => void
 }) {
   return <article className="project-production-row">
     <span className="project-production-icon"><Clapperboard /></span>
-    <span className="project-production-copy"><b>{production.name}</b><small>Audiovisual Production · {production.part_count} Part{production.part_count === 1 ? "" : "s"}</small></span>
+    <span className="project-production-copy"><b>{production.name}</b><small>Audiovisual Production</small></span>
     <span className="project-production-updated">{formatUpdated(production.updated_at) || "Recently"}</span>
     <OperatorIconButton label={`Remove ${production.name} from Project`} detail="The Production and all of its creative state remain intact." variant="ghost" size="icon-sm" onClick={() => onDetach(production)}><Unlink /></OperatorIconButton>
     <Button asChild variant="ghost" size="icon-sm" aria-label={`Open Production ${production.name}`}><Link to={`/origins/productions/audiovisual/${production.public_id}`}><ChevronRight /></Link></Button>
@@ -52,7 +52,7 @@ export function ProjectPage() {
     workspace?.productions.filter((production) => production.project_id === null) || []
   ), [workspace])
 
-  async function setMembership(production: WorkspaceProduction, projectId: number | null) {
+  async function setMembership(production: ProjectProductionSummary | WorkspaceProduction, projectId: number | null) {
     await action.run(`production-${production.id}`, async () => {
       try {
         await originsApi.updateProduction(production.id, { project_id: projectId })

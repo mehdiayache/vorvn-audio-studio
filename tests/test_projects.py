@@ -97,6 +97,13 @@ class ProjectRepositoryTests(unittest.TestCase):
                 project["public_id"])["productions"]],
             [production["id"]],
         )
+        summary = self.project_service.project(
+            project["public_id"])["productions"][0]
+        self.assertEqual(set(summary), {
+            "id", "public_id", "workspace_id", "folder_id", "project_id",
+            "production_type", "name", "description", "status", "updated_at",
+        })
+        self.assertNotIn("part_count", summary)
 
         detached = self.production_service.update_production(
             int(production["id"]), {"project_id": None})

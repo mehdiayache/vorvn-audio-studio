@@ -4718,7 +4718,7 @@ export interface components {
              */
             production_count: number;
             /** Productions */
-            productions: components["schemas"]["ProductionResponse"][];
+            productions: components["schemas"]["ProjectProductionSummaryResponse"][];
             /** Public Id */
             public_id: string;
             /** Updated At */
@@ -4734,6 +4734,29 @@ export interface components {
         /** ProjectMutationEnvelope */
         ProjectMutationEnvelope: {
             data: components["schemas"]["ProjectResponse"];
+        };
+        /** ProjectProductionSummaryResponse */
+        ProjectProductionSummaryResponse: {
+            /** Description */
+            description: string;
+            /** Folder Id */
+            folder_id: number | null;
+            /** Id */
+            id: number;
+            /** Name */
+            name: string;
+            /** Production Type */
+            production_type: string;
+            /** Project Id */
+            project_id: number;
+            /** Public Id */
+            public_id: string;
+            /** Status */
+            status: string;
+            /** Updated At */
+            updated_at: string;
+            /** Workspace Id */
+            workspace_id: number;
         };
         /** ProjectResponse */
         ProjectResponse: {

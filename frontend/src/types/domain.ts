@@ -687,8 +687,21 @@ export type WorkspaceProject = {
   production_count: number
 }
 
+export type ProjectProductionSummary = {
+  id: number
+  public_id: string
+  workspace_id: number
+  folder_id: number | null
+  project_id: number
+  production_type: string
+  name: string
+  description: string
+  status: string
+  updated_at: string
+}
+
 export type ProjectDetail = WorkspaceProject & {
-  productions: WorkspaceProduction[]
+  productions: ProjectProductionSummary[]
 }
 
 export type WorkspaceOverview = {

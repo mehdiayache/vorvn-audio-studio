@@ -61,14 +61,26 @@ describe("ProjectPage", () => {
     await waitFor(() => expect(originsApi.updateProduction).toHaveBeenCalledWith(8, { project_id: 6 }))
 
     vi.mocked(originsApi.project).mockResolvedValue({
-      ...project, production_count: 1, productions: [{ ...production, project_id: 6 }],
+      ...project, production_count: 1, productions: [{
+        id: production.id, public_id: production.public_id,
+        workspace_id: production.workspace_id, folder_id: production.folder_id,
+        project_id: 6, production_type: production.production_type,
+        name: production.name, description: production.description,
+        status: production.status, updated_at: production.updated_at,
+      }],
     })
     await waitFor(() => expect(originsApi.project).toHaveBeenCalledTimes(2))
   })
 
   it("keeps Production navigation on the canonical audiovisual route", async () => {
     vi.mocked(originsApi.project).mockResolvedValue({
-      ...project, production_count: 1, productions: [{ ...production, project_id: 6 }],
+      ...project, production_count: 1, productions: [{
+        id: production.id, public_id: production.public_id,
+        workspace_id: production.workspace_id, folder_id: production.folder_id,
+        project_id: 6, production_type: production.production_type,
+        name: production.name, description: production.description,
+        status: production.status, updated_at: production.updated_at,
+      }],
     })
     renderPage()
     const link = await screen.findByRole("link", { name: "Open Production Hero Film" })

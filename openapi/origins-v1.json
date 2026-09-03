@@ -7629,7 +7629,7 @@
           },
           "productions": {
             "items": {
-              "$ref": "#/components/schemas/ProductionResponse"
+              "$ref": "#/components/schemas/ProjectProductionSummaryResponse"
             },
             "title": "Productions",
             "type": "array"
@@ -7687,6 +7687,71 @@
           "data"
         ],
         "title": "ProjectMutationEnvelope",
+        "type": "object"
+      },
+      "ProjectProductionSummaryResponse": {
+        "properties": {
+          "description": {
+            "title": "Description",
+            "type": "string"
+          },
+          "folder_id": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Folder Id"
+          },
+          "id": {
+            "title": "Id",
+            "type": "integer"
+          },
+          "name": {
+            "title": "Name",
+            "type": "string"
+          },
+          "production_type": {
+            "title": "Production Type",
+            "type": "string"
+          },
+          "project_id": {
+            "title": "Project Id",
+            "type": "integer"
+          },
+          "public_id": {
+            "title": "Public Id",
+            "type": "string"
+          },
+          "status": {
+            "title": "Status",
+            "type": "string"
+          },
+          "updated_at": {
+            "title": "Updated At",
+            "type": "string"
+          },
+          "workspace_id": {
+            "title": "Workspace Id",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "id",
+          "public_id",
+          "workspace_id",
+          "folder_id",
+          "project_id",
+          "production_type",
+          "name",
+          "description",
+          "status",
+          "updated_at"
+        ],
+        "title": "ProjectProductionSummaryResponse",
         "type": "object"
       },
       "ProjectResponse": {

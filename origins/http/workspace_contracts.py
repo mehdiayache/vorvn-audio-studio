@@ -94,8 +94,21 @@ class ProjectResponse(BaseModel):
     production_count: int = 0
 
 
+class ProjectProductionSummaryResponse(BaseModel):
+    id: int
+    public_id: str
+    workspace_id: int
+    folder_id: int | None
+    project_id: int
+    production_type: str
+    name: str
+    description: str
+    status: str
+    updated_at: str
+
+
 class ProjectDetailResponse(ProjectResponse):
-    productions: list[ProductionResponse]
+    productions: list[ProjectProductionSummaryResponse]
 
 
 class ProjectListEnvelope(BaseModel):

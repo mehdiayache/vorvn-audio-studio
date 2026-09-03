@@ -2,6 +2,7 @@
 
 import ast
 from pathlib import Path
+import re
 from tempfile import TemporaryDirectory
 import unittest
 
@@ -131,6 +132,22 @@ class OriginsArchitectureTests(unittest.TestCase):
             self.assertNotIn(false_generic, source)
         context = app.openapi()["components"]["schemas"]["CreatorContext"]["properties"]
         self.assertNotIn("project_id", context)
+
+    def test_project_persistence_does_not_read_production_type_internals(self):
+        source = (
+            ROOT / "origins/infrastructure/postgres/projects.py"
+        ).read_text().lower()
+        forbidden = (
+            "production_parts", "sound_scenes", "visual_scenes",
+            "timeline", "script",
+        )
+        self.assertFalse([
+            name for name in forbidden
+            if re.search(rf"\b{re.escape(name)}\b", source)
+        ])
+        schemas = app.openapi()["components"]["schemas"]
+        summary = schemas["ProjectProductionSummaryResponse"]["properties"]
+        self.assertNotIn("part_count", summary)
 
     def test_daw_libraries_stay_behind_sound_scene_boundaries(self):
         frontend = ROOT / "frontend/src"
