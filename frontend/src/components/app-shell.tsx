@@ -1,6 +1,6 @@
 import { createContext, useContext, useEffect, useState } from "react"
 import {
-  Activity, Building2, Check, ChevronDown, Clapperboard, Files, FolderKanban,
+  Activity, Building2, Check, ChevronDown, Circle, Files, FolderKanban,
   FolderTree, Home, Menu, PanelLeftClose, PanelLeftOpen, Plus, Settings2,
   Shapes, Sparkles, Wrench,
 } from "lucide-react"
@@ -65,7 +65,7 @@ type StudioNavigationItem = {
 }
 
 export const originsNavigation: StudioNavigationItem[] = [
-  { id: "home", label: "Home", icon: Home, href: "/origins/", group: "workspace" },
+  { id: "home", label: "Home", icon: Home, href: "/origins/home", group: "workspace" },
   { id: "projects", label: "Projects", icon: FolderKanban, href: "/origins/projects", group: "workspace" },
   { id: "explorer", label: "Explorer", icon: FolderTree, href: "/origins/explorer", group: "workspace" },
   { id: "library", label: "Library", icon: Files, href: "/origins/library", group: "workspace" },
@@ -80,7 +80,7 @@ export const originsNavigation: StudioNavigationItem[] = [
 export function activeOriginsDestination(pathname: string) {
   const match = originsNavigation.find((item) => (
     item.id === "home"
-      ? pathname === "/origins" || pathname === "/origins/"
+      ? pathname === item.href || pathname.startsWith(`${item.href}/`)
       : item.id === "create"
         ? pathname === "/origins/create" || (pathname.startsWith("/origins/create/") && !pathname.startsWith("/origins/create/create-subtitles"))
         : item.id === "tools"
@@ -92,6 +92,7 @@ export function activeOriginsDestination(pathname: string) {
               : pathname === item.href || pathname.startsWith(`${item.href}/`)
   ))
   if (match) return match.label
+  if (pathname === "/origins" || pathname === "/origins/") return "Workspaces"
   if (pathname.startsWith("/origins/productions/")) return "Audiovisual Production"
   if (pathname === "/origins/productions") return "Productions"
   return productIdentity.name
@@ -99,8 +100,8 @@ export function activeOriginsDestination(pathname: string) {
 
 function StudioBrand() {
   return (
-    <NavLink className="studio-deck-brand" to="/origins/" aria-label={`${productIdentity.name} Work`}>
-      <span className="studio-deck-mark"><Clapperboard aria-hidden="true" /></span>
+    <NavLink className="studio-deck-brand" to="/origins/" aria-label={productIdentity.name}>
+      <span className="studio-deck-mark"><Circle aria-hidden="true" fill="currentColor" strokeWidth={0} /></span>
       <span>{productIdentity.name}</span>
     </NavLink>
   )
@@ -255,7 +256,7 @@ function WorkspaceRailSelector() {
           onSelect={() => {
             setSelectedId(workspace.id)
             rememberWorkspace(workspace.id)
-            navigate("/origins/")
+            navigate("/origins/home")
           }}
         >
           <Building2 />
@@ -274,8 +275,7 @@ function StudioRail() {
   const utilityItems = originsNavigation.filter((item) => item.group === "utility")
   return <aside className="studio-rail" aria-label={`${productIdentity.name} navigation`}>
     <div className="studio-rail-head">
-      <StudioBrand />
-      <OriginsRailToggle className="studio-rail-toggle" />
+      <div className="studio-rail-brand-row"><StudioBrand /><OriginsRailToggle className="studio-rail-toggle" /></div>
       <WorkspaceRailSelector />
     </div>
     <nav className="studio-rail-navigation" aria-label={`${productIdentity.name} tools`}>
@@ -291,6 +291,19 @@ function StudioRail() {
       {utilityItems.map((item) => <StudioRailLink key={item.id} item={item} pathname={location.pathname} />)}
     </div>
   </aside>
+}
+
+function OriginsGatewayChrome({ mode }: { mode: OriginsMountMode }) {
+  return <header className="studio-gateway-bar">
+    <div>
+      {mode === "standalone" && <StudioBrand />}
+      <span>Workspaces</span>
+    </div>
+    <nav aria-label={`${productIdentity.name} utility navigation`}>
+      <NavLink to="/origins/activity"><Activity /><span>Activity</span></NavLink>
+      <NavLink to="/origins/settings"><Settings2 /><span>Settings</span></NavLink>
+    </nav>
+  </header>
 }
 
 function MobileNavigation({ destination }: { destination: string }) {
@@ -352,12 +365,13 @@ export function AppShell({ mode = "standalone" }: { mode?: OriginsMountMode }) {
   const activeDestination = activeOriginsDestination(location.pathname)
   const desktop = useMediaQuery("(min-width: 48.01rem)")
   const [railExpanded, setRailExpanded] = useState(false)
-  const railNavigation = mode === "standalone" && desktop
+  const workspaceGateway = location.pathname === "/origins" || location.pathname === "/origins/"
+  const railNavigation = mode === "standalone" && desktop && !workspaceGateway
   return (
     <OriginsShellContext.Provider value={{ railNavigation, railExpanded, toggleRail: () => setRailExpanded((expanded) => !expanded) }}>
-      <div className="studio-app-shell" data-mount-mode={mode} data-presentation="standard" data-navigation={railNavigation ? "rail" : "top"} data-rail-expanded={railExpanded ? "true" : "false"}>
+      <div className="studio-app-shell" data-mount-mode={mode} data-presentation="standard" data-navigation={workspaceGateway ? "gateway" : railNavigation ? "rail" : "top"} data-rail-expanded={railExpanded ? "true" : "false"}>
         <a className="studio-skip-link" href="#origins-content">Skip to {productIdentity.name} content</a>
-        {railNavigation ? <StudioRail /> : <StudioDeckChrome mode={mode} destination={activeDestination} />}
+        {workspaceGateway ? <OriginsGatewayChrome mode={mode} /> : railNavigation ? <StudioRail /> : <StudioDeckChrome mode={mode} destination={activeDestination} />}
         <main id="origins-content" className="origins-viewport" tabIndex={-1}>
           <AppErrorBoundary key={location.pathname}>
             <Outlet />

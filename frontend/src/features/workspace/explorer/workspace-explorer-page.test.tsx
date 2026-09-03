@@ -29,7 +29,7 @@ const overview: WorkspaceOverview = {
   files: [{ id: 9, public_id: "file-9", workspace_id: 4, folder_id: null, name: "Score.wav", source: "generated", tags: ["music"], metadata: {}, created_at: "2026-01-01T00:00:00Z", updated_at: "2026-01-02T00:00:00Z", current_version: { id: 10, public_id: "version-10", version: 1, filename: "score.wav", storage_key: "score.wav", url: "/audio/score.wav", size_bytes: 20, duration_ms: 5_000, mime_type: "audio/wav", family: "audio", width: null, height: null } }],
 }
 
-function renderPage(view: "home" | "projects" | "productions" | "files" | "explorer" = "home") {
+function renderPage(view: "workspaces" | "home" | "projects" | "productions" | "files" | "explorer" = "home") {
   return render(<MemoryRouter initialEntries={["/origins/"]}><TooltipProvider><Routes><Route path="/origins/*" element={<WorkspaceExplorerPage view={view} />} /></Routes></TooltipProvider></MemoryRouter>)
 }
 
@@ -49,6 +49,14 @@ afterEach(() => { cleanup(); vi.clearAllMocks() })
 Element.prototype.scrollIntoView = vi.fn()
 
 describe("WorkspaceExplorerPage", () => {
+  it("starts from an explicit multi-Workspace gateway", async () => {
+    renderPage("workspaces")
+    expect(await screen.findByRole("heading", { name: "Choose a Workspace" })).toBeTruthy()
+    expect(screen.getByRole("button", { name: "Open Workspace Campaign Lab" })).toBeTruthy()
+    expect(screen.getByRole("button", { name: "New Workspace" })).toBeTruthy()
+    expect(screen.queryByRole("heading", { name: "What do you want to create today?" })).toBeNull()
+  })
+
   it("makes Home teach Projects, Production types and standalone Creator capabilities", async () => {
     renderPage()
     expect(await screen.findByRole("heading", { name: "Campaign Lab" })).toBeTruthy()

@@ -52,6 +52,7 @@ function renderShell(mode: "standalone" | "embedded", path = "/origins/", deskto
             <Routes>
               <Route path="/origins" element={<AppShell mode={mode} />}>
                 <Route index element={<h1>Work content</h1>} />
+                <Route path="home" element={<h1>Home content</h1>} />
                 <Route path="productions/audiovisual/:identifier" element={<ProductionContent />} />
               </Route>
             </Routes>
@@ -92,21 +93,23 @@ describe("Origins shell", () => {
     expect(activeOriginsDestination("/origins/library")).toBe("Library")
     expect(activeOriginsDestination("/origins/files")).toBe("Library")
     expect(activeOriginsDestination("/origins/voices")).toBe("Objects")
+    expect(activeOriginsDestination("/origins/")).toBe("Workspaces")
+    expect(activeOriginsDestination("/origins/home")).toBe("Home")
     expect(activeOriginsDestination("/origins/productions/audiovisual/production-id")).toBe("Audiovisual Production")
   })
-  it("renders one standalone identity and the Studio-owned navigation", async () => {
+  it("renders a global Workspace gateway without pretending one Workspace is already active", async () => {
     const { container } = renderShell("standalone", "/origins/", true)
-    expect(screen.getByRole("link", { name: "Origins Work" })).toBeTruthy()
-    expect(screen.getByRole("navigation", { name: "Origins tools" })).toBeTruthy()
+    expect(screen.getByRole("link", { name: "Origins" })).toBeTruthy()
+    expect(screen.getByRole("navigation", { name: "Origins utility navigation" })).toBeTruthy()
     expect(screen.getByRole("heading", { name: "Work content" })).toBeTruthy()
+    expect(container.querySelector(".studio-app-shell")?.getAttribute("data-navigation")).toBe("gateway")
     expect(container.querySelector(".studio-app-shell")?.getAttribute("data-presentation")).toBe("standard")
-    await waitFor(() => expect(screen.getByText("Origins ready")).toBeTruthy())
-    expect(originsApi.config).toHaveBeenCalledTimes(1)
+    await waitFor(() => expect(originsApi.config).toHaveBeenCalledTimes(1))
   })
 
   it("keeps the common Origins navigation beside desktop Production", () => {
     const { container } = renderShell("standalone", "/origins/productions/audiovisual/production-id", true)
-    expect(screen.getByRole("link", { name: "Origins Work" })).toBeTruthy()
+    expect(screen.getByRole("link", { name: "Origins" })).toBeTruthy()
     expect(screen.getByRole("navigation", { name: "Origins tools" })).toBeTruthy()
     expect(screen.queryByRole("link", { name: "Productions" })).toBeNull()
     expect(screen.getByRole("link", { name: "Home" })).toBeTruthy()
@@ -128,7 +131,7 @@ describe("Origins shell", () => {
   })
 
   it("exposes the approved Workspace, action and utility hierarchy", async () => {
-    const { container } = renderShell("standalone", "/origins/", true)
+    const { container } = renderShell("standalone", "/origins/home", true)
     const rail = container.querySelector(".studio-rail")
     expect(rail?.textContent).toContain("HomeProjectsExplorerLibraryObjects")
     expect(rail?.textContent).toContain("CreateAddTools")
@@ -139,13 +142,13 @@ describe("Origins shell", () => {
 
   it("preserves the normal standalone chrome for mobile Production", () => {
     const { container } = renderShell("standalone", "/origins/productions/audiovisual/production-id")
-    expect(screen.getByRole("link", { name: "Origins Work" })).toBeTruthy()
+    expect(screen.getByRole("link", { name: "Origins" })).toBeTruthy()
     expect(screen.getByRole("navigation", { name: "Origins tools" })).toBeTruthy()
     expect(container.querySelector(".studio-app-shell")?.getAttribute("data-presentation")).toBe("standard")
   })
 
   it("keeps the complete grouped navigation reachable on mobile", () => {
-    renderShell("standalone", "/origins/")
+    renderShell("standalone", "/origins/home")
     fireEvent.click(screen.getByRole("button", { name: "Open Origins menu" }))
     const navigation = screen.getByRole("navigation", { name: "Origins mobile tools" })
     expect(navigation.textContent).toContain("HomeProjectsExplorerLibraryObjects")
@@ -156,15 +159,15 @@ describe("Origins shell", () => {
 
   it("does not infer authority over an embedded host on desktop Production", () => {
     const { container } = renderShell("embedded", "/origins/productions/audiovisual/production-id", true)
-    expect(screen.queryByRole("link", { name: "Origins Work" })).toBeNull()
+    expect(screen.queryByRole("link", { name: "Origins" })).toBeNull()
     expect(screen.getByRole("navigation", { name: "Origins tools" })).toBeTruthy()
     expect(container.querySelector(".studio-app-shell")?.getAttribute("data-presentation")).toBe("standard")
   })
 
   it("omits the standalone identity when mounted inside Origins", async () => {
     renderShell("embedded")
-    expect(screen.queryByRole("link", { name: "Origins Work" })).toBeNull()
-    expect(screen.getByRole("navigation", { name: "Origins tools" })).toBeTruthy()
+    expect(screen.queryByRole("link", { name: "Origins" })).toBeNull()
+    expect(screen.getByRole("navigation", { name: "Origins utility navigation" })).toBeTruthy()
     await waitFor(() => expect(originsApi.config).toHaveBeenCalledTimes(1))
   })
 

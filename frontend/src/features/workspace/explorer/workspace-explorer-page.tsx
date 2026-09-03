@@ -1,6 +1,6 @@
 import { useMemo, useState } from "react"
 import {
-  Captions, ChevronRight, Clapperboard, FileAudio2, FileImage, FileText,
+  Building2, Captions, ChevronRight, Clapperboard, FileAudio2, FileImage, FileText,
   FileVideo2, Folder, FolderPlus, Mic2, Music2, Plus, Search,
   Sparkles, Upload, Waves, FolderKanban,
 } from "lucide-react"
@@ -23,13 +23,14 @@ import {
 } from "@/features/library/library-query"
 import { useAsyncAction } from "@/hooks/use-async-action"
 import { useWorkspaceExplorer } from "@/hooks/use-workspace-explorer"
+import { rememberWorkspace } from "@/features/workspace/workspace-selection"
 import { originsApi } from "@/lib/api"
 import { formatDuration, formatUpdated } from "@/lib/format"
 import { cn } from "@/lib/utils"
-import type { CreationActionSummary, WorkspaceFile, WorkspaceOverview, WorkspaceProduction, WorkspaceProject } from "@/types/domain"
+import type { CreationActionSummary, WorkspaceFile, WorkspaceOverview, WorkspaceProduction, WorkspaceProject, WorkspaceSummary } from "@/types/domain"
 import "./workspace-explorer.css"
 
-export type WorkspaceExplorerView = "home" | "projects" | "productions" | "files" | "explorer"
+export type WorkspaceExplorerView = "workspaces" | "home" | "projects" | "productions" | "files" | "explorer"
 
 const actionPresentation: Record<string, { icon: LucideIcon; href?: string; tone: string }> = {
   "generate-speech": { icon: Mic2, href: "/origins/create/generate-speech", tone: "speech" },
@@ -95,6 +96,30 @@ function ProjectRow({ project }: { project: WorkspaceProject }) {
   </article>
 }
 
+function RecentProjectCard({ project }: { project: WorkspaceProject }) {
+  return <article className="workspace-recent-card is-project">
+    <Link to={`/origins/projects/${project.public_id}`} aria-label={`Open Project ${project.name}`} />
+    <div className="workspace-recent-visual"><FolderKanban /></div>
+    <div className="workspace-recent-copy">
+      <span>Project</span>
+      <b>{project.name}</b>
+      <small>{project.production_count} Production{project.production_count === 1 ? "" : "s"} · {formatUpdated(project.updated_at) || "Recently"}</small>
+    </div>
+  </article>
+}
+
+function RecentProductionCard({ production }: { production: WorkspaceProduction }) {
+  return <article className="workspace-recent-card is-production">
+    <Link to={`/origins/productions/audiovisual/${production.public_id}`} aria-label={`Open ${production.name}`} />
+    <div className="workspace-recent-visual"><Clapperboard /></div>
+    <div className="workspace-recent-copy">
+      <span>Audiovisual Production</span>
+      <b>{production.name}</b>
+      <small>{formatUpdated(production.updated_at) || "Recently"}</small>
+    </div>
+  </article>
+}
+
 function FileTile({ file }: { file: WorkspaceFile }) {
   const family = file.media_type || "other"
   const FileIcon = fileIcons[family] || FileText
@@ -150,20 +175,51 @@ function WorkspaceHome({ workspaceOverview, actions, actionsError, onRetryAction
     <div className="workspace-home-recents">
       <section className="workspace-library-section" aria-labelledby="workspace-home-projects">
         <header><div><h2 id="workspace-home-projects">Recent Projects</h2><p>Human initiatives across this Workspace.</p></div><Link to="/origins/projects">View all</Link></header>
-        <div className="workspace-production-list">
-          {workspaceOverview.projects.slice(0, 4).map((project) => <ProjectRow key={project.id} project={project} />)}
+        <div className="workspace-recent-rail">
+          {workspaceOverview.projects.slice(0, 6).map((project) => <RecentProjectCard key={project.id} project={project} />)}
           {!workspaceOverview.projects.length && <div className="workspace-quiet-empty"><FolderKanban /><b>No Projects yet</b><span>Create one to group related Productions.</span></div>}
         </div>
       </section>
       <section className="workspace-library-section" aria-labelledby="workspace-home-work">
         <header><div><h2 id="workspace-home-work">Recent Work</h2><p>Productions you can continue.</p></div><Link to="/origins/productions">View all</Link></header>
-        <div className="workspace-production-list">
-          {workspaceOverview.productions.slice(0, 4).map((production) => <ProductionRow key={production.id} production={production} />)}
+        <div className="workspace-recent-rail">
+          {workspaceOverview.productions.slice(0, 6).map((production) => <RecentProductionCard key={production.id} production={production} />)}
           {!workspaceOverview.productions.length && <div className="workspace-quiet-empty"><Clapperboard /><b>No Productions yet</b><span>Start with the Audiovisual Production type.</span></div>}
         </div>
       </section>
     </div>
   </div>
+}
+
+function WorkspacesGateway({ workspaces, onOpenWorkspace, onNewWorkspace }: {
+  workspaces: WorkspaceSummary[]
+  onOpenWorkspace: (workspace: WorkspaceSummary) => void
+  onNewWorkspace: () => void
+}) {
+  const [query, setQuery] = useState("")
+  const normalizedQuery = query.trim().toLowerCase()
+  const visible = workspaces.filter((workspace) => !normalizedQuery
+    || workspace.name.toLowerCase().includes(normalizedQuery)
+    || workspace.description.toLowerCase().includes(normalizedQuery))
+
+  return <main className="workspace-gateway">
+    <div className="workspace-gateway-content">
+      <header>
+        <div><span>Origins</span><h1>Choose a Workspace</h1><p>Each Workspace owns its Projects, Productions, Files and reusable Objects.</p></div>
+        <Button onClick={onNewWorkspace}><Plus /> New Workspace</Button>
+      </header>
+      <label className="workspace-gateway-search"><Search /><Input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Search Workspaces" /></label>
+      <section aria-label="Workspaces" className="workspace-gateway-list">
+        {visible.map((workspace) => <button type="button" key={workspace.id} aria-label={`Open Workspace ${workspace.name}`} onClick={() => onOpenWorkspace(workspace)}>
+          <span className="workspace-gateway-icon"><Building2 /></span>
+          <span className="workspace-gateway-copy"><b>{workspace.name}</b><small>{workspace.description || "Creative Workspace"}</small></span>
+          <span className="workspace-gateway-counts">{workspace.project_count} Projects · {workspace.production_count} Productions · {workspace.file_count} Files</span>
+          <ChevronRight />
+        </button>)}
+        {!visible.length && <div className="workspace-quiet-empty"><Building2 /><b>{workspaces.length ? "No matching Workspaces" : "No Workspaces yet"}</b><span>{workspaces.length ? "Try another search." : "Create the first ownership root for your work."}</span></div>}
+      </section>
+    </div>
+  </main>
 }
 
 function ExplorerContent({ workspaceOverview, view, actions, actionsError, onRetryActions, onNewProject, onNewProduction, onNewFolder, onUploadFile, selectedFolderId, onSelectedFolderId }: {
@@ -358,12 +414,32 @@ export function WorkspaceExplorerPage({ view = "home" }: { view?: WorkspaceExplo
   const [dialog, setDialog] = useState<"workspace" | "project" | "production" | "folder" | null>(null)
   const [uploadOpen, setUploadOpen] = useState(false)
   const [selectedFolderId, setSelectedFolderId] = useState<number | null>(null)
+  const navigate = useNavigate()
   const availableWorkspaces = workspaces.data || []
   const workspaceOverview = overview.data
   const createActions = useMemo(() => actions.data || [], [actions.data])
 
-  if (workspaces.status === "loading" && !availableWorkspaces.length) return <main className="workspace-explorer"><div className="workspace-explorer-loading"><Sparkles className="spin" /><span>Opening your Workspace…</span></div></main>
-  if (workspaces.status === "error" && !availableWorkspaces.length) return <main className="workspace-explorer"><div className="workspace-explorer-loading"><b>Workspaces unavailable</b><span>{workspaces.error}</span><Button onClick={() => void refresh()}>Try again</Button></div></main>
+  if (workspaces.status === "loading" && !availableWorkspaces.length) return <main className="workspace-explorer"><div className="workspace-explorer-loading"><Sparkles className="spin" /><span>{view === "workspaces" ? "Loading Workspaces…" : "Opening your Workspace…"}</span></div></main>
+  if (workspaces.status === "error" && !availableWorkspaces.length) return <main className="workspace-explorer"><div className="workspace-explorer-loading"><b>Workspaces unavailable</b><span>{workspaces.error}</span><Button onClick={() => void refreshWorkspaces()}>Try again</Button></div></main>
+  if (view === "workspaces") return <>
+    <WorkspacesGateway
+      workspaces={availableWorkspaces}
+      onNewWorkspace={() => setDialog("workspace")}
+      onOpenWorkspace={(workspace) => {
+        rememberWorkspace(workspace.id)
+        setSelectedWorkspaceId(workspace.id)
+        navigate("/origins/home")
+      }}
+    />
+    {dialog === "workspace" && <ResourceDialog kind="workspace" open onOpenChange={(open) => { if (!open) setDialog(null) }} workspaceId={null} onCreated={(workspaceId) => {
+      if (!workspaceId) return
+      void refreshWorkspaces().then(() => {
+        rememberWorkspace(workspaceId)
+        setSelectedWorkspaceId(workspaceId)
+        navigate("/origins/home")
+      })
+    }} />}
+  </>
   if (!selectedWorkspaceId || !availableWorkspaces.length) return <main className="workspace-explorer"><div className="workspace-explorer-loading"><b>Create your first Workspace</b><span>A Workspace is the only root container.</span><Button onClick={() => setDialog("workspace")}><Plus /> Create Workspace</Button></div>{dialog === "workspace" && <ResourceDialog kind="workspace" open onOpenChange={(open) => { if (!open) setDialog(null) }} workspaceId={null} onCreated={(workspaceId) => { if (workspaceId) { void refreshWorkspaces().then(() => setSelectedWorkspaceId(workspaceId)) } }} />}</main>
   if (!workspaceOverview && overview.status === "error") return <main className="workspace-explorer"><div className="workspace-explorer-loading"><b>Workspace unavailable</b><span>{overview.error}</span><Button onClick={() => void refresh()}>Try again</Button></div></main>
 

@@ -38,7 +38,7 @@ function AudiovisualProductionWorkspace({ productionId }: { productionId: number
   </>
 }
 
-function WorkspaceExplorerRoute({ view = "home" }: { view?: "home" | "projects" | "productions" | "files" | "explorer" }) {
+function WorkspaceExplorerRoute({ view = "home" }: { view?: "workspaces" | "home" | "projects" | "productions" | "files" | "explorer" }) {
   return <LazyRoute label="Opening your Workspace"><WorkspaceExplorerPage view={view} /></LazyRoute>
 }
 
@@ -81,7 +81,8 @@ function OriginsRoutes({ mode }: { mode: OriginsMountMode }) {
   return (
     <Routes>
       <Route path="/origins" element={<AppShell mode={mode} />}>
-        <Route index element={<WorkspaceExplorerRoute />} />
+        <Route index element={<WorkspaceExplorerRoute view="workspaces" />} />
+        <Route path="home" element={<WorkspaceExplorerRoute />} />
         <Route path="create" element={<Navigate replace to="/origins/create/generate-image" />} />
         <Route path="create/:actionId" element={<LazyRoute label="Opening Create"><CreateCreatorPage /></LazyRoute>} />
         <Route path="projects" element={<WorkspaceExplorerRoute view="projects" />} />
