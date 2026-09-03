@@ -193,6 +193,7 @@ class ProductionEditorResponse(BaseModel):
     id: int
     public_id: str
     workspace_id: int
+    project_id: int | None
     folder_id: int | None = None
     production_type: Literal["audiovisual"] = "audiovisual"
     name: str

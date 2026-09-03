@@ -1,4 +1,4 @@
-import { lazy, Suspense, useEffect, useState } from "react"
+import { lazy, Suspense, useCallback, useEffect, useRef, useState } from "react"
 import {
   BrowserRouter, Link, Navigate, Route, Routes, useParams,
 } from "react-router-dom"
@@ -14,6 +14,7 @@ import { useProduction } from "@/hooks/use-production"
 import { useProductionResources } from "@/hooks/use-production-resources"
 import { originsApi } from "@/lib/api"
 import { productIdentity } from "@/lib/product-identity"
+import type { LoadState, ProjectDetail } from "@/types/domain"
 
 const VoicesPage = lazy(() => import("@/features/voices/voices-page").then((module) => ({ default: module.VoicesPage })))
 const ActivityPage = lazy(() => import("@/features/activity/activity-page").then((module) => ({ default: module.ActivityPage })))
@@ -27,6 +28,27 @@ function AudiovisualProductionWorkspace({ productionId }: { productionId: number
   const { production, soundScene, visualScene, refresh } = useProduction(productionId)
   const resources = useProductionResources(productionId)
   const data = production.data
+  const projectId = data?.project_id ?? null
+  const [project, setProject] = useState<LoadState<ProjectDetail | null>>({ status: "ready", data: null })
+  const projectRequest = useRef(0)
+  const refreshProject = useCallback(async () => {
+    const request = ++projectRequest.current
+    if (!projectId) {
+      setProject({ status: "ready", data: null })
+      return
+    }
+    setProject({ status: "loading" })
+    try {
+      const nextProject = await originsApi.project(String(projectId))
+      if (projectRequest.current === request) setProject({ status: "ready", data: nextProject })
+    } catch (reason) {
+      if (projectRequest.current === request) setProject({
+        status: "error",
+        error: reason instanceof Error ? reason.message : "Project navigation is unavailable.",
+      })
+    }
+  }, [projectId])
+  useEffect(() => { void refreshProject() }, [refreshProject])
   return <>
     {production.status === "loading" && !data && <PageLoading />}
     {!data && production.status === "error" && <ErrorState message={production.error || "Unable to load Production."} retry={() => void refresh()} />}
@@ -34,7 +56,8 @@ function AudiovisualProductionWorkspace({ productionId }: { productionId: number
     {data && visualScene.status === "error" && <InlineResourceError message={`Visual timeline unavailable: ${visualScene.error}`} retry={() => void refresh()} />}
     {data && resources.fileError && resources.fileState.data && <InlineResourceError message={`File library refresh failed: ${resources.fileError}`} retry={() => void resources.refreshFiles().catch(() => undefined)} />}
     {data && resources.voiceError && <InlineResourceError message="Voice directory refresh failed. Existing voice data is preserved." retry={() => void resources.refreshVoices()} />}
-    {data && soundScene.data && visualScene.data && <LazyRoute label="Loading Production workspace"><AudiovisualProductionPage production={data} soundScene={soundScene.data} visualScene={visualScene.data} folders={resources.folders} files={resources.files} productionFileIds={resources.productionFileIds} libraryFileIds={resources.libraryFileIds} fileState={resources.fileState} config={resources.config} directory={resources.voiceDirectory} refresh={refresh} refreshFiles={resources.refreshFiles} /></LazyRoute>}
+    {data?.project_id && project.status === "error" && <InlineResourceError message={`Project navigation unavailable: ${project.error}`} retry={() => void refreshProject()} />}
+    {data && soundScene.data && visualScene.data && <LazyRoute label="Loading Production workspace"><AudiovisualProductionPage production={data} project={project.data || null} soundScene={soundScene.data} visualScene={visualScene.data} folders={resources.folders} files={resources.files} productionFileIds={resources.productionFileIds} libraryFileIds={resources.libraryFileIds} fileState={resources.fileState} config={resources.config} directory={resources.voiceDirectory} refresh={refresh} refreshFiles={resources.refreshFiles} /></LazyRoute>}
   </>
 }
 

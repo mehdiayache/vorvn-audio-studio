@@ -4180,6 +4180,8 @@ export interface components {
              * @constant
              */
             production_type: "audiovisual";
+            /** Project Id */
+            project_id: number | null;
             /** Public Id */
             public_id: string;
             /** Settings */
@@ -5087,6 +5089,8 @@ export interface components {
             } | null;
             /** Description */
             description?: string | null;
+            /** Folder Id */
+            folder_id?: number | null;
             /** Icon */
             icon?: string | null;
             /** Name */

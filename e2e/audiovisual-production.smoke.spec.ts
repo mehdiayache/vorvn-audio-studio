@@ -141,9 +141,43 @@ test("uses the fixed desktop rail, then opens Home Project and Production", asyn
     await page.getByRole("button", { name: folder.name }).click()
   }
   expect(folder).toBeTruthy()
+  await expect(page).toHaveURL(new RegExp(`\\?folder=${folder!.public_id}$`))
+
+  let nestedFolder = projectDetail.folders.find((item) =>
+    item.name === "Browser Smoke Review" && item.parent_id === folder!.id)
+  if (!nestedFolder) {
+    await page.getByRole("button", { name: "New Folder" }).click()
+    await page.getByRole("textbox", { name: "Name" }).fill("Browser Smoke Review")
+    await page.getByRole("button", { name: "Create Folder" }).click()
+    const refreshedProjectResponse = await request.get(`/api/v1/projects/${project.public_id}`)
+    expect(refreshedProjectResponse.ok()).toBe(true)
+    projectDetail = (await refreshedProjectResponse.json()).data as ProjectDetail
+    nestedFolder = projectDetail.folders.find((item) =>
+      item.name === "Browser Smoke Review" && item.parent_id === folder!.id)
+  } else {
+    await page.getByRole("button", { name: nestedFolder.name }).click()
+  }
+  expect(nestedFolder).toBeTruthy()
+  await expect(page).toHaveURL(new RegExp(`\\?folder=${nestedFolder!.public_id}$`))
+  await page.reload()
+  await expect(page.getByRole("button", { name: nestedFolder!.name, current: "page" })).toBeVisible()
+  await page.goBack()
+  await expect(page).toHaveURL(new RegExp(`\\?folder=${folder!.public_id}$`))
+  await page.goForward()
+  await expect(page).toHaveURL(new RegExp(`\\?folder=${nestedFolder!.public_id}$`))
 
   let production = projectDetail.productions.find((item) =>
-    item.name === "Browser Smoke Project Production" && item.folder_id === folder!.id)
+    item.name === "Browser Smoke Project Production" && item.folder_id === nestedFolder!.id)
+  const reusableProduction = projectDetail.productions.find((item) =>
+    item.name === "Browser Smoke Project Production")
+  if (!production && reusableProduction) {
+    const movedResponse = await request.patch(`/api/v1/productions/${reusableProduction.id}`, {
+      data: { project_id: project.id, folder_id: nestedFolder!.id },
+    })
+    expect(movedResponse.ok()).toBe(true)
+    production = (await movedResponse.json()).data as ProductionResource
+    await page.reload()
+  }
   if (!production) {
     await page.getByRole("button", { name: "New Production" }).click()
     await page.getByRole("textbox", { name: "Name" }).fill("Browser Smoke Project Production")
@@ -153,6 +187,13 @@ test("uses the fixed desktop rail, then opens Home Project and Production", asyn
     await page.getByRole("link", { name: `Open Production ${production.name}` }).click()
     await expect(page.getByRole("heading", { name: `Rename Production ${production.name}` })).toBeVisible()
   }
+  const projectBreadcrumb = page.getByRole("link", { name: project.name, exact: true })
+  await expect(projectBreadcrumb).toHaveAttribute(
+    "href", `/origins/projects/${project.public_id}?folder=${nestedFolder!.public_id}`)
+  await projectBreadcrumb.click()
+  await expect(page).toHaveURL(
+    `/origins/projects/${project.public_id}?folder=${nestedFolder!.public_id}`)
+  await expect(page.getByRole("button", { name: nestedFolder!.name, current: "page" })).toBeVisible()
 
   const refreshedResponse = await request.get(`/api/v1/workspaces/${workspace.id}`)
   const refreshed = (await refreshedResponse.json()).data as WorkspaceOverview
@@ -166,6 +207,9 @@ test("uses the fixed desktop rail, then opens Home Project and Production", asyn
   }
   await page.goto(`/origins/productions/audiovisual/${standalone.public_id}`)
   await expect(page.getByRole("heading", { name: `Rename Production ${standalone.name}` })).toBeVisible()
+  await expect(page.getByRole("link", { name: "Productions", exact: true }))
+    .toHaveAttribute("href", "/origins/productions")
+  await expect(page.getByRole("link", { name: project.name, exact: true })).toHaveCount(0)
   expect(browserIssues, browserIssues.join("\n")).toEqual([])
 })
 

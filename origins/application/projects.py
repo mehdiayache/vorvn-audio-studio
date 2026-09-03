@@ -1,4 +1,4 @@
-"""Project grouping use cases, independent from HTTP and PostgreSQL."""
+"""Project work-container use cases, independent from HTTP and PostgreSQL."""
 
 from __future__ import annotations
 

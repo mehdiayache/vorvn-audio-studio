@@ -2,10 +2,23 @@ import { Clapperboard, ChevronRight } from "lucide-react"
 import { Link } from "react-router-dom"
 
 import { originsBase } from "@/lib/links"
+import "./shell-breadcrumbs.css"
 
-export function ShellBreadcrumbs({ leaf, className = "" }: { leaf?: string; className?: string }) {
+export type ShellBreadcrumbItem = { label: string; href?: string }
+
+export function ShellBreadcrumbs({ leaf, items, className = "" }: {
+  leaf?: string
+  items?: ShellBreadcrumbItem[]
+  className?: string
+}) {
+  const trail = items || (leaf ? [{ label: leaf }] : [])
   return <nav className={`shell-breadcrumbs ${className}`.trim()} aria-label="Location">
     <Link className="shell-breadcrumb-root" to={`${originsBase}/`}><Clapperboard /><span>Origins</span></Link>
-    {leaf && <span className="shell-breadcrumb-item"><ChevronRight /><b aria-current="page">{leaf}</b></span>}
+    {trail.map((item, index) => <span className="shell-breadcrumb-item" key={`${item.href || "current"}-${item.label}`}>
+      <ChevronRight />
+      {item.href && index < trail.length - 1
+        ? <Link to={item.href}>{item.label}</Link>
+        : <b aria-current={index === trail.length - 1 ? "page" : undefined}>{item.label}</b>}
+    </span>)}
   </nav>
 }

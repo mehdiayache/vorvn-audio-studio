@@ -29,7 +29,7 @@ import { loadPartCaptionTracks, loadProductionCaptionTracks } from "@/lib/produc
 import { originsApi } from "@/lib/api"
 import type {
   DurableJob, GeneratePayload, GenerateResult, LoadState, PlayerCaptionTrack,
-  PlayerSource, Production, ProductionPart, SoundScene, StudioConfig, WorkspaceFile, WorkspaceFolder, VisualScene, VoiceDirectory,
+  PlayerSource, Production, ProductionPart, ProjectDetail, SoundScene, StudioConfig, WorkspaceFile, WorkspaceFolder, VisualScene, VoiceDirectory,
 } from "@/types/domain"
 import { workstationPartState, type SequenceInsertKind, type WorkstationPartActions } from "./workstation-sequence"
 import { WorkstationPartInspector } from "./workstation-part-inspector"
@@ -69,8 +69,9 @@ function partDeletionLabel(part: ProductionPart) {
   return `Part ${number} · ${formatAuthoredRole(part.authored_role) || part.voice_name || part.voice || "Speech"}`
 }
 
-export function AudiovisualProductionPage({ production, soundScene, visualScene, folders, files, productionFileIds, libraryFileIds, fileState, config, directory, refresh, refreshFiles }: {
+export function AudiovisualProductionPage({ production, project, soundScene, visualScene, folders, files, productionFileIds, libraryFileIds, fileState, config, directory, refresh, refreshFiles }: {
   production: Production
+  project: ProjectDetail | null
   soundScene: SoundScene
   visualScene: VisualScene
   folders: WorkspaceFolder[]
@@ -405,7 +406,7 @@ export function AudiovisualProductionPage({ production, soundScene, visualScene,
   )
   return <>
     <section className="audiovisual-production" data-stage={stage} data-outline-open={(stage === "library" ? libraryCreatorOpen : outlineOpen) ? "true" : "false"} data-inspector-open={inspectorOpen && stage !== "sound" ? "true" : "false"} data-inspector-expanded={creatorOpen ? "true" : "false"}>
-      <WorkstationHeader production={production} duration={duration} stage={stage} issueCount={issues.length + staleOverrides.length} previewing={stage === "sound" ? soundState.playback === "preparing" : actions.previewing} playing={stage === "sound" ? soundState.playback === "playing" : actions.productionPlaying} mutationStatus={actions.mutationStatus} onStage={changeStage} onPreview={() => { if (stage === "sound") void soundSession.togglePlayback(); else void actions.toggleProduction() }} onExport={() => setExportOpen(true)} onAdd={openTool} onDelete={() => setDeleteProductionOpen(true)} onRename={renameProduction} />
+      <WorkstationHeader production={production} project={project} duration={duration} stage={stage} issueCount={issues.length + staleOverrides.length} previewing={stage === "sound" ? soundState.playback === "preparing" : actions.previewing} playing={stage === "sound" ? soundState.playback === "playing" : actions.productionPlaying} mutationStatus={actions.mutationStatus} onStage={changeStage} onPreview={() => { if (stage === "sound") void soundSession.togglePlayback(); else void actions.toggleProduction() }} onExport={() => setExportOpen(true)} onAdd={openTool} onDelete={() => setDeleteProductionOpen(true)} onRename={renameProduction} />
       <div className="ws-body">
         {stage === "sequence" && <ScriptStage
           centerPaneRef={centerPaneRef}

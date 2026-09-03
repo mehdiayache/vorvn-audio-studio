@@ -127,7 +127,7 @@ export type Production = {
   status: "draft" | "in_progress" | "review" | "approved" | "released" | "archived" | string
   workspace_id: number
   folder_id?: number | null
-  project_id?: number | null
+  project_id: number | null
   settings: Record<string, unknown>
   updated_at?: string
   parts: ProductionPart[]

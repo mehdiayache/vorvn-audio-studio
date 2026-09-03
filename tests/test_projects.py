@@ -1,4 +1,4 @@
-"""Real PostgreSQL checks for Projects as grouping-only Workspace resources."""
+"""Real PostgreSQL checks for Projects as master human work containers."""
 
 from __future__ import annotations
 
@@ -143,6 +143,9 @@ class ProjectRepositoryTests(unittest.TestCase):
 
         self.assertEqual(production["project_id"], project["id"])
         self.assertEqual(production["folder_id"], folder["id"])
+        editor = self.production_service.production_editor(int(production["id"]))
+        self.assertEqual(editor["project_id"], project["id"])
+        self.assertEqual(editor["folder_id"], folder["id"])
         self.assertEqual(
             self.project_service.project(project["public_id"])["productions"][0]["id"],
             production["id"],

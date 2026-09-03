@@ -1,4 +1,4 @@
-"""Workspace-owned Project grouping routes."""
+"""Workspace-owned Project work-container routes."""
 
 from fastapi import APIRouter, status
 

@@ -62,6 +62,9 @@ class ContentContractTests(unittest.TestCase):
         self.assertIn("productions", components["WorkspaceOverviewResponse"]["required"])
         self.assertIn("files", components["WorkspaceOverviewResponse"]["required"])
         self.assertIn("parts", components["ProductionEditorResponse"]["required"])
+        self.assertIn("project_id", components["ProductionEditorResponse"]["required"])
+        production_update = components["ResourceUpdate"]["properties"]
+        self.assertTrue({"project_id", "folder_id"}.issubset(production_update))
         sound_scene = components["SoundSceneUpdateBody"]["properties"]
         self.assertTrue({"expected_revision", "document"}.issubset(sound_scene))
         self.assertIn("storage_settings",

@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react"
-import { MemoryRouter, Route, Routes } from "react-router-dom"
+import { MemoryRouter, Route, Routes, useLocation, useNavigate } from "react-router-dom"
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
 
 import { TooltipProvider } from "@/components/ui/tooltip"
@@ -34,9 +34,15 @@ const overview: WorkspaceOverview = {
   folders: [], projects: [project], productions: [production], files: [],
 }
 
-function renderPage() {
-  return render(<MemoryRouter initialEntries={["/origins/projects/project-6"]}>
-    <TooltipProvider><Routes><Route path="/origins/projects/:identifier" element={<ProjectPage />} /><Route path="/origins/productions/audiovisual/:identifier" element={<div>Workstation</div>} /></Routes></TooltipProvider>
+function LocationControls() {
+  const location = useLocation()
+  const navigate = useNavigate()
+  return <><output aria-label="Current route">{location.pathname}{location.search}</output><button type="button" onClick={() => navigate(-1)}>Browser Back</button><button type="button" onClick={() => navigate(1)}>Browser Forward</button></>
+}
+
+function renderPage(entry = "/origins/projects/project-6") {
+  return render(<MemoryRouter initialEntries={[entry]}>
+    <TooltipProvider><LocationControls /><Routes><Route path="/origins/projects/:identifier" element={<ProjectPage />} /><Route path="/origins/productions/audiovisual/:identifier" element={<div>Workstation</div>} /></Routes></TooltipProvider>
   </MemoryRouter>)
 }
 
@@ -68,7 +74,9 @@ describe("ProjectPage", () => {
     expect(await screen.findByRole("heading", { name: "Nike Summer Launch" })).toBeTruthy()
     fireEvent.click(screen.getByRole("button", { name: "Add existing" }))
     fireEvent.click(await screen.findByRole("button", { name: /Hero Film/ }))
-    await waitFor(() => expect(originsApi.updateProduction).toHaveBeenCalledWith(8, { project_id: 6 }))
+    await waitFor(() => expect(originsApi.updateProduction).toHaveBeenCalledWith(8, {
+      project_id: 6, folder_id: null,
+    }))
 
     vi.mocked(originsApi.project).mockResolvedValue({
       ...project, production_count: 1, productions: [{
@@ -80,6 +88,67 @@ describe("ProjectPage", () => {
       }],
     })
     await waitFor(() => expect(originsApi.project).toHaveBeenCalledTimes(2))
+  })
+
+  it("adds an existing Production into the active Project Folder without recreating it", async () => {
+    const folder = {
+      id: 20, public_id: "folder-20", workspace_id: 4, project_id: 6,
+      parent_id: null, name: "Drafts", created_at: "2026-09-03T00:00:00Z",
+      updated_at: "2026-09-03T00:00:00Z",
+    }
+    vi.mocked(originsApi.project).mockResolvedValue({ ...project, folders: [folder] })
+    renderPage("/origins/projects/project-6?folder=folder-20")
+
+    await screen.findByRole("button", { name: "Drafts", current: "page" })
+    fireEvent.click(screen.getByRole("button", { name: "Add existing" }))
+    fireEvent.click(await screen.findByRole("button", { name: /Hero Film/ }))
+
+    await waitFor(() => expect(originsApi.updateProduction).toHaveBeenCalledWith(8, {
+      project_id: 6, folder_id: 20,
+    }))
+    expect(originsApi.createAudiovisualProduction).not.toHaveBeenCalled()
+  })
+
+  it("addresses nested Project Folders and follows browser history", async () => {
+    const folders = [
+      { id: 20, public_id: "folder-20", workspace_id: 4, project_id: 6, parent_id: null, name: "Drafts", created_at: "2026-09-03T00:00:00Z", updated_at: "2026-09-03T00:00:00Z" },
+      { id: 21, public_id: "folder-21", workspace_id: 4, project_id: 6, parent_id: 20, name: "Review", created_at: "2026-09-03T00:00:00Z", updated_at: "2026-09-03T00:00:00Z" },
+    ]
+    vi.mocked(originsApi.project).mockResolvedValue({ ...project, folders })
+    renderPage()
+
+    fireEvent.click(await screen.findByRole("button", { name: "Drafts" }))
+    expect(screen.getByLabelText("Current route").textContent)
+      .toBe("/origins/projects/project-6?folder=folder-20")
+    fireEvent.click(screen.getByRole("button", { name: "Review" }))
+    expect(screen.getByLabelText("Current route").textContent)
+      .toBe("/origins/projects/project-6?folder=folder-21")
+    fireEvent.click(screen.getByRole("button", { name: "Browser Back" }))
+    await waitFor(() => expect(screen.getByLabelText("Current route").textContent)
+      .toBe("/origins/projects/project-6?folder=folder-20"))
+    fireEvent.click(screen.getByRole("button", { name: "Browser Back" }))
+    await waitFor(() => expect(screen.getByLabelText("Current route").textContent)
+      .toBe("/origins/projects/project-6"))
+    fireEvent.click(screen.getByRole("button", { name: "Browser Forward" }))
+    await waitFor(() => expect(screen.getByLabelText("Current route").textContent)
+      .toBe("/origins/projects/project-6?folder=folder-20"))
+  })
+
+  it("returns invalid Project Folder deep links to the Project root", async () => {
+    vi.mocked(originsApi.project).mockResolvedValue({
+      ...project,
+      folders: [{
+        id: 20, public_id: "foreign-folder", workspace_id: 4, project_id: 99,
+        parent_id: null, name: "Foreign", created_at: "2026-09-03T00:00:00Z",
+        updated_at: "2026-09-03T00:00:00Z",
+      }],
+    })
+    renderPage("/origins/projects/project-6?folder=foreign-folder")
+
+    await screen.findByRole("heading", { name: project.name })
+    await waitFor(() => expect(screen.getByLabelText("Current route").textContent)
+      .toBe("/origins/projects/project-6"))
+    expect(screen.queryByText("Foreign")).toBeNull()
   })
 
   it("creates a Folder directly in the Project context", async () => {
@@ -126,6 +195,8 @@ describe("ProjectPage", () => {
     fireEvent.click(screen.getByRole("button", { name: "Create Folder" }))
     await waitFor(() => expect(originsApi.createFolder)
       .toHaveBeenCalledWith(4, "Research", 20, 6))
+    await waitFor(() => expect(screen.getByLabelText("Current route").textContent)
+      .toBe("/origins/projects/project-6?folder=folder-21"))
 
     fireEvent.click(screen.getByRole("button", { name: "New Production" }))
     fireEvent.change(screen.getByRole("textbox", { name: "Name" }), {

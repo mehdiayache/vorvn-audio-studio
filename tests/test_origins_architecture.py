@@ -126,7 +126,7 @@ class OriginsArchitectureTests(unittest.TestCase):
         self.assertIn("ALTER TABLE public.folders ADD COLUMN project_id", schema)
         self.assertIn("ALTER TABLE public.projects DROP COLUMN folder_id", schema)
 
-    def test_project_is_grouping_only_not_a_false_subsystem(self):
+    def test_project_container_is_not_a_creative_execution_subsystem(self):
         source = "\n".join(
             path.read_text()
             for path in (ROOT / "origins").rglob("*.py")

@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 import { cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react"
-import { MemoryRouter, Route, Routes } from "react-router-dom"
+import { MemoryRouter, Route, Routes, useLocation, useNavigate } from "react-router-dom"
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
 
 import { TooltipProvider } from "@/components/ui/tooltip"
@@ -29,8 +29,14 @@ const overview: WorkspaceOverview = {
   files: [{ id: 9, public_id: "file-9", workspace_id: 4, folder_id: null, name: "Score.wav", source: "generated", tags: ["music"], metadata: {}, created_at: "2026-01-01T00:00:00Z", updated_at: "2026-01-02T00:00:00Z", current_version: { id: 10, public_id: "version-10", version: 1, filename: "score.wav", storage_key: "score.wav", url: "/audio/score.wav", size_bytes: 20, duration_ms: 5_000, mime_type: "audio/wav", family: "audio", width: null, height: null } }],
 }
 
-function renderPage(view: "workspaces" | "home" | "projects" | "productions" | "files" | "explorer" = "home") {
-  return render(<MemoryRouter initialEntries={["/origins/"]}><TooltipProvider><Routes><Route path="/origins/*" element={<WorkspaceExplorerPage view={view} />} /></Routes></TooltipProvider></MemoryRouter>)
+function LocationControls() {
+  const location = useLocation()
+  const navigate = useNavigate()
+  return <><output aria-label="Current route">{location.pathname}{location.search}</output><button type="button" onClick={() => navigate(-1)}>Browser Back</button><button type="button" onClick={() => navigate(1)}>Browser Forward</button></>
+}
+
+function renderPage(view: "workspaces" | "home" | "projects" | "productions" | "files" | "explorer" = "home", entry = "/origins/") {
+  return render(<MemoryRouter initialEntries={[entry]}><TooltipProvider><LocationControls /><Routes><Route path="/origins/*" element={<WorkspaceExplorerPage view={view} />} /></Routes></TooltipProvider></MemoryRouter>)
 }
 
 beforeEach(() => {
@@ -114,7 +120,7 @@ describe("WorkspaceExplorerPage", () => {
     expect(screen.getByRole("heading", { name: "Standalone work" })).toBeTruthy()
   })
 
-  it("creates a Project as a grouping resource in the selected Workspace", async () => {
+  it("creates a Project as a master work container in the selected Workspace", async () => {
     vi.mocked(originsApi.createProject).mockResolvedValue({
       id: 12, public_id: "project-12", workspace_id: 4,
       name: "Nike Summer Launch", description: "Campaign", production_count: 0,
@@ -125,6 +131,85 @@ describe("WorkspaceExplorerPage", () => {
     fireEvent.change(screen.getByRole("textbox", { name: "Name" }), { target: { value: "Nike Summer Launch" } })
     fireEvent.click(screen.getByRole("button", { name: "Create Project" }))
     await waitFor(() => expect(originsApi.createProject).toHaveBeenCalledWith(4, "Nike Summer Launch", ""))
+  })
+
+  it("addresses nested Workspace Folders and restores them from browser history", async () => {
+    vi.mocked(originsApi.workspace).mockResolvedValue({
+      ...overview,
+      folders: [
+        { id: 20, public_id: "folder-20", workspace_id: 4, project_id: null, parent_id: null, name: "Shared Assets", created_at: "2026-01-01T00:00:00Z", updated_at: "2026-01-02T00:00:00Z" },
+        { id: 21, public_id: "folder-21", workspace_id: 4, project_id: null, parent_id: 20, name: "Archive", created_at: "2026-01-01T00:00:00Z", updated_at: "2026-01-02T00:00:00Z" },
+      ],
+    })
+    renderPage("explorer", "/origins/explorer")
+
+    fireEvent.click(await screen.findByRole("button", { name: "Shared Assets" }))
+    expect(screen.getByLabelText("Current route").textContent)
+      .toBe("/origins/explorer?folder=folder-20")
+    fireEvent.click(screen.getByRole("button", { name: "Archive" }))
+    expect(screen.getByLabelText("Current route").textContent)
+      .toBe("/origins/explorer?folder=folder-21")
+    fireEvent.click(screen.getByRole("button", { name: "Browser Back" }))
+    await waitFor(() => expect(screen.getByLabelText("Current route").textContent)
+      .toBe("/origins/explorer?folder=folder-20"))
+    fireEvent.click(screen.getByRole("button", { name: "Browser Forward" }))
+    await waitFor(() => expect(screen.getByLabelText("Current route").textContent)
+      .toBe("/origins/explorer?folder=folder-21"))
+  })
+
+  it("navigates into a newly created Workspace Folder", async () => {
+    const createdFolder = {
+      id: 20, public_id: "folder-20", workspace_id: 4, project_id: null,
+      parent_id: null, name: "Shared Assets", created_at: "2026-01-01T00:00:00Z",
+      updated_at: "2026-01-02T00:00:00Z",
+    }
+    vi.mocked(originsApi.createFolder).mockResolvedValue(createdFolder)
+    vi.mocked(originsApi.workspace)
+      .mockResolvedValueOnce(overview)
+      .mockResolvedValue({ ...overview, folders: [createdFolder] })
+    renderPage("explorer", "/origins/explorer")
+
+    fireEvent.click(await screen.findByRole("button", { name: "New Folder" }))
+    fireEvent.change(screen.getByRole("textbox", { name: "Name" }), {
+      target: { value: "Shared Assets" },
+    })
+    fireEvent.click(screen.getByRole("button", { name: "Create Folder" }))
+
+    await waitFor(() => expect(originsApi.createFolder)
+      .toHaveBeenCalledWith(4, "Shared Assets", null, null))
+    await waitFor(() => expect(screen.getByLabelText("Current route").textContent)
+      .toBe("/origins/explorer?folder=folder-20"))
+  })
+
+  it("restores a Workspace Folder deep link and rejects cross-context locations", async () => {
+    vi.mocked(originsApi.workspace).mockResolvedValue({
+      ...overview,
+      folders: [
+        { id: 20, public_id: "workspace-folder", workspace_id: 4, project_id: null, parent_id: null, name: "Shared Assets", created_at: "2026-01-01T00:00:00Z", updated_at: "2026-01-02T00:00:00Z" },
+        { id: 21, public_id: "project-folder", workspace_id: 4, project_id: 7, parent_id: null, name: "Project Drafts", created_at: "2026-01-01T00:00:00Z", updated_at: "2026-01-02T00:00:00Z" },
+        { id: 22, public_id: "foreign-workspace-folder", workspace_id: 99, project_id: null, parent_id: null, name: "Foreign Workspace", created_at: "2026-01-01T00:00:00Z", updated_at: "2026-01-02T00:00:00Z" },
+      ],
+      productions: [{ ...overview.productions[0]!, folder_id: 20 }],
+    })
+    const { unmount } = renderPage("explorer", "/origins/explorer?folder=workspace-folder")
+
+    expect(await screen.findByRole("link", { name: "Open Launch film" })).toBeTruthy()
+    expect(screen.getByLabelText("Current route").textContent)
+      .toBe("/origins/explorer?folder=workspace-folder")
+    unmount()
+
+    renderPage("explorer", "/origins/explorer?folder=project-folder")
+    await screen.findByRole("heading", { name: "Workspace Folders" })
+    await waitFor(() => expect(screen.getByLabelText("Current route").textContent)
+      .toBe("/origins/explorer"))
+    expect(screen.queryByRole("button", { name: "Project Drafts" })).toBeNull()
+    cleanup()
+
+    renderPage("explorer", "/origins/explorer?folder=foreign-workspace-folder")
+    await screen.findByRole("heading", { name: "Workspace Folders" })
+    await waitFor(() => expect(screen.getByLabelText("Current route").textContent)
+      .toBe("/origins/explorer"))
+    expect(screen.queryByRole("button", { name: "Foreign Workspace" })).toBeNull()
   })
 
   it("lets the dedicated Files view use the complete library width", async () => {

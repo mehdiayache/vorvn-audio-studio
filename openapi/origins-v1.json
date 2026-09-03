@@ -5952,6 +5952,17 @@
             "title": "Production Type",
             "type": "string"
           },
+          "project_id": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Project Id"
+          },
           "public_id": {
             "title": "Public Id",
             "type": "string"
@@ -5993,6 +6004,7 @@
           "id",
           "public_id",
           "workspace_id",
+          "project_id",
           "name",
           "description",
           "status",
@@ -8655,6 +8667,18 @@
               }
             ],
             "title": "Description"
+          },
+          "folder_id": {
+            "anyOf": [
+              {
+                "exclusiveMinimum": 0.0,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Folder Id"
           },
           "icon": {
             "anyOf": [

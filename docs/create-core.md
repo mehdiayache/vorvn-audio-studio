@@ -31,7 +31,7 @@ WORKSPACE
 ```text
 Workspace owns.
 Explorer places.
-Projects group work.
+Projects contain human work.
 Productions execute creative work.
 Library finds.
 Creator creates.

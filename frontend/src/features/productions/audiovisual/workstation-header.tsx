@@ -1,5 +1,4 @@
 import { useEffect, useRef, useState } from "react"
-import { Link } from "react-router-dom"
 import {
   AudioLines, Check, ChevronDown, CircleAlert, Clock3, FileJson2, ListOrdered,
   Download, LoaderCircle, MoreHorizontal, Pause, PencilLine, Play, Plus, Sparkles, Trash2, Video,
@@ -12,10 +11,11 @@ import {
   DropdownMenuSeparator, DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
 import { Input } from "@/components/ui/input"
+import { ProductionBreadcrumbs } from "@/features/productions/production-breadcrumbs"
 import type { ProductionToolKind } from "@/features/productions/audiovisual/production-tools"
 import type { ProductionMutationStatus } from "@/hooks/use-production-actions"
 import { formatDuration, formatMoney } from "@/lib/format"
-import type { Production } from "@/types/domain"
+import type { Production, ProjectDetail } from "@/types/domain"
 import { WORKSTATION_STAGES, type WorkstationStage } from "./workstation-workflow"
 
 export function InlineProductionName({ name, onRename }: { name: string; onRename: (name: string) => Promise<void> }) {
@@ -59,8 +59,9 @@ export function InlineProductionName({ name, onRename }: { name: string; onRenam
   </div>
 }
 
-export function WorkstationHeader({ production, duration, stage, issueCount, previewing, playing, mutationStatus, onStage, onPreview, onExport, onAdd, onDelete, onRename }: {
+export function WorkstationHeader({ production, project, duration, stage, issueCount, previewing, playing, mutationStatus, onStage, onPreview, onExport, onAdd, onDelete, onRename }: {
   production: Production
+  project: ProjectDetail | null
   duration: number
   stage: WorkstationStage
   issueCount: number
@@ -81,11 +82,7 @@ export function WorkstationHeader({ production, duration, stage, issueCount, pre
   const otherSpend = Number(production.accounting.other_spend ?? 0)
   return <header className="ws-header">
     <div className="ws-context-rail">
-      <nav className="ws-production-breadcrumbs" aria-label="Production location">
-        <Link to="/origins/">Origins</Link><span aria-hidden="true">/</span>
-        <Link to="/origins/productions">Productions</Link><span aria-hidden="true">/</span>
-        <span aria-current="page">{production.name}</span>
-      </nav>
+      <ProductionBreadcrumbs production={production} project={project} />
     </div>
     <div className="ws-header-context">
       <InlineProductionName name={production.name} onRename={onRename} />

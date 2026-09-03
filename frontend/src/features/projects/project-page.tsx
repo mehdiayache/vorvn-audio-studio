@@ -4,7 +4,7 @@ import {
   FileText, FileVideo2, Folder, FolderKanban, FolderPlus, Plus, Unlink,
 } from "lucide-react"
 import type { LucideIcon } from "lucide-react"
-import { Link, useNavigate, useParams } from "react-router-dom"
+import { Link, useNavigate, useParams, useSearchParams } from "react-router-dom"
 import { toast } from "sonner"
 
 import { ActionButton, OperatorIconButton } from "@/components/operator-action"
@@ -58,9 +58,9 @@ function FileRow({ file }: { file: WorkspaceFile }) {
 export function ProjectPage() {
   const { identifier = "" } = useParams()
   const navigate = useNavigate()
+  const [searchParams, setSearchParams] = useSearchParams()
   const [project, setProject] = useState<ProjectDetail | null>(null)
   const [workspace, setWorkspace] = useState<WorkspaceOverview | null>(null)
-  const [currentFolderId, setCurrentFolderId] = useState<number | null>(null)
   const [error, setError] = useState("")
   const [folderDialogOpen, setFolderDialogOpen] = useState(false)
   const [productionDialogOpen, setProductionDialogOpen] = useState(false)
@@ -81,14 +81,32 @@ export function ProjectPage() {
   }, [identifier])
 
   useEffect(() => {
-    setCurrentFolderId(null)
+    setProject(null)
+    setWorkspace(null)
     void load()
   }, [load])
 
-  const currentFolder = project?.folders.find((folder) => folder.id === currentFolderId) || null
-  const childFolders = useMemo(() => project?.folders.filter(
+  const requestedFolderPublicId = searchParams.get("folder")
+  const projectFolders = useMemo(() => project?.folders.filter((folder) =>
+    folder.workspace_id === project.workspace_id
+    && folder.project_id === project.id) || [], [project])
+  const currentFolder = projectFolders.find((folder) =>
+    folder.public_id === requestedFolderPublicId) || null
+  const currentFolderId = currentFolder?.id ?? null
+  const setFolderLocation = useCallback((folderPublicId: string | null, replace = false) => {
+    const next = new URLSearchParams(searchParams)
+    if (folderPublicId) next.set("folder", folderPublicId)
+    else next.delete("folder")
+    setSearchParams(next, { replace })
+  }, [searchParams, setSearchParams])
+  useEffect(() => {
+    if (project && requestedFolderPublicId && !currentFolder) {
+      setFolderLocation(null, true)
+    }
+  }, [currentFolder, project, requestedFolderPublicId, setFolderLocation])
+  const childFolders = useMemo(() => projectFolders.filter(
     (folder) => folder.parent_id === currentFolderId,
-  ) || [], [currentFolderId, project])
+  ), [currentFolderId, projectFolders])
   const productions = useMemo(() => project?.productions.filter(
     (production) => production.folder_id === currentFolderId,
   ) || [], [currentFolderId, project])
@@ -99,19 +117,26 @@ export function ProjectPage() {
     if (!project || currentFolderId === null) return []
     const result = []
     const visited = new Set<number>()
-    let folder = project.folders.find((candidate) => candidate.id === currentFolderId)
+    let folder = projectFolders.find((candidate) => candidate.id === currentFolderId)
     while (folder && !visited.has(folder.id)) {
       visited.add(folder.id)
       result.unshift(folder)
       folder = folder.parent_id === null
         ? undefined
-        : project.folders.find((candidate) => candidate.id === folder?.parent_id)
+        : projectFolders.find((candidate) => candidate.id === folder?.parent_id)
     }
     return result
-  }, [currentFolderId, project])
+  }, [currentFolderId, project, projectFolders])
   const available = useMemo(() => workspace?.productions.filter(
     (production) => production.project_id === null,
   ) || [], [workspace])
+
+  function folderCreated(folder: ProjectDetail["folders"][number]) {
+    setProject((current) => current
+      ? { ...current, folders: [...current.folders, folder] }
+      : current)
+    setFolderLocation(folder.public_id)
+  }
 
   async function openExistingPicker() {
     setPickerOpen(true)
@@ -129,7 +154,9 @@ export function ProjectPage() {
   ) {
     await action.run(`production-${production.id}`, async () => {
       try {
-        await originsApi.updateProduction(production.id, { project_id: projectId })
+        await originsApi.updateProduction(production.id, projectId === null
+          ? { project_id: null }
+          : { project_id: projectId, folder_id: currentFolderId })
         if (workspace) {
           setWorkspace({
             ...workspace,
@@ -160,8 +187,8 @@ export function ProjectPage() {
 
     <div className="project-explorer">
       <nav className="project-breadcrumbs" aria-label="Project location">
-        <button type="button" aria-current={currentFolderId === null ? "page" : undefined} onClick={() => setCurrentFolderId(null)}>{project.name}</button>
-        {breadcrumbs.map((folder) => <span key={folder.id}><ChevronRight /><button type="button" aria-current={folder.id === currentFolderId ? "page" : undefined} onClick={() => setCurrentFolderId(folder.id)}>{folder.name}</button></span>)}
+        <button type="button" aria-current={currentFolderId === null ? "page" : undefined} onClick={() => setFolderLocation(null)}>{project.name}</button>
+        {breadcrumbs.map((folder) => <span key={folder.id}><ChevronRight /><button type="button" aria-current={folder.id === currentFolderId ? "page" : undefined} onClick={() => setFolderLocation(folder.public_id)}>{folder.name}</button></span>)}
       </nav>
       <div className="project-explorer-actions">
         <Button variant="outline" onClick={() => setFolderDialogOpen(true)}><FolderPlus /> New Folder</Button>
@@ -172,7 +199,7 @@ export function ProjectPage() {
       <section className="project-explorer-section" aria-labelledby="project-folders-title">
         <header><div><h2 id="project-folders-title">Folders</h2><p>{currentFolder ? `Inside ${currentFolder.name}` : "Organize references, drafts and deliverables."}</p></div><span>{childFolders.length}</span></header>
         <div className="project-folder-grid">
-          {childFolders.map((folder) => <button type="button" key={folder.id} onClick={() => setCurrentFolderId(folder.id)}><span><Folder /></span><b>{folder.name}</b><ChevronRight /></button>)}
+          {childFolders.map((folder) => <button type="button" key={folder.id} onClick={() => setFolderLocation(folder.public_id)}><span><Folder /></span><b>{folder.name}</b><ChevronRight /></button>)}
           {!childFolders.length && <div className="project-compact-empty"><Folder /><span>No folders at this level.</span></div>}
         </div>
       </section>
@@ -194,8 +221,8 @@ export function ProjectPage() {
       </section>}
     </div>
 
-    <CreateFolderDialog open={folderDialogOpen} onOpenChange={setFolderDialogOpen} workspaceId={project.workspace_id} projectId={project.id} parentId={currentFolderId} locationLabel={locationLabel} onCreated={(folder) => { void load(); setCurrentFolderId(folder.id) }} />
-    <CreateProductionDialog open={productionDialogOpen} onOpenChange={setProductionDialogOpen} workspaceId={project.workspace_id} projects={[project]} folders={project.folders} initialProjectId={project.id} initialFolderId={currentFolderId} lockProject onCreated={(production) => navigate(`/origins/productions/audiovisual/${production.public_id}`)} />
+    <CreateFolderDialog open={folderDialogOpen} onOpenChange={setFolderDialogOpen} workspaceId={project.workspace_id} projectId={project.id} parentId={currentFolderId} locationLabel={locationLabel} onCreated={folderCreated} />
+    <CreateProductionDialog open={productionDialogOpen} onOpenChange={setProductionDialogOpen} workspaceId={project.workspace_id} projects={[project]} folders={projectFolders} initialProjectId={project.id} initialFolderId={currentFolderId} lockProject onCreated={(production) => navigate(`/origins/productions/audiovisual/${production.public_id}`)} />
 
     <Dialog open={pickerOpen} onOpenChange={setPickerOpen}>
       <DialogContent className="project-production-picker">
