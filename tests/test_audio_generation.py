@@ -72,10 +72,18 @@ class AudioGeneratorProviderTests(unittest.TestCase):
         ]))
         with patch.dict("os.environ", {"VORVN_AI_API_KEY": "secret"},
                         clear=True):
-            status = OurStableAudioGenerator(opener=opener).status()
+            generator = OurStableAudioGenerator(opener=opener)
+            status = generator.status()
+            cached_status = generator.status()
         self.assertTrue(status["sfx_ready"])
         self.assertTrue(status["music_ready"])
+        self.assertEqual(status["models"]["sfx"]["label"],
+                         "Stable Audio Sound Effect")
+        self.assertEqual(status["models"]["music"]["provider"],
+                         "Origins Audio")
         self.assertEqual(status["models"]["music"]["max_seconds"], 120)
+        self.assertIs(cached_status, status)
+        opener.assert_called_once()
 
 
 class FakeGenerator:

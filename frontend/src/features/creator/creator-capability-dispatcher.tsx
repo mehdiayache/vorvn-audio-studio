@@ -1,4 +1,4 @@
-import { lazy, Suspense, type ComponentProps, type ReactNode } from "react"
+import { lazy, Suspense, useState, type ComponentProps, type ReactNode } from "react"
 
 import { PageLoading } from "@/components/state-panel"
 import { AudioCreator } from "./audio/audio-creator"
@@ -48,6 +48,8 @@ export function CreatorCapabilityDispatcher({
   audioProps: AudioCreatorProps
 }) {
   const { capability, context, renderWorkspace } = session
+  const [speechCreationItems, setSpeechCreationItems] = useState<CreatorLibraryCreationItem[]>([])
+  const [audioCreationItems, setAudioCreationItems] = useState<CreatorLibraryCreationItem[]>([])
   const library = (generatedOutputIds = new Set<number>(), creationItems: CreatorLibraryCreationItem[] = []) => renderLibrary({
     capability,
     generatedOutputIds,
@@ -67,8 +69,8 @@ export function CreatorCapabilityDispatcher({
     creatorDetail: creatorCapabilityLabel(capability),
     libraryDetail,
     creator: capability === "speech"
-      ? <Suspense fallback={<PageLoading label="Opening speech controls" />}><SpeechCreator embedded panelOnly {...speechCallbacks} /></Suspense>
-      : <AudioCreator key={capability} {...audioProps} mode="sound" fixedCapability={capability} />,
-    library: library(),
+      ? <Suspense fallback={<PageLoading label="Opening speech controls" />}><SpeechCreator embedded panelOnly {...speechCallbacks} onCreationItemsChange={setSpeechCreationItems} /></Suspense>
+      : <AudioCreator key={capability} {...audioProps} mode="sound" fixedCapability={capability} onCreationItemsChange={setAudioCreationItems} />,
+    library: library(new Set(), capability === "speech" ? speechCreationItems : audioCreationItems),
   })
 }

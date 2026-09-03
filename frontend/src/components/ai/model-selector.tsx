@@ -1,4 +1,4 @@
-import { Check, ChevronsUpDown } from "lucide-react"
+import { Check, ChevronsUpDown, Cpu, LoaderCircle } from "lucide-react"
 import { useMemo, useState, type ComponentProps } from "react"
 
 import { Button } from "@/components/ui/button"
@@ -14,11 +14,14 @@ export type ModelSelectorOption = {
   iconUrl?: string
 }
 
-export function ModelSelector({ options, value, onValueChange, disabled = false, triggerClassName, triggerVariant = "ghost", triggerSize = "xs", contentSide = "top" }: {
+export function ModelSelector({ options, value, onValueChange, disabled = false, loading = false, ariaLabel = "Choose generation model", searchPlaceholder = "Search models", triggerClassName, triggerVariant = "ghost", triggerSize = "xs", contentSide = "top" }: {
   options: ModelSelectorOption[]
   value: string
   onValueChange: (value: string) => void
   disabled?: boolean
+  loading?: boolean
+  ariaLabel?: string
+  searchPlaceholder?: string
   triggerClassName?: string
   triggerVariant?: ComponentProps<typeof Button>["variant"]
   triggerSize?: ComponentProps<typeof Button>["size"]
@@ -30,25 +33,28 @@ export function ModelSelector({ options, value, onValueChange, disabled = false,
 
   return <Popover open={open} onOpenChange={setOpen}>
     <PopoverTrigger asChild>
-      <Button variant={triggerVariant} size={triggerSize} disabled={disabled || !selected} role="combobox" aria-expanded={open} aria-label="Choose generation model" className={cn("max-w-40 justify-between", triggerClassName)}>
-        <span className="flex min-w-0 items-center gap-2">{selected?.iconUrl && <img className="size-4 shrink-0 rounded-sm" src={selected.iconUrl} alt="" />}<span className="truncate">{selected?.label || "Choose model"}</span></span><ChevronsUpDown data-icon="inline-end" />
+      <Button variant={triggerVariant} size={triggerSize} disabled={disabled || loading || !selected} role="combobox" aria-busy={loading || undefined} aria-expanded={open} aria-label={ariaLabel} className={cn("max-w-40 justify-between", triggerClassName)}>
+        <span className="flex min-w-0 items-center gap-2">{loading ? <LoaderCircle className="size-4 shrink-0 animate-spin text-primary" aria-hidden="true" /> : selected?.iconUrl ? <img className="size-4 shrink-0 rounded-sm" src={selected.iconUrl} alt="" /> : <Cpu className="size-4 shrink-0 text-primary" aria-hidden="true" />}<span className="truncate">{loading ? "Loading models…" : selected?.label || "Choose model"}</span></span><ChevronsUpDown data-icon="inline-end" />
       </Button>
     </PopoverTrigger>
     <PopoverContent align="start" side={contentSide} className="w-72 p-0">
       <Command>
-        <CommandInput placeholder="Search models" />
+        <CommandInput placeholder={searchPlaceholder} />
         <CommandList>
           <CommandEmpty>No compatible model found.</CommandEmpty>
           {providers.map((provider) => <CommandGroup key={provider} heading={provider}>
-            {options.filter((option) => option.provider === provider).map((option) => <CommandItem
+            {options.filter((option) => option.provider === provider).map((option) => {
+              const choose = () => { onValueChange(option.value); setOpen(false) }
+              return <CommandItem
               key={option.value}
               value={`${option.label} ${option.provider} ${option.description || ""}`}
-              onSelect={() => { onValueChange(option.value); setOpen(false) }}
+              onClick={choose}
+              onSelect={choose}
             >
               <Check className={cn("opacity-0", value === option.value && "opacity-100")} />
-              {option.iconUrl && <img className="size-4 shrink-0 rounded-sm" src={option.iconUrl} alt="" />}
+              {option.iconUrl ? <img className="size-4 shrink-0 rounded-sm" src={option.iconUrl} alt="" /> : <Cpu className="size-4 shrink-0 text-primary" aria-hidden="true" />}
               <span className="grid min-w-0 gap-0.5"><span>{option.label}</span>{option.description && <span className="truncate text-xs text-muted-foreground">{option.description}</span>}</span>
-            </CommandItem>)}
+            </CommandItem>})}
           </CommandGroup>)}
         </CommandList>
       </Command>

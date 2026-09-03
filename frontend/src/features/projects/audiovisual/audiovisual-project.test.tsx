@@ -297,7 +297,7 @@ describe("Project Workstation", () => {
     render(<WorkstationFileCard part={source} index={3} selected={false} playing={false} actions={partActions({ replaceFile })} />)
 
     expect(screen.getByText("Temple door stinger")).toBeTruthy()
-    expect(screen.getByText("SFX · Workspace File")).toBeTruthy()
+    expect(screen.getByText("Sound Effect · Workspace File")).toBeTruthy()
     expect(screen.getByText("0:02.4")).toBeTruthy()
     expect(screen.getByText("Free · reusable")).toBeTruthy()
     expect(screen.queryByText("Unknown Voice")).toBeNull()

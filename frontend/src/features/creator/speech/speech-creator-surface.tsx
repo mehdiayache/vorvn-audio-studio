@@ -10,7 +10,7 @@ import { CreatorPerformance } from "../creator-performance"
 import { CreatorRoleEditor } from "../creator-role-editor"
 import { CreatorWho } from "../creator-who"
 import { CreatorWords } from "../creator-words"
-import { CreatorCapabilityBody, CreatorCapabilityPanel } from "../panel/creator-capability-panel"
+import { CreatorCapabilityBody, CreatorCapabilityPanel, CreatorDisclosure } from "../panel/creator-capability-panel"
 import type { SpeechCreatorController } from "./speech-creator-controller"
 import { SpeechCreatorProvider, type SpeechCreatorSurfaceProps, useSpeechCreatorController } from "./speech-creator-controller"
 
@@ -27,6 +27,7 @@ export function ControlledSpeechCreatorSurface({ creator, presentation = "mega",
   const standalone = presentation === "mega"
   const workstation = standalone || presentation === "dialog"
   const panel = presentation === "panel"
+  const capabilityPanel = panel || presentation === "stage"
   return <SpeechCreatorProvider value={creator}>
     <div className={cn("speech-creator creator-surface", `is-${presentation}`)}>
       {!panel && <header className="creator-context-bar">
@@ -41,12 +42,16 @@ export function ControlledSpeechCreatorSurface({ creator, presentation = "mega",
           {onClose && <OperatorIconButton label="Close Creator" detail="Keeps the saved preparation and returns to the Project." onClick={onClose}><X /></OperatorIconButton>}
         </div>
       </header>}
-      {panel ? <CreatorCapabilityPanel className="speech-capability-panel">
+      {capabilityPanel ? <CreatorCapabilityPanel className="speech-capability-panel">
         <CreatorCapabilityBody className="speech-capability-body">
           <CreatorWho />
           <CreatorWords />
-          <CreatorPerformance />
-          <CreatorOutput />
+          <CreatorDisclosure title="Performance" detail="Delivery, direction and fine controls">
+            <CreatorPerformance />
+          </CreatorDisclosure>
+          <CreatorDisclosure title="Output" detail="File format and exact route">
+            <CreatorOutput />
+          </CreatorDisclosure>
         </CreatorCapabilityBody>
         <CreatorActions capabilityPanel />
       </CreatorCapabilityPanel> : workstation ? <div className="creator-workspace">
@@ -70,7 +75,7 @@ export function ControlledSpeechCreatorSurface({ creator, presentation = "mega",
           </div>
         </div>
       </div>}
-      {!panel && <CreatorActions />}
+      {!capabilityPanel && <CreatorActions />}
       <CreatorDialogs />
     </div>
   </SpeechCreatorProvider>

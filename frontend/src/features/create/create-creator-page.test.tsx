@@ -113,5 +113,6 @@ describe("CreateCreatorPage", () => {
 
     fireEvent.click(screen.getByRole("button", { name: "Speech" }))
     expect(await screen.findByTestId("speech-creator")).toBeTruthy()
+    expect(screen.getByRole("dialog", { name: "Create speech" })).toBeTruthy()
   })
 })

@@ -5,11 +5,11 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import type { AudioFileCategory } from "@/types/domain"
 
 export const FILE_CATEGORIES = [
-  ["music", "Music"], ["sfx", "SFX"], ["ambience", "Ambience"],
+  ["music", "Music"], ["sfx", "Sound Effect"], ["ambience", "Ambience"],
 ] as const satisfies readonly (readonly [AudioFileCategory, string])[]
 
 export const CATEGORY_LABELS: Record<AudioFileCategory, string> = {
-  music: "Music", sfx: "SFX", ambience: "Ambience",
+  music: "Music", sfx: "Sound Effect", ambience: "Ambience",
 }
 
 export function FileCategorySelect({ value, onChange }: {

@@ -1,10 +1,20 @@
 """Public contracts for temporary generated audio and explicit Keep."""
 
-from typing import Any
+from typing import Any, Literal
 
 from pydantic import BaseModel, ConfigDict
 
 from origins.http.upload_contracts import UploadedFileResponse
+
+
+class AudioGenerationModelResponse(BaseModel):
+    id: str
+    label: str
+    provider: str
+    capability: Literal["sfx", "music"]
+    max_seconds: int
+    output: str
+    icon_url: str | None = None
 
 
 class AudioGenerationStatusResponse(BaseModel):
@@ -12,7 +22,7 @@ class AudioGenerationStatusResponse(BaseModel):
     sfx_ready: bool
     music_ready: bool
     reason: str | None = None
-    models: dict[str, Any]
+    models: dict[str, AudioGenerationModelResponse]
 
 
 class AudioGenerationStatusEnvelope(BaseModel):

@@ -1099,6 +1099,59 @@
         "title": "AudioGenerationJobCreate",
         "type": "object"
       },
+      "AudioGenerationModelResponse": {
+        "properties": {
+          "capability": {
+            "enum": [
+              "sfx",
+              "music"
+            ],
+            "title": "Capability",
+            "type": "string"
+          },
+          "icon_url": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Icon Url"
+          },
+          "id": {
+            "title": "Id",
+            "type": "string"
+          },
+          "label": {
+            "title": "Label",
+            "type": "string"
+          },
+          "max_seconds": {
+            "title": "Max Seconds",
+            "type": "integer"
+          },
+          "output": {
+            "title": "Output",
+            "type": "string"
+          },
+          "provider": {
+            "title": "Provider",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "label",
+          "provider",
+          "capability",
+          "max_seconds",
+          "output"
+        ],
+        "title": "AudioGenerationModelResponse",
+        "type": "object"
+      },
       "AudioGenerationRequestResponse": {
         "properties": {
           "authored_prompt": {
@@ -1289,7 +1342,9 @@
             "type": "boolean"
           },
           "models": {
-            "additionalProperties": true,
+            "additionalProperties": {
+              "$ref": "#/components/schemas/AudioGenerationModelResponse"
+            },
             "title": "Models",
             "type": "object"
           },

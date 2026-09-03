@@ -6,6 +6,7 @@ from dataclasses import dataclass
 import json
 import os
 from pathlib import Path
+import time
 from typing import Any, Literal
 import urllib.error
 import urllib.request
@@ -38,6 +39,8 @@ class OurStableAudioGenerator:
         self.base_url = (base_url or os.getenv("VORVN_AI_BASE_URL")
                          or DEFAULT_BASE_URL).rstrip("/")
         self.opener = opener
+        self._status_cache: dict[str, Any] | None = None
+        self._status_cached_at = 0.0
 
     @staticmethod
     def configured() -> bool:
@@ -102,6 +105,8 @@ class OurStableAudioGenerator:
                 "reason": "Add the Audio Generation key in Settings.",
                 "models": {},
             }
+        if self._status_cache and time.monotonic() - self._status_cached_at < 30:
+            return self._status_cache
         try:
             payload = self._json("/v1/models", timeout=8)
         except AudioGenerationError as exc:
@@ -120,16 +125,25 @@ class OurStableAudioGenerator:
                 if capability:
                     models[capability] = {
                         "id": str(item.get("id") or ""),
+                        "label": str(item.get("label") or item.get("name") or
+                                     ("Stable Audio Sound Effect" if capability == "sfx"
+                                      else "Stable Audio Music")),
+                        "provider": str(item.get("provider") or "Origins Audio"),
+                        "capability": capability,
                         "max_seconds": int(item.get("max_seconds") or 0),
                         "output": str(item.get("output") or ""),
+                        "icon_url": item.get("icon_url"),
                     }
-        return {
+        result = {
             "configured": True,
             "sfx_ready": "sfx" in models,
             "music_ready": "music" in models,
             "reason": "" if models else "No generation model is available.",
             "models": models,
         }
+        self._status_cache = result
+        self._status_cached_at = time.monotonic()
+        return result
 
     def submit(self, capability: AudioGenerationCapability, *, prompt: str,
                seconds: int, seed: int | None,

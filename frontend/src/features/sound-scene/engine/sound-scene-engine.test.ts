@@ -202,7 +202,7 @@ describe("SoundSceneSession", () => {
 
     await session.setTrackRole("music", "sfx")
 
-    expect(update.mock.calls[0]![0].tracks[0]).toMatchObject({ name: "SFX 1", role: "sfx" })
+    expect(update.mock.calls[0]![0].tracks[0]).toMatchObject({ name: "Sound Effect 1", role: "sfx" })
     session.dispose()
   })
 

@@ -1,6 +1,6 @@
 import { Captions, FileImage, FileVideo, Mic2, Music2, Waves } from "lucide-react"
 import type { LucideIcon } from "lucide-react"
-import { lazy, Suspense, useMemo, useRef, useState } from "react"
+import { lazy, Suspense, useEffect, useMemo, useRef, useState } from "react"
 import { Navigate, useNavigate, useParams, useSearchParams } from "react-router-dom"
 import { toast } from "sonner"
 
@@ -13,7 +13,7 @@ import { CreatorLibraryBrowser, type CreatorLibraryKind } from "@/features/creat
 import { FilePreviewDialog } from "@/features/creator/library/file-preview-dialog"
 import { CreatorLibraryWorkspace } from "@/features/creator/library/creator-library-workspace"
 import { WorkspaceExplorerPage } from "@/features/workspace/explorer/workspace-explorer-page"
-import type { GeneratedKeepInput } from "@/features/workspace/library/audio-library"
+import type { GeneratedAudioKeepInput } from "@/features/creator/audio/audio-creator-contracts"
 import "@/features/workspace/library/audio-library.css"
 import { useWorkspaceExplorer } from "@/hooks/use-workspace-explorer"
 import { originsApi, type CreatorContext } from "@/lib/api"
@@ -69,6 +69,14 @@ const creatorActions: Record<string, CreateCreatorAction> = {
   },
 }
 
+const creatorActionByCapability: Record<CreatorCapabilityId, string> = {
+  image: "generate-image",
+  video: "generate-video",
+  speech: "generate-speech",
+  music: "generate-music",
+  sfx: "generate-sound-effect",
+}
+
 export function CreateCreatorPage() {
   const { actionId = "" } = useParams()
   const [searchParams] = useSearchParams()
@@ -79,12 +87,19 @@ export function CreateCreatorPage() {
   const uploadInputRef = useRef<HTMLInputElement>(null)
   const [uploadingFile, setUploadingFile] = useState(false)
   const [previewFile, setPreviewFile] = useState<WorkspaceFile | null>(null)
+  const [activeCapability, setActiveCapability] = useState<CreatorCapabilityId | null>(
+    action?.capability === "subtitle" ? null : action?.capability || null,
+  )
   const folderId = Number(searchParams.get("folder_id") || 0) || null
   const context = useMemo<CreatorContext | null>(() => selectedWorkspaceId ? ({
     workspace_id: selectedWorkspaceId,
     folder_id: folderId,
     selection: action ? { capability: action.capability } : {},
   }) : null, [action, folderId, selectedWorkspaceId])
+
+  useEffect(() => {
+    setActiveCapability(action?.capability === "subtitle" ? null : action?.capability || null)
+  }, [action])
 
   if (!action) return <Navigate replace to="/origins/" />
   if (workspaces.status === "loading" || (selectedWorkspaceId && overview.status === "loading" && !overview.data)) {
@@ -97,13 +112,16 @@ export function CreateCreatorPage() {
     return <ErrorState title="Workspace unavailable" message={overview.error || "This Workspace could not be loaded."} retry={() => void refresh()} />
   }
 
-  const Icon = action.icon
   const creatorCapability = action.capability === "subtitle" ? null : action.capability
   const isTool = creatorCapability === null
+  const visibleAction = activeCapability
+    ? Object.values(creatorActions).find((candidate) => candidate.capability === activeCapability) || action
+    : action
+  const Icon = visibleAction.icon
   const workspaceName = overview.data?.workspace.name || workspaces.data?.find((workspace) => workspace.id === selectedWorkspaceId)?.name || "Current Workspace"
   const libraryFiles = overview.data?.files || []
 
-  async function keepGeneratedFile(_folder: string, input: GeneratedKeepInput) {
+  async function keepGeneratedFile(_folder: string, input: GeneratedAudioKeepInput) {
     return originsApi.keepGeneratedAudioInWorkspace(input.candidateId, selectedWorkspaceId!, {
       name: input.name,
       category: input.category,
@@ -150,8 +168,8 @@ export function CreateCreatorPage() {
     <Dialog open onOpenChange={(open) => { if (!open) navigate("/origins/") }}>
       <DialogContent className="create-creator-dialog">
         <DialogHeader className="create-creator-header">
-          <span className={`create-creator-icon is-${action.capability}`}><Icon /></span>
-          <span className="create-creator-heading"><DialogTitle>{action.title}</DialogTitle><DialogDescription>{action.description}</DialogDescription></span>
+          <span className={`create-creator-icon is-${visibleAction.capability}`}><Icon /></span>
+          <span className="create-creator-heading"><DialogTitle>{visibleAction.title}</DialogTitle><DialogDescription>{visibleAction.description}</DialogDescription></span>
           <span className="create-creator-destination"><small>Saving to</small><b>{workspaceName}</b></span>
         </DialogHeader>
         <div className="create-creator-workspace">
@@ -163,7 +181,11 @@ export function CreateCreatorPage() {
         libraryDetail={`${libraryFiles.length} reusable File${libraryFiles.length === 1 ? "" : "s"} · ${workspaceName}`}
         creator={<Suspense fallback={<PageLoading label="Opening subtitle controls" />}><SubtitleCreator embedded panelOnly onLibraryChange={refresh} /></Suspense>}
         library={<CreatorLibraryBrowser files={libraryFiles} folders={overview.data?.folders || []} initialKind={action.capability as CreatorLibraryKind} selectedFileId={previewFile?.id} playingKey={player.source?.key} playerPlaying={player.state === "playing"} onSelect={setPreviewFile} onPlay={(source) => void player.toggleSource(source)} onUpload={() => uploadInputRef.current?.click()} />}
-      /> : <CreatorHost context={context!} initialCapability={creatorCapability}>
+      /> : <CreatorHost context={context!} initialCapability={creatorCapability} onCapabilityChange={(capability) => {
+        setActiveCapability(capability)
+        const query = searchParams.toString()
+        navigate(`/origins/create/${creatorActionByCapability[capability]}${query ? `?${query}` : ""}`, { replace: true })
+      }}>
         {(session) => <CreatorCapabilityDispatcher
           session={session}
           libraryDetail={`${libraryFiles.length} reusable File${libraryFiles.length === 1 ? "" : "s"} · ${workspaceName}`}
@@ -184,7 +206,7 @@ export function CreateCreatorPage() {
             onKeep: keepGeneratedFile,
             onKept: fileKept,
           }}
-          renderLibrary={({ capability }) => <CreatorLibraryBrowser files={libraryFiles} folders={overview.data?.folders || []} initialKind={capability} selectedFileId={previewFile?.id} playingKey={player.source?.key} playerPlaying={player.state === "playing"} onSelect={setPreviewFile} onPlay={(source) => void player.toggleSource(source)} onUpload={() => uploadInputRef.current?.click()} />}
+          renderLibrary={({ capability, creationItems }) => <CreatorLibraryBrowser files={libraryFiles} folders={overview.data?.folders || []} creationItems={creationItems} initialKind={capability} selectedFileId={previewFile?.id} playingKey={player.source?.key} playerPlaying={player.state === "playing"} onSelect={setPreviewFile} onPlay={(source) => void player.toggleSource(source)} onUpload={() => uploadInputRef.current?.click()} />}
         />}
       </CreatorHost>}
         </div>

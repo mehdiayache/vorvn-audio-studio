@@ -44,6 +44,30 @@ export type VoiceIdentityChoice = {
   routes: VoiceChoice[]
 }
 
+/** A model is shared by many voice bindings; a route is the exact binding used at execution time. */
+export function speechModelKey(route: VoiceChoice) {
+  return [route.provider, route.engine, route.model, route.modelId, route.adapterKey].join("::")
+}
+
+export function speechModelRoutes(identities: VoiceIdentityChoice[]) {
+  const models = new Map<string, VoiceChoice>()
+  for (const route of identities.flatMap((identity) => identity.routes)) {
+    const key = speechModelKey(route)
+    if (!models.has(key)) models.set(key, route)
+  }
+  return [...models.values()]
+}
+
+export function routeForSpeechModel(identity: VoiceIdentityChoice | undefined, modelKey: string) {
+  return identity?.routes.find((route) => speechModelKey(route) === modelKey)
+}
+
+export function identitiesForSpeechModel(identities: VoiceIdentityChoice[], modelKey: string) {
+  return modelKey
+    ? identities.filter((identity) => Boolean(routeForSpeechModel(identity, modelKey)))
+    : identities
+}
+
 // A provider binding is castable only after its provider has confirmed it. Keep
 // this as a positive list: a new job/interruption status must never become a
 // selectable voice route by accident.

@@ -11,7 +11,7 @@ import { fileProvenance, fileProvenanceDetails } from "@/lib/file-provenance"
 import { formatBytes, formatDuration } from "@/lib/format"
 import type { AudioFileCategory, CatalogLicense, CatalogSound, WorkspaceFile } from "@/types/domain"
 
-import { FileCategorySelect, FileTagEditor } from "./file-library-controls"
+import { FileCategorySelect, FileTagEditor } from "@/features/creator/library/file-library-controls"
 
 const LICENSE_LABELS: Record<CatalogLicense, string> = { cc0: "CC0", "cc-by": "CC BY", "cc-by-nc": "CC BY-NC" }
 

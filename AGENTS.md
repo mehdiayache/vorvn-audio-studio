@@ -133,6 +133,11 @@ Placements mean actual use.
 ---
 
 ### 5. CODE QUALITY & WRITING STYLE
+- **Code-first convergence:** If a product rule is not encoded in shared
+  contracts, primitives, state ownership, and composition boundaries, it cannot
+  remain consistent in the rendered UI. Never declare visual convergence
+  complete because isolated screens happen to look similar; verify the source
+  of truth and dependency direction first.
 - Write clean, type-hinted, self-documenting Python (FastAPI/Pydantic) and TypeScript (React/Vite).
 - Keep dependencies minimal and standard. Do not introduce bloated NPM/Pip packages when built-in Web APIs or standard libraries suffice.
 - Refactor existing dead code before writing new layers. Always delete unused endpoints, variables, and abandoned files.

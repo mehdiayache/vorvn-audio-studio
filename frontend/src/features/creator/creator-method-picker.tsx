@@ -21,7 +21,7 @@ export function CreatorMethodPicker({ route, selectedCapabilityId, onSelect }: {
       <Button type="button" variant="outline" className="creator-context-trigger creator-method-trigger" aria-label="Recording mode" aria-expanded={open} disabled={!route}>
         <SlidersHorizontal className="creator-method-mark" />
         <span className="creator-picker-copy">
-          <b>{selected?.name || (route ? "Choose a recording mode" : "Choose a model first")}</b>
+          <b>{selected?.name || (route ? "Choose a recording mode" : "Choose a Voice first")}</b>
           <small>{selected?.description || "Performance controls depend on this mode"}</small>
         </span>
         <ChevronDown />

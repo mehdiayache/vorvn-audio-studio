@@ -53,7 +53,7 @@ function formatDate(value: unknown) {
 function modelName(value: string) {
   return value
     .replace(/^stable-audio-3-small-/, "Stable Audio · ")
-    .replace(/\bsfx\b/i, "SFX")
+    .replace(/\bsfx\b/i, "Sound Effect")
     .replace(/\bmusic\b/i, "Music")
 }
 

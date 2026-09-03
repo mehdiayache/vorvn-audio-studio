@@ -1,11 +1,12 @@
 import { Separator } from "@/components/ui/separator"
-import { Textarea } from "@/components/ui/textarea"
 import type { CreatorContext } from "@/lib/api"
 import type { WorkspaceFile } from "@/types/domain"
 import {
   CreatorCapabilityBody,
-  CreatorCapabilityFooter,
+  CreatorActionBar,
+  CreatorCapabilityField,
   CreatorCapabilityPanel,
+  CreatorPromptField,
   CreatorCapabilityRoute,
 } from "../panel/creator-capability-panel"
 import type { MediaAdvancedValues } from "./media-advanced-settings"
@@ -54,14 +55,12 @@ export function MediaCreatorInput({ context, prompt, operations, operation, capa
   return <CreatorCapabilityPanel className="media-creator-form" data-operation={operation}>
     <CreatorCapabilityBody className="media-creator-scroll">
       <CreatorCapabilityRoute className="media-form-section media-route-section">
-      <label className="media-form-field">
-        <span>Model</span>
+      <CreatorCapabilityField label="Model" className="media-form-field">
         <MediaModelSelector models={models} value={modelFamilyId} onValueChange={onModelChange} />
-      </label>
-      <div className="media-form-field">
-        <span>Mode</span>
+      </CreatorCapabilityField>
+      <CreatorCapabilityField label="Mode" className="media-form-field">
         <MediaOperationPicker operations={operations} value={operation} onValueChange={onOperationChange} />
-      </div>
+      </CreatorCapabilityField>
       </CreatorCapabilityRoute>
 
       <Separator />
@@ -69,23 +68,16 @@ export function MediaCreatorInput({ context, prompt, operations, operation, capa
       <MediaCreatorAttachments capability={capability} attachments={attachments} missingRoles={missingRoles} onAdd={onOpenLibrary} onRemove={onRemoveAttachment} onSwapFrames={onSwapFrames} />
       {canSaveReference && <button type="button" className="media-save-reference" onClick={onSaveReference}>Save these inputs as a reusable reference</button>}
 
-      <label className="media-form-field media-prompt-field">
-      <span>Prompt</span>
-      <Textarea
-        aria-label="Media prompt"
+      <CreatorPromptField
+        ariaLabel="Media prompt"
+        className="media-form-field media-prompt-field"
         placeholder={capability.prompt.supported ? "Describe the shot, scene, image or motion you want…" : "This mode is directed by its media inputs."}
         value={prompt}
         disabled={!capability.prompt.supported}
         rows={4}
-        onChange={(event) => onPromptChange(event.target.value)}
-        onKeyDown={(event) => {
-          if (event.key === "Enter" && (event.metaKey || event.ctrlKey) && !disabledReason && !busy) {
-            event.preventDefault()
-            onSubmit()
-          }
-        }}
+        onChange={onPromptChange}
+        onSubmit={!disabledReason && !busy ? onSubmit : undefined}
       />
-      </label>
 
       <Separator />
 
@@ -113,10 +105,10 @@ export function MediaCreatorInput({ context, prompt, operations, operation, capa
 
       <MediaAdvancedSettings context={context} model={model} capability={capability} values={advanced} files={files} onChange={onAdvancedChange} />
     </CreatorCapabilityBody>
-    <CreatorCapabilityFooter className="media-creator-actions">
-      {uploadStatus && <div className="media-upload-status" role="status">{uploadStatus}</div>}
-      {disabledReason && !busy && <div id="media-creator-readiness" className="media-creator-readiness" role="status">{disabledReason}</div>}
-      <MediaSubmit disabled={Boolean(disabledReason)} busy={busy} reason={disabledReason} onClick={onSubmit} />
-    </CreatorCapabilityFooter>
+    <CreatorActionBar
+      className="media-creator-actions"
+      status={<>{uploadStatus && <span>{uploadStatus}</span>}{disabledReason && !busy && <span id="media-creator-readiness">{disabledReason}</span>}</>}
+      actions={<MediaSubmit disabled={Boolean(disabledReason)} busy={busy} reason={disabledReason} onClick={onSubmit} />}
+    />
   </CreatorCapabilityPanel>
 }

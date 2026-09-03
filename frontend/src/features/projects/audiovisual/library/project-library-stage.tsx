@@ -7,7 +7,7 @@ import { useGlobalPlayer } from "@/components/global-player-provider"
 import { CreatorCapabilityDispatcher } from "@/features/creator/creator-capability-dispatcher"
 import { CreatorHost } from "@/features/creator/creator-host"
 import type { ConfirmAction } from "@/features/projects/audiovisual/support/project-overlays"
-import type { GeneratedKeepInput } from "@/features/workspace/library/audio-library"
+import type { GeneratedAudioKeepInput } from "@/features/creator/audio/audio-creator-contracts"
 import { originsApi, type CreatorContext } from "@/lib/api"
 import type { AudioFileCategory, GeneratedKeepResult, WorkspaceFile, WorkspaceFolder } from "@/types/domain"
 import { isVisualFile } from "@/features/creator/library/visual-file-presentation"
@@ -106,7 +106,7 @@ export function ProjectLibraryStage({ centerPaneRef, projectId, workspaceId, cre
     await onRefresh()
   }
 
-  async function keepGeneratedAudio(_folder: string, input: GeneratedKeepInput) {
+  async function keepGeneratedAudio(_folder: string, input: GeneratedAudioKeepInput) {
     return originsApi.keepGeneratedAudioInWorkspace(input.candidateId, workspaceId, {
       name: input.name,
       category: input.category,

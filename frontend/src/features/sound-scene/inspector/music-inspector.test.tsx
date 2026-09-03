@@ -76,7 +76,7 @@ describe("AudioClipInspector", () => {
     render(<AudioClipInspector track={track} clip={{ ...clip, file_kind: "sfx" }} file={{ id: 9, title: "Door latch", category: "sfx", duration_ms: 60_000, audio_format: "wav", sample_rate: 48_000, channels: 2, metadata: { origin: "generated", model: "stable-audio-3-small-sfx" } }} playing={false} onPlay={vi.fn()} onClipChange={vi.fn()} onClipCommit={vi.fn()} onTrackMixChange={vi.fn()} onTrackMixCommit={vi.fn()} onChoose={vi.fn()} />)
 
     expect(screen.getByText("Door latch")).toBeTruthy()
-    expect(screen.getByText("SFX")).toBeTruthy()
+    expect(screen.getByText("Sound Effect")).toBeTruthy()
     expect(screen.getByText(/Generated · Stable Audio · 1:00/)).toBeTruthy()
     expect(screen.getByText(/1:00 · WAV · 48 kHz · Stereo/)).toBeTruthy()
     expect(screen.queryByText(/music bed/)).toBeNull()

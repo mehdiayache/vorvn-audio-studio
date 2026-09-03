@@ -19,14 +19,15 @@ import { fileSource, type FileSource } from "@/lib/file-provenance"
 import { formatBytes } from "@/lib/format"
 import type { AudioFileCategory, CatalogKeepResult, CatalogLicense, CatalogSound, GeneratedKeepResult, PlayerSource, WorkspaceFile } from "@/types/domain"
 
-import { FILE_CATEGORIES, FileCategorySelect, FileTagEditor } from "./file-library-controls"
+import { FILE_CATEGORIES, FileCategorySelect, FileTagEditor } from "@/features/creator/library/file-library-controls"
+import type { AudioCreatorPlacementMode, GeneratedAudioKeepInput } from "@/features/creator/audio/audio-creator-contracts"
 import { FreesoundAudioInspector, SavedAudioInspector } from "./audio-library-inspector"
 import { AudioCreator } from "@/features/creator/audio/audio-creator"
 
-export type AudioLibraryMode = "sequence" | "sound"
+export type AudioLibraryMode = AudioCreatorPlacementMode
 export type FileUploadInput = { file: File; name: string; category: AudioFileCategory | null; tags: string[] }
 export type CatalogKeepInput = { result: CatalogSound; name: string; category: AudioFileCategory | null; tags: string[] }
-export type GeneratedKeepInput = { candidateId: string; name: string; category: AudioFileCategory; tags: string[] }
+export type GeneratedKeepInput = GeneratedAudioKeepInput
 export type FileUpdateInput = { name: string; category: AudioFileCategory | null; tags: string[] }
 
 type LibraryView = "library" | "upload" | "search" | "generate"

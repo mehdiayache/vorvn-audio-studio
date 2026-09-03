@@ -35,5 +35,19 @@ describe("CreatorLibraryBrowser", () => {
     fireEvent.click(screen.getByRole("radio", { name: "Audio" }))
     expect(screen.getByText("Uploaded interview")).toBeTruthy()
     expect(screen.queryByText("Narration")).toBeNull()
+    fireEvent.click(screen.getByRole("radio", { name: "Sound Effect" }))
+    expect(screen.getByText("Door slam")).toBeTruthy()
+  })
+
+  it("shows a capability Job in Library immediately without inventing a File", () => {
+    render(<CreatorLibraryBrowser files={files} initialKind="speech" creationItems={[{
+      id: "job-1",
+      mediaType: "speech",
+      status: "generating",
+      node: <article>Generating speech now</article>,
+    }]} />)
+    expect(screen.getByText("Generating speech now")).toBeTruthy()
+    fireEvent.click(screen.getByRole("radio", { name: "Music" }))
+    expect(screen.queryByText("Generating speech now")).toBeNull()
   })
 })

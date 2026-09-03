@@ -16,6 +16,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { VoiceIdentity } from "@/components/voice-identity"
 import { usePartDetailData } from "@/hooks/use-part-detail-data"
 import { audioUrl } from "@/lib/api"
+import { audioFamilyLabel } from "@/features/sound-scene/audio-taxonomy"
 import { formatAuthoredRole, formatMoney, formatPartNumber, partDurationMs, textDirection } from "@/lib/format"
 import type { DurableJob, GenerateResult, PlayerSource, ProjectPart, VoiceDirectory } from "@/types/domain"
 
@@ -93,7 +94,7 @@ export function WorkstationPartInspector({ projectId, part, directory, playingKe
       <Fact label="Duration" value={facts.durationLabel} />
       {part.kind === "file" ? <>
         <Fact label="Cost" value={part.cost > 0 ? formatMoney(part.cost) : "Free / reuse"} />
-        <Fact label="Category" value={part.file_category || part.file_kind || "Workspace audio"} />
+        <Fact label="Category" value={audioFamilyLabel(part.file_category || part.file_kind)} />
         <Fact label="State" value={part.missing ? "Missing source" : "Linked"} />
       </> : <>
         <Fact label="Spend" value={facts.spendValue} />
@@ -116,7 +117,7 @@ export function WorkstationPartInspector({ projectId, part, directory, playingKe
         <TabsContent value="recording" className="ws-inspector-tab">
           {part.kind === "file" ? playable ? <>
             <div className="ws-inspector-waveform"><AudioWaveform url={part.filename ? audioUrl(part.filename) : undefined} bars={96} /><OperatorTooltip label={currentPlaying ? "Pause linked audio" : "Play linked audio"}><button aria-label={currentPlaying ? "Pause linked audio" : "Play linked audio"} onClick={() => onPlay(source)}>{currentPlaying ? <Pause /> : <Play />}</button></OperatorTooltip><span><b>{facts.durationLabel}</b><small>Workspace File</small></span></div>
-            <div className="ws-inspector-section-heading"><div><span>Reusable audio</span><b>{part.file_category || part.file_kind || "Workspace Files"}</b></div></div>
+            <div className="ws-inspector-section-heading"><div><span>Reusable audio</span><b>{audioFamilyLabel(part.file_category || part.file_kind, "Workspace Files")}</b></div></div>
             <p className="ws-inspector-script">This Part links to a reusable Workspace audio file. Replacing the source updates this placement without creating speech or provider spend.</p>
           </> : <div className="ws-inspector-empty"><FileAudio /><h3>Source unavailable</h3><p>Choose another Workspace audio file for this Part.</p></div> : facts.recorded ? <>
             <div className="ws-inspector-waveform"><AudioWaveform url={part.filename ? audioUrl(part.filename) : undefined} bars={96} /><OperatorTooltip label={currentPlaying ? "Pause recording" : "Play recording"}><button aria-label={currentPlaying ? "Pause recording" : "Play recording"} onClick={() => onPlay(source)}>{currentPlaying ? <Pause /> : <Play />}</button></OperatorTooltip><span><b>{facts.durationLabel}</b><small>{wording.label} input</small></span></div>
@@ -138,7 +139,7 @@ export function WorkstationPartInspector({ projectId, part, directory, playingKe
         <TabsContent value="details" className="ws-inspector-tab">
           {part.kind === "file" ? <dl className="ws-inspector-details">
             <Fact label="Source" value="Workspace audio file" />
-            <Fact label="Category" value={part.file_category} />
+            <Fact label="Category" value={audioFamilyLabel(part.file_category, "—")} />
             <Fact label="File kind" value={part.file_kind} />
             <Fact label="Filename" value={part.filename} mono />
             <Fact label="Cost in Script" value={part.cost > 0 ? formatMoney(part.cost) : "Free / reuse"} />

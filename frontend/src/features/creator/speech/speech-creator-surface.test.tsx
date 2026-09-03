@@ -64,11 +64,12 @@ describe("shared Creator contract", () => {
     expect(screen.getByRole("button", { name: /Generate Part/ }).closest("footer")?.classList.contains("creator-footer")).toBe(true)
   })
 
-  it("does not silently select the first identity or exact route in fresh Speak", async () => {
+  it("starts fresh Speech with a real model but no invented Voice selection", async () => {
     render(<CreatorSurface {...common} />)
     await waitFor(() => expect(screen.getByRole("button", { name: "Choose a voice" })).toBeTruthy())
     expect(screen.getByText("Model")).toBeTruthy()
-    expect(screen.getByRole("button", { name: "Speech model" }).hasAttribute("disabled")).toBe(true)
+    expect(screen.getByRole("combobox", { name: "Speech model" }).textContent).not.toContain("Choose")
+    expect(screen.getByRole("combobox", { name: "Speech model" }).hasAttribute("disabled")).toBe(false)
     expect(screen.getByRole("button", { name: "Recording mode" }).hasAttribute("disabled")).toBe(true)
     expect(screen.getByRole("button", { name: "Generate audio" }).hasAttribute("disabled")).toBe(true)
   })
@@ -260,11 +261,12 @@ describe("shared Creator contract", () => {
     fireEvent.click(screen.getByRole("button", { name: "Save role" }))
     expect(await screen.findByRole("button", { name: "Night Guide" })).toBeTruthy()
 
+    fireEvent.click(screen.getByRole("combobox", { name: "Speech model" }))
+    fireEvent.click(await screen.findByRole("option", { name: /qwen-audio-flash/i }))
+    await waitFor(() => expect(screen.getByRole("combobox", { name: "Speech model" }).textContent).toContain("Qwen"))
     fireEvent.click(screen.getByRole("button", { name: "Choose a voice" }))
     fireEvent.click(screen.getByRole("button", { name: /Sarah.*1 method/ }))
     await waitFor(() => expect(screen.getByRole("button", { name: "Choose a voice" }).textContent).toContain("Sarah"))
-    fireEvent.click(screen.getByRole("button", { name: "Speech model" }))
-    fireEvent.click(await screen.findByRole("option", { name: /qwen-audio-flash/i }))
     fireEvent.change(screen.getByPlaceholderText("Type or paste what should be said…"), { target: { value: "Let the room settle before the story begins." } })
     const generate = screen.getByRole("button", { name: /Generate and add Part/ })
     await waitFor(() => expect(generate.hasAttribute("disabled")).toBe(false))
@@ -403,10 +405,11 @@ describe("shared Creator contract", () => {
     render(<CreatorSurface {...common} directory={catalogueDirectory} onGenerate={onGenerate} />)
 
     await waitFor(() => expect(screen.getByRole("button", { name: "Choose a voice" })).toBeTruthy())
+    fireEvent.click(screen.getByRole("combobox", { name: "Speech model" }))
+    fireEvent.click(await screen.findByRole("option", { name: /qwen-audio-flash/i }))
+    await waitFor(() => expect(screen.getByRole("combobox", { name: "Speech model" }).textContent).toContain("Qwen"))
     fireEvent.click(screen.getByRole("button", { name: "Choose a voice" }))
     fireEvent.click(screen.getByRole("button", { name: /Sarah.*1 method/ }))
-    fireEvent.click(screen.getByRole("button", { name: "Speech model" }))
-    fireEvent.click(await screen.findByRole("option", { name: /qwen-audio-flash/i }))
     fireEvent.change(screen.getByPlaceholderText("Type or paste what should be said…"), { target: { value: "A recoverable recording" } })
     await waitFor(() => expect(saveDraft).toHaveBeenCalled())
     expect(saveDraft.mock.calls.some(([, saved]) => saved.voiceIdentityId === "identity-sarah" && saved.route?.kind === "catalogue")).toBe(true)

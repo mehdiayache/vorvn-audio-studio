@@ -22,7 +22,16 @@ import {
 import { creatorCapabilityControls, resolvedDeliveryMode, selectedRouteCapability } from "@/lib/creator-capability"
 import { formatAuthoredRole, formatPartNumber } from "@/lib/format"
 import { outputLanguageOptions } from "@/lib/voice-capabilities"
-import { getVoiceIdentities, routesForIdentity, type VoiceChoice, type VoiceIdentityChoice } from "@/lib/voice-options"
+import {
+  getVoiceIdentities,
+  identitiesForSpeechModel,
+  routeForSpeechModel,
+  routesForIdentity,
+  speechModelKey,
+  speechModelRoutes,
+  type VoiceChoice,
+  type VoiceIdentityChoice,
+} from "@/lib/voice-options"
 import { ssmlToPlainText, validateSsmlDocument, wrapPlainTextAsSsml } from "@/lib/ssml"
 import type { DurableJob, GeneratePayload, GenerateResult, PartEditorialUpdate, PlayerSource, ProjectPart, StudioConfig, VoiceDirectory } from "@/types/domain"
 
@@ -53,6 +62,7 @@ type PendingGeneration = {
 
 export function useSpeechCreatorController({ projectId, nextPartNumber = 1, insertAt = null, insertBeforePartId = null, part = null, config, directory, playingKey, playerPlaying, onSave, onUpdateEditorial, onGenerate, onPlay, generationState = null, visible = true }: SpeechCreatorSurfaceProps) {
   const [route, setRoute] = useState(routeSelectionFromPart(part))
+  const [selectedModelKey, setSelectedModelKey] = useState("")
   const [identityId, setIdentityId] = useState(part?.voice_identity_id || "")
   const [language, setLanguage] = useState(part?.language || "Auto")
   const [format, setFormat] = useState<GeneratePayload["format"]>((part?.format as GeneratePayload["format"]) || "mp3")
@@ -79,6 +89,7 @@ export function useSpeechCreatorController({ projectId, nextPartNumber = 1, inse
     setEditorialCommand(null)
     setTextReviewReference(null)
     setRoute(routeSelectionFromPart(part))
+    setSelectedModelKey("")
     setIdentityId(part?.voice_identity_id || "")
     setLanguage(part?.language || "Auto")
     setFormat((part?.format as GeneratePayload["format"]) || "mp3")
@@ -99,11 +110,27 @@ export function useSpeechCreatorController({ projectId, nextPartNumber = 1, inse
     () => getVoiceIdentities(directory.registry ?? null, directory.identities),
     [directory.identities, directory.registry],
   )
+  const modelRoutes = useMemo(() => speechModelRoutes(identities), [identities])
+  const routeFromSelection = identities.flatMap((identity) => identity.routes)
+    .find((item) => item.id === routeSelectionId(route))
   const selectedIdentity = identities.find((identity) => identity.identityId === identityId)
+  const replacementSelection = replacementRouteSelectionFromPart(part, selectedIdentity?.routes || [])
+  const replacementRoute = selectedIdentity?.routes.find((item) => item.id === routeSelectionId(replacementSelection))
+  const activeModelKey = modelRoutes.some((item) => speechModelKey(item) === selectedModelKey)
+    ? selectedModelKey
+    : routeFromSelection
+      ? speechModelKey(routeFromSelection)
+      : replacementRoute
+        ? speechModelKey(replacementRoute)
+      : modelRoutes[0] ? speechModelKey(modelRoutes[0]) : ""
+  const voiceOptions = useMemo(
+    () => identitiesForSpeechModel(identities, activeModelKey),
+    [activeModelKey, identities],
+  )
   const compatibleRoutes = useMemo(() => {
-    return routesForIdentity(selectedIdentity, language)
-  }, [language, selectedIdentity])
-  const visibleRoutes = selectedIdentity?.routes || []
+    return routesForIdentity(selectedIdentity, language).filter((item) => speechModelKey(item) === activeModelKey)
+  }, [activeModelKey, language, selectedIdentity])
+  const visibleRoutes = modelRoutes
   const selectedRoute = selectedIdentity?.routes.find((item) => item.id === routeSelectionId(route))
   const currentRoute = resolveSelectedRoute(route, compatibleRoutes)
   const selectedCapability = selectedRouteCapability(currentRoute, route?.capabilityId)
@@ -124,13 +151,32 @@ export function useSpeechCreatorController({ projectId, nextPartNumber = 1, inse
   const outputFormatSupported = !config?.formats?.length || config.formats.includes(format)
 
   function applyRoute(nextRoute: VoiceChoice | undefined, capabilityId?: string | null) {
+    if (nextRoute) setSelectedModelKey(speechModelKey(nextRoute))
     setRoute(nextRoute ? routeSelection(nextRoute, capabilityId) : null)
+  }
+
+  function selectModel(modelRoute: VoiceChoice, capabilityId?: string | null) {
+    const modelKey = speechModelKey(modelRoute)
+    setSelectedModelKey(modelKey)
+    const exactRoute = routeForSpeechModel(selectedIdentity, modelKey)
+    if (!exactRoute) {
+      setIdentityId("")
+      setRoute(null)
+      return
+    }
+    const keepsCapability = exactRoute.capabilities.some((item) => item.id === capabilityId)
+    setRoute(routeSelection(exactRoute, keepsCapability ? capabilityId : exactRoute.capabilities[0]?.id || null))
   }
 
   function selectIdentity(identity: VoiceIdentityChoice) {
     setIdentityId(identity.identityId)
-    setRoute(null)
+    const exactRoute = routeForSpeechModel(identity, activeModelKey)
+    setRoute(exactRoute ? routeSelection(exactRoute, exactRoute.capabilities[0]?.id || null) : null)
   }
+
+  useEffect(() => {
+    if (activeModelKey && activeModelKey !== selectedModelKey) setSelectedModelKey(activeModelKey)
+  }, [activeModelKey, selectedModelKey])
 
   useEffect(() => {
     if (!identities.length) return
@@ -143,11 +189,12 @@ export function useSpeechCreatorController({ projectId, nextPartNumber = 1, inse
       return
     }
     if (!selectedRoute) {
-      const replacement = replacementRouteSelectionFromPart(part, selectedIdentity.routes)
-      if (replacement) setRoute(replacement)
+      const exactRoute = routeForSpeechModel(selectedIdentity, activeModelKey)
+      if (replacementSelection && selectedIdentity.routes.some((item) => item.id === routeSelectionId(replacementSelection) && speechModelKey(item) === activeModelKey)) setRoute(replacementSelection)
+      else if (exactRoute) setRoute(routeSelection(exactRoute, exactRoute.capabilities[0]?.id || null))
       else if (route) setRoute(null)
     }
-  }, [directory.registry?.bindings, identities, identityId, part?.binding_id, part?.capability_id, part?.catalogue_voice_id, part?.engine, part?.model, part?.provider, part?.voice_identity_id, selectedIdentity, selectedRoute, route])
+  }, [activeModelKey, directory.registry?.bindings, identities, identityId, part?.binding_id, part?.capability_id, part?.catalogue_voice_id, part?.engine, part?.model, part?.provider, part?.voice_identity_id, replacementSelection, selectedIdentity, selectedRoute, route])
 
   const documentedTags = useMemo(() => new Set([
     ...Object.values(config?.tags || {}).flatMap((group) => Array.isArray(group) ? group : Object.keys(group)),
@@ -317,13 +364,13 @@ export function useSpeechCreatorController({ projectId, nextPartNumber = 1, inse
     projectId, nextPartNumber, insertAt, insertBeforePartId, part, config, directory, playingKey, playerPlaying, onSave, onPlay, generationState,
     route, identityId, language, format, deliveryModeRequest, instruction, rate, pitch, volume, seed, enableSsml,
     busy, roleBusy, authoredRole, confirmationEstimate, pendingCommand, editorialCommand, textReviewReference,
-    identities, selectedIdentity, compatibleRoutes, visibleRoutes, currentRoute, selectedCapability, capabilityControls, deliveryMode,
+    identities: voiceOptions, selectedIdentity, compatibleRoutes, visibleRoutes, selectedModelKey: activeModelKey, currentRoute, selectedCapability, capabilityControls, deliveryMode,
     formatOptions, outputFormatSupported,
     textSession, languageOptions, taggedIncompatible, hasInlineDeliveryTag, ssmlValidation, estimate, textPassEstimate, destination,
     recovery, performancePresets, methodLabel,
     setLanguage, setFormat, setDeliveryModeRequest, setInstruction, setRate, setPitch, setVolume, setSeed, setEnableSsml,
     setConfirmationEstimate, setPendingCommand, setEditorialCommand,
-    applyRoute, selectIdentity, enableSsmlDocument, usePlainText, payload, saveDraft, saveRole, executeGeneration, continueGeneration, generate,
+    applyRoute, selectModel, selectIdentity, enableSsmlDocument, usePlainText, payload, saveDraft, saveRole, executeGeneration, continueGeneration, generate,
   }
 }
 

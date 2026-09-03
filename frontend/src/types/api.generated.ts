@@ -2314,6 +2314,26 @@ export interface components {
             /** Workspace Id */
             workspace_id?: number | null;
         };
+        /** AudioGenerationModelResponse */
+        AudioGenerationModelResponse: {
+            /**
+             * Capability
+             * @enum {string}
+             */
+            capability: "sfx" | "music";
+            /** Icon Url */
+            icon_url?: string | null;
+            /** Id */
+            id: string;
+            /** Label */
+            label: string;
+            /** Max Seconds */
+            max_seconds: number;
+            /** Output */
+            output: string;
+            /** Provider */
+            provider: string;
+        };
         /** AudioGenerationRequestResponse */
         AudioGenerationRequestResponse: {
             /** Authored Prompt */
@@ -2379,7 +2399,7 @@ export interface components {
             configured: boolean;
             /** Models */
             models: {
-                [key: string]: unknown;
+                [key: string]: components["schemas"]["AudioGenerationModelResponse"];
             };
             /** Music Ready */
             music_ready: boolean;

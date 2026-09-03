@@ -17,6 +17,7 @@ import { speechPartCardFacts } from "@/components/speech-part-card-model"
 import { cn } from "@/lib/utils"
 import { formatAuthoredRole, formatMoney, formatPartNumber, partDurationMs, textDirection } from "@/lib/format"
 import { audioUrl } from "@/lib/api"
+import { audioFamilyLabel } from "@/features/sound-scene/audio-taxonomy"
 import type { DurableJob, GenerateResult, PlayerSource, ProjectPart, VoiceDirectory } from "@/types/domain"
 import { WorkstationPaneHeader } from "./workstation-pane-header"
 
@@ -121,7 +122,7 @@ export function WorkstationOutline({ parts, selectedId, playingKey, playerPlayin
         const playing = playerPlaying && playingKey === `part:${part.id}`
         const role = part.kind === "silence" ? "Pause" : part.kind === "file" ? part.title || "Linked audio" : formatAuthoredRole(part.authored_role) || part.voice_name || part.voice || "Speech"
         const readiness = workstationPartReadiness(part)
-        const normalDetail = part.kind === "silence" ? `${partDurationMs(part) / 1000}s silence` : part.kind === "file" ? `${part.file_category || part.file_kind || "Workspace audio"} · ${Math.round(partDurationMs(part) / 100) / 10}s` : readiness === "draft" ? "Draft · not recorded" : `${Math.round(partDurationMs(part) / 100) / 10}s`
+        const normalDetail = part.kind === "silence" ? `${partDurationMs(part) / 1000}s silence` : part.kind === "file" ? `${audioFamilyLabel(part.file_category || part.file_kind)} · ${Math.round(partDurationMs(part) / 100) / 10}s` : readiness === "draft" ? "Draft · not recorded" : `${Math.round(partDurationMs(part) / 100) / 10}s`
         const detail = state === "skipped" ? `Skipped · ${readiness === "ready" ? "content ready" : readiness === "draft" ? "not recorded" : "needs attention"}` : normalDetail
         return <button key={part.id} className={cn("ws-outline-item", selectedId === part.id && "is-selected", playing && "is-playing", part.enabled === false && "is-disabled")} aria-pressed={selectedId === part.id} aria-current={playing ? "true" : undefined} onClick={() => onSelect(part)}>
           <span className="ws-outline-number">{formatPartNumber(part.position ?? index)}</span>
@@ -185,7 +186,7 @@ export function WorkstationFileCard({ part, index, selected, playing, actions, d
 }) {
   const state = workstationPartState(part)
   const title = part.title || part.text || "Linked audio"
-  const category = part.file_category || part.file_kind || "Workspace audio"
+  const category = audioFamilyLabel(part.file_category || part.file_kind)
   const duration = compactFileDuration(part)
   const playable = Boolean(part.filename && !part.missing)
   const hasIssue = state === "issue"

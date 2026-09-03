@@ -59,8 +59,8 @@ describe("AudioLibrary", () => {
   it("submits one explicit generated-audio Job without creating a File", async () => {
     const status = vi.spyOn(originsApi, "audioGenerationStatus").mockResolvedValue({
       configured: true, sfx_ready: true, music_ready: true, reason: "", models: {
-        sfx: { id: "stable-audio-3-small-sfx" },
-        music: { id: "stable-audio-3-small-music" },
+        sfx: { id: "stable-audio-3-small-sfx", label: "Stable Audio Sound Effect", provider: "Origins Audio", capability: "sfx", max_seconds: 30, output: "audio/wav" },
+        music: { id: "stable-audio-3-small-music", label: "Stable Audio Music", provider: "Origins Audio", capability: "music", max_seconds: 120, output: "audio/wav" },
       },
     })
     const recent = vi.spyOn(originsApi, "recentAudioGenerations").mockResolvedValue([])
@@ -95,7 +95,7 @@ describe("AudioLibrary", () => {
     const view = within(container)
     fireEvent.click(view.getByRole("tab", { name: "Generate" }))
     await waitFor(() => expect(status).toHaveBeenCalled())
-    expect(view.getByText("Stable Audio 3 Small SFX")).toBeTruthy()
+    expect(view.getByText("Stable Audio Sound Effect")).toBeTruthy()
     expect(view.getByRole("heading", { name: "What do you want to create?" })).toBeTruthy()
     expect(view.getByRole("button", { name: "Sound Effect" }).getAttribute("aria-pressed")).toBe("true")
     expect(view.getByRole("button", { name: "Simple" }).getAttribute("aria-pressed")).toBe("true")
@@ -158,7 +158,7 @@ describe("AudioLibrary", () => {
     expect(view.queryByRole("button", { name: "Keep in Library" })).toBeNull()
 
     fireEvent.click(view.getByRole("button", { name: "Continue" }))
-    expect(view.getByRole("heading", { name: "What should we hear?" })).toBeTruthy()
+    expect(view.getByText("Prompt")).toBeTruthy()
     expect(view.getByRole("button", { name: "Generate 1 variation" }).hasAttribute("disabled")).toBe(true)
     fireEvent.click(view.getByRole("button", { name: "Change setup" }))
 
@@ -170,11 +170,11 @@ describe("AudioLibrary", () => {
     status.mockRestore(); recent.mockRestore(); taxonomy.mockRestore(); compile.mockRestore()
   })
 
-  it("keeps type and mode together, then presents Expert as focused funnel screens", async () => {
+  it("keeps type and mode together, then presents Expert controls with progressive disclosure", async () => {
     vi.spyOn(originsApi, "audioGenerationStatus").mockResolvedValue({
       configured: true, sfx_ready: true, music_ready: true, reason: "", models: {
-        sfx: { id: "stable-audio-3-small-sfx" },
-        music: { id: "stable-audio-3-small-music" },
+        sfx: { id: "stable-audio-3-small-sfx", label: "Stable Audio Sound Effect", provider: "Origins Audio", capability: "sfx", max_seconds: 30, output: "audio/wav" },
+        music: { id: "stable-audio-3-small-music", label: "Stable Audio Music", provider: "Origins Audio", capability: "music", max_seconds: 120, output: "audio/wav" },
       },
     })
     vi.spyOn(originsApi, "recentAudioGenerations").mockResolvedValue([])
@@ -194,22 +194,19 @@ describe("AudioLibrary", () => {
     fireEvent.click(view.getByRole("button", { name: "Expert" }))
     fireEvent.click(view.getByRole("button", { name: "Continue" }))
 
-    const steps = view.getByRole("navigation", { name: "Sound Effect preset steps" })
-    expect(view.getByRole("heading", { name: "Sound" })).toBeTruthy()
-    expect(within(steps).getAllByRole("button")).toHaveLength(7)
-    expect(view.queryByRole("button", { name: "Generate 1 variation" })).toBeNull()
-    fireEvent.click(view.getByRole("button", { name: "Continue" }))
-    expect(view.getByRole("heading", { name: "Action" })).toBeTruthy()
-    fireEvent.click(within(steps).getByText("Review").closest("button")!)
-    expect(view.getByRole("heading", { name: "Review" })).toBeTruthy()
+    const controls = view.getByRole("region", { name: "Sound Effect expert controls" })
+    expect(within(controls).getAllByRole("group")).toHaveLength(7)
+    expect(within(controls).getByText("Sound")).toBeTruthy()
+    expect(within(controls).getByText("Action")).toBeTruthy()
+    expect(within(controls).getByText("Review")).toBeTruthy()
     expect(view.getByRole("button", { name: "Generate 1 variation" }).hasAttribute("disabled")).toBe(true)
   })
 
   it("moves one generation through compare and deliberate finalization", async () => {
     vi.spyOn(originsApi, "audioGenerationStatus").mockResolvedValue({
       configured: true, sfx_ready: true, music_ready: true, reason: "", models: {
-        sfx: { id: "stable-audio-3-small-sfx" },
-        music: { id: "stable-audio-3-small-music" },
+        sfx: { id: "stable-audio-3-small-sfx", label: "Stable Audio Sound Effect", provider: "Origins Audio", capability: "sfx", max_seconds: 30, output: "audio/wav" },
+        music: { id: "stable-audio-3-small-music", label: "Stable Audio Music", provider: "Origins Audio", capability: "music", max_seconds: 120, output: "audio/wav" },
       },
     })
     vi.spyOn(originsApi, "soundPresetTaxonomy").mockResolvedValue({ version: "audio-taxonomy-v1", items: [] })
@@ -254,7 +251,7 @@ describe("AudioLibrary", () => {
     const view = within(container)
     fireEvent.click(view.getByRole("tab", { name: "Generate" }))
     fireEvent.click(view.getByRole("button", { name: "Continue" }))
-    await waitFor(() => expect(view.getByRole("combobox", { name: "Sound Effect engine and model" }).textContent).toContain("Stability AI"))
+    await waitFor(() => expect(view.getByRole("combobox", { name: "Sound Effect model" }).textContent).toContain("Stable Audio"))
     fireEvent.change(view.getByPlaceholderText(/heavy wooden church door/i), { target: { value: "A close wooden knock" } })
     await waitFor(() => expect(view.getByRole("button", { name: "Generate 1 variation" }).hasAttribute("disabled")).toBe(false))
     fireEvent.click(view.getByRole("button", { name: "Generate 1 variation" }))
@@ -436,7 +433,7 @@ describe("AudioLibrary", () => {
 
     fireEvent.change(screen.getByRole("textbox", { name: "Name" }), { target: { value: "Door close" } })
     fireEvent.click(screen.getByRole("combobox", { name: "Category" }))
-    fireEvent.click(screen.getByRole("option", { name: "SFX" }))
+    fireEvent.click(screen.getByRole("option", { name: "Sound Effect" }))
     fireEvent.click(screen.getByRole("button", { name: "Save changes" }))
 
     await waitFor(() => expect(onUpdate).toHaveBeenCalledWith(file, {

@@ -16,8 +16,9 @@ import { operationStatusLabel } from "@/lib/operation-language"
 import { resolveRequestRoute, resolveRequestVoice } from "@/lib/voice"
 import type { DurableJob, GeneratePayload, GenerateResult, RecordingAttempt, RecordingHistory, ResolvedGeneratePayload, VoiceDirectory } from "@/types/domain"
 import { recordingAttemptStatus, recoverSpeechExecutions, reusableGeneratePayload, type SpeechExecution } from "./speech-execution"
+import type { CreatorLibraryCreationItem } from "../library/creator-library-creation-item"
+import { CreatorLibraryOperationCard } from "../library/creator-library-operation-card"
 
-import "@/features/workspace/library/audio-library.css"
 import "./speech-creator-page.css"
 
 function requestCapabilityName(payload: ResolvedGeneratePayload, directory: VoiceDirectory) {
@@ -60,7 +61,7 @@ function PendingSpeechExecution({ execution, directory, onTerminal }: {
   }} directory={directory} />
 }
 
-export function SpeechCreatorPage({ embedded = false, panelOnly = false, onLibraryChange, onCreatedFiles }: { embedded?: boolean; panelOnly?: boolean; onLibraryChange?: () => void | Promise<void>; onCreatedFiles?: (fileIds: number[]) => void | Promise<void> } = {}) {
+export function SpeechCreatorPage({ embedded = false, panelOnly = false, onLibraryChange, onCreatedFiles, onCreationItemsChange }: { embedded?: boolean; panelOnly?: boolean; onLibraryChange?: () => void | Promise<void>; onCreatedFiles?: (fileIds: number[]) => void | Promise<void>; onCreationItemsChange?: (items: CreatorLibraryCreationItem[]) => void } = {}) {
   const voices = useVoiceDirectory()
   const workspaceHome = useWorkspaceExplorer()
   const player = useGlobalPlayer()
@@ -159,6 +160,17 @@ export function SpeechCreatorPage({ embedded = false, panelOnly = false, onLibra
     }
   }, [onCreatedFiles, onLibraryChange, player, refreshHistory, voices.directory])
 
+  useEffect(() => {
+    if (!onCreationItemsChange) return
+    onCreationItemsChange(executions.map((execution) => ({
+      id: execution.jobId,
+      status: "generating",
+      mediaType: "speech",
+      node: <CreatorLibraryOperationCard label="Creating speech" detail="The recording will become a reusable Workspace File when it is ready." />,
+    })))
+    return () => onCreationItemsChange([])
+  }, [executions, onCreationItemsChange, settleExecution, voices.directory])
+
   function clipView(attempt: RecordingAttempt): RecordingClipView {
     const status = recordingAttemptStatus(attempt)
     const route = resolveRequestRoute(attempt.request, voices.directory)
@@ -197,6 +209,7 @@ export function SpeechCreatorPage({ embedded = false, panelOnly = false, onLibra
   if (panelOnly) return <div className="speech-creator-panel">
     {voices.error && voices.config && <InlineResourceError message="Voice directory refresh failed. Existing voice data is preserved." retry={() => void voices.refresh()} />}
     <StandaloneSpeechCreatorHost config={voices.config} directory={voices.directory} playingKey={player.source?.key} playerPlaying={player.state === "playing"} generationState={generationState} onGenerate={generate} onPlay={(source) => void player.toggleSource(source)} />
+    <div hidden>{executions.map((execution) => <PendingSpeechExecution key={execution.jobId} execution={execution} directory={voices.directory} onTerminal={(item, job) => void settleExecution(item, job)} />)}</div>
   </div>
 
   const Root = embedded ? "div" : "main"

@@ -310,7 +310,7 @@ class UploadService:
         if stored.family != "audio" and details.category is not None:
             self.workspace.discard_media(stored.filename)
             raise UploadError(
-                "Music, ambience and SFX categories apply only to audio.")
+                "Music, ambience and Sound Effect categories apply only to audio.")
         return stored
 
     @staticmethod

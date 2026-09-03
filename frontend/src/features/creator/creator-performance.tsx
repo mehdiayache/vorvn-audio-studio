@@ -2,8 +2,8 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Slider } from "@/components/ui/slider"
-import { Textarea } from "@/components/ui/textarea"
 import { DEFAULT_RECORDING_VOLUME } from "@/lib/creator-contract"
+import { CreatorPromptField } from "./panel/creator-capability-panel"
 import { useSpeechCreator } from "./speech/speech-creator-controller"
 
 function modeLabel(mode: string) {
@@ -25,7 +25,7 @@ export function CreatorPerformance() {
       if (preset && controls.directionModes.includes("directed")) creator.setDeliveryModeRequest("directed")
     }}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent><SelectItem value="custom">{creator.instruction && !selectedPreset ? "Custom direction" : "No preset"}</SelectItem>{creator.performancePresets.map((preset) => <SelectItem key={preset.id} value={preset.id}>{preset.name}</SelectItem>)}</SelectContent></Select></label>}
     {controls.naturalDirection
-      ? <label className="performance-direction"><span>{controls.directionLabel}</span><Textarea rows={3} value={creator.instruction} disabled={creator.deliveryMode === "exact"} onChange={(event) => creator.setInstruction(event.target.value)} placeholder="Warm, intimate, slow at first, then more excited near the end…" />{creator.deliveryMode === "exact" && <small>Choose Add direction to control the overall performance.</small>}</label>
+      ? <div className="performance-direction"><CreatorPromptField label={controls.directionLabel} ariaLabel="Performance direction" rows={3} value={creator.instruction} disabled={creator.deliveryMode === "exact"} onChange={creator.setInstruction} placeholder="Warm, intimate, slow at first, then more excited near the end…" />{creator.deliveryMode === "exact" && <small>Choose Add direction to control the overall performance.</small>}</div>
       : <p className="creator-engine-note">{creator.selectedCapability?.description || "This method uses the prepared script without a separate performance direction."}</p>}
     {(controls.rate || controls.pitch || controls.volume || controls.seed) && <div className="creator-fine-grid creator-performance-controls">
       {controls.rate && <label><span>Speed <b>{creator.rate.toFixed(2)}×</b></span><Slider aria-label="Recording speed" value={[creator.rate]} min={0.5} max={2} step={0.05} onValueChange={([value = 1]) => creator.setRate(value)} /></label>}

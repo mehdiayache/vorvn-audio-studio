@@ -7,13 +7,13 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react"
 
 import { ActionButton, OperatorIconButton } from "@/components/operator-action"
 import { OperatorTooltip } from "@/components/operator-tooltip"
+import { ModelSelector, type ModelSelectorOption } from "@/components/ai/model-selector"
 import { Button } from "@/components/ui/button"
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible"
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command"
 import { Input } from "@/components/ui/input"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 import { Progress } from "@/components/ui/progress"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Switch } from "@/components/ui/switch"
 import { Textarea } from "@/components/ui/textarea"
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group"
@@ -26,9 +26,18 @@ import type {
   SoundPresetNormalizationResult, SoundPresetTaxonomy, WorkspaceFile,
 } from "@/types/domain"
 
-import type { AudioLibraryMode, GeneratedKeepInput } from "@/features/workspace/library/audio-library"
-import { FileCategorySelect, FileTagEditor } from "@/features/workspace/library/file-library-controls"
-import { CreatorCapabilityBody, CreatorCapabilityFooter, CreatorCapabilityPanel } from "../panel/creator-capability-panel"
+import type { AudioCreatorPlacementMode, GeneratedAudioKeepInput } from "./audio-creator-contracts"
+import { FileCategorySelect, FileTagEditor } from "../library/file-library-controls"
+import {
+  CreatorActionBar,
+  CreatorCapabilityBody,
+  CreatorDisclosure,
+  CreatorCapabilityField,
+  CreatorCapabilityPanel,
+  CreatorCapabilityRoute,
+  CreatorModeSwitch,
+  CreatorPromptField,
+} from "../panel/creator-capability-panel"
 import {
   PresetField, SemanticScale, SingleChoice, TaxonomyPicker,
 } from "@/features/creator/audio/sound-preset-controls"
@@ -38,9 +47,12 @@ import {
   type PresetCapability, type PresetInstrument, type SemanticValue,
   type SoundPreset, type TaxonomyItem,
 } from "@/features/creator/audio/sound-preset"
+import { cachedAudioCreatorStatus, loadAudioCreatorStatus } from "../creator-model-catalog"
+import type { CreatorLibraryCreationItem } from "../library/creator-library-creation-item"
+import { CreatorLibraryOperationCard } from "../library/creator-library-operation-card"
 
-const MUSIC_STAGES = ["Use & Story", "Voice & Feeling", "Musical World", "Instruments", "Arrangement", "Sound & Workspace", "Output", "Review"]
-const SFX_STAGES = ["Sound", "Action", "Perspective", "Character", "Avoid", "Output", "Review"]
+const MUSIC_SECTIONS = ["Use & Story", "Voice & Feeling", "Musical World", "Instruments", "Arrangement", "Sound & Workspace", "Output", "Review"]
+const SFX_SECTIONS = ["Sound", "Action", "Perspective", "Character", "Avoid", "Output", "Review"]
 type GenerationPhase = "compose" | "generating" | "compare" | "finalize"
 type ComposeScreen = "setup" | "preset"
 
@@ -53,9 +65,11 @@ function candidateName(item: AudioGenerationHistoryItem) {
 
 function modelLabel(models: Record<string, unknown>, capability: PresetCapability) {
   const model = models[capability]
+  const label = model && typeof model === "object" && "label" in model ? String((model as { label?: unknown }).label || "") : ""
+  if (label) return label
   const id = model && typeof model === "object" && "id" in model ? String((model as { id?: unknown }).id || "") : ""
   if (!id) return "Audio generator"
-  return id.split("-").map((part) => part === "sfx" ? "SFX" : part === "audio" ? "Audio" : part.charAt(0).toLocaleUpperCase() + part.slice(1)).join(" ")
+  return id.split("-").map((part) => part === "sfx" ? "Sound Effect" : part === "audio" ? "Audio" : part.charAt(0).toLocaleUpperCase() + part.slice(1)).join(" ")
 }
 
 function modelId(models: Record<string, unknown>, capability: PresetCapability) {
@@ -63,6 +77,20 @@ function modelId(models: Record<string, unknown>, capability: PresetCapability) 
   return model && typeof model === "object" && "id" in model
     ? String((model as { id?: unknown }).id || "")
     : ""
+}
+
+function audioModelOptions(models: Record<string, unknown>, capability: PresetCapability): ModelSelectorOption[] {
+  const id = modelId(models, capability)
+  const model = models[capability]
+  const provider = model && typeof model === "object" && "provider" in model ? String((model as { provider?: unknown }).provider || "") : ""
+  const iconUrl = model && typeof model === "object" && "icon_url" in model ? String((model as { icon_url?: unknown }).icon_url || "") : ""
+  return id ? [{
+    value: id,
+    label: modelLabel(models, capability),
+    provider: provider || "Origins Audio",
+    description: id,
+    iconUrl: iconUrl || undefined,
+  }] : []
 }
 
 function isWorking(item: AudioGenerationHistoryItem) {
@@ -114,9 +142,9 @@ function presetFromHistory(item: AudioGenerationHistoryItem): SoundPreset {
 
 export function AudioCreator({
   mode, projectId, workspaceId, fixedCapability, allowPlacement = true,
-  playingKey, playerPlaying, onPlay, onKeep, onKept,
+  playingKey, playerPlaying, onPlay, onKeep, onKept, onCreationItemsChange,
 }: {
-  mode: AudioLibraryMode
+  mode: AudioCreatorPlacementMode
   projectId?: number
   workspaceId?: number
   fixedCapability?: PresetCapability
@@ -124,8 +152,9 @@ export function AudioCreator({
   playingKey?: string
   playerPlaying: boolean
   onPlay: (source: PlayerSource) => void
-  onKeep: (folder: string, input: GeneratedKeepInput) => Promise<GeneratedKeepResult>
+  onKeep: (folder: string, input: GeneratedAudioKeepInput) => Promise<GeneratedKeepResult>
   onKept: (file: WorkspaceFile, category: AudioFileCategory, place: boolean) => Promise<void>
+  onCreationItemsChange?: (items: CreatorLibraryCreationItem[]) => void
 }) {
   const [capability, setCapability] = useState<PresetCapability>(fixedCapability || "sfx")
   const [promptMode, setPromptMode] = useState<"simple" | "expert">("simple")
@@ -133,7 +162,6 @@ export function AudioCreator({
   const [presets, setPresets] = useState<Record<PresetCapability, SoundPreset>>({
     music: emptySoundPreset("music"), sfx: emptySoundPreset("sfx"),
   })
-  const [activeStage, setActiveStage] = useState(0)
   const [taxonomy, setTaxonomy] = useState<SoundPresetTaxonomy | null>(null)
   const [compilation, setCompilation] = useState<SoundPresetCompilation | null>(null)
   const [compiling, setCompiling] = useState(false)
@@ -145,8 +173,10 @@ export function AudioCreator({
   const [phase, setPhase] = useState<GenerationPhase>("compose")
   const [sessionJobIds, setSessionJobIds] = useState<string[]>([])
   const [historyOpen, setHistoryOpen] = useState(false)
-  const [status, setStatus] = useState<"checking" | "ready" | "unavailable">("checking")
-  const [models, setModels] = useState<Record<string, unknown>>({})
+  const cachedStatus = cachedAudioCreatorStatus()
+  const [status, setStatus] = useState<"checking" | "ready" | "unavailable">(() => cachedStatus ? ((fixedCapability || "sfx") === "sfx" ? cachedStatus.sfx_ready : cachedStatus.music_ready) ? "ready" : "unavailable" : "checking")
+  const [models, setModels] = useState<Record<string, unknown>>(() => cachedStatus?.models || {})
+  const [selectedModelIds, setSelectedModelIds] = useState<Partial<Record<PresetCapability, string>>>({})
   const [reason, setReason] = useState("")
   const [error, setError] = useState("")
   const [generationStage, setGenerationStage] = useState<"understanding" | "starting" | null>(null)
@@ -160,7 +190,7 @@ export function AudioCreator({
 
   const preset = presets[capability]
   const items = useMemo(() => taxonomyItems(taxonomy), [taxonomy])
-  const stages = capability === "music" ? MUSIC_STAGES : SFX_STAGES
+  const sections = capability === "music" ? MUSIC_SECTIONS : SFX_SECTIONS
   const capabilityHistory = useMemo(() => history.filter((item) => item.request.capability === capability), [history, capability])
   const selected = history.find((item) => item.job_id === selectedJobId) || null
   const sessionItems = useMemo(() => sessionJobIds.map((jobId) => history.find((item) => item.job_id === jobId)).filter(Boolean) as AudioGenerationHistoryItem[], [history, sessionJobIds])
@@ -172,6 +202,28 @@ export function AudioCreator({
   const hasCreativeDirection = promptMode === "simple"
     ? Boolean(preset.creative_brief.trim())
     : Boolean(preset.creative_brief.trim() || presetSummary(preset, items).length)
+
+  useEffect(() => {
+    if (!onCreationItemsChange) return
+    onCreationItemsChange(sessionJobIds.map((jobId, index) => {
+      const item = history.find((candidate) => candidate.job_id === jobId)
+      const failed = item?.status === "failed"
+      const ready = Boolean(item?.candidate)
+      const progress = item ? item.progress * 100 : generationStage === "starting" && index < generationProgress ? 5 : 0
+      return {
+        id: jobId,
+        status: failed ? "failed" as const : ready ? "ready" as const : item ? "generating" as const : "queued" as const,
+        mediaType: capability,
+        node: <CreatorLibraryOperationCard
+          label={`${capability === "music" ? "Music" : "Sound Effect"} variation ${String.fromCharCode(65 + index)}`}
+          detail={failed ? item?.error || "Generation failed" : ready ? "Ready to review in Creator" : item?.detail || "Creating audio…"}
+          status={failed ? "failed" : ready ? "ready" : item ? "generating" : "queued"}
+          progress={progress}
+        />,
+      }
+    }))
+    return () => onCreationItemsChange([])
+  }, [capability, generationProgress, generationStage, history, onCreationItemsChange, sessionJobIds])
 
   const setPreset = (next: SoundPreset | ((current: SoundPreset) => SoundPreset)) => {
     setPresets((current) => ({
@@ -210,7 +262,7 @@ export function AudioCreator({
   useEffect(() => {
     let current = true
     setStatus("checking")
-    void originsApi.audioGenerationStatus().then((snapshot) => {
+    void loadAudioCreatorStatus().then((snapshot) => {
       if (!current) return
       const ready = capability === "sfx" ? snapshot.sfx_ready : snapshot.music_ready
       setModels(snapshot.models)
@@ -246,7 +298,7 @@ export function AudioCreator({
   }, [capability, preset, promptOverride])
   useEffect(() => {
     setCategory(capability === "music" ? "music" : "sfx")
-    setActiveStage(0); setEditingPrompt(false)
+    setEditingPrompt(false)
   }, [capability])
   useEffect(() => {
     if (!selected) return
@@ -330,14 +382,13 @@ export function AudioCreator({
     setSessionJobIds([])
     setPhase("compose")
     setComposeScreen("preset")
-    setActiveStage(0); setError("")
+    setError("")
   }
 
   const startFresh = () => {
     setPresets((current) => ({ ...current, [capability]: emptySoundPreset(capability) }))
     setPromptOverride((current) => ({ ...current, [capability]: null }))
     setPromptMode("simple")
-    setActiveStage(0)
     setSelectedJobId(null)
     setHistorySelection(false)
     setSessionJobIds([])
@@ -406,11 +457,15 @@ export function AudioCreator({
         ? "Ready to create"
         : `Describe the ${capability === "music" ? "music" : "sound"} before generating`
   const activeModelLabel = modelLabel(models, capability)
-  const activeModelId = modelId(models, capability)
+  const availableModelId = modelId(models, capability)
+  const activeModelOptions = audioModelOptions(models, capability)
+  const activeModelId = activeModelOptions.some(({ value }) => value === selectedModelIds[capability])
+    ? selectedModelIds[capability]!
+    : availableModelId
   const selectedIndex = selected ? sessionJobIds.indexOf(selected.job_id) : -1
   const selectedLabel = selectedIndex >= 0 ? String.fromCharCode(65 + selectedIndex) : ""
   const selectedActive = Boolean(candidate && playerPlaying && playingKey === `generated-candidate:${candidate.candidate_id}`)
-  const stageSummary = (index: number) => capability === "music" ? [
+  const sectionSummary = (index: number) => capability === "music" ? [
     summaryFor(items, preset, ["context", "moment", "cue_role"]),
     summaryFor(items, preset, ["voice_relationship", "moods", "energy"]),
     summaryFor(items, preset, ["genres", "harmonic_feel", "pace"]),
@@ -461,24 +516,40 @@ export function AudioCreator({
           </div>
           <HistoryMenu history={capabilityHistory} selectedJobId={selectedJobId} open={historyOpen} onOpenChange={setHistoryOpen} onSelect={openHistoryItem} />
         </section> : <>
-          <header className={`file-generation-context${fixedCapability ? " is-fixed-capability" : ""}`}>
-            {!fixedCapability && <Button variant="ghost" onClick={() => setComposeScreen("setup")}><ArrowLeft />Change setup</Button>}
-            <div className="file-generation-context-copy"><b>{capability === "music" ? "Music" : "Sound Effect"}</b><span>·</span><b>{promptMode === "expert" ? "Expert" : "Simple"}</b></div>
-            <label className="file-generation-engine"><span>Engine & model</span><Select value={activeModelId || "unavailable"} disabled={!activeModelId}><SelectTrigger aria-label={`${capability === "music" ? "Music" : "Sound Effect"} engine and model`}><SelectValue /></SelectTrigger><SelectContent><SelectItem value={activeModelId || "unavailable"}>{activeModelId ? `Stability AI · ${activeModelLabel}` : "No model available"}</SelectItem></SelectContent></Select></label>
-            <HistoryMenu history={capabilityHistory} selectedJobId={selectedJobId} open={historyOpen} onOpenChange={setHistoryOpen} onSelect={openHistoryItem} />
-          </header>
+          <CreatorCapabilityRoute className="audio-creator-route">
+            {!fixedCapability && <Button className="audio-change-setup" variant="ghost" onClick={() => setComposeScreen("setup")}><ArrowLeft />Change setup</Button>}
+            <CreatorCapabilityField label="Model" className="audio-model-field">
+              <ModelSelector
+                options={activeModelOptions}
+                value={activeModelId}
+                disabled={status === "unavailable" || !activeModelId}
+                loading={status === "checking"}
+                ariaLabel={`${capability === "music" ? "Music" : "Sound Effect"} model`}
+                searchPlaceholder="Search audio models…"
+                triggerClassName="audio-model-trigger"
+                triggerVariant="outline"
+                triggerSize="default"
+                contentSide="bottom"
+                onValueChange={(value) => setSelectedModelIds((current) => ({ ...current, [capability]: value }))}
+              />
+            </CreatorCapabilityField>
+            <CreatorCapabilityField label="Mode" className="audio-mode-field">
+              <CreatorModeSwitch value={promptMode} options={[{ value: "simple", label: "Simple" }, { value: "expert", label: "Expert" }]} onChange={changeMode} />
+            </CreatorCapabilityField>
+            <div className="audio-creator-history">
+              <HistoryMenu history={capabilityHistory} selectedJobId={selectedJobId} open={historyOpen} onOpenChange={setHistoryOpen} onSelect={openHistoryItem} />
+            </div>
+          </CreatorCapabilityRoute>
 
-          {promptMode === "simple" ? <SimplePreset preset={preset} capability={capability} onChange={setPreset} onOpenExpert={() => changeMode("expert")} /> : <section className="preset-funnel">
-            <nav className="preset-step-rail" data-count={stages.length} aria-label={`${capability === "music" ? "Music" : "Sound Effect"} preset steps`}>{stages.map((stage, index) => <button type="button" key={stage} className={activeStage === index ? "is-active" : ""} aria-current={activeStage === index ? "step" : undefined} onClick={() => setActiveStage(index)}><span>{index + 1}</span><b>{stage}</b></button>)}</nav>
-            <article className="preset-current-step">
-              <header><span>Step {activeStage + 1} of {stages.length}</span><h3>{stages[activeStage]}</h3>{stageSummary(activeStage) && <p>{stageSummary(activeStage)}</p>}</header>
-              <div className="preset-current-step-fields">{capability === "music" ? <MusicStage index={activeStage} preset={preset} items={items} setPath={setPath} setPreset={setPreset} /> : <SfxStage index={activeStage} preset={preset} items={items} setPath={setPath} setPreset={setPreset} />}</div>
-            </article>
+          {promptMode === "simple" ? <SimplePreset preset={preset} capability={capability} onChange={setPreset} onOpenExpert={() => changeMode("expert")} /> : <section className="preset-disclosures" aria-label={`${capability === "music" ? "Music" : "Sound Effect"} expert controls`}>
+            {sections.map((section, index) => <CreatorDisclosure key={section} title={section} detail={sectionSummary(index) || "Optional creative direction"} initiallyOpen={index === 0}>
+              <div className="preset-disclosure-fields">{capability === "music" ? <MusicStage index={index} preset={preset} items={items} setPath={setPath} setPreset={setPreset} /> : <SfxStage index={index} preset={preset} items={items} setPath={setPath} setPreset={setPreset} />}</div>
+            </CreatorDisclosure>)}
           </section>}
 
-          {(promptMode === "simple" || activeStage === stages.length - 1) && unresolvedConflicts.length > 0 && <section className="preset-conflicts" aria-live="polite"><header><b>Choose the direction that should win</b><span>We will not send contradictory instructions.</span></header>{unresolvedConflicts.map((conflict) => <div key={conflict.id}><p><b>{conflict.structured}</b>{conflict.free_text && <><span>conflicts with</span><b>“{conflict.free_text}”</b></>}</p><div><Button variant="outline" size="sm" onClick={() => resolveConflict(conflict.id, "structured")}>Keep structured choice</Button>{conflict.free_text && <Button variant="outline" size="sm" onClick={() => resolveConflict(conflict.id, "brief")}>Keep brief wording</Button>}</div></div>)}</section>}
+          {unresolvedConflicts.length > 0 && <section className="preset-conflicts" aria-live="polite"><header><b>Choose the direction that should win</b><span>We will not send contradictory instructions.</span></header>{unresolvedConflicts.map((conflict) => <div key={conflict.id}><p><b>{conflict.structured}</b>{conflict.free_text && <><span>conflicts with</span><b>“{conflict.free_text}”</b></>}</p><div><Button variant="outline" size="sm" onClick={() => resolveConflict(conflict.id, "structured")}>Keep structured choice</Button>{conflict.free_text && <Button variant="outline" size="sm" onClick={() => resolveConflict(conflict.id, "brief")}>Keep brief wording</Button>}</div></div>)}</section>}
 
-          {(promptMode === "simple" || activeStage === stages.length - 1) && <PromptPreview compilation={compilation} compiling={compiling} editing={editingPrompt} override={promptOverride[capability]} onEditing={setEditingPrompt} onOverride={(value) => setPromptOverride((current) => ({ ...current, [capability]: value }))} />}
+          <PromptPreview compilation={compilation} compiling={compiling} editing={editingPrompt} override={promptOverride[capability]} onEditing={setEditingPrompt} onOverride={(value) => setPromptOverride((current) => ({ ...current, [capability]: value }))} />
         </>}
       </div>}
 
@@ -510,23 +581,18 @@ export function AudioCreator({
       />}
     </CreatorCapabilityBody>
 
-    <CreatorCapabilityFooter className="file-action-bar file-generation-actions">
-      <div>
-        <b>{phase === "compose" ? composeScreen === "setup" ? "Start a new generation" : promptMode === "expert" ? `${stages[activeStage]} · Step ${activeStage + 1} of ${stages.length}` : capability === "music" ? "Create music" : "Create a sound effect" : phase === "generating" ? "Creating variations" : phase === "compare" ? "Choose what works" : candidate ? candidateName(selected!) : "Variation unavailable"}</b>
-        <span>{phase === "generating" ? generationStage === "understanding" ? "Understanding the creative direction…" : generationStage === "starting" ? `Starting ${generationProgress} of ${preset.variation_count}…` : `${sessionItems.filter((item) => item.candidate).length} of ${preset.variation_count} ready` : phase === "compare" ? "Audition every result, then explicitly choose one." : phase === "finalize" ? "Confirm its name, category and destination." : composeScreen === "setup" ? "Choose an audio type and creation mode together." : promptMode === "expert" && activeStage < stages.length - 1 ? "Complete this focused screen, then continue." : statusCopy}</span>
-      </div>
-      <div className="file-generation-footer-controls">
-        {error && <p role="alert">{error}</p>}
+    <CreatorActionBar className="file-generation-actions" status={<>
+        <b>{phase === "compose" ? composeScreen === "setup" ? "Start a new generation" : capability === "music" ? "Create music" : "Create a sound effect" : phase === "generating" ? "Creating variations" : phase === "compare" ? "Choose what works" : candidate ? candidateName(selected!) : "Variation unavailable"}</b>
+        <span>{phase === "generating" ? generationStage === "understanding" ? "Understanding the creative direction…" : generationStage === "starting" ? `Starting ${generationProgress} of ${preset.variation_count}…` : `${sessionItems.filter((item) => item.candidate).length} of ${preset.variation_count} ready` : phase === "compare" ? "Audition every result, then explicitly choose one." : phase === "finalize" ? "Confirm its name, category and destination." : composeScreen === "setup" ? "Choose an audio type and creation mode together." : statusCopy}</span>
+      </>} error={error || undefined} actions={<>
         {phase === "compose" && composeScreen === "setup" && !fixedCapability && <Button onClick={() => setComposeScreen("preset")}>Continue</Button>}
-        {phase === "compose" && composeScreen === "preset" && promptMode === "expert" && activeStage > 0 && <Button variant="ghost" onClick={() => setActiveStage((current) => Math.max(0, current - 1))}><ArrowLeft />Back</Button>}
-        {phase === "compose" && composeScreen === "preset" && promptMode === "expert" && activeStage < stages.length - 1 && <Button onClick={() => setActiveStage((current) => Math.min(stages.length - 1, current + 1))}>Continue</Button>}
-        {phase === "compose" && composeScreen === "preset" && (promptMode === "simple" || activeStage === stages.length - 1) && <ActionButton busy={generating} busyLabel={generationStage === "understanding" ? "Understanding…" : "Starting…"} disabled={status !== "ready" || !hasCreativeDirection || !generatedPrompt || compiling || Boolean(unresolvedConflicts.length)} onClick={() => void generate()}><Sparkles />Generate {preset.variation_count} variation{preset.variation_count === 1 ? "" : "s"}</ActionButton>}
+        {phase === "compose" && composeScreen === "preset" && <ActionButton busy={generating} busyLabel={generationStage === "understanding" ? "Understanding…" : "Starting…"} disabled={status !== "ready" || !hasCreativeDirection || !generatedPrompt || compiling || Boolean(unresolvedConflicts.length)} onClick={() => void generate()}><Sparkles />Generate {preset.variation_count} variation{preset.variation_count === 1 ? "" : "s"}</ActionButton>}
         {phase === "generating" && <div className="file-generation-footer-progress"><Progress value={Math.max(generationProgress / preset.variation_count, ...sessionItems.map((item) => item.progress)) * 100} /><span>{sessionItems.filter((item) => item.candidate).length}/{preset.variation_count}</span></div>}
         {phase === "compare" && <><Button variant="outline" onClick={() => { setComposeScreen("preset"); setPhase("compose") }}><ArrowLeft />Back to preset</Button><Button variant="ghost" onClick={startFresh}>Start fresh</Button></>}
         {phase === "finalize" && candidate && !selected?.kept_file && <><ActionButton variant="ghost" busy={discarding} busyLabel="Discarding…" disabled={Boolean(keeping)} onClick={() => void discard()}><Trash2 />Discard</ActionButton><ActionButton variant={allowPlacement ? "outline" : "default"} busy={keeping === "library"} busyLabel="Saving…" disabled={Boolean(keeping) || discarding || !name.trim()} onClick={() => void keep(false)}><Check />Save to Library</ActionButton>{allowPlacement && <ActionButton busy={keeping === "place"} busyLabel={mode === "sound" ? "Adding to track…" : "Inserting…"} disabled={Boolean(keeping) || discarding || !name.trim()} onClick={() => void keep(true)}><Check />{mode === "sound" ? "Save & Add to Track" : "Save & Insert"}</ActionButton>}</>}
         {phase === "finalize" && selected?.kept_file && <Button onClick={startFresh}><Sparkles />Create another</Button>}
-      </div>
-    </CreatorCapabilityFooter>
+      </>}
+    />
   </CreatorCapabilityPanel>
 }
 
@@ -614,9 +680,8 @@ function CandidateFinalizer({ selected, selectedLabel, selectedActive, name, cat
 
 function SimplePreset({ preset, capability, onChange, onOpenExpert }: { preset: SoundPreset; capability: PresetCapability; onChange: (preset: SoundPreset) => void; onOpenExpert: () => void }) {
   return <section className="preset-simple">
-    <header><span><WandSparkles /></span><div><h2>What should we hear?</h2><p>Describe the moment, the source, and how it should feel.</p></div></header>
-    <Textarea autoFocus value={preset.creative_brief} onChange={(event) => onChange({ ...preset, creative_brief: event.target.value })} placeholder={capability === "music" ? "Gentle music underneath a prayer, intimate and hopeful, with felt piano and soft strings…" : "A heavy wooden church door slams shut nearby, realistic, weighty, with a long natural room tail…"} />
-    <div className="preset-simple-actions"><span>{preset.creative_brief.trim() ? "Ready to shape" : "Start with the situation and what should be heard"}</span><Button variant="outline" onClick={onOpenExpert}>Shape in Expert</Button></div>
+    <CreatorPromptField ariaLabel={`${capability === "music" ? "Music" : "Sound Effect"} prompt`} value={preset.creative_brief} onChange={(value) => onChange({ ...preset, creative_brief: value })} placeholder={capability === "music" ? "Gentle music underneath a prayer, intimate and hopeful, with felt piano and soft strings…" : "A heavy wooden church door slams shut nearby, realistic, weighty, with a long natural room tail…"} className="audio-prompt-field" />
+    <div className="preset-simple-actions"><span>{preset.creative_brief.trim() ? "Ready to shape" : "Describe the moment, source, and feeling."}</span><Button variant="outline" onClick={onOpenExpert}><WandSparkles />Shape in Expert</Button></div>
     <GenerationSettings preset={preset} onChange={onChange} capability={capability} />
   </section>
 }
@@ -696,7 +761,7 @@ function InstrumentStage({ preset, items, onChange }: { preset: SoundPreset; ite
 
 function GenerationSettings({ preset, onChange, capability }: { preset: SoundPreset; onChange: (preset: SoundPreset) => void; capability: PresetCapability }) {
   const maximumDuration = capability === "music" ? 120 : 30
-  return <section className="preset-generation-settings"><header><b>Output</b></header><div><PresetField label="Duration" help={`${capability === "music" ? "Music" : "Sound Effect"} can be ${capability === "music" ? "5–120" : "1–30"} seconds long.`}><div className="preset-duration"><Input type="number" min={capability === "music" ? 5 : 1} max={maximumDuration} value={preset.duration} onChange={(event) => onChange({ ...preset, duration: Math.min(maximumDuration, Number(event.target.value)) })} /><span>seconds</span></div></PresetField><PresetField label="Variations" help="Generate one focused result or several choices to compare."><ToggleGroup type="single" variant="outline" value={String(preset.variation_count)} onValueChange={(value) => value && onChange({ ...preset, variation_count: Number(value) as 1 | 2 | 4 })} aria-label="Number of variations"><ToggleGroupItem value="1">1</ToggleGroupItem><ToggleGroupItem value="2">2</ToggleGroupItem><ToggleGroupItem value="4">4</ToggleGroupItem></ToggleGroup></PresetField></div><Collapsible className="preset-advanced-settings"><CollapsibleTrigger><span>Advanced</span><ChevronDown /></CollapsibleTrigger><CollapsibleContent><PresetField label="Seed" help="Leave empty for a new result. Reuse a seed when you want a closer repeat."><Input type="number" min={0} max={2_147_483_647} value={preset.seed < 0 ? "" : preset.seed} onChange={(event) => onChange({ ...preset, seed: event.target.value ? Number(event.target.value) : -1 })} placeholder="Random" /></PresetField></CollapsibleContent></Collapsible></section>
+  return <section className="preset-generation-settings"><header><h3>Primary controls</h3></header><div><PresetField label="Duration" help={`${capability === "music" ? "Music" : "Sound Effect"} can be ${capability === "music" ? "5–120" : "1–30"} seconds long.`}><div className="preset-duration"><Input type="number" min={capability === "music" ? 5 : 1} max={maximumDuration} value={preset.duration} onChange={(event) => onChange({ ...preset, duration: Math.min(maximumDuration, Number(event.target.value)) })} /><span>seconds</span></div></PresetField><PresetField label="Variations" help="Generate one focused result or several choices to compare."><ToggleGroup type="single" variant="outline" value={String(preset.variation_count)} onValueChange={(value) => value && onChange({ ...preset, variation_count: Number(value) as 1 | 2 | 4 })} aria-label="Number of variations"><ToggleGroupItem value="1">1</ToggleGroupItem><ToggleGroupItem value="2">2</ToggleGroupItem><ToggleGroupItem value="4">4</ToggleGroupItem></ToggleGroup></PresetField></div><Collapsible className="preset-advanced-settings"><CollapsibleTrigger><span>Advanced settings</span><ChevronDown /></CollapsibleTrigger><CollapsibleContent><PresetField label="Seed" help="Leave empty for a new result. Reuse a seed when you want a closer repeat."><Input type="number" min={0} max={2_147_483_647} value={preset.seed < 0 ? "" : preset.seed} onChange={(event) => onChange({ ...preset, seed: event.target.value ? Number(event.target.value) : -1 })} placeholder="Random" /></PresetField></CollapsibleContent></Collapsible></section>
 }
 
 function PresetReview({ preset, items }: { preset: SoundPreset; items: TaxonomyItem[] }) {

@@ -4,14 +4,14 @@ export type AudioFamily = "audio" | "music" | "sfx" | "ambience"
 export type SoundMediaKind = "speech" | AudioFamily | "video"
 
 export const AUDIO_FAMILY_LABELS: Record<AudioFamily, string> = {
-  audio: "Audio", music: "Music", sfx: "SFX", ambience: "Ambience",
+  audio: "Audio", music: "Music", sfx: "Sound Effect", ambience: "Ambience",
 }
 
 export const SOUND_MEDIA_LABELS: Record<SoundMediaKind, string> = {
   speech: "Speech",
   audio: "Audio clip",
   music: "Music clip",
-  sfx: "SFX clip",
+  sfx: "Sound Effect clip",
   ambience: "Ambience clip",
   video: "Video audio clip",
 }
@@ -22,6 +22,15 @@ export function audioFamily(value?: string | null): AudioFamily {
   if (category === "sfx") return "sfx"
   if (category === "ambience") return "ambience"
   return "audio"
+}
+
+export function audioFamilyLabel(value?: string | null, fallback = "Workspace audio") {
+  const raw = String(value || "").trim()
+  if (!raw) return fallback
+  const family = audioFamily(raw)
+  return family === "audio" && raw.toLowerCase() !== "audio"
+    ? raw
+    : AUDIO_FAMILY_LABELS[family]
 }
 
 export function audioFileFamily(file?: Pick<WorkspaceFile, "category" | "kind"> | null): AudioFamily {

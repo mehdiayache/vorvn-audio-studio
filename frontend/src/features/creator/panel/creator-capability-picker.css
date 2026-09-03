@@ -1,12 +1,17 @@
 .creator-capability-picker {
   min-width: 0;
   display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
+  grid-auto-columns: minmax(6.5rem, 1fr);
+  grid-auto-flow: column;
   gap: .2rem;
+  overflow-x: auto;
   padding: .4rem;
   border-bottom: 1px solid var(--border);
   background: var(--surface-raised);
+  scrollbar-width: none;
 }
+
+.creator-capability-picker::-webkit-scrollbar { display: none; }
 
 .creator-capability-picker button {
   min-width: 0;

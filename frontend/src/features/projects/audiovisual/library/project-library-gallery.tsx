@@ -113,7 +113,7 @@ export function ProjectLibraryGallery({ folders = [], files, uploads, creationIt
       </div>
       <div className="project-library-gallery-filters">
         <ToggleGroup type="single" variant="outline" size="sm" value={mediaFilter} onValueChange={(next) => { if (next) setMediaFilter(next as CreatorLibraryKind) }} aria-label="File type">
-          <ToggleGroupItem value="all">All</ToggleGroupItem><ToggleGroupItem value="image">Images</ToggleGroupItem><ToggleGroupItem value="video">Videos</ToggleGroupItem><ToggleGroupItem value="audio">Audio</ToggleGroupItem><ToggleGroupItem value="speech">Speech</ToggleGroupItem><ToggleGroupItem value="music">Music</ToggleGroupItem><ToggleGroupItem value="sfx">SFX</ToggleGroupItem><ToggleGroupItem value="subtitle">Subtitles</ToggleGroupItem>
+          <ToggleGroupItem value="all">All</ToggleGroupItem><ToggleGroupItem value="image">Images</ToggleGroupItem><ToggleGroupItem value="video">Videos</ToggleGroupItem><ToggleGroupItem value="audio">Audio</ToggleGroupItem><ToggleGroupItem value="speech">Speech</ToggleGroupItem><ToggleGroupItem value="music">Music</ToggleGroupItem><ToggleGroupItem value="sfx">Sound Effect</ToggleGroupItem><ToggleGroupItem value="subtitle">Subtitles</ToggleGroupItem>
         </ToggleGroup>
         <ToggleGroup type="single" variant="outline" size="sm" value={originFilter} onValueChange={(next) => { if (next === "all" || next in FILE_SOURCE_PRESENTATION) setOriginFilter(next as "all" | FileSource) }} aria-label="File source">
           <ToggleGroupItem value="all">All sources</ToggleGroupItem>{(Object.keys(FILE_SOURCE_PRESENTATION) as FileSource[]).map((source) => <ToggleGroupItem key={source} value={source}>{FILE_SOURCE_PRESENTATION[source].label}</ToggleGroupItem>)}

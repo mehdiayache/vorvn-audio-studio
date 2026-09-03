@@ -10,6 +10,7 @@ import { audioFileCategory } from "@/features/sound-scene/audio-presentation"
 import { formatDuration } from "@/lib/format"
 import { cn } from "@/lib/utils"
 import type { PlayerSource, WorkspaceFile, WorkspaceFolder } from "@/types/domain"
+import type { CreatorLibraryCreationItem } from "./creator-library-creation-item"
 
 import "./creator-library-browser.css"
 
@@ -17,7 +18,7 @@ export type CreatorLibraryKind = "all" | "image" | "video" | "audio" | "speech" 
 
 const kinds: ReadonlyArray<{ id: CreatorLibraryKind; label: string }> = [
   { id: "all", label: "All" }, { id: "image", label: "Images" }, { id: "video", label: "Videos" },
-  { id: "audio", label: "Audio" }, { id: "speech", label: "Speech" }, { id: "music", label: "Music" }, { id: "sfx", label: "SFX" }, { id: "subtitle", label: "Subtitles" },
+  { id: "audio", label: "Audio" }, { id: "speech", label: "Speech" }, { id: "music", label: "Music" }, { id: "sfx", label: "Sound Effect" }, { id: "subtitle", label: "Subtitles" },
 ]
 
 export function creatorLibraryKind(file: WorkspaceFile): Exclude<CreatorLibraryKind, "all"> | "other" {
@@ -46,9 +47,10 @@ function FileCard({ file, selected, onSelect }: { file: WorkspaceFile; selected?
   </article>
 }
 
-export function CreatorLibraryBrowser({ files, folders = [], initialKind = "all", selectedFileId, playingKey, playerPlaying, onSelect, onPlay, onUpload }: {
+export function CreatorLibraryBrowser({ files, folders = [], creationItems = [], initialKind = "all", selectedFileId, playingKey, playerPlaying, onSelect, onPlay, onUpload }: {
   files: WorkspaceFile[]
   folders?: WorkspaceFolder[]
+  creationItems?: CreatorLibraryCreationItem[]
   initialKind?: CreatorLibraryKind
   selectedFileId?: number | null
   playingKey?: string
@@ -65,6 +67,7 @@ export function CreatorLibraryBrowser({ files, folders = [], initialKind = "all"
     const normalized = query.trim().toLowerCase()
     return files.filter((file) => (folderId === "all" || String(file.folder_id || "root") === folderId) && (kind === "all" || creatorLibraryKind(file) === kind) && (!normalized || `${file.name || ""} ${file.title || ""} ${(file.tags || []).join(" ")}`.toLowerCase().includes(normalized)))
   }, [files, folderId, kind, query])
+  const visibleCreationItems = creationItems.filter((item) => kind === "all" || item.mediaType === kind)
   return <section className="creator-library-browser">
     <header className="creator-library-browser-tools">
       <div className="creator-library-browser-primary"><label><Search /><Input aria-label="Search Library" value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Search Files" /></label>{folders.length > 0 && <Select value={folderId} onValueChange={setFolderId}><SelectTrigger aria-label="Library folder"><FolderOpen /><SelectValue /></SelectTrigger><SelectContent><SelectItem value="all">All folders</SelectItem><SelectItem value="root">Workspace root</SelectItem>{folders.map((folder) => <SelectItem key={folder.id} value={String(folder.id)}>{folder.name}</SelectItem>)}</SelectContent></Select>}{onUpload && <Button variant="outline" size="sm" onClick={onUpload}><Upload />Upload</Button>}</div>
@@ -72,7 +75,7 @@ export function CreatorLibraryBrowser({ files, folders = [], initialKind = "all"
         {kinds.map((item) => <ToggleGroupItem key={item.id} value={item.id}>{item.id === "image" ? <ImageIcon /> : item.id === "video" ? <Video /> : item.id === "audio" ? <AudioLines /> : item.id === "speech" ? <MicVocal /> : item.id === "music" ? <Music2 /> : item.id === "sfx" ? <Waves /> : item.id === "subtitle" ? <Captions /> : null}{item.label}</ToggleGroupItem>)}
       </ToggleGroup>
     </header>
-    {!visible.length ? <div className="creator-library-browser-empty"><FileText /><b>No matching Files</b><span>Created and uploaded Files appear here as soon as they are available.</span></div> : <div className="creator-library-browser-grid">{visible.map((file) => {
+    {!visible.length && !visibleCreationItems.length ? <div className="creator-library-browser-empty"><FileText /><b>No matching Files</b><span>Created and uploaded Files appear here as soon as they are available.</span></div> : <div className="creator-library-browser-grid">{visibleCreationItems.map((item) => <div key={`creation-${item.id}`} className="creator-library-generation-entry">{item.node}</div>)}{visible.map((file) => {
       const fileKind = creatorLibraryKind(file)
       if (["audio", "speech", "music", "sfx"].includes(fileKind)) {
         const key = `file:${file.id}`

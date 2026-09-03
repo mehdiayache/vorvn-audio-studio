@@ -41,7 +41,7 @@ export function soundTrackDisplayName(track: SoundSceneTrack) {
 
 export type SoundTrackRole = NonNullable<SoundSceneTrack["role"]>
 const TRACK_ROLE_LABELS: Record<SoundTrackRole, string> = {
-  audio: "Audio", music: "Music", sfx: "SFX", ambience: "Ambience",
+  audio: "Audio", music: "Music", sfx: "Sound Effect", ambience: "Ambience",
 }
 
 type Playout = Pick<SoundScenePlayout,

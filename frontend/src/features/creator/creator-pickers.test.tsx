@@ -2,7 +2,7 @@
 import { cleanup, fireEvent, render, screen } from "@testing-library/react"
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
 
-import type { VoiceChoice } from "@/lib/voice-options"
+import { speechModelKey, type VoiceChoice } from "@/lib/voice-options"
 import type { StudioConfig } from "@/types/domain"
 import { CreatorLanguagePicker } from "./creator-language-picker"
 import { CreatorMethodPicker } from "./creator-method-picker"
@@ -53,8 +53,8 @@ describe("Creator context pickers", () => {
 
   it("groups exact speech models by provider without a closed vendor enum", async () => {
     const onSelect = vi.fn()
-    render(<CreatorModelPicker routes={[route]} selectedRouteId="" selectedCapabilityId={null} config={config} onSelect={onSelect} />)
-    fireEvent.click(screen.getByRole("button", { name: "Speech model" }))
+    render(<CreatorModelPicker routes={[route]} selectedModelKey={speechModelKey(route)} selectedCapabilityId={null} config={config} onSelect={onSelect} />)
+    fireEvent.click(screen.getByRole("combobox", { name: "Speech model" }))
     expect((await screen.findAllByText("Aurora Labs")).length).toBeGreaterThan(0)
     expect(screen.getByText("aurora-natural-v2")).toBeTruthy()
     fireEvent.click(screen.getByRole("option", { name: /aurora-natural-v2/i }))

@@ -3,6 +3,7 @@ import { useCallback, useEffect, useMemo, useRef, useState, type ComponentPropsW
 import type { CreatorContext } from "@/lib/api"
 import { CreatorLibraryWorkspace } from "./library/creator-library-workspace"
 import { CreatorCapabilityPicker } from "./panel/creator-capability-picker"
+import { preloadCreatorModelCatalog } from "./creator-model-catalog"
 
 export type CreatorCapabilityId = "image" | "video" | "speech" | "music" | "sfx"
 
@@ -29,6 +30,7 @@ export function CreatorHost({
   allowedCapabilities = defaultCreatorCapabilities,
   creatorOpen,
   onCreatorOpenChange,
+  onCapabilityChange,
   presentation = "workspace",
   libraryPaneRef,
   libraryPaneProps,
@@ -39,6 +41,7 @@ export function CreatorHost({
   allowedCapabilities?: readonly CreatorCapabilityId[]
   creatorOpen?: boolean
   onCreatorOpenChange?: (open: boolean) => void
+  onCapabilityChange?: (capability: CreatorCapabilityId) => void
   presentation?: "workspace" | "workstation"
   libraryPaneRef?: Ref<HTMLElement>
   libraryPaneProps?: Omit<ComponentPropsWithoutRef<"main">, "children" | "className">
@@ -60,6 +63,10 @@ export function CreatorHost({
         : available.includes(initialCapability) ? initialCapability : (available[0] ?? initialCapability)
     })
   }, [available, initialCapability])
+
+  useEffect(() => {
+    preloadCreatorModelCatalog(available)
+  }, [available])
 
   const capabilityContext = useMemo<CreatorContext>(() => ({
     ...context,
@@ -84,14 +91,17 @@ export function CreatorHost({
     creatorNavigation={<CreatorCapabilityPicker
       value={capability}
       capabilities={available}
-      onChange={setCapability}
+      onChange={(next) => {
+        setCapability(next)
+        onCapabilityChange?.(next)
+      }}
     />}
     creatorDetail={workspace.creatorDetail || capability}
     libraryDetail={workspace.libraryDetail}
     libraryActions={workspace.libraryActions}
     creator={workspace.creator}
     library={workspace.library}
-  />, [available, capability, creatorOpen, libraryPaneProps, libraryPaneRef, onCreatorOpenChange, presentation])
+  />, [available, capability, creatorOpen, libraryPaneProps, libraryPaneRef, onCapabilityChange, onCreatorOpenChange, presentation])
 
   return children({ capability, context: capabilityContext, renderWorkspace })
 }
