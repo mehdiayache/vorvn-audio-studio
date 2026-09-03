@@ -14,19 +14,59 @@
   background: var(--background);
 }
 .workspace-explorer-header > div { min-inline-size: 0; display: flex; align-items: center; gap: .75rem; }
+.workspace-explorer-header strong { font-size: var(--type-small); font-weight: var(--weight-emphasis); }
+.workspace-mobile-switcher { display: none !important; }
 .workspace-explorer-header select { max-inline-size: 20rem; border: 0; color: var(--foreground); background: transparent; font-size: var(--type-body); font-weight: var(--weight-emphasis); outline: 0; }
 .workspace-explorer-header span, .workspace-explorer-header small { overflow: hidden; color: var(--muted-foreground); font-size: var(--type-caption); text-overflow: ellipsis; white-space: nowrap; }
 .workspace-explorer-content { inline-size: min(100% - clamp(2rem, 6vw, 6rem), 84rem); margin-inline: auto; padding-block: clamp(2.5rem, 6vh, 5rem) 6rem; }
 .workspace-explorer-content.is-library-view { padding-block-start: clamp(1.5rem, 3vh, 2.5rem); }
 .workspace-explorer-content.is-library-view .workspace-library-toolbar { margin-block-start: 0; }
 
-.workspace-create-stage { max-inline-size: 48rem; margin-inline: auto; text-align: center; }
-.workspace-create-kicker { display: inline-flex; align-items: center; gap: .4rem; color: var(--primary); font-size: var(--type-small); font-weight: var(--weight-emphasis); }
-.workspace-create-kicker svg { inline-size: 1rem; }
-.workspace-create-stage h1 { margin-block-start: .75rem; font-size: clamp(2.2rem, 5vw, 4.2rem); font-weight: var(--weight-title); letter-spacing: -.055em; line-height: .98; }
-.workspace-create-stage > p { max-inline-size: 36rem; margin: 1rem auto 0; color: color-mix(in oklab, var(--foreground) 68%, transparent); font-size: var(--type-heading-sm); line-height: 1.5; }
-.workspace-create-actions { margin-block-start: 1.75rem; }
-.workspace-create-action-catalog { max-inline-size: 58rem; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: .5rem; margin: 2rem auto 0; }
+.workspace-home { display: grid; gap: clamp(2rem, 5vh, 3.5rem); }
+.workspace-home-intro { display: grid; gap: .25rem; padding-block-end: clamp(1.5rem, 4vh, 2.75rem); border-block-end: 1px solid var(--border); }
+.workspace-home-intro > span { color: var(--muted-foreground); font-size: var(--type-caption); font-weight: var(--weight-emphasis); letter-spacing: .08em; text-transform: uppercase; }
+.workspace-home-intro > h1 { overflow-wrap: anywhere; font-size: clamp(1.8rem, 3vw, 2.75rem); font-weight: var(--weight-title); letter-spacing: -.04em; line-height: 1.05; }
+.workspace-home-intro > p { max-inline-size: 42rem; color: var(--muted-foreground); font-size: var(--type-small); }
+.workspace-home-intro > div { display: flex; align-items: center; justify-content: space-between; gap: 1rem; margin-block-start: clamp(1.5rem, 4vh, 2.5rem); }
+.workspace-home-intro h2 { font-size: clamp(1.25rem, 2.2vw, 1.75rem); font-weight: var(--weight-title); letter-spacing: -.025em; }
+.workspace-home-section { display: grid; gap: .875rem; }
+.workspace-home-section > header { display: flex; align-items: end; justify-content: space-between; gap: 1rem; }
+.workspace-home-section > header h2 { font-size: var(--type-heading-md); font-weight: var(--weight-title); }
+.workspace-home-section > header p { margin-block-start: .15rem; color: var(--muted-foreground); font-size: var(--type-caption); }
+.workspace-home-production-types { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: .75rem; }
+.workspace-home-production-types > button,
+.workspace-home-production-types > article {
+  min-inline-size: 0;
+  min-block-size: 7.5rem;
+  display: grid;
+  grid-template-areas: "icon title arrow" "icon detail arrow";
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  grid-template-rows: auto auto;
+  align-content: center;
+  align-items: center;
+  gap: .25rem .75rem;
+  padding: 1rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  background: var(--surface-raised);
+  text-align: start;
+  white-space: normal;
+}
+.workspace-home-production-types > button:hover { border-color: color-mix(in oklab, var(--primary) 30%, var(--border)); background: var(--surface-raised); }
+.workspace-home-production-types > article { color: var(--muted-foreground); background: color-mix(in oklab, var(--surface-subtle) 70%, transparent); }
+.workspace-home-production-types > button > span,
+.workspace-home-production-types > article > span { grid-area: icon; inline-size: 2.5rem; block-size: 2.5rem; display: grid; place-items: center; border-radius: var(--radius-md); color: var(--primary); background: var(--primary-soft); }
+.workspace-home-production-types svg { inline-size: 1rem; }
+.workspace-home-production-types > button > svg { grid-area: arrow; color: var(--muted-foreground); }
+.workspace-home-production-types b { grid-area: title; align-self: end; font-size: var(--type-body); font-weight: var(--weight-emphasis); }
+.workspace-home-production-types small { grid-area: detail; align-self: start; overflow: hidden; color: var(--muted-foreground); font-size: var(--type-caption); text-overflow: ellipsis; white-space: nowrap; }
+.workspace-home-creator-actions { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: .5rem; }
+.workspace-home-creator-actions .workspace-create-action { grid-template-columns: 2.25rem minmax(0, 1fr); }
+.workspace-home-creator-actions .workspace-create-action > svg { display: none; }
+.workspace-home-creator-actions .workspace-create-action small { display: none; }
+.workspace-home-recents { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: clamp(1.5rem, 4vw, 3rem); }
+.workspace-home-recents .workspace-library-section > header > a { color: var(--muted-foreground); font-size: var(--type-caption); text-decoration: none; }
+.workspace-home-recents .workspace-library-section > header > a:hover { color: var(--primary); }
 .workspace-create-action {
   min-inline-size: 0;
   min-block-size: 4.5rem;
@@ -51,8 +91,6 @@
 .workspace-create-action > svg { inline-size: .9rem; color: var(--muted-foreground); }
 .workspace-create-action-icon { inline-size: 2.25rem; block-size: 2.25rem; display: grid; place-items: center; border-radius: var(--radius-md); color: var(--primary); background: var(--primary-soft); }
 .workspace-create-action-icon svg { inline-size: 1rem; }
-.workspace-create-action.is-production { inline-size: min(100%, 30rem); margin-inline: auto; }
-.workspace-create-action.is-upload .workspace-create-action-icon { color: var(--primary); background: var(--primary-soft); }
 .workspace-create-action.is-music .workspace-create-action-icon { color: var(--audio-music); background: var(--audio-music-soft); }
 .workspace-create-action.is-sound .workspace-create-action-icon { color: var(--audio-sfx); background: var(--audio-sfx-soft); }
 .workspace-create-action.is-image .workspace-create-action-icon { color: var(--file-image); background: var(--file-image-soft); }
@@ -124,13 +162,15 @@
 .workspace-explorer-loading b { color: var(--foreground); font-weight: var(--weight-emphasis); }
 
 @media (max-width: 72rem) {
-  .workspace-create-action-catalog { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .workspace-home-creator-actions { grid-template-columns: repeat(3, minmax(0, 1fr)); }
   .workspace-library-layout { grid-template-columns: 1fr; }
 }
 @media (max-width: 48rem) {
-  .workspace-explorer-header > div > span, .workspace-explorer-header > small { display: none; }
+  .workspace-explorer-header > div:first-child > span, .workspace-explorer-header > small { display: none; }
+  .workspace-mobile-switcher { display: flex !important; margin-inline-start: auto; }
   .workspace-explorer-content { inline-size: min(100% - 2rem, 44rem); padding-block-start: 2.5rem; }
-  .workspace-create-action-catalog { grid-template-columns: 1fr; }
+  .workspace-home-intro > div { align-items: start; flex-direction: column; }
+  .workspace-home-production-types, .workspace-home-creator-actions, .workspace-home-recents { grid-template-columns: 1fr; }
   .workspace-library-toolbar { flex-wrap: wrap; }
   .workspace-library-toolbar > label { flex-basis: 100%; }
   .workspace-file-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }

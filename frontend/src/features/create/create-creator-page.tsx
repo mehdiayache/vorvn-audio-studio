@@ -154,7 +154,7 @@ export function CreateCreatorPage() {
   }
 
   return <>
-    <WorkspaceExplorerPage view="create" />
+    <WorkspaceExplorerPage view="home" />
     <input ref={uploadInputRef} hidden type="file" accept="image/*,video/*,audio/*,.srt,.vtt,.txt,.md,.pdf,.json,.csv,.zip" disabled={uploadingFile} onChange={(event) => { const file = event.target.files?.[0]; if (file) void uploadLibraryFile(file); event.target.value = "" }} />
     <Dialog open onOpenChange={(open) => { if (!open) navigate("/origins/") }}>
       <DialogContent className="create-creator-dialog">

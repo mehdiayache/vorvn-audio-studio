@@ -29,6 +29,37 @@ async function reusableBrowserFixture(request: APIRequestContext) {
   return { workspace, production }
 }
 
+async function reusableProjectFixture(request: APIRequestContext) {
+  const { workspace } = await reusableBrowserFixture(request)
+  const overviewResponse = await request.get(`/api/v1/workspaces/${workspace.id}`)
+  expect(overviewResponse.ok()).toBe(true)
+  const overview = (await overviewResponse.json()).data as WorkspaceOverview
+  let project = overview.projects.find(({ description }) => description === "Disposable browser Project fixture")
+  if (!project) {
+    const projectResponse = await request.post(`/api/v1/workspaces/${workspace.id}/projects`, {
+      data: { name: "Browser Smoke Project", description: "Disposable browser Project fixture" },
+    })
+    expect(projectResponse.ok()).toBe(true)
+    project = (await projectResponse.json()).data as ProjectResource
+  }
+  let production = overview.productions.find((item) => item.project_id === project.id)
+    || overview.productions.find((item) => item.project_id === null)
+  if (!production) {
+    const productionResponse = await request.post(`/api/v1/workspaces/${workspace.id}/productions/audiovisual`, {
+      data: { name: "Browser Smoke Grouped Production", description: "" },
+    })
+    expect(productionResponse.ok()).toBe(true)
+    production = (await productionResponse.json()).data as ProductionResource
+  }
+  if (production.project_id !== project.id) {
+    const membershipResponse = await request.patch(`/api/v1/productions/${production.id}`, {
+      data: { project_id: project.id },
+    })
+    expect(membershipResponse.ok()).toBe(true)
+  }
+  return { workspace, project, production }
+}
+
 test("opens an audiovisual Production and renders Timeline and Creator Library without browser warnings", async ({ page, request }) => {
   const browserIssues: string[] = []
   page.on("console", (message) => {
@@ -58,46 +89,39 @@ test("opens an audiovisual Production and renders Timeline and Creator Library w
   expect(browserIssues, browserIssues.join("\n")).toEqual([])
 })
 
-test("opens Workspace Project grouping and the unchanged Production workstation", async ({ page, request }) => {
+test("expands and collapses the desktop rail, then opens Home Project and Production", async ({ page, request }) => {
   const browserIssues: string[] = []
   page.on("console", (message) => {
     if (message.type() === "warning" || message.type() === "error") browserIssues.push(`${message.type()}: ${message.text()}`)
   })
   page.on("pageerror", (error) => browserIssues.push(`pageerror: ${error.message}`))
 
-  const { workspace } = await reusableBrowserFixture(request)
-  const overviewResponse = await request.get(`/api/v1/workspaces/${workspace.id}`)
-  expect(overviewResponse.ok()).toBe(true)
-  const overview = (await overviewResponse.json()).data as WorkspaceOverview
-  let project = overview.projects.find(({ description }) => description === "Disposable browser Project fixture")
-  if (!project) {
-    const projectResponse = await request.post(`/api/v1/workspaces/${workspace.id}/projects`, {
-      data: { name: "Browser Smoke Project", description: "Disposable browser Project fixture" },
-    })
-    expect(projectResponse.ok()).toBe(true)
-    project = (await projectResponse.json()).data as ProjectResource
-  }
-  let production = overview.productions.find((item) => item.project_id === project.id)
-    || overview.productions.find((item) => item.project_id === null)
-  if (!production) {
-    const productionResponse = await request.post(`/api/v1/workspaces/${workspace.id}/productions/audiovisual`, {
-      data: { name: "Browser Smoke Grouped Production", description: "" },
-    })
-    expect(productionResponse.ok()).toBe(true)
-    production = (await productionResponse.json()).data as ProductionResource
-  }
-  if (production.project_id !== project.id) {
-    const membershipResponse = await request.patch(`/api/v1/productions/${production.id}`, {
-      data: { project_id: project.id },
-    })
-    expect(membershipResponse.ok()).toBe(true)
-  }
+  const { workspace, project, production } = await reusableProjectFixture(request)
 
   await page.addInitScript((workspaceId) => {
     window.localStorage.setItem("origins.current-workspace", String(workspaceId))
   }, workspace.id)
-  await page.goto("/origins/projects")
+  await page.goto("/origins/")
+  const shell = page.locator(".studio-app-shell")
+  const railToggle = page.locator(".studio-rail .studio-rail-toggle")
+  await expect(shell).toHaveAttribute("data-rail-expanded", "false")
+  await expect(railToggle).toHaveAccessibleName("Expand Origins navigation")
+  await railToggle.click()
+  await expect(shell).toHaveAttribute("data-rail-expanded", "true")
+  const projectsLink = page.getByRole("link", { name: "Projects", exact: true })
+  await expect(projectsLink).toBeVisible()
+  await expect(page.getByRole("button", { name: `Current Workspace: ${workspace.name}` })).toBeVisible()
+  await projectsLink.click()
+  await expect(projectsLink).toHaveAttribute("aria-current", "page")
   await expect(page.getByRole("heading", { name: "Projects" })).toBeVisible()
+  const homeLink = page.getByRole("link", { name: "Home", exact: true })
+  await homeLink.click()
+  await expect(homeLink).toHaveAttribute("aria-current", "page")
+  await railToggle.click()
+  await expect(shell).toHaveAttribute("data-rail-expanded", "false")
+
+  await expect(page.getByRole("heading", { name: workspace.name })).toBeVisible()
+  await expect(page.getByRole("heading", { name: "What do you want to create today?" })).toBeVisible()
   await page.getByRole("link", { name: `Open Project ${project.name}` }).click()
   await expect(page.getByRole("heading", { name: project.name })).toBeVisible()
   await page.getByRole("link", { name: `Open Production ${production.name}` }).click()

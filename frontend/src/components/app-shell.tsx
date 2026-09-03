@@ -1,10 +1,11 @@
-import { createContext, useContext, useState } from "react"
+import { createContext, useContext, useEffect, useState } from "react"
 import {
-  Activity, ChevronDown, Clapperboard, Files, FolderKanban, Menu,
-  PanelLeftClose, PanelLeftOpen, Settings2, Sparkles, UsersRound, Wrench,
+  Activity, Building2, Check, ChevronDown, Clapperboard, Files, FolderKanban,
+  FolderTree, Home, Menu, PanelLeftClose, PanelLeftOpen, Plus, Settings2,
+  Shapes, Sparkles, Wrench,
 } from "lucide-react"
 import type { LucideIcon } from "lucide-react"
-import { Link, NavLink, Outlet, useLocation } from "react-router-dom"
+import { Link, NavLink, Outlet, useLocation, useNavigate } from "react-router-dom"
 
 import { AppErrorBoundary } from "@/components/app-error-boundary"
 import { useProductReadiness } from "@/components/product-readiness"
@@ -12,15 +13,20 @@ import { TransportStrip } from "@/components/transport-strip"
 import { Button } from "@/components/ui/button"
 import {
   DropdownMenu, DropdownMenuContent, DropdownMenuGroup, DropdownMenuItem,
-  DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger,
+  DropdownMenuLabel, DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
 import {
   Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle, SheetTrigger,
 } from "@/components/ui/sheet"
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip"
 import { useMediaQuery } from "@/hooks/use-media-query"
+import {
+  preferredWorkspace, rememberedWorkspaceId, rememberWorkspace, WORKSPACE_SELECTION_EVENT,
+} from "@/features/workspace/workspace-selection"
+import { originsApi } from "@/lib/api"
 import { productIdentity } from "@/lib/product-identity"
 import { cn } from "@/lib/utils"
+import type { WorkspaceSummary } from "@/types/domain"
 
 export type OriginsMountMode = "standalone" | "embedded"
 
@@ -51,34 +57,44 @@ export function OriginsRailToggle({ className, tooltipSide = "right" }: { classN
 }
 
 type StudioNavigationItem = {
-  id: "create" | "projects" | "productions" | "files" | "voices" | "activity" | "settings"
+  id: "home" | "projects" | "explorer" | "library" | "objects" | "create" | "add" | "tools" | "activity" | "settings"
   label: string
   icon: LucideIcon
   href: string
-  group: "primary" | "tools" | "system"
+  group: "workspace" | "actions" | "utility"
 }
 
 export const originsNavigation: StudioNavigationItem[] = [
-  { id: "create", label: "Create", icon: Sparkles, href: "/origins/", group: "primary" },
-  { id: "projects", label: "Projects", icon: FolderKanban, href: "/origins/projects", group: "primary" },
-  { id: "productions", label: "Productions", icon: Clapperboard, href: "/origins/productions", group: "primary" },
-  { id: "files", label: "Files", icon: Files, href: "/origins/files", group: "primary" },
-  { id: "voices", label: "Voices", icon: UsersRound, href: "/origins/voices", group: "primary" },
-  { id: "activity", label: "Activity", icon: Activity, href: "/origins/activity", group: "tools" },
-  { id: "settings", label: "Settings", icon: Settings2, href: "/origins/settings", group: "system" },
+  { id: "home", label: "Home", icon: Home, href: "/origins/", group: "workspace" },
+  { id: "projects", label: "Projects", icon: FolderKanban, href: "/origins/projects", group: "workspace" },
+  { id: "explorer", label: "Explorer", icon: FolderTree, href: "/origins/explorer", group: "workspace" },
+  { id: "library", label: "Library", icon: Files, href: "/origins/library", group: "workspace" },
+  { id: "objects", label: "Objects", icon: Shapes, href: "/origins/objects", group: "workspace" },
+  { id: "create", label: "Create", icon: Sparkles, href: "/origins/create/generate-image", group: "actions" },
+  { id: "add", label: "Add", icon: Plus, href: "/origins/add", group: "actions" },
+  { id: "tools", label: "Tools", icon: Wrench, href: "/origins/tools", group: "actions" },
+  { id: "activity", label: "Activity", icon: Activity, href: "/origins/activity", group: "utility" },
+  { id: "settings", label: "Settings", icon: Settings2, href: "/origins/settings", group: "utility" },
 ]
 
 export function activeOriginsDestination(pathname: string) {
   const match = originsNavigation.find((item) => (
-    item.id === "create"
+    item.id === "home"
       ? pathname === "/origins" || pathname === "/origins/"
-        || pathname === "/origins/create"
-        || pathname.startsWith("/origins/create/")
-      : item.id === "productions"
-        ? pathname === item.href || pathname.startsWith("/origins/productions/")
-      : pathname === item.href || pathname.startsWith(`${item.href}/`)
+      : item.id === "create"
+        ? pathname === "/origins/create" || (pathname.startsWith("/origins/create/") && !pathname.startsWith("/origins/create/create-subtitles"))
+        : item.id === "tools"
+          ? pathname === item.href || pathname.startsWith(`${item.href}/`) || pathname.startsWith("/origins/create/create-subtitles")
+          : item.id === "library"
+            ? pathname === item.href || pathname.startsWith(`${item.href}/`) || pathname === "/origins/files"
+            : item.id === "objects"
+              ? pathname === item.href || pathname.startsWith(`${item.href}/`) || pathname.startsWith("/origins/voices")
+              : pathname === item.href || pathname.startsWith(`${item.href}/`)
   ))
-  return match?.label || productIdentity.name
+  if (match) return match.label
+  if (pathname.startsWith("/origins/productions/")) return "Audiovisual Production"
+  if (pathname === "/origins/productions") return "Productions"
+  return productIdentity.name
 }
 
 function StudioBrand() {
@@ -119,20 +135,16 @@ function ReadinessStatus() {
 }
 
 function PrimaryNavigation() {
-  const primaryItems = originsNavigation.filter((item) => item.group === "primary")
-  const toolItems = originsNavigation.filter((item) => item.group === "tools")
-  const settings = originsNavigation.find((item) => item.id === "settings")!
+  const primaryItems = originsNavigation.filter((item) => item.group !== "utility")
+  const utilityItems = originsNavigation.filter((item) => item.group === "utility")
   const location = useLocation()
-  const toolsActive = toolItems.some((item) => location.pathname === item.href || location.pathname.startsWith(`${item.href}/`))
 
   return (
     <nav className="studio-deck-navigation" aria-label={`${productIdentity.name} tools`}>
       <div className="studio-deck-primary-links">
         {primaryItems.map((item) => {
           const Icon = item.icon
-          const itemActive = item.id === "create" || item.id === "productions"
-            ? activeOriginsDestination(location.pathname) === item.label
-            : location.pathname === item.href || location.pathname.startsWith(`${item.href}/`)
+          const itemActive = activeOriginsDestination(location.pathname) === item.label
           return (
             <Link
               key={item.id}
@@ -150,16 +162,16 @@ function PrimaryNavigation() {
       <div className="studio-deck-secondary-links">
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
-            <Button variant="ghost" size="sm" className={cn("studio-deck-tools-trigger", toolsActive && "is-active")}>
+            <Button variant="ghost" size="sm" className="studio-deck-tools-trigger">
               <Wrench aria-hidden="true" />
-              Tools
+              More
               <ChevronDown className="studio-deck-chevron" aria-hidden="true" />
             </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end" className="studio-deck-menu">
-            <DropdownMenuLabel>Audio tools</DropdownMenuLabel>
+            <DropdownMenuLabel>Origins</DropdownMenuLabel>
             <DropdownMenuGroup>
-              {toolItems.map((item) => {
+              {utilityItems.map((item) => {
                 const Icon = item.icon
                 return (
                   <DropdownMenuItem key={item.id} asChild>
@@ -168,30 +180,15 @@ function PrimaryNavigation() {
                 )
               })}
             </DropdownMenuGroup>
-            <DropdownMenuSeparator />
-            <DropdownMenuItem asChild>
-              <NavLink to={settings.href}><Settings2 />Settings</NavLink>
-            </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
-
-        <Tooltip>
-          <TooltipTrigger asChild>
-            <Button variant="ghost" size="icon-sm" asChild className="studio-deck-settings">
-              <NavLink to={settings.href} aria-label="Settings"><Settings2 /></NavLink>
-            </Button>
-          </TooltipTrigger>
-          <TooltipContent side="bottom">Settings</TooltipContent>
-        </Tooltip>
       </div>
     </nav>
   )
 }
 
 function railItemActive(item: StudioNavigationItem, pathname: string) {
-  return item.id === "create" || item.id === "productions"
-    ? activeOriginsDestination(pathname) === item.label
-    : pathname === item.href || pathname.startsWith(`${item.href}/`)
+  return activeOriginsDestination(pathname) === item.label
 }
 
 function StudioRailLink({ item, pathname }: { item: StudioNavigationItem; pathname: string }) {
@@ -208,32 +205,97 @@ function StudioRailLink({ item, pathname }: { item: StudioNavigationItem; pathna
   </Tooltip>
 }
 
+function WorkspaceRailSelector() {
+  const [workspaces, setWorkspaces] = useState<WorkspaceSummary[]>([])
+  const [selectedId, setSelectedId] = useState(() => rememberedWorkspaceId())
+  const navigate = useNavigate()
+
+  useEffect(() => {
+    let active = true
+    void originsApi.workspaces().then((items) => {
+      if (!active) return
+      setWorkspaces(items)
+      const next = preferredWorkspace(items)
+      if (next) setSelectedId(next.id)
+    }).catch(() => undefined)
+    return () => { active = false }
+  }, [])
+  useEffect(() => {
+    const syncSelection = (event: Event) => {
+      const workspaceId = (event as CustomEvent<number>).detail || rememberedWorkspaceId()
+      if (workspaceId) setSelectedId(workspaceId)
+    }
+    window.addEventListener(WORKSPACE_SELECTION_EVENT, syncSelection)
+    window.addEventListener("storage", syncSelection)
+    return () => {
+      window.removeEventListener(WORKSPACE_SELECTION_EVENT, syncSelection)
+      window.removeEventListener("storage", syncSelection)
+    }
+  }, [])
+
+  const selected = workspaces.find((workspace) => workspace.id === selectedId)
+  return <DropdownMenu>
+    <Tooltip>
+      <TooltipTrigger asChild>
+        <DropdownMenuTrigger asChild>
+          <Button variant="ghost" className="studio-workspace-selector" aria-label={`Current Workspace: ${selected?.name || "Loading"}`}>
+            <Building2 aria-hidden="true" />
+            <span>{selected?.name || "Workspace"}</span>
+            <ChevronDown aria-hidden="true" />
+          </Button>
+        </DropdownMenuTrigger>
+      </TooltipTrigger>
+      <TooltipContent side="right">{selected?.name || "Choose Workspace"}</TooltipContent>
+    </Tooltip>
+    <DropdownMenuContent side="right" align="start" className="studio-workspace-menu">
+      <DropdownMenuLabel>Switch Workspace</DropdownMenuLabel>
+      <DropdownMenuGroup>
+        {workspaces.map((workspace) => <DropdownMenuItem
+          key={workspace.id}
+          onSelect={() => {
+            setSelectedId(workspace.id)
+            rememberWorkspace(workspace.id)
+            navigate("/origins/")
+          }}
+        >
+          <Building2 />
+          <span>{workspace.name}</span>
+          {workspace.id === selectedId && <Check className="studio-workspace-check" />}
+        </DropdownMenuItem>)}
+      </DropdownMenuGroup>
+    </DropdownMenuContent>
+  </DropdownMenu>
+}
+
 function StudioRail() {
   const location = useLocation()
-  const primary = originsNavigation.filter((item) => item.group === "primary")
-  const tools = originsNavigation.filter((item) => item.group === "tools")
-  const settings = originsNavigation.find((item) => item.id === "settings")!
+  const workspaceItems = originsNavigation.filter((item) => item.group === "workspace")
+  const actionItems = originsNavigation.filter((item) => item.group === "actions")
+  const utilityItems = originsNavigation.filter((item) => item.group === "utility")
   return <aside className="studio-rail" aria-label={`${productIdentity.name} navigation`}>
     <div className="studio-rail-head">
       <StudioBrand />
+      <OriginsRailToggle className="studio-rail-toggle" />
+      <WorkspaceRailSelector />
     </div>
     <nav className="studio-rail-navigation" aria-label={`${productIdentity.name} tools`}>
       <div className="studio-rail-group">
-        {primary.map((item) => <StudioRailLink key={item.id} item={item} pathname={location.pathname} />)}
+        {workspaceItems.map((item) => <StudioRailLink key={item.id} item={item} pathname={location.pathname} />)}
       </div>
-      <div className="studio-rail-group is-tools">
-        {tools.map((item) => <StudioRailLink key={item.id} item={item} pathname={location.pathname} />)}
+      <div className="studio-rail-group is-actions">
+        {actionItems.map((item) => <StudioRailLink key={item.id} item={item} pathname={location.pathname} />)}
       </div>
     </nav>
     <div className="studio-rail-footer">
       <ReadinessStatus />
-      <StudioRailLink item={settings} pathname={location.pathname} />
+      {utilityItems.map((item) => <StudioRailLink key={item.id} item={item} pathname={location.pathname} />)}
     </div>
   </aside>
 }
 
 function MobileNavigation({ destination }: { destination: string }) {
   const [open, setOpen] = useState(false)
+  const location = useLocation()
   return (
     <Sheet open={open} onOpenChange={setOpen}>
       <SheetTrigger asChild>
@@ -249,17 +311,18 @@ function MobileNavigation({ destination }: { destination: string }) {
         <nav aria-label={`${productIdentity.name} mobile tools`}>
           {originsNavigation.map((item) => {
             const Icon = item.icon
+            const active = activeOriginsDestination(location.pathname) === item.label
             return (
-              <NavLink
+              <Link
                 key={item.id}
                 to={item.href}
-                end={item.href === "/origins/"}
+                aria-current={active ? "page" : undefined}
                 onClick={() => setOpen(false)}
-                className={({ isActive }) => cn("studio-deck-mobile-link", isActive && "is-active")}
+                className={cn("studio-deck-mobile-link", active && "is-active", (item.id === "create" || item.id === "activity") && "is-group-start")}
               >
                 <Icon />
                 <span>{item.label}</span>
-              </NavLink>
+              </Link>
             )
           })}
         </nav>

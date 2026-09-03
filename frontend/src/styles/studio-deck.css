@@ -7,7 +7,7 @@
 .studio-app-shell[data-navigation="rail"] {
   --studio-standalone-header-height: 0rem;
   --studio-local-chrome-height: 0rem;
-  --studio-rail-current: 3rem;
+  --studio-rail-current: 3.25rem;
   block-size: 100dvh;
   min-block-size: 0;
   display: grid;
@@ -17,7 +17,7 @@
   transition: grid-template-columns 180ms ease;
 }
 
-.studio-app-shell[data-navigation="rail"][data-rail-expanded="true"] { --studio-rail-current: 12.5rem; }
+.studio-app-shell[data-navigation="rail"][data-rail-expanded="true"] { --studio-rail-current: 13.5rem; }
 .studio-app-shell[data-navigation="rail"] .origins-viewport { min-block-size: 0; overflow: auto; }
 
 .studio-rail {
@@ -25,7 +25,7 @@
   min-block-size: 0;
   display: grid;
   grid-template-rows: auto minmax(0, 1fr) auto;
-  gap: 0.75rem;
+  gap: 0.625rem;
   padding: 0.75rem 0.25rem;
   border: 0;
   background: transparent;
@@ -34,18 +34,42 @@
 
 .studio-app-shell[data-navigation="rail"][data-rail-expanded="true"] .studio-rail { padding-inline: 0.5rem; }
 
-.studio-rail-head { display: grid; gap: 0.5rem; }
+.studio-rail-head { display: grid; gap: 0.375rem; }
+.studio-app-shell[data-rail-expanded="true"] .studio-rail-head { grid-template-columns: minmax(0, 1fr) auto; align-items: center; }
+.studio-app-shell[data-rail-expanded="true"] .studio-workspace-selector { grid-column: 1 / -1; }
 .studio-rail .studio-deck-brand { min-inline-size: 0; block-size: 2.5rem; padding-inline: 0.1875rem; overflow: hidden; }
 .studio-rail .studio-deck-mark { inline-size: 2.125rem; block-size: 2.125rem; flex: 0 0 2.125rem; }
 .studio-rail .studio-deck-brand > span:last-child,
-.studio-rail-link > span { opacity: 0; transform: translateX(-0.25rem); transition: opacity 120ms ease, transform 160ms ease; }
+.studio-rail-link > span,
+.studio-workspace-selector > span,
+.studio-workspace-selector > svg:last-child { opacity: 0; transform: translateX(-0.25rem); transition: opacity 120ms ease, transform 160ms ease; }
 .studio-app-shell[data-rail-expanded="true"] .studio-rail .studio-deck-brand > span:last-child,
-.studio-app-shell[data-rail-expanded="true"] .studio-rail-link > span { opacity: 1; transform: translateX(0); }
+.studio-app-shell[data-rail-expanded="true"] .studio-rail-link > span,
+.studio-app-shell[data-rail-expanded="true"] .studio-workspace-selector > span,
+.studio-app-shell[data-rail-expanded="true"] .studio-workspace-selector > svg:last-child { opacity: 1; transform: translateX(0); }
 .studio-rail-toggle { justify-self: center; color: var(--muted-foreground); }
 .studio-app-shell[data-rail-expanded="true"] .studio-rail-toggle { justify-self: end; }
-.studio-rail-navigation { min-block-size: 0; display: flex; flex-direction: column; justify-content: space-between; overflow: hidden; }
+.studio-workspace-selector {
+  min-inline-size: 0;
+  inline-size: 100%;
+  block-size: 2.5rem;
+  justify-content: flex-start;
+  gap: 0.75rem;
+  overflow: hidden;
+  padding-inline: 0.625rem;
+  color: var(--foreground);
+  font-size: var(--type-small);
+  font-weight: var(--weight-emphasis);
+}
+.studio-workspace-selector > svg { inline-size: 1rem; block-size: 1rem; flex: 0 0 1rem; }
+.studio-workspace-selector > span { min-inline-size: 0; flex: 1; overflow: hidden; text-align: start; text-overflow: ellipsis; white-space: nowrap; }
+.studio-workspace-selector > svg:last-child { inline-size: 0.75rem; block-size: 0.75rem; }
+.studio-workspace-menu { min-inline-size: 13rem; }
+.studio-workspace-menu [role="menuitem"] > span { min-inline-size: 0; flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.studio-workspace-check { margin-inline-start: auto; color: var(--primary); }
+.studio-rail-navigation { min-block-size: 0; display: grid; align-content: start; gap: 0.75rem; overflow: auto; scrollbar-width: none; }
 .studio-rail-group { display: grid; gap: 0.25rem; }
-.studio-rail-group.is-tools { padding-block-start: 0.75rem; border-block-start: 1px solid color-mix(in oklab, var(--border) 72%, transparent); }
+.studio-rail-group.is-actions { padding-block-start: 0.75rem; border-block-start: 1px solid color-mix(in oklab, var(--border) 72%, transparent); }
 .studio-rail-link {
   min-inline-size: 0;
   block-size: 2.5rem;
@@ -65,8 +89,9 @@
 .studio-rail-link > svg { inline-size: 1rem; block-size: 1rem; flex: 0 0 1rem; }
 .studio-rail-link:hover { color: var(--foreground); background: color-mix(in oklab, var(--muted) 72%, transparent); }
 .studio-rail-link.is-active { color: var(--primary); background: var(--primary-soft); }
-.studio-rail-footer { display: grid; gap: 0.25rem; }
+.studio-rail-footer { display: grid; gap: 0.25rem; padding-block-start: 0.625rem; border-block-start: 1px solid color-mix(in oklab, var(--border) 72%, transparent); }
 .studio-rail-footer .studio-deck-readiness { overflow: hidden; white-space: nowrap; }
+.studio-app-shell[data-rail-expanded="false"] .studio-rail-footer .studio-deck-readiness:not(.is-checking):not(.is-setup_required):not(.is-unavailable) { display: none; }
 
 .studio-app-shell[data-mount-mode="embedded"] {
   --studio-standalone-header-height: 0rem;
@@ -211,6 +236,20 @@
 .studio-deck-mobile-menu, .studio-deck-mobile-destination { display: none; }
 .origins-viewport { min-inline-size: 0; }
 
+.workspace-shell-placeholder {
+  min-block-size: 100%;
+  display: grid;
+  place-content: center;
+  justify-items: start;
+  gap: 0.5rem;
+  padding: 2rem;
+  background: var(--workspace-background);
+}
+.workspace-shell-placeholder > p { color: var(--primary); font-size: var(--type-caption); font-weight: var(--weight-emphasis); text-transform: uppercase; letter-spacing: 0.08em; }
+.workspace-shell-placeholder > h1 { font-size: var(--type-heading-lg); font-weight: var(--weight-title); }
+.workspace-shell-placeholder > span { max-inline-size: 32rem; color: var(--muted-foreground); font-size: var(--type-small); }
+.workspace-shell-placeholder > a { margin-block-start: 0.5rem; color: var(--primary); font-size: var(--type-small); font-weight: var(--weight-emphasis); text-decoration: none; }
+
 .studio-deck-mobile-sheet { inline-size: min(22rem, 100%); }
 .studio-deck-mobile-sheet nav { display: grid; gap: 0.25rem; margin-top: 1.25rem; }
 .studio-deck-mobile-link {
@@ -226,6 +265,7 @@
   text-decoration: none;
 }
 .studio-deck-mobile-link svg { inline-size: 1rem; block-size: 1rem; color: var(--muted-foreground); }
+.studio-deck-mobile-link.is-group-start { margin-block-start: 0.5rem; padding-block-start: 0.75rem; border-block-start: 1px solid var(--border); border-start-start-radius: 0; border-start-end-radius: 0; }
 .studio-deck-mobile-link.is-active { color: var(--primary); background: var(--primary-soft); }
 .studio-deck-mobile-link.is-active svg { color: currentColor; }
 

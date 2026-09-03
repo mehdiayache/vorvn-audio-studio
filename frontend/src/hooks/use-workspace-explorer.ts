@@ -1,20 +1,10 @@
 import { useCallback, useEffect, useMemo, useState } from "react"
 
 import { originsApi } from "@/lib/api"
+import {
+  preferredWorkspace, rememberedWorkspaceId, rememberWorkspace, WORKSPACE_SELECTION_EVENT,
+} from "@/features/workspace/workspace-selection"
 import type { CreationActionSummary, LoadState, WorkspaceOverview, WorkspaceSummary } from "@/types/domain"
-
-const WORKSPACE_STORAGE_KEY = "origins.current-workspace"
-
-function defaultWorkspace(workspaces: WorkspaceSummary[]) {
-  const stored = Number(window.localStorage.getItem(WORKSPACE_STORAGE_KEY) || 0)
-  const remembered = workspaces.find((workspace) => workspace.id === stored)
-  if (remembered) return remembered
-  return [...workspaces].sort((left, right) => {
-    const leftUse = left.production_count * 4 + left.project_count * 3 + left.file_count * 2 + left.folder_count
-    const rightUse = right.production_count * 4 + right.project_count * 3 + right.file_count * 2 + right.folder_count
-    return rightUse - leftUse || right.updated_at.localeCompare(left.updated_at)
-  })[0]
-}
 
 export function useWorkspaceExplorer() {
   const [workspaces, setWorkspaces] = useState<LoadState<WorkspaceSummary[]>>({ status: "loading" })
@@ -29,7 +19,7 @@ export function useWorkspaceExplorer() {
       setWorkspaces({ status: "ready", data: nextWorkspaces })
       setSelectedWorkspaceId((current) => current && nextWorkspaces.some((workspace) => workspace.id === current)
         ? current
-        : defaultWorkspace(nextWorkspaces)?.id || null)
+        : preferredWorkspace(nextWorkspaces)?.id || null)
     } catch (error) {
       setWorkspaces({ status: "error", error: error instanceof Error ? error.message : "Unable to load Workspaces." })
     }
@@ -55,8 +45,20 @@ export function useWorkspaceExplorer() {
 
   useEffect(() => { void Promise.all([loadWorkspaces(), loadActions()]) }, [loadActions, loadWorkspaces])
   useEffect(() => {
+    const syncSelection = (event: Event) => {
+      const workspaceId = (event as CustomEvent<number>).detail || rememberedWorkspaceId()
+      if (workspaceId) setSelectedWorkspaceId(workspaceId)
+    }
+    window.addEventListener(WORKSPACE_SELECTION_EVENT, syncSelection)
+    window.addEventListener("storage", syncSelection)
+    return () => {
+      window.removeEventListener(WORKSPACE_SELECTION_EVENT, syncSelection)
+      window.removeEventListener("storage", syncSelection)
+    }
+  }, [])
+  useEffect(() => {
     if (!selectedWorkspaceId) return
-    window.localStorage.setItem(WORKSPACE_STORAGE_KEY, String(selectedWorkspaceId))
+    if (rememberedWorkspaceId() !== selectedWorkspaceId) rememberWorkspace(selectedWorkspaceId)
     void loadOverview(selectedWorkspaceId)
   }, [loadOverview, selectedWorkspaceId])
 

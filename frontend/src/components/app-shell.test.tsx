@@ -1,5 +1,5 @@
 // @vitest-environment jsdom
-import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react"
+import { cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react"
 import { useState } from "react"
 import { MemoryRouter, Route, Routes, useNavigate } from "react-router-dom"
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
@@ -10,7 +10,7 @@ import { ProductReadinessProvider } from "@/components/product-readiness"
 import { TooltipProvider } from "@/components/ui/tooltip"
 import { originsApi } from "@/lib/api"
 
-vi.mock("@/lib/api", () => ({ originsApi: { config: vi.fn() } }))
+vi.mock("@/lib/api", () => ({ originsApi: { config: vi.fn(), workspaces: vi.fn() } }))
 
 const configured = { has_key: true } as Awaited<ReturnType<typeof originsApi.config>>
 
@@ -20,6 +20,11 @@ function ProductionContent() {
 
 beforeEach(() => {
   vi.clearAllMocks()
+  vi.mocked(originsApi.workspaces).mockResolvedValue([{
+    id: 1, public_id: "workspace-1", name: "Aduh Lagi Studio", description: "",
+    project_count: 1, production_count: 1, file_count: 1, folder_count: 1,
+    created_at: "2026-01-01T00:00:00Z", updated_at: "2026-01-01T00:00:00Z",
+  }])
   class AudioMock extends EventTarget {
     preload = ""
     volume = 1
@@ -82,9 +87,12 @@ function renderQueryWorkspace(path: string, queryKey: "subtitle-job") {
 describe("Origins shell", () => {
   it("derives one honest destination from tool and Work resource routes", () => {
     expect(activeOriginsDestination("/origins/create/generate-speech")).toBe("Create")
-    expect(activeOriginsDestination("/origins/create/create-subtitles")).toBe("Create")
+    expect(activeOriginsDestination("/origins/create/create-subtitles")).toBe("Tools")
     expect(activeOriginsDestination("/origins/projects/project-id")).toBe("Projects")
-    expect(activeOriginsDestination("/origins/productions/audiovisual/production-id")).toBe("Productions")
+    expect(activeOriginsDestination("/origins/library")).toBe("Library")
+    expect(activeOriginsDestination("/origins/files")).toBe("Library")
+    expect(activeOriginsDestination("/origins/voices")).toBe("Objects")
+    expect(activeOriginsDestination("/origins/productions/audiovisual/production-id")).toBe("Audiovisual Production")
   })
   it("renders one standalone identity and the Studio-owned navigation", async () => {
     const { container } = renderShell("standalone", "/origins/", true)
@@ -100,7 +108,8 @@ describe("Origins shell", () => {
     const { container } = renderShell("standalone", "/origins/productions/audiovisual/production-id", true)
     expect(screen.getByRole("link", { name: "Origins Work" })).toBeTruthy()
     expect(screen.getByRole("navigation", { name: "Origins tools" })).toBeTruthy()
-    expect(screen.getByRole("link", { name: "Productions" }).getAttribute("aria-current")).toBe("page")
+    expect(screen.queryByRole("link", { name: "Productions" })).toBeNull()
+    expect(screen.getByRole("link", { name: "Home" })).toBeTruthy()
     expect(screen.getByRole("heading", { name: "Production content" })).toBeTruthy()
     expect(container.querySelector(".studio-app-shell")?.getAttribute("data-presentation")).toBe("standard")
   })
@@ -110,19 +119,22 @@ describe("Origins shell", () => {
     const shell = container.querySelector(".studio-app-shell")
     expect(shell?.getAttribute("data-navigation")).toBe("rail")
     expect(shell?.getAttribute("data-rail-expanded")).toBe("false")
-    expect(container.querySelector(".studio-rail .studio-rail-toggle")).toBeNull()
+    const railToggle = container.querySelector<HTMLButtonElement>(".studio-rail .studio-rail-toggle")
+    expect(railToggle).toBeTruthy()
     expect(container.querySelector(".production-header-toggle")).toBeTruthy()
-    fireEvent.click(screen.getByRole("button", { name: "Expand Origins navigation" }))
+    fireEvent.click(railToggle!)
     expect(shell?.getAttribute("data-rail-expanded")).toBe("true")
-    expect(screen.getByRole("button", { name: "Collapse Origins navigation" })).toBeTruthy()
+    expect(railToggle?.getAttribute("aria-label")).toBe("Collapse Origins navigation")
   })
 
-  it("keeps creation tools behind Create instead of bloating the permanent rail", () => {
+  it("exposes the approved Workspace, action and utility hierarchy", async () => {
     const { container } = renderShell("standalone", "/origins/", true)
-    const primary = container.querySelector(".studio-rail-group:not(.is-tools)")
-    expect(primary?.textContent).toContain("Create")
-    expect(primary?.textContent).not.toContain("Subtitles")
-    expect(primary?.textContent).not.toContain("Activity")
+    const rail = container.querySelector(".studio-rail")
+    expect(rail?.textContent).toContain("HomeProjectsExplorerLibraryObjects")
+    expect(rail?.textContent).toContain("CreateAddTools")
+    expect(rail?.textContent).toContain("ActivitySettings")
+    expect(rail?.textContent).not.toContain("Subtitles")
+    await waitFor(() => expect(screen.getByRole("button", { name: "Current Workspace: Aduh Lagi Studio" })).toBeTruthy())
   })
 
   it("preserves the normal standalone chrome for mobile Production", () => {
@@ -130,6 +142,16 @@ describe("Origins shell", () => {
     expect(screen.getByRole("link", { name: "Origins Work" })).toBeTruthy()
     expect(screen.getByRole("navigation", { name: "Origins tools" })).toBeTruthy()
     expect(container.querySelector(".studio-app-shell")?.getAttribute("data-presentation")).toBe("standard")
+  })
+
+  it("keeps the complete grouped navigation reachable on mobile", () => {
+    renderShell("standalone", "/origins/")
+    fireEvent.click(screen.getByRole("button", { name: "Open Origins menu" }))
+    const navigation = screen.getByRole("navigation", { name: "Origins mobile tools" })
+    expect(navigation.textContent).toContain("HomeProjectsExplorerLibraryObjects")
+    expect(navigation.textContent).toContain("CreateAddTools")
+    expect(navigation.textContent).toContain("ActivitySettings")
+    expect(within(navigation).getByRole("link", { name: "Home" }).getAttribute("aria-current")).toBe("page")
   })
 
   it("does not infer authority over an embedded host on desktop Production", () => {

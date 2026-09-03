@@ -20,12 +20,16 @@ const workspaces: WorkspaceSummary[] = [{
   created_at: "2026-01-01T00:00:00Z", updated_at: "2026-01-02T00:00:00Z",
 }]
 const overview: WorkspaceOverview = {
-  workspace: workspaces[0]!, folders: [], projects: [],
+  workspace: { ...workspaces[0]!, project_count: 1 }, folders: [], projects: [{
+    id: 7, public_id: "project-7", workspace_id: 4, folder_id: null,
+    name: "Summer Launch", description: "Campaign", production_count: 1,
+    created_at: "2026-01-01T00:00:00Z", updated_at: "2026-01-02T00:00:00Z",
+  }],
   productions: [{ id: 8, public_id: "production-8", workspace_id: 4, folder_id: null, project_id: null, production_type: "audiovisual", name: "Launch film", description: "", status: "draft", updated_at: "2026-01-02T00:00:00Z", file_count: 1, part_count: 3 }],
   files: [{ id: 9, public_id: "file-9", workspace_id: 4, folder_id: null, name: "Score.wav", source: "generated", tags: ["music"], metadata: {}, created_at: "2026-01-01T00:00:00Z", updated_at: "2026-01-02T00:00:00Z", current_version: { id: 10, public_id: "version-10", version: 1, filename: "score.wav", storage_key: "score.wav", url: "/audio/score.wav", size_bytes: 20, duration_ms: 5_000, mime_type: "audio/wav", family: "audio", width: null, height: null } }],
 }
 
-function renderPage(view: "create" | "projects" | "productions" | "files" = "create") {
+function renderPage(view: "home" | "projects" | "productions" | "files" | "explorer" = "home") {
   return render(<MemoryRouter initialEntries={["/origins/"]}><TooltipProvider><Routes><Route path="/origins/*" element={<WorkspaceExplorerPage view={view} />} /></Routes></TooltipProvider></MemoryRouter>)
 }
 
@@ -45,32 +49,37 @@ afterEach(() => { cleanup(); vi.clearAllMocks() })
 Element.prototype.scrollIntoView = vi.fn()
 
 describe("WorkspaceExplorerPage", () => {
-  it("makes Create the entry while keeping Productions and Files visible", async () => {
+  it("makes Home teach Projects, Production types and standalone Creator capabilities", async () => {
     renderPage()
-    expect(await screen.findByRole("heading", { name: "What do you want to create?" })).toBeTruthy()
-    expect(screen.getByRole("link", { name: /Generate speech/ }).getAttribute("href")).toBe("/origins/create/generate-speech")
-    expect(screen.getByRole("link", { name: /Generate music/ }).getAttribute("href")).toBe("/origins/create/generate-music")
-    expect(screen.getByRole("link", { name: /Generate sound effect/ }).getAttribute("href")).toBe("/origins/create/generate-sound-effect")
-    expect(screen.getByRole("link", { name: /Generate image/ }).getAttribute("href")).toBe("/origins/create/generate-image")
-    expect(screen.getByRole("link", { name: /Generate video/ }).getAttribute("href")).toBe("/origins/create/generate-video")
-    expect(screen.queryByRole("link", { name: /Generate media/ })).toBeNull()
+    expect(await screen.findByRole("heading", { name: "Campaign Lab" })).toBeTruthy()
+    expect(screen.getByRole("heading", { name: "What do you want to create today?" })).toBeTruthy()
+    expect(screen.getByRole("button", { name: "New Project" })).toBeTruthy()
+    expect(screen.getByRole("button", { name: /Audiovisual/ })).toBeTruthy()
+    expect(screen.getByRole("article", { name: "Merch, coming soon" })).toBeTruthy()
+    expect(screen.getByRole("article", { name: "Slides, coming soon" })).toBeTruthy()
+    expect(screen.getByRole("link", { name: /Speech/ }).getAttribute("href")).toBe("/origins/create/generate-speech")
+    expect(screen.getByRole("link", { name: /Music/ }).getAttribute("href")).toBe("/origins/create/generate-music")
+    expect(screen.getByRole("link", { name: /Sound Effect/ }).getAttribute("href")).toBe("/origins/create/generate-sound-effect")
+    expect(screen.getByRole("link", { name: /Image/ }).getAttribute("href")).toBe("/origins/create/generate-image")
+    expect(screen.getByRole("link", { name: /Video/ }).getAttribute("href")).toBe("/origins/create/generate-video")
+    expect(screen.queryByText("Subtitles")).toBeNull()
+    expect(screen.getByRole("link", { name: "Open Project Summer Launch" }).getAttribute("href")).toBe("/origins/projects/project-7")
     expect(screen.getByRole("link", { name: "Open Launch film" }).getAttribute("href")).toBe("/origins/productions/audiovisual/production-8")
-    expect(screen.getByText("Score.wav")).toBeTruthy()
   })
 
   it("creates an audiovisual Production directly inside the selected Workspace", async () => {
     vi.mocked(originsApi.createAudiovisualProduction).mockResolvedValue({ ...overview.productions[0]!, id: 11, public_id: "production-11", name: "New film" })
     renderPage()
-    fireEvent.click(await screen.findByRole("button", { name: /New audiovisual production/ }))
+    fireEvent.click(await screen.findByRole("button", { name: /Audiovisual/ }))
     fireEvent.change(screen.getByRole("textbox", { name: "Name" }), { target: { value: "New film" } })
     fireEvent.click(screen.getByRole("button", { name: "Create Production" }))
     await waitFor(() => expect(originsApi.createAudiovisualProduction).toHaveBeenCalledWith(4, "New film", "", null))
   })
 
-  it("uses dedicated Productions view without duplicating the Create stage", async () => {
+  it("uses dedicated Productions view without duplicating Home", async () => {
     renderPage("productions")
     expect(await screen.findByRole("heading", { name: "Productions" })).toBeTruthy()
-    expect(screen.queryByRole("heading", { name: "What do you want to create?" })).toBeNull()
+    expect(screen.queryByRole("heading", { name: "What do you want to create today?" })).toBeNull()
     expect(screen.queryByRole("heading", { name: "Files" })).toBeNull()
     expect(document.querySelector(".workspace-library-layout.has-single-column")).toBeTruthy()
   })
@@ -141,7 +150,7 @@ describe("WorkspaceExplorerPage", () => {
     await waitFor(() => expect(originsApi.workspace).toHaveBeenCalledTimes(2))
   })
 
-  it("keeps the selected Folder through Create, Production creation and upload", async () => {
+  it("keeps the selected Folder through Production creation", async () => {
     vi.mocked(originsApi.workspace).mockResolvedValue({
       ...overview,
       folders: [{
@@ -154,11 +163,9 @@ describe("WorkspaceExplorerPage", () => {
       ...overview.productions[0]!, id: 11, public_id: "production-11",
       folder_id: 21, name: "Episode film",
     })
-    renderPage()
+    renderPage("productions")
     fireEvent.click(await screen.findByRole("button", { name: "Episode 01" }))
-    expect(screen.getByRole("link", { name: /Generate music/ }).getAttribute("href"))
-      .toBe("/origins/create/generate-music?folder_id=21")
-    fireEvent.click(screen.getByRole("button", { name: /New audiovisual production/ }))
+    fireEvent.click(screen.getByRole("button", { name: "New Production" }))
     fireEvent.change(screen.getByRole("textbox", { name: "Name" }), {
       target: { value: "Episode film" },
     })
