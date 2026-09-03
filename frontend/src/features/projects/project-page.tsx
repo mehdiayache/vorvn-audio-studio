@@ -1,9 +1,8 @@
 import { useCallback, useEffect, useMemo, useState } from "react"
 import {
-  ArrowLeft, Captions, ChevronRight, Clapperboard, FileAudio2, FileImage,
-  FileText, FileVideo2, Folder, FolderKanban, FolderPlus, Plus, Unlink,
+  ArrowLeft, ChevronRight, Clapperboard, FileImage, Folder, FolderKanban,
+  FolderPlus, Plus, Unlink, Upload,
 } from "lucide-react"
-import type { LucideIcon } from "lucide-react"
 import { Link, useNavigate, useParams, useSearchParams } from "react-router-dom"
 import { toast } from "sonner"
 
@@ -12,25 +11,19 @@ import { ErrorState, PageLoading } from "@/components/state-panel"
 import { Button } from "@/components/ui/button"
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { CreateProductionDialog } from "@/features/productions/create-production-dialog"
+import { FileCard } from "@/features/files/file-card"
+import { FilePreviewDialog } from "@/features/files/file-preview-dialog"
+import { FileUploadDialog } from "@/features/files/file-upload-dialog"
 import { CreateFolderDialog } from "@/features/workspace/explorer/create-folder-dialog"
 import { synchronizeWorkspaceSelection } from "@/features/workspace/workspace-selection"
 import { useAsyncAction } from "@/hooks/use-async-action"
 import { originsApi } from "@/lib/api"
-import { formatDuration, formatUpdated } from "@/lib/format"
-import { cn } from "@/lib/utils"
+import { formatUpdated } from "@/lib/format"
 import type {
   ProjectDetail, ProjectProductionSummary, WorkspaceFile, WorkspaceOverview,
   WorkspaceProduction,
 } from "@/types/domain"
 import "./project-page.css"
-
-const fileIcons: Record<string, LucideIcon> = {
-  audio: FileAudio2,
-  image: FileImage,
-  video: FileVideo2,
-  subtitle: Captions,
-  document: FileText,
-}
 
 function ProductionRow({ production, onDetach }: {
   production: ProjectProductionSummary
@@ -45,16 +38,6 @@ function ProductionRow({ production, onDetach }: {
   </article>
 }
 
-function FileRow({ file }: { file: WorkspaceFile }) {
-  const family = file.media_type || "other"
-  const FileIcon = fileIcons[family] || FileText
-  return <article className="project-resource-row">
-    <span className={cn("project-resource-icon", `is-${family}`)}><FileIcon /></span>
-    <span className="project-resource-copy"><b>{file.name}</b><small>{family}{file.duration_ms ? ` · ${formatDuration(file.duration_ms / 1000)}` : ""}</small></span>
-    <span className="project-resource-meta">{file.source}</span>
-  </article>
-}
-
 export function ProjectPage() {
   const { identifier = "" } = useParams()
   const navigate = useNavigate()
@@ -65,6 +48,8 @@ export function ProjectPage() {
   const [folderDialogOpen, setFolderDialogOpen] = useState(false)
   const [productionDialogOpen, setProductionDialogOpen] = useState(false)
   const [pickerOpen, setPickerOpen] = useState(false)
+  const [uploadOpen, setUploadOpen] = useState(false)
+  const [previewFile, setPreviewFile] = useState<WorkspaceFile | null>(null)
   const action = useAsyncAction<string>()
 
   const load = useCallback(async () => {
@@ -211,15 +196,17 @@ export function ProjectPage() {
       </section>
 
       {currentFolderId !== null && <section className="project-explorer-section" aria-labelledby="project-files-title">
-        <header><div><h2 id="project-files-title">Files</h2><p>Workspace-owned Files placed in this Folder.</p></div><span>{files.length}</span></header>
-        <div className="project-resource-list">
-          {files.map((file) => <FileRow key={file.id} file={file} />)}
+        <header><div><h2 id="project-files-title">Files</h2><p>Workspace-owned Files placed in this Folder.</p></div><div className="project-section-tools"><span>{files.length}</span><Button variant="outline" size="sm" onClick={() => setUploadOpen(true)}><Upload /> Upload File</Button></div></header>
+        <div className="project-file-grid">
+          {files.map((file) => <FileCard key={file.id} file={file} preview={{ onOpen: () => setPreviewFile(file) }} />)}
           {!files.length && <div className="project-compact-empty"><FileImage /><span>No Files in this Folder.</span></div>}
         </div>
       </section>}
     </div>
 
     <CreateFolderDialog open={folderDialogOpen} onOpenChange={setFolderDialogOpen} workspaceId={project.workspace_id} projectId={project.id} parentId={currentFolderId} locationLabel={locationLabel} onCreated={folderCreated} />
+    {currentFolderId !== null && <FileUploadDialog open={uploadOpen} onOpenChange={setUploadOpen} workspaceId={project.workspace_id} folderId={currentFolderId} locationLabel={locationLabel} onUploaded={() => void load()} />}
+    <FilePreviewDialog file={previewFile} onOpenChange={(open) => { if (!open) setPreviewFile(null) }} />
     <CreateProductionDialog open={productionDialogOpen} onOpenChange={setProductionDialogOpen} workspaceId={project.workspace_id} projects={[project]} folders={projectFolders} initialProjectId={project.id} initialFolderId={currentFolderId} lockProject onCreated={(production) => navigate(`/origins/productions/audiovisual/${production.public_id}`)} />
 
     <Dialog open={pickerOpen} onOpenChange={setPickerOpen}>

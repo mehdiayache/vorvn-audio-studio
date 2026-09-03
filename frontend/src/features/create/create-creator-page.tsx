@@ -11,7 +11,7 @@ import { CreatorCapabilityDispatcher } from "@/features/creator/creator-capabili
 import { CreatorHost, type CreatorCapabilityId } from "@/features/creator/creator-host"
 import { CreatorLibraryBrowser } from "@/features/creator/library/creator-library-browser"
 import type { LibraryTypeFilter } from "@/features/library/library-query"
-import { FilePreviewDialog } from "@/features/creator/library/file-preview-dialog"
+import { FilePreviewDialog } from "@/features/files/file-preview-dialog"
 import { CreatorLibraryWorkspace } from "@/features/creator/library/creator-library-workspace"
 import { WorkspaceExplorerPage } from "@/features/workspace/explorer/workspace-explorer-page"
 import "@/features/workspace/library/audio-library.css"

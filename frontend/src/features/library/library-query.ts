@@ -1,8 +1,9 @@
 import { fileSource, type FileSource } from "@/lib/file-provenance"
 import type { WorkspaceFile } from "@/types/domain"
+import { fileDisplayName, fileKind, type FileKind } from "@/features/files/file-presentation"
 
 export type LibraryScope = "production" | "folder" | "workspace"
-export type LibraryFileType = "image" | "video" | "audio" | "speech" | "music" | "sfx" | "document" | "data" | "subtitle"
+export type LibraryFileType = Exclude<FileKind, "other">
 export type LibraryTypeFilter = "all" | LibraryFileType
 export type LibrarySourceFilter = "all" | FileSource
 export type LibraryFolderFilter = "all" | "root" | `${number}`
@@ -76,28 +77,12 @@ export function createLibraryQuery(overrides: Partial<LibraryQuery> = {}): Libra
   }
 }
 
-function normalized(value: unknown) {
-  return String(value || "").trim().toLocaleLowerCase()
-}
-
 export function libraryFileName(file: WorkspaceFile) {
-  return file.name || file.title || file.filename || "Untitled File"
+  return fileDisplayName(file)
 }
 
 export function libraryFileType(file: WorkspaceFile): LibraryFileType | "other" {
-  if (file.media_type === "image" || file.media_type === "video") return file.media_type
-  const category = normalized(file.category || file.file_category)
-  const tags = new Set((file.tags || []).map(normalized))
-  const filename = normalized(file.filename)
-  const mimeType = normalized(file.mime_type)
-  if (file.media_type === "subtitle" || mimeType.includes("subtitle") || /\.(srt|vtt)$/.test(filename) || tags.has("subtitle")) return "subtitle"
-  if (file.media_type === "document") return "document"
-  if (file.media_type === "data" || file.media_type === "archive") return "data"
-  if (category === "music" || category === "intro" || category === "outro") return "music"
-  if (category === "sfx" || category === "ambience") return "sfx"
-  if (category === "speech" || tags.has("speech") || tags.has("voice")) return "speech"
-  if (file.media_type === "audio") return "audio"
-  return "other"
+  return fileKind(file)
 }
 
 export function libraryFileSearchText(file: WorkspaceFile) {

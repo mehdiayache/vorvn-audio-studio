@@ -10,6 +10,8 @@ import { useAsyncAction } from "@/hooks/use-async-action"
 import { originsApi } from "@/lib/api"
 import type { WorkspaceFolder } from "@/types/domain"
 
+import "./create-folder-dialog.css"
+
 export function CreateFolderDialog({
   open,
   onOpenChange,
@@ -58,7 +60,7 @@ export function CreateFolderDialog({
     <DialogHeader><DialogTitle>New Folder</DialogTitle><DialogDescription>Create it inside {locationLabel}.</DialogDescription></DialogHeader>
     <form id="folder-create-form" onSubmit={(event) => { event.preventDefault(); void submit() }}>
       <label><span>Name</span><Input autoFocus value={name} maxLength={180} onChange={(event) => setName(event.target.value)} placeholder="References" /></label>
-      {error && <p className="workspace-file-upload-error" role="alert">{error}</p>}
+      {error && <p className="create-folder-dialog-error" role="alert">{error}</p>}
     </form>
     <DialogFooter><Button type="button" variant="outline" disabled={creating} onClick={() => onOpenChange(false)}>Cancel</Button><ActionButton type="submit" form="folder-create-form" disabled={!name.trim()} busy={creating} busyLabel="Creating…">Create Folder</ActionButton></DialogFooter>
   </DialogContent></Dialog>

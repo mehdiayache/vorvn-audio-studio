@@ -98,4 +98,22 @@ describe("ProductionLibraryGallery", () => {
     expect(screen.queryByText("Creating speech now")).toBeNull()
     expect(screen.getByText("Finished speech")).toBeTruthy()
   })
+
+  it("injects visual placement actions without inventing them for documents", async () => {
+    const addToTimeline = vi.fn()
+    render(<ProductionLibraryGallery
+      files={[
+        { id: 20, media_type: "image", name: "Campaign hero", filename: "hero.webp", source: "uploaded", width: 1600, height: 900 },
+        { id: 21, media_type: "document", name: "Campaign brief", filename: "brief.pdf", source: "uploaded", media_format: "pdf" },
+      ]}
+      productionFileIds={[20, 21]} libraryFileIds={[20, 21]} uploads={[]} pendingId={null}
+      onPreview={vi.fn()} onAddToProduction={vi.fn()} onAddToTimeline={addToTimeline}
+      onRemove={vi.fn()} onRetryUpload={vi.fn()} onDismissUpload={vi.fn()} onUpload={vi.fn()}
+    />)
+    fireEvent.click(screen.getByRole("combobox", { name: "Library scope" }))
+    fireEvent.click(await screen.findByRole("option", { name: "Workspace" }))
+    expect(screen.getByRole("button", { name: "Add Campaign hero to Timeline" })).toBeTruthy()
+    expect(screen.queryByRole("button", { name: "Add Campaign brief to Timeline" })).toBeNull()
+    expect(document.querySelector("[data-file-name='Campaign brief']")?.classList.contains("is-document")).toBe(true)
+  })
 })

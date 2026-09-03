@@ -1,5 +1,5 @@
 // @vitest-environment jsdom
-import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react"
+import { cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react"
 import { MemoryRouter, Route, Routes, useLocation, useNavigate } from "react-router-dom"
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
 
@@ -10,7 +10,7 @@ import { ProjectPage } from "./project-page"
 
 vi.mock("@/lib/api", () => ({ originsApi: {
   project: vi.fn(), workspace: vi.fn(), updateProduction: vi.fn(),
-  createFolder: vi.fn(), createAudiovisualProduction: vi.fn(),
+  createFolder: vi.fn(), createAudiovisualProduction: vi.fn(), uploadFileSummary: vi.fn(),
 } }))
 
 const production = {
@@ -205,6 +205,45 @@ describe("ProjectPage", () => {
     fireEvent.click(screen.getByRole("button", { name: "Create Production" }))
     await waitFor(() => expect(originsApi.createAudiovisualProduction)
       .toHaveBeenCalledWith(4, "Campaign Film", "", 21, 6))
+  })
+
+  it("uploads through the Workspace path into the active Project Folder only", async () => {
+    const folder = {
+      id: 20, public_id: "folder-20", workspace_id: 4, project_id: 6,
+      parent_id: null, name: "References", created_at: "2026-09-03T00:00:00Z",
+      updated_at: "2026-09-03T00:00:00Z",
+    }
+    const uploadedFile = {
+      id: 41, version_id: 42, name: "Campaign brief", filename: "campaign-brief.pdf",
+      media_type: "document" as const, family: "document" as const, source: "uploaded",
+      folder_id: 20, duration_ms: null, url: "/media/campaign-brief.pdf",
+      category: null, tags: ["reference"], metadata: {}, media_format: "pdf",
+      audio_format: null, sample_rate: null, channels: null, width: null,
+      height: null, video_codec: null, frame_rate: null, size_bytes: 5,
+      mime_type: "application/pdf", version_metadata: {},
+      created_at: "2026-09-03T00:00:00Z", updated_at: "2026-09-03T00:00:00Z",
+    }
+    vi.mocked(originsApi.project).mockResolvedValue({ ...project, folders: [folder] })
+    vi.mocked(originsApi.uploadFileSummary).mockResolvedValue(uploadedFile)
+    renderPage("/origins/projects/project-6?folder=folder-20")
+    fireEvent.click(await screen.findByRole("button", { name: "Upload File" }))
+    vi.mocked(originsApi.project).mockResolvedValue({ ...project, folders: [folder], files: [uploadedFile] })
+    const dialog = screen.getByRole("dialog")
+    const file = new File(["%PDF"], "Campaign brief.pdf", { type: "application/pdf" })
+    fireEvent.change(dialog.querySelector<HTMLInputElement>('input[type="file"]')!, { target: { files: [file] } })
+    fireEvent.click(within(dialog).getByRole("button", { name: "Upload File" }))
+
+    await waitFor(() => expect(originsApi.uploadFileSummary).toHaveBeenCalledWith(4, file, {
+      name: "Campaign brief", tags: [], folderId: 20,
+    }))
+    expect(await screen.findByText("Campaign brief")).toBeTruthy()
+    expect(document.querySelector("[data-file-name='Campaign brief']")).toBeTruthy()
+  })
+
+  it("does not offer Project-root File upload", async () => {
+    renderPage()
+    await screen.findByRole("heading", { name: "Nike Summer Launch" })
+    expect(screen.queryByRole("button", { name: "Upload File" })).toBeNull()
   })
 
   it("keeps Production navigation on the canonical audiovisual route", async () => {

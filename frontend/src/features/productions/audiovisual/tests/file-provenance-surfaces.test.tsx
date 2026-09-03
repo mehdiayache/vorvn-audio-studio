@@ -1,12 +1,11 @@
 // @vitest-environment jsdom
-import { cleanup, render } from "@testing-library/react"
+import { cleanup, render, screen } from "@testing-library/react"
 import { afterEach, describe, expect, it, vi } from "vitest"
 
-import { AudioFileCard } from "@/components/audio-file-card"
+import { FileCard } from "@/features/files/file-card"
 import { SavedAudioInspector } from "@/features/workspace/library/audio-library-inspector"
 import { fileProvenance } from "@/lib/file-provenance"
 import type { WorkspaceFile } from "@/types/domain"
-import { VisualFileCard } from "../library/visual-file-card"
 import { TimelineMediaBrowser } from "../timeline/timeline-workbench"
 
 afterEach(cleanup)
@@ -38,13 +37,9 @@ describe("File provenance surface contract", () => {
       accessibleName: `${expected.presentation.label} source`,
     }
 
-    const audio = render(<AudioFileCard file={file} />)
-    expect(sourceContract(audio.container)).toEqual(expectedContract)
-    audio.unmount()
-
-    const productionLibrary = render(<VisualFileCard file={file} onPreview={vi.fn()} />)
-    expect(sourceContract(productionLibrary.container)).toEqual(expectedContract)
-    productionLibrary.unmount()
+    const sharedFile = render(<FileCard file={file} preview={{ onOpen: vi.fn() }} />)
+    expect(sourceContract(sharedFile.container)).toEqual(expectedContract)
+    sharedFile.unmount()
 
     const timeline = render(<TimelineMediaBrowser
       files={[file]}
@@ -56,6 +51,18 @@ describe("File provenance surface contract", () => {
       onAdd={vi.fn()}
     />)
     expect(sourceContract(timeline.container)).toEqual(expectedContract)
+  })
+
+  it("keeps canonical File identity stable while hosts provide different truthful actions", () => {
+    const file = { id: 27, media_type: "image" as const, name: "Campaign hero", filename: "hero.webp", source: "uploaded" }
+    const library = render(<FileCard file={file} />)
+    expect(library.container.querySelector("[data-file-name='Campaign hero']")).toBeTruthy()
+    expect(screen.queryByRole("button", { name: "Add Campaign hero to Timeline" })).toBeNull()
+    library.unmount()
+
+    render(<FileCard file={file} slots={{ actions: <button type="button" aria-label="Add Campaign hero to Timeline">Add</button> }} />)
+    expect(document.querySelector("[data-file-name='Campaign hero']")).toBeTruthy()
+    expect(screen.getByRole("button", { name: "Add Campaign hero to Timeline" })).toBeTruthy()
   })
 
   it("reads immutable provider details in the saved File inspector without inventing a provider", () => {

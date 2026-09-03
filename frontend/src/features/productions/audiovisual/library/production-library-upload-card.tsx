@@ -30,15 +30,15 @@ export function ProductionLibraryUploadCard({ item, onRetry, onDismiss }: {
       : failed
         ? "Upload needs attention"
         : "Uploading…"
-  return <article className="visual-file-card production-library-upload-card" data-status={item.status}>
-    <div className="visual-file-preview production-library-upload-preview">
+  return <article className="production-library-upload-card" data-status={item.status}>
+    <div className="production-library-upload-preview">
       {item.previewUrl
         ? video
           ? <video src={item.previewUrl} muted preload="metadata" playsInline />
           : <img src={item.previewUrl} alt="" />
         : <div className="production-library-upload-file-icon"><KindIcon /></div>}
-      <span className="visual-file-kind"><KindIcon />{kindLabel}</span>
-      <span className="visual-file-origin"><Upload />Upload</span>
+      <span className="production-library-upload-kind"><KindIcon />{kindLabel}</span>
+      <span className="production-library-upload-origin"><Upload />Upload</span>
       <span className="production-library-upload-state">{failed ? <AlertCircle /> : <LoaderCircle className="spin" />}{label}</span>
     </div>
     <footer>

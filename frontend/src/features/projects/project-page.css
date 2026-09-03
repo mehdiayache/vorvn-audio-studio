@@ -22,6 +22,8 @@
 .project-explorer-section h2 { font-size: var(--type-heading-md); font-weight: var(--weight-title); }
 .project-explorer-section header p { margin-block-start: .15rem; color: var(--foreground); font-size: var(--type-caption); }
 .project-explorer-section header > span { color: var(--muted-foreground); font-family: var(--font-mono); font-size: var(--type-caption); }
+.project-section-tools { display: flex; align-items: center; gap: var(--space-3); }
+.project-section-tools > span { color: var(--muted-foreground); font-family: var(--font-mono); font-size: var(--type-caption); }
 .project-folder-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: var(--space-2); }
 .project-folder-grid > button { min-inline-size: 0; min-block-size: 4rem; display: grid; grid-template-columns: 2rem minmax(0, 1fr) auto; align-items: center; gap: var(--space-3); padding: var(--space-3); border: var(--stroke-hairline) solid var(--border); border-radius: var(--radius-md); color: var(--foreground); background: var(--surface-raised); text-align: start; transition: border-color var(--motion-fast) ease, background var(--motion-fast) ease, transform var(--motion-fast) var(--ease-out-ui); }
 .project-folder-grid > button:hover { border-color: var(--border-strong); background: var(--surface-subtle); }
@@ -31,6 +33,8 @@
 .project-folder-grid > button > svg { inline-size: .8rem; color: var(--muted-foreground); }
 .project-folder-grid b { overflow: hidden; font-size: var(--type-small); font-weight: var(--weight-emphasis); text-overflow: ellipsis; white-space: nowrap; }
 .project-resource-list { display: grid; border-block-start: var(--stroke-hairline) solid var(--border); }
+.project-file-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(12rem, 1fr)); align-items: start; gap: var(--space-3); }
+.project-file-grid > .project-compact-empty { grid-column: 1 / -1; }
 .project-resource-row { min-block-size: 4rem; display: grid; grid-template-columns: 2rem minmax(0, 1fr) auto auto auto; align-items: center; gap: var(--space-3); border-block-end: var(--stroke-hairline) solid var(--border); }
 .project-resource-icon { inline-size: 2rem; block-size: 2rem; color: var(--file); background: var(--file-soft); }
 .project-resource-icon.is-production { color: var(--production); background: var(--production-soft); }

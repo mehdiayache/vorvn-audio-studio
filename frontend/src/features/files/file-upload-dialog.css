@@ -1,0 +1,6 @@
+.file-upload-dialog { width: min(36rem, calc(100vw - 2rem)); }
+.file-upload-fields { display: grid; grid-template-columns: 1fr 1fr; gap: var(--space-3); }
+.file-upload-fields label { display: grid; gap: var(--space-2); color: var(--foreground); font-size: var(--type-caption); font-weight: var(--weight-emphasis); }
+.file-upload-fields label small { color: var(--muted-foreground); font-weight: var(--weight-body); }
+.file-upload-error { color: var(--destructive); font-size: var(--type-caption); }
+@media (max-width: 48rem) { .file-upload-fields { grid-template-columns: 1fr; } }

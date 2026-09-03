@@ -2,7 +2,7 @@ import { useMemo, useState, type ComponentProps, type RefObject } from "react"
 
 import { TimelineWorkspace } from "./timeline-workspace"
 import { ProductionLibraryDialog } from "../library/production-library-dialog"
-import { FilePreviewDialog } from "@/features/creator/library/file-preview-dialog"
+import { FilePreviewDialog } from "@/features/files/file-preview-dialog"
 import type { WorkspaceFile } from "@/types/domain"
 
 type TimelineStageProps = ComponentProps<typeof TimelineWorkspace> & {

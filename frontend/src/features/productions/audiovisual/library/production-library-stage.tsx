@@ -10,9 +10,9 @@ import type { CreatorResult } from "@/features/creator/creator-contracts"
 import type { ConfirmAction } from "@/features/productions/audiovisual/support/production-overlays"
 import { originsApi, type CreatorContext } from "@/lib/api"
 import type { WorkspaceFile, WorkspaceFolder } from "@/types/domain"
-import { isVisualFile } from "@/features/creator/library/visual-file-presentation"
+import { isVisualFile } from "@/features/files/file-presentation"
 import { ProductionLibraryGallery } from "./production-library-gallery"
-import { FilePreviewDialog } from "@/features/creator/library/file-preview-dialog"
+import { FilePreviewDialog } from "@/features/files/file-preview-dialog"
 import type { ProductionLibraryUploadItem } from "./production-library-upload-card"
 import "./production-library-stage.css"
 
@@ -260,7 +260,7 @@ export function ProductionLibraryStage({ centerPaneRef, productionId, workspaceI
         } : undefined}
         renderLibrary={({ generatedOutputIds, creationItems }) => productionLibrary(generatedOutputIds, creationItems)}
       />}</CreatorHost>
-    <FilePreviewDialog file={previewFile} pending={Boolean(previewFile && pendingId === previewFile.id)} primaryLabel="Add to Timeline" onPrimaryAction={onAddToTimeline ? (file) => {
+    <FilePreviewDialog file={previewFile} pending={Boolean(previewFile && pendingId === previewFile.id)} primaryLabel="Add to Timeline" onPrimaryAction={onAddToTimeline && previewFile && isVisualFile(previewFile) ? (file) => {
       setPendingId(file.id)
       void onAddToTimeline(file).then(() => setPreviewFile(null)).catch((reason) => setError(reason instanceof Error ? reason.message : "The File could not be added to Timeline.")).finally(() => setPendingId(null))
     } : undefined} onOpenChange={(open) => { if (!open) setPreviewFile(null) }} />

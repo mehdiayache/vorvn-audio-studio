@@ -230,6 +230,11 @@ describe("WorkspaceExplorerPage", () => {
     renderPage("files")
     expect(await screen.findByText("Campaign narration")).toBeTruthy()
     expect(screen.getByText("Campaign brief")).toBeTruthy()
+    const narration = document.querySelector<HTMLElement>("[data-file-name='Campaign narration']")
+    expect(narration?.classList.contains("is-speech")).toBe(true)
+    expect(narration?.querySelector("[data-file-source='generated']")).toBeTruthy()
+    expect(screen.getAllByRole("button", { name: "Preview Campaign narration" }).length).toBeGreaterThan(0)
+    expect(screen.queryByRole("button", { name: "Add Campaign narration to Timeline" })).toBeNull()
 
     fireEvent.click(screen.getByRole("combobox", { name: "File type" }))
     fireEvent.click(await screen.findByRole("option", { name: "Speech" }))

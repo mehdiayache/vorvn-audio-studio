@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from "react"
 import {
-  Building2, Captions, ChevronRight, Clapperboard, FileAudio2, FileImage, FileText,
+  Building2, Captions, ChevronRight, Clapperboard, FileImage,
   FileVideo2, Folder, FolderPlus, Mic2, Music2, Plus, Search,
   Sparkles, Upload, Waves, FolderKanban,
 } from "lucide-react"
@@ -9,7 +9,6 @@ import { Link, useNavigate, useSearchParams } from "react-router-dom"
 import { toast } from "sonner"
 
 import { ActionButton, OperatorIconButton } from "@/components/operator-action"
-import { FileDropZone } from "@/components/file-drop-zone"
 import { Button } from "@/components/ui/button"
 import {
   Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle,
@@ -18,6 +17,9 @@ import { Input } from "@/components/ui/input"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Textarea } from "@/components/ui/textarea"
 import { CreateProductionDialog } from "@/features/productions/create-production-dialog"
+import { FileCard } from "@/features/files/file-card"
+import { FilePreviewDialog } from "@/features/files/file-preview-dialog"
+import { FileUploadDialog } from "@/features/files/file-upload-dialog"
 import {
   createLibraryQuery, LIBRARY_SOURCE_OPTIONS, LIBRARY_TYPE_OPTIONS, queryLibraryFiles,
   type LibrarySourceFilter, type LibraryTypeFilter,
@@ -27,7 +29,7 @@ import { useWorkspaceExplorer } from "@/hooks/use-workspace-explorer"
 import { rememberWorkspace } from "@/features/workspace/workspace-selection"
 import { CreateFolderDialog } from "./create-folder-dialog"
 import { originsApi } from "@/lib/api"
-import { formatDuration, formatUpdated } from "@/lib/format"
+import { formatUpdated } from "@/lib/format"
 import { cn } from "@/lib/utils"
 import type { CreationActionSummary, WorkspaceFile, WorkspaceOverview, WorkspaceProduction, WorkspaceProject, WorkspaceSummary } from "@/types/domain"
 import "./workspace-explorer.css"
@@ -56,14 +58,6 @@ function createShortcuts(actions: CreationActionSummary[]): CreateShortcut[] {
   }
   return ["generate-image", "generate-video", "generate-speech", "generate-music", "generate-sound-effect"]
     .flatMap((id) => byId.get(id) ? [{ ...byId.get(id)!, label: labels[id] || byId.get(id)!.label }] : [])
-}
-
-const fileIcons: Record<string, LucideIcon> = {
-  audio: FileAudio2,
-  image: FileImage,
-  video: FileVideo2,
-  subtitle: Captions,
-  document: FileText,
 }
 
 function CreateActionButton({ action, folderId }: {
@@ -119,20 +113,6 @@ function RecentProductionCard({ production }: { production: WorkspaceProduction 
       <b>{production.name}</b>
       <small>{formatUpdated(production.updated_at) || "Recently"}</small>
     </div>
-  </article>
-}
-
-function FileTile({ file }: { file: WorkspaceFile }) {
-  const family = file.media_type || "other"
-  const FileIcon = fileIcons[family] || FileText
-  const visual = family === "image"
-    ? <img src={file.url || ""} alt="" />
-    : family === "video"
-      ? <video src={file.url || ""} muted preload="metadata" />
-      : <span className="workspace-file-art"><FileIcon /></span>
-  return <article className={cn("workspace-file-tile", `is-${family}`)}>
-    <div className="workspace-file-preview">{visual}<span className="workspace-file-source">{file.source}</span></div>
-    <div><b title={file.name}>{file.name}</b><small>{family}{file.duration_ms ? ` · ${formatDuration(file.duration_ms / 1000)}` : ""}</small></div>
   </article>
 }
 
@@ -223,7 +203,7 @@ function WorkspacesGateway({ workspaces, onOpenWorkspace, onNewWorkspace }: {
   </main>
 }
 
-function ExplorerContent({ workspaceOverview, view, actions, actionsError, onRetryActions, onNewProject, onNewProduction, onNewFolder, onUploadFile, selectedFolderId, onSelectedFolderId }: {
+function ExplorerContent({ workspaceOverview, view, actions, actionsError, onRetryActions, onNewProject, onNewProduction, onNewFolder, onUploadFile, onPreviewFile, selectedFolderId, onSelectedFolderId }: {
   workspaceOverview: WorkspaceOverview
   view: WorkspaceExplorerView
   actions: CreationActionSummary[]
@@ -233,6 +213,7 @@ function ExplorerContent({ workspaceOverview, view, actions, actionsError, onRet
   onNewProject: () => void
   onNewFolder: () => void
   onUploadFile: () => void
+  onPreviewFile: (file: WorkspaceFile) => void
   selectedFolderId: number | null
   onSelectedFolderId: (folderId: number | null) => void
 }) {
@@ -318,69 +299,13 @@ function ExplorerContent({ workspaceOverview, view, actions, actionsError, onRet
 
       {showFiles && <section className="workspace-library-section" aria-labelledby="workspace-files-title">
         <header><div><h2 id="workspace-files-title">Files</h2><p>Reusable outputs and uploads, independent from Productions.</p></div><span>{files.length}</span></header>
-        <div className="workspace-file-grid">{files.slice(0, view === "files" ? undefined : 8).map((file) => <FileTile key={file.id} file={file} />)}
+        <div className="workspace-file-grid">{files.slice(0, view === "files" ? undefined : 8).map((file) => <FileCard key={file.id} file={file} preview={{ onOpen: () => onPreviewFile(file) }} />)}
           {!files.length && <div className="workspace-quiet-empty"><FileImage /><b>No Files here yet</b><span>Your generated and uploaded Files will appear here.</span></div>}
         </div>
       </section>}
     </div>
 
   </>
-}
-
-function FileUploadDialog({ open, onOpenChange, workspaceId, folderId, onUploaded }: {
-  open: boolean
-  onOpenChange: (open: boolean) => void
-  workspaceId: number
-  folderId: number | null
-  onUploaded: () => void
-}) {
-  const [file, setFile] = useState<File | null>(null)
-  const [name, setName] = useState("")
-  const [tagText, setTagText] = useState("")
-  const [error, setError] = useState("")
-  const action = useAsyncAction<"upload">()
-  const uploading = action.isPending("upload")
-
-  function reset() {
-    setFile(null)
-    setName("")
-    setTagText("")
-    setError("")
-  }
-
-  function chooseFile(next: File) {
-    setFile(next)
-    setName(next.name.replace(/\.[^.]+$/, ""))
-    setError("")
-  }
-
-  async function upload() {
-    if (!file || !name.trim()) return
-    await action.run("upload", async () => {
-      try {
-        const tags = tagText.split(",").map((tag) => tag.trim()).filter(Boolean)
-        await originsApi.uploadFileSummary(workspaceId, file, {
-          name: name.trim(), tags, folderId,
-        })
-        toast.success("File added to this Workspace.")
-        reset()
-        onOpenChange(false)
-        onUploaded()
-      } catch (reason) {
-        setError(reason instanceof Error ? reason.message : "The File could not be uploaded.")
-      }
-    })
-  }
-
-  return <Dialog open={open} onOpenChange={(next) => { if (!uploading) { if (!next) reset(); onOpenChange(next) } }}>
-    <DialogContent className="workspace-file-upload-dialog">
-      <DialogHeader><DialogTitle>Upload a File</DialogTitle><DialogDescription>Add one reusable File directly to this Workspace. Processing starts only when a format actually requires it.</DialogDescription></DialogHeader>
-      <FileDropZone file={file} kind="file" accept="audio/*,image/*,video/*,.srt,.vtt,.txt,.md,.pdf,.json,.csv,.zip" hint="Audio, image, video, subtitles, text, PDF, JSON, CSV or ZIP · up to 1 GB" disabled={uploading} onFile={chooseFile} />
-      {file && <div className="workspace-file-upload-fields"><label><span>Name</span><Input value={name} maxLength={120} onChange={(event) => setName(event.target.value)} /></label><label><span>Tags <small>optional, separated by commas</small></span><Input value={tagText} onChange={(event) => setTagText(event.target.value)} placeholder="reference, final, campaign" /></label></div>}
-      {error && <p className="workspace-file-upload-error" role="alert">{error}</p>}
-      <DialogFooter><Button type="button" variant="outline" disabled={uploading} onClick={() => { reset(); onOpenChange(false) }}>Cancel</Button><ActionButton disabled={!file || !name.trim()} busy={uploading} busyLabel="Uploading…" onClick={() => void upload()}><Upload />Upload File</ActionButton></DialogFooter>
-    </DialogContent>
-  </Dialog>
 }
 
 function ResourceDialog({ kind, open, onOpenChange, workspaceId, onCreated }: {
@@ -426,6 +351,7 @@ export function WorkspaceExplorerPage({ view = "home" }: { view?: WorkspaceExplo
   const [searchParams, setSearchParams] = useSearchParams()
   const [dialog, setDialog] = useState<"workspace" | "project" | "production" | "folder" | null>(null)
   const [uploadOpen, setUploadOpen] = useState(false)
+  const [previewFile, setPreviewFile] = useState<WorkspaceFile | null>(null)
   const navigate = useNavigate()
   const availableWorkspaces = workspaces.data || []
   const workspaceOverview = overview.data
@@ -490,11 +416,12 @@ export function WorkspaceExplorerPage({ view = "home" }: { view?: WorkspaceExplo
   return <main className={cn("workspace-explorer", view === "home" && "is-home")}>
     <header className="workspace-explorer-header"><div><strong>{pageLabel}</strong><span>{workspaceOverview?.workspace.name || "Your creative Workspace"}</span></div><div className="workspace-mobile-switcher"><select aria-label="Current Workspace" value={selectedWorkspaceId} onChange={(event) => { setFolderLocation(null); setSelectedWorkspaceId(Number(event.target.value)) }}>{availableWorkspaces.map((workspace) => <option value={workspace.id} key={workspace.id}>{workspace.name}</option>)}</select><OperatorIconButton label="New Workspace" detail="Create another ownership root." size="icon-sm" variant="ghost" onClick={() => setDialog("workspace")}><Plus /></OperatorIconButton></div><small>{workspaceOverview ? `${workspaceOverview.projects.length} Projects · ${workspaceOverview.productions.length} Productions · ${workspaceOverview.files.length} Files` : "Loading…"}</small></header>
     {workspaceOverview ? <div className={cn("workspace-explorer-content", view !== "home" && "is-library-view")}>
-      <ExplorerContent workspaceOverview={workspaceOverview} view={view} actions={createActions} actionsError={actions.status === "error" ? actions.error : undefined} onRetryActions={() => void refreshActions()} onNewProject={() => setDialog("project")} onNewProduction={() => setDialog("production")} onNewFolder={() => setDialog("folder")} onUploadFile={() => setUploadOpen(true)} selectedFolderId={selectedFolderId} onSelectedFolderId={selectFolderById} />
+      <ExplorerContent workspaceOverview={workspaceOverview} view={view} actions={createActions} actionsError={actions.status === "error" ? actions.error : undefined} onRetryActions={() => void refreshActions()} onNewProject={() => setDialog("project")} onNewProduction={() => setDialog("production")} onNewFolder={() => setDialog("folder")} onUploadFile={() => setUploadOpen(true)} onPreviewFile={setPreviewFile} selectedFolderId={selectedFolderId} onSelectedFolderId={selectFolderById} />
     </div> : <div className="workspace-explorer-loading"><Sparkles className="spin" /><span>Loading Workspace…</span></div>}
     {(dialog === "workspace" || dialog === "project") && <ResourceDialog kind={dialog} open onOpenChange={(open) => { if (!open) setDialog(null) }} workspaceId={selectedWorkspaceId} onCreated={(workspaceId) => { if (workspaceId) { setFolderLocation(null); void refreshWorkspaces().then(() => setSelectedWorkspaceId(workspaceId)) } else { void refresh() } }} />}
     {dialog === "folder" && workspaceOverview && <CreateFolderDialog open onOpenChange={(open) => { if (!open) setDialog(null) }} workspaceId={selectedWorkspaceId} parentId={selectedFolderId} locationLabel={currentFolder?.name || "the Workspace root"} onCreated={(folder) => { void refresh().then(() => setFolderLocation(folder.public_id)) }} />}
     {dialog === "production" && workspaceOverview && <CreateProductionDialog open onOpenChange={(open) => { if (!open) setDialog(null) }} workspaceId={selectedWorkspaceId} projects={workspaceOverview.projects} folders={workspaceOverview.folders} initialProjectId={selectedFolderId === null ? undefined : null} initialFolderId={selectedFolderId} onCreateProject={() => setDialog("project")} onCreated={(production) => { void refresh(); navigate(`/origins/productions/audiovisual/${production.public_id}`) }} />}
-    <FileUploadDialog open={uploadOpen} onOpenChange={setUploadOpen} workspaceId={selectedWorkspaceId} folderId={selectedFolderId} onUploaded={() => void refresh()} />
+    <FileUploadDialog open={uploadOpen} onOpenChange={setUploadOpen} workspaceId={selectedWorkspaceId} folderId={selectedFolderId} locationLabel={currentFolder?.name} onUploaded={() => void refresh()} />
+    <FilePreviewDialog file={previewFile} onOpenChange={(open) => { if (!open) setPreviewFile(null) }} />
   </main>
 }

@@ -1,0 +1,58 @@
+.file-card {
+  --file-card-accent: var(--file);
+  --file-card-soft: var(--file-soft);
+  min-inline-size: 0;
+  inline-size: 100%;
+  overflow: hidden;
+  border: var(--stroke-hairline) solid color-mix(in oklab, var(--file-card-accent) 18%, var(--border));
+  border-radius: var(--radius-lg);
+  background: var(--surface-raised);
+  box-shadow: var(--shadow-xs);
+  transition: border-color var(--motion-fast) ease, box-shadow var(--motion-fast) ease, transform var(--motion-fast) var(--ease-out-ui);
+}
+.file-card.is-image { --file-card-accent: var(--file-image); --file-card-soft: var(--file-image-soft); }
+.file-card.is-video { --file-card-accent: var(--file-video); --file-card-soft: var(--file-video-soft); }
+.file-card.is-audio, .file-card.is-speech { --file-card-accent: var(--audio-audio); --file-card-soft: var(--audio-audio-soft); }
+.file-card.is-music { --file-card-accent: var(--audio-music); --file-card-soft: var(--audio-music-soft); }
+.file-card.is-sfx { --file-card-accent: var(--audio-sfx); --file-card-soft: var(--audio-sfx-soft); }
+.file-card[data-audio-family="ambience"] { --file-card-accent: var(--audio-ambience); --file-card-soft: var(--audio-ambience-soft); }
+.file-card.is-selected { border-color: var(--primary); box-shadow: 0 0 0 1px var(--primary); }
+.file-card-stage { position: relative; min-block-size: 7.5rem; overflow: hidden; color: var(--file-card-accent); background: color-mix(in oklab, var(--file-card-soft) 78%, var(--surface-subtle)); }
+.file-card-stage-target { inline-size: 100%; block-size: 100%; display: grid; place-items: center; overflow: hidden; padding: 0; border: 0; color: inherit; background: transparent; }
+button.file-card-stage-target { cursor: zoom-in; }
+.file-card-stage-target:focus-visible { outline: 3px solid color-mix(in oklab, var(--ring) 38%, transparent); outline-offset: -3px; }
+.file-card-stage-target img, .file-card-stage-target video { inline-size: 100%; block-size: 100%; display: block; object-fit: cover; transition: transform var(--motion-normal) var(--ease-out-ui); }
+.file-card-symbol { display: grid; place-items: center; gap: var(--space-2); }
+.file-card-symbol svg { inline-size: 1.65rem; }
+.file-card-symbol b { color: var(--foreground); font-size: var(--type-caption); font-weight: var(--weight-emphasis); }
+.file-card-kind, .file-card-duration, .file-card-origin { position: absolute; z-index: 1; display: inline-flex; align-items: center; gap: .28rem; padding: .28rem .42rem; border-radius: var(--radius-sm); color: white; background: rgb(20 17 15 / 78%); font-size: .68rem; line-height: 1; backdrop-filter: blur(5px); }
+.file-card-kind { inset-block-start: .5rem; inset-inline-start: .5rem; }
+.file-card-duration { inset-block-start: .5rem; inset-inline-end: .5rem; }
+.file-card-origin { inset-block-end: .5rem; inset-inline-start: .5rem; }
+.file-card-origin.is-generated { background: var(--primary); }
+.file-card-kind svg, .file-card-duration svg, .file-card-origin svg, .file-card-origin .freesound-mark { inline-size: .72rem; block-size: .72rem; }
+.file-card-preview-action, .file-card-audition { position: absolute; z-index: 2; inset-inline-end: .5rem; inset-block-end: .5rem; }
+.file-card-preview-action { opacity: 0; transform: translateY(.2rem); transition: opacity var(--motion-fast) ease, transform var(--motion-fast) var(--ease-out-ui); }
+.file-card-audition [data-playing] { color: var(--file-card-accent); }
+.file-card-footer { min-inline-size: 0; display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: center; gap: var(--space-2); padding: .68rem .72rem; }
+.file-card-identity { min-inline-size: 0; display: grid; gap: .1rem; padding: 0; border: 0; color: inherit; background: transparent; text-align: start; }
+.file-card-identity:not(:disabled) { cursor: pointer; }
+.file-card-identity:focus-visible { border-radius: var(--radius-sm); outline: 2px solid color-mix(in oklab, var(--ring) 52%, transparent); outline-offset: 3px; }
+.file-card-identity b, .file-card-identity small { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.file-card-identity b { color: var(--foreground); font-size: var(--type-small); font-weight: var(--weight-emphasis); }
+.file-card-identity small { color: var(--muted-foreground); font-size: var(--type-caption); }
+.file-card-tags { grid-column: 1 / -1; display: flex; gap: .3rem; overflow: hidden; }
+.file-card-tags > span { max-inline-size: 7rem; overflow: hidden; padding: 3px 7px; border: 1px solid color-mix(in oklab, var(--file-card-accent) 16%, transparent); border-radius: 999px; color: var(--file-card-accent); background: var(--file-card-soft); font-size: 9px; font-weight: var(--weight-emphasis); text-overflow: ellipsis; text-transform: capitalize; white-space: nowrap; }
+.file-card-context { display: flex; align-items: center; justify-content: end; gap: .35rem; }
+.file-card-used { display: inline-flex; align-items: center; gap: .3rem; color: var(--success); font-size: var(--type-caption); font-weight: var(--weight-emphasis); white-space: nowrap; }
+.file-card-used svg { inline-size: .9rem; }
+@media (hover: hover) and (pointer: fine) {
+  .file-card:hover { border-color: color-mix(in oklab, var(--file-card-accent) 44%, var(--border)); box-shadow: var(--shadow-sm); transform: translateY(-1px); }
+  .file-card-stage-target:hover img, .file-card-stage-target:hover video { transform: scale(1.015); }
+  .file-card:hover .file-card-preview-action, .file-card:focus-within .file-card-preview-action { opacity: 1; transform: translateY(0); }
+}
+@media (hover: none) { .file-card-preview-action { opacity: 1; transform: none; } }
+@media (prefers-reduced-motion: reduce) {
+  .file-card, .file-card-stage-target img, .file-card-stage-target video, .file-card-preview-action { transition: none; }
+  .file-card:hover { transform: none; }
+}

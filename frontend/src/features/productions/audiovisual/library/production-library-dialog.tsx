@@ -1,19 +1,17 @@
-import { Captions, FileText, FolderOpen, Images, Plus, Search, SlidersHorizontal } from "lucide-react"
+import { FolderOpen, Images, Plus, Search, SlidersHorizontal } from "lucide-react"
 import { useMemo, useState } from "react"
 
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
-import { AudioFileCard } from "@/components/audio-file-card"
+import { FileCard, FileUsedState } from "@/features/files/file-card"
 import {
   createLibraryQuery, LIBRARY_SCOPE_OPTIONS, LIBRARY_SORT_OPTIONS, LIBRARY_SOURCE_OPTIONS,
-  LIBRARY_TYPE_OPTIONS, LIBRARY_USAGE_OPTIONS, libraryFileType, queryLibraryFiles,
+  LIBRARY_TYPE_OPTIONS, LIBRARY_USAGE_OPTIONS, queryLibraryFiles,
   type LibraryScope, type LibrarySort, type LibrarySourceFilter, type LibraryTypeFilter, type LibraryUsageFilter,
 } from "@/features/library/library-query"
 import { Select, SelectContent, SelectGroup, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import type { WorkspaceFile, WorkspaceFolder } from "@/types/domain"
-import { isVisualFile, visualFileName } from "@/features/creator/library/visual-file-presentation"
-import { VisualFileCard } from "./visual-file-card"
 
 export function ProductionLibraryDialog({ open, folders = [], files, productionFileIds = [], usedFileIds = [], currentFolderId, pendingId, initialScope = "workspace", showScope = true, title = "Workspace Library", description = "Choose reusable Files for this Production.", emptyDescription = "Upload a File to the Workspace Library first.", addLabel = "Add", onOpenChange, onPreview, onAdd }: {
   open: boolean
@@ -58,12 +56,15 @@ export function ProductionLibraryDialog({ open, folders = [], files, productionF
         <Select value={sort} onValueChange={(value) => setSort(value as LibrarySort)}><SelectTrigger aria-label="Sort Files"><SlidersHorizontal /><SelectValue /></SelectTrigger><SelectContent><SelectGroup>{LIBRARY_SORT_OPTIONS.map((item) => <SelectItem key={item.id} value={item.id}>{item.label}</SelectItem>)}</SelectGroup></SelectContent></Select>
       </div>
       {visible.length
-        ? <div className="production-library-dialog-grid">{visible.map((file) => {
-          if (isVisualFile(file)) return <VisualFileCard key={file.id} file={file} mode="workspace-library" usedCount={usageCounts.get(file.id) || 0} pending={pendingId === file.id} addLabel={addLabel} onPreview={onPreview} onAdd={onAdd} />
-          const kind = libraryFileType(file)
-          if (kind === "audio" || kind === "speech" || kind === "music" || kind === "sfx") return <article className="production-library-dialog-file" key={file.id}><AudioFileCard file={file} used={Boolean(usageCounts.get(file.id))} /><Button disabled={pendingId === file.id} size="sm" onClick={() => onAdd(file)}><Plus />{pendingId === file.id ? "Adding…" : addLabel}</Button></article>
-          return <article className="production-library-dialog-file is-generic" key={file.id}><span>{kind === "subtitle" ? <Captions /> : <FileText />}</span><div><b>{visualFileName(file)}</b><small>{kind === "subtitle" ? "Subtitle" : "File"}</small></div><Button disabled={pendingId === file.id} size="sm" onClick={() => onAdd(file)}><Plus />{pendingId === file.id ? "Adding…" : addLabel}</Button></article>
-        })}</div>
+        ? <div className="production-library-dialog-grid">{visible.map((file) => <FileCard
+          key={file.id}
+          file={file}
+          preview={{ onOpen: () => onPreview(file) }}
+          slots={{
+            state: usageCounts.get(file.id) ? <FileUsedState count={usageCounts.get(file.id)} /> : undefined,
+            actions: <Button disabled={pendingId === file.id} size="sm" onClick={() => onAdd(file)}><Plus />{pendingId === file.id ? "Adding…" : addLabel}</Button>,
+          }}
+        />)}</div>
         : <div className="production-library-dialog-empty"><Images /><h3>{files.length ? "No matching Files" : "No Files available"}</h3><p>{files.length ? "Try a different name or filter." : emptyDescription}</p></div>}
     </DialogContent>
   </Dialog>

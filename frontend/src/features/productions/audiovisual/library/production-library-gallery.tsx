@@ -1,21 +1,21 @@
-import { AlertTriangle, Captions, EyeOff, FileText, FolderOpen, Images, Plus, Search, Upload, X } from "lucide-react"
+import { AlertTriangle, Expand, EyeOff, FolderOpen, Images, Plus, Search, Upload, X } from "lucide-react"
 import { useEffect, useMemo, useRef, useState, type CSSProperties } from "react"
 
-import { AudioFileCard } from "@/components/audio-file-card"
 import { OperatorIconButton } from "@/components/operator-action"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group"
 import type { CreatorLibraryCreationItem } from "@/features/creator/library/creator-library-creation-item"
+import { FileCard, FileUsedState } from "@/features/files/file-card"
+import { fileDisplayName, fileDisplayUrl } from "@/features/files/file-presentation"
 import {
   createLibraryQuery, LIBRARY_SCOPE_OPTIONS, LIBRARY_SOURCE_OPTIONS, LIBRARY_TYPE_OPTIONS,
-  LIBRARY_USAGE_OPTIONS, libraryFileEntry, libraryFileName, libraryFileType, queryLibraryEntries,
+  LIBRARY_USAGE_OPTIONS, libraryFileEntry, libraryFileType, queryLibraryEntries,
   type LibraryEntry, type LibraryScope, type LibrarySourceFilter, type LibraryTypeFilter, type LibraryUsageFilter,
 } from "@/features/library/library-query"
 import type { WorkspaceFile, WorkspaceFolder } from "@/types/domain"
 import { ProductionLibraryUploadCard, type ProductionLibraryUploadItem } from "./production-library-upload-card"
-import { VisualFileCard } from "./visual-file-card"
 
 function galleryColumnCount(width: number) {
   if (width < 400) return 1
@@ -147,18 +147,22 @@ export function ProductionLibraryGallery({
     const kind = libraryFileType(file)
     const associated = productionIds.has(file.id)
     const removable = collectedIds.has(file.id)
-    if (kind === "image" || kind === "video") return <VisualFileCard
-      key={file.id} file={file} usedCount={usageCounts?.get(file.id) || 0} pending={pendingId === file.id}
-      onPreview={onPreview} onAddToProduction={!associated ? onAddToProduction : undefined}
-      onAddToTimeline={onAddToTimeline} onRemove={removable ? onRemove : undefined}
+    const name = fileDisplayName(file)
+    const visual = kind === "image" || kind === "video"
+    const actions = <>
+      {visual && <OperatorIconButton label={`Preview ${name}`} detail="Open the full media preview and technical details." variant="ghost" size="icon-sm" onClick={() => onPreview(file)}><Expand /></OperatorIconButton>}
+      {!associated && <OperatorIconButton label={`Add ${name} to this Production`} detail="Associates this Workspace File with the current Production." variant="ghost" size="icon-sm" busy={pendingId === file.id} busyLabel={`Adding ${name}…`} onClick={() => onAddToProduction(file)}><Plus /></OperatorIconButton>}
+      {visual && onAddToTimeline && <OperatorIconButton label={`Add ${name} to Timeline`} detail="Places this visual at the current playhead." variant="ghost" size="icon-sm" busy={pendingId === file.id} busyLabel={`Adding ${name}…`} onClick={() => onAddToTimeline(file)}><Plus /></OperatorIconButton>}
+      {removable && <OperatorIconButton label={`Remove ${name} from Production`} detail="The File remains available in the Workspace Library." variant="ghost" size="icon-sm" onClick={() => onRemove(file)}><X /></OperatorIconButton>}
+    </>
+    const url = fileDisplayUrl(file)
+    return <FileCard
+      key={file.id}
+      file={file}
+      preview={{ onOpen: () => onPreview(file) }}
+      audition={["audio", "speech", "music", "sfx"].includes(kind) && url && onPlayAudio ? { playing: playingFileId === file.id, onToggle: () => onPlayAudio(file) } : undefined}
+      slots={{ state: usageCounts?.get(file.id) ? <FileUsedState count={usageCounts.get(file.id)} /> : undefined, actions }}
     />
-    const productionAction = !associated
-      ? <OperatorIconButton label={`Add ${libraryFileName(file)} to this Production`} detail="Associates this Workspace File with the current Production." onClick={() => onAddToProduction(file)}><Plus /></OperatorIconButton>
-      : removable
-        ? <OperatorIconButton label={`Remove ${libraryFileName(file)} from Production`} detail="The File remains available in the Workspace Library." onClick={() => onRemove(file)}><X /></OperatorIconButton>
-        : null
-    if (kind === "audio" || kind === "speech" || kind === "music" || kind === "sfx") return <div className="production-library-audio-entry" key={file.id}><AudioFileCard file={file} used={Boolean(usageCounts?.get(file.id))} playing={playingFileId === file.id} onPlay={onPlayAudio ? () => onPlayAudio(file) : undefined} />{productionAction}</div>
-    return <article className="production-library-generic-file" key={file.id}><span>{kind === "subtitle" ? <Captions /> : <FileText />}</span><div><b>{libraryFileName(file)}</b><small>{kind === "subtitle" ? "Subtitle" : kind === "document" ? "Document" : kind === "data" ? "Data" : "File"}</small></div>{productionAction}</article>
   }
 
   return <section className="production-library-gallery" aria-label="Production Library files">

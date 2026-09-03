@@ -8,7 +8,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { createLibraryQuery, queryLibraryFiles } from "@/features/library/library-query"
 import type { SavedVisualReference, WorkspaceFile } from "@/types/domain"
-import { visualFileName, visualFilePosterUrl, visualFileUrl } from "@/features/creator/library/visual-file-presentation"
+import { visualFileName, visualFilePosterUrl, visualFileUrl } from "@/features/files/file-presentation"
 import type { MediaAttachmentKind } from "./media-creator-config"
 
 type SortMode = "production" | "added" | "name"

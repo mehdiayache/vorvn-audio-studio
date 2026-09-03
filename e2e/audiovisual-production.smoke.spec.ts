@@ -6,7 +6,8 @@ type ProductionResource = Resource & { project_id: number | null; folder_id: num
 type ProjectResource = Resource & { description?: string }
 type WorkspaceOverview = { projects: ProjectResource[]; productions: ProductionResource[] }
 type ProjectFolder = Resource & { project_id: number | null; parent_id: number | null }
-type ProjectDetail = ProjectResource & { folders: ProjectFolder[]; productions: ProductionResource[] }
+type FileResource = Resource & { folder_id: number | null }
+type ProjectDetail = ProjectResource & { folders: ProjectFolder[]; productions: ProductionResource[]; files: FileResource[] }
 
 async function reusableBrowserFixture(request: APIRequestContext) {
   const listedResponse = await request.get("/api/v1/workspaces")
@@ -81,7 +82,7 @@ test("opens an audiovisual Production and renders Timeline and Creator Library w
   await expect(page.getByRole("button", { name: "New Timeline track" })).toBeVisible()
 
   await page.getByRole("button", { name: "Creator Library · Create and collect reusable Files" }).click()
-  await expect(page.getByRole("heading", { name: "No Files yet" })).toBeVisible()
+  await expect(page.getByRole("region", { name: /^Production Library/ })).toBeVisible()
   await expect(page.getByRole("textbox", { name: "Media prompt" })).toBeVisible()
   await expect(page.getByRole("combobox", { name: "Choose generation model" })).toBeVisible()
   await page.getByRole("button", { name: "Hide Creator" }).click()
@@ -185,6 +186,35 @@ test("uses the fixed desktop rail, then opens Home Project and Production", asyn
   await page.goForward()
   await expect(page).toHaveURL(new RegExp(`\\?folder=${nestedFolder!.public_id}$`))
 
+  const universalFileName = "Browser Smoke Universal File"
+  let universalFile = projectDetail.files.find((item) =>
+    item.name === universalFileName && item.folder_id === nestedFolder!.id)
+  if (!universalFile) {
+    await page.getByRole("button", { name: "Upload File" }).click()
+    const uploadDialog = page.getByRole("dialog", { name: "Upload a File" })
+    await uploadDialog.locator('input[type="file"]').setInputFiles({
+      name: `${universalFileName}.txt`,
+      mimeType: "text/plain",
+      buffer: Buffer.from("Origins universal File browser fixture\n", "utf8"),
+    })
+    await uploadDialog.getByRole("button", { name: "Upload File" }).click()
+    await expect(page.locator(`[data-file-name="${universalFileName}"]`)).toBeVisible()
+    const uploadedProjectResponse = await request.get(`/api/v1/projects/${project.public_id}`)
+    expect(uploadedProjectResponse.ok()).toBe(true)
+    projectDetail = (await uploadedProjectResponse.json()).data as ProjectDetail
+    universalFile = projectDetail.files.find((item) =>
+      item.name === universalFileName && item.folder_id === nestedFolder!.id)
+  }
+  expect(universalFile).toBeTruthy()
+  await expect(page.locator(`[data-file-id="${universalFile!.id}"][data-file-name="${universalFileName}"]`)).toBeVisible()
+
+  await page.getByRole("link", { name: "Library", exact: true }).click()
+  await expect(page).toHaveURL(/\/origins\/library$/)
+  await expect(page.locator(`[data-file-id="${universalFile!.id}"][data-file-name="${universalFileName}"]`)).toBeVisible()
+  await expect(page.getByRole("button", { name: `Add ${universalFileName} to Timeline` })).toHaveCount(0)
+  await page.goto(`/origins/projects/${project.public_id}?folder=${nestedFolder!.public_id}`)
+  await expect(page.getByRole("button", { name: nestedFolder!.name, current: "page" })).toBeVisible()
+
   let production = projectDetail.productions.find((item) =>
     item.name === "Browser Smoke Project Production" && item.folder_id === nestedFolder!.id)
   const reusableProduction = projectDetail.productions.find((item) =>
@@ -226,6 +256,11 @@ test("uses the fixed desktop rail, then opens Home Project and Production", asyn
   await expect(page).toHaveURL(groupedProductionUrl)
   await expect(page.getByRole("button", { name: `Current Workspace: ${workspace.name}` })).toBeVisible()
   await expect(page.getByRole("heading", { name: `Rename Production ${production!.name}` })).toBeVisible()
+  await page.getByRole("button", { name: "Creator Library · Create and collect reusable Files" }).click()
+  await page.getByRole("combobox", { name: "Library scope" }).click()
+  await page.getByRole("option", { name: "Workspace" }).click()
+  await expect(page.locator(`[data-file-id="${universalFile!.id}"][data-file-name="${universalFileName}"]`)).toBeVisible()
+  await expect(page.getByRole("button", { name: `Add ${universalFileName} to Timeline` })).toHaveCount(0)
   const projectBreadcrumb = page.getByRole("link", { name: project.name, exact: true })
   await expect(projectBreadcrumb).toHaveAttribute(
     "href", `/origins/projects/${project.public_id}?folder=${nestedFolder!.public_id}`)

@@ -181,16 +181,6 @@
 .workspace-production-row > svg { color: var(--muted-foreground); }
 
 .workspace-file-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: .75rem; }
-.workspace-file-tile { min-inline-size: 0; }
-.workspace-file-preview { position: relative; aspect-ratio: 1; display: grid; place-items: center; overflow: hidden; border: 1px solid var(--border); border-radius: var(--radius-lg); background: var(--muted); }
-.workspace-file-preview img, .workspace-file-preview video { inline-size: 100%; block-size: 100%; object-fit: cover; }
-.workspace-file-art { inline-size: 2.75rem; block-size: 2.75rem; display: grid; place-items: center; border-radius: 50%; color: var(--primary); background: var(--primary-soft); }
-.workspace-file-art svg { inline-size: 1.2rem; }
-.workspace-file-source { position: absolute; inset-block-start: .45rem; inset-inline-start: .45rem; max-inline-size: calc(100% - .9rem); overflow: hidden; padding: .2rem .4rem; border-radius: var(--radius-sm); color: var(--foreground); background: color-mix(in oklab, var(--background) 88%, transparent); font-size: .625rem; text-overflow: ellipsis; text-transform: capitalize; white-space: nowrap; backdrop-filter: blur(8px); }
-.workspace-file-tile > div:last-child { display: grid; gap: .1rem; padding: .45rem .15rem 0; }
-.workspace-file-tile b, .workspace-file-tile small { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.workspace-file-tile b { font-size: var(--type-caption); font-weight: var(--weight-emphasis); }
-.workspace-file-tile small { color: var(--muted-foreground); font-family: var(--studio-font-mono); font-size: .625rem; text-transform: capitalize; }
 .workspace-quiet-empty { min-block-size: 8rem; grid-column: 1 / -1; display: grid; place-items: center; align-content: center; gap: .25rem; color: var(--foreground); text-align: center; }
 .workspace-quiet-empty svg { inline-size: 1.25rem; }
 .workspace-quiet-empty b { color: var(--foreground); font-size: var(--type-small); font-weight: var(--weight-emphasis); }
@@ -211,12 +201,6 @@
 .workspace-resource-dialog label > span { font-size: var(--type-small); font-weight: var(--weight-emphasis); }
 .workspace-resource-dialog label small { color: var(--muted-foreground); font-weight: var(--weight-body); }
 .workspace-resource-dialog [data-slot="dialog-description"] { color: var(--foreground); }
-.workspace-file-upload-dialog { inline-size: min(42rem, calc(100vw - 2rem)); }
-.workspace-file-upload-fields { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: .75rem; }
-.workspace-file-upload-fields label { min-inline-size: 0; display: grid; gap: .35rem; }
-.workspace-file-upload-fields label > span { font-size: var(--type-small); font-weight: var(--weight-emphasis); }
-.workspace-file-upload-fields label small { color: var(--muted-foreground); font-weight: var(--weight-body); }
-.workspace-file-upload-error { color: var(--destructive); font-size: var(--type-caption); }
 
 .workspace-explorer-loading { min-block-size: calc(100dvh - 3.5rem); display: grid; place-items: center; align-content: center; gap: .5rem; color: var(--muted-foreground); text-align: center; }
 .workspace-explorer-loading svg { inline-size: 1.25rem; color: var(--primary); }
@@ -248,5 +232,4 @@
   .workspace-library-toolbar { flex-wrap: wrap; }
   .workspace-library-toolbar > label { flex-basis: 100%; }
   .workspace-file-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-  .workspace-file-upload-fields { grid-template-columns: 1fr; }
 }

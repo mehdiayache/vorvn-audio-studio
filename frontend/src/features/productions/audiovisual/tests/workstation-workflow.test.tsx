@@ -28,9 +28,10 @@ afterEach(() => {
 Element.prototype.scrollIntoView = vi.fn()
 
 import { ProductionLibraryStage } from "../library/production-library-stage"
-import { FilePreviewDialog } from "@/features/creator/library/file-preview-dialog"
-import { visualFileDetails, visualFilePlaybackUrl, visualFilePosterUrl, visualFileIssue } from "@/features/creator/library/visual-file-presentation"
-import { VisualFileCard } from "../library/visual-file-card"
+import { FileCard } from "@/features/files/file-card"
+import { FilePreviewDialog } from "@/features/files/file-preview-dialog"
+import { visualFileDetails, visualFilePlaybackUrl, visualFilePosterUrl, visualFileIssue } from "@/features/files/file-presentation"
+import { ProductionLibraryGallery } from "../library/production-library-gallery"
 import { WORKSTATION_STAGES } from "../workstation-workflow"
 
 describe("Production workflow", () => {
@@ -183,7 +184,7 @@ describe("Production workflow", () => {
   })
 
   it("uses canonical provenance for generated Production Library visuals", () => {
-    const { container } = render(<VisualFileCard file={{
+    const { container } = render(<FileCard file={{
       id: 45,
       media_type: "image",
       name: "Generated harbour",
@@ -193,36 +194,31 @@ describe("Production workflow", () => {
         provider_id: "kling",
         provider_model_id: "kling-3.0-omni",
       },
-    }} onPreview={vi.fn()} />)
+    }} preview={{ onOpen: vi.fn() }} />)
 
-    expect(container.querySelector(".visual-file-origin")?.classList.contains("is-generated")).toBe(true)
-    expect(container.querySelector(".visual-file-origin")?.textContent).toBe("AI")
+    expect(container.querySelector(".file-card-origin")?.classList.contains("is-generated")).toBe(true)
+    expect(container.querySelector(".file-card-origin")?.textContent).toBe("AI")
   })
 
   it("marks Production Library removal as a confirmation-opening collection action", async () => {
     const file = { id: 88, media_type: "image" as const, name: "Harbour dusk", filename: "harbour.webp", width: 1200, height: 800 }
     const remove = vi.fn()
-    render(<VisualFileCard file={file} onPreview={vi.fn()} onRemove={remove} />)
-
-    fireEvent.pointerDown(screen.getByRole("button", { name: "Actions for Harbour dusk" }), { button: 0, ctrlKey: false })
-    const action = await screen.findByText("Remove from Production…")
-    fireEvent.click(action)
+    render(<ProductionLibraryGallery files={[file]} productionFileIds={[88]} libraryFileIds={[88]} uploads={[]} pendingId={null} onPreview={vi.fn()} onAddToProduction={vi.fn()} onRemove={remove} onRetryUpload={vi.fn()} onDismissUpload={vi.fn()} onUpload={vi.fn()} />)
+    fireEvent.click(screen.getByRole("button", { name: "Remove Harbour dusk from Production" }))
     expect(remove).toHaveBeenCalledWith(file)
   })
 
   it("offers both Production Library images and videos for Timeline placement", async () => {
     const image = { id: 88, media_type: "image" as const, name: "Harbour dusk", filename: "harbour.webp", width: 1200, height: 800 }
     const add = vi.fn()
-    render(<VisualFileCard file={image} onPreview={vi.fn()} onAddToTimeline={add} />)
-    fireEvent.pointerDown(screen.getByRole("button", { name: "Actions for Harbour dusk" }), { button: 0, ctrlKey: false })
-    fireEvent.click(await screen.findByText("Add to Timeline"))
+    render(<ProductionLibraryGallery files={[image]} productionFileIds={[88]} libraryFileIds={[88]} uploads={[]} pendingId={null} onPreview={vi.fn()} onAddToProduction={vi.fn()} onAddToTimeline={add} onRemove={vi.fn()} onRetryUpload={vi.fn()} onDismissUpload={vi.fn()} onUpload={vi.fn()} />)
+    fireEvent.click(screen.getByRole("button", { name: "Add Harbour dusk to Timeline" }))
     expect(add).toHaveBeenCalledWith(image)
 
     cleanup()
     const video = { ...image, media_type: "video" as const, name: "Harbour move", filename: "harbour.mp4", duration_ms: 8_000, media_format: "mp4", video_codec: "h264" }
-    render(<VisualFileCard file={video} onPreview={vi.fn()} onAddToTimeline={add} />)
-    fireEvent.pointerDown(screen.getByRole("button", { name: "Actions for Harbour move" }), { button: 0, ctrlKey: false })
-    fireEvent.click(await screen.findByText("Add to Timeline"))
+    render(<ProductionLibraryGallery files={[video]} productionFileIds={[88]} libraryFileIds={[88]} uploads={[]} pendingId={null} onPreview={vi.fn()} onAddToProduction={vi.fn()} onAddToTimeline={add} onRemove={vi.fn()} onRetryUpload={vi.fn()} onDismissUpload={vi.fn()} onUpload={vi.fn()} />)
+    fireEvent.click(screen.getByRole("button", { name: "Add Harbour move to Timeline" }))
     expect(add).toHaveBeenCalledWith(video)
   })
 
@@ -230,9 +226,9 @@ describe("Production workflow", () => {
     const file = { id: 88, media_type: "image" as const, name: "Harbour dusk", filename: "harbour.webp", width: 1200, height: 800 }
     const preview = vi.fn()
     const add = vi.fn()
-    render(<VisualFileCard file={file} onPreview={preview} onAddToTimeline={add} />)
+    render(<ProductionLibraryGallery files={[file]} productionFileIds={[88]} libraryFileIds={[88]} uploads={[]} pendingId={null} onPreview={preview} onAddToProduction={vi.fn()} onAddToTimeline={add} onRemove={vi.fn()} onRetryUpload={vi.fn()} onDismissUpload={vi.fn()} onUpload={vi.fn()} />)
 
-    fireEvent.click(screen.getAllByRole("button", { name: "Preview Harbour dusk" })[1]!)
+    fireEvent.click(screen.getAllByRole("button", { name: "Preview Harbour dusk" })[0]!)
     fireEvent.click(screen.getByRole("button", { name: "Add Harbour dusk to Timeline" }))
 
     expect(preview).toHaveBeenCalledWith(file)
@@ -246,8 +242,7 @@ describe("Production workflow", () => {
     api.detachProductionLibraryFile.mockResolvedValue({ file_id: 88 })
     render(<ProductionLibraryStage productionId={7} workspaceId={1} files={[file]} productionFileIds={[88]} libraryFileIds={[88]} onUpload={vi.fn()} onRefresh={refresh} onConfirmAction={confirm} />)
 
-    fireEvent.pointerDown(screen.getByRole("button", { name: "Actions for Harbour dusk" }), { button: 0, ctrlKey: false })
-    fireEvent.click(await screen.findByText("Remove from Production…"))
+    fireEvent.click(screen.getByRole("button", { name: "Remove Harbour dusk from Production" }))
 
     expect(api.detachProductionLibraryFile).not.toHaveBeenCalled()
     await waitFor(() => expect(confirm).toHaveBeenCalledOnce())
@@ -279,7 +274,7 @@ describe("Production workflow", () => {
     expect(gallery).toBeTruthy()
     expect(gallery?.style.getPropertyValue("--production-library-gallery-columns")).toBe("5")
     expect(screen.queryByRole("radio", { name: "List view" })).toBeNull()
-    expect(Array.from(document.querySelectorAll<HTMLButtonElement>(".visual-file-preview-target")).map((button) => button.getAttribute("aria-label"))).toEqual([
+    expect(Array.from(document.querySelectorAll<HTMLButtonElement>(".file-card-stage-target")).map((button) => button.getAttribute("aria-label"))).toEqual([
       "Preview Visual 6", "Preview Visual 5", "Preview Visual 4", "Preview Visual 3", "Preview Visual 2", "Preview Visual 1",
     ])
   })

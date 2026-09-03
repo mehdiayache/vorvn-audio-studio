@@ -54,7 +54,14 @@ describe("CreatorLibraryBrowser", () => {
   })
 
   it("uses the same provenance semantics as every other Library presentation", async () => {
-    render(<CreatorLibraryBrowser files={files} initialKind="all" onPlay={vi.fn()} />)
+    const select = vi.fn()
+    render(<CreatorLibraryBrowser files={files} initialKind="all" onPlay={vi.fn()} onSelect={select} />)
+    const portrait = document.querySelector<HTMLElement>("[data-file-name='Portrait']")
+    expect(portrait?.classList.contains("is-image")).toBe(true)
+    expect(portrait?.querySelector("[data-file-source='uploaded']")).toBeTruthy()
+    fireEvent.click(screen.getByRole("button", { name: "Select Portrait" }))
+    expect(select).toHaveBeenCalledWith(files[3])
+    expect(screen.queryByRole("button", { name: "Add Portrait to Production" })).toBeNull()
     fireEvent.click(screen.getByRole("combobox", { name: "File source" }))
     fireEvent.click(await screen.findByRole("option", { name: "Imported" }))
     expect(screen.getByText("Door slam")).toBeTruthy()
