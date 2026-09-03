@@ -1,5 +1,8 @@
 # Origins canonical grammar
 
+Read and follow [`docs/create-core.md`](docs/create-core.md) as the canonical
+architectural reference for Origins domain boundaries.
+
 ```text
 Workspace owns.
 Explorer places.
