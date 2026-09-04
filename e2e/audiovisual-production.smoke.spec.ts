@@ -9,27 +9,6 @@ type ProjectFolder = Resource & { project_id: number | null; parent_id: number |
 type FileResource = Resource & { folder_id: number | null }
 type ProjectDetail = ProjectResource & { folders: ProjectFolder[]; productions: ProductionResource[]; files: FileResource[] }
 
-function silentWavFixture() {
-  const sampleRate = 8_000
-  const sampleCount = sampleRate
-  const dataSize = sampleCount * 2
-  const buffer = Buffer.alloc(44 + dataSize)
-  buffer.write("RIFF", 0)
-  buffer.writeUInt32LE(36 + dataSize, 4)
-  buffer.write("WAVE", 8)
-  buffer.write("fmt ", 12)
-  buffer.writeUInt32LE(16, 16)
-  buffer.writeUInt16LE(1, 20)
-  buffer.writeUInt16LE(1, 22)
-  buffer.writeUInt32LE(sampleRate, 24)
-  buffer.writeUInt32LE(sampleRate * 2, 28)
-  buffer.writeUInt16LE(2, 32)
-  buffer.writeUInt16LE(16, 34)
-  buffer.write("data", 36)
-  buffer.writeUInt32LE(dataSize, 40)
-  return buffer
-}
-
 async function reusableBrowserFixture(request: APIRequestContext) {
   const listedResponse = await request.get("/api/v1/workspaces")
   expect(listedResponse.ok()).toBe(true)
@@ -229,18 +208,16 @@ test("uses the fixed desktop rail, then opens Home Project and Production", asyn
   expect(universalFile).toBeTruthy()
   await expect(page.locator(`[data-file-id="${universalFile!.id}"][data-file-name="${universalFileName}"]`)).toBeVisible()
 
-  const universalAudioName = "Browser Smoke Universal Audio"
+  const universalAudioName = "Browser Smoke Universal Audio Fixture"
   let universalAudio = projectDetail.files.find((item) =>
     item.name === universalAudioName && item.folder_id === nestedFolder!.id)
   if (!universalAudio) {
     await page.getByRole("button", { name: "Upload File" }).click()
     const uploadDialog = page.getByRole("dialog", { name: "Upload a File" })
-    await uploadDialog.locator('input[type="file"]').setInputFiles({
-      name: `${universalAudioName}.wav`,
-      mimeType: "audio/wav",
-      buffer: silentWavFixture(),
-    })
+    await uploadDialog.locator('input[type="file"]').setInputFiles("tests/acceptance/sound_scene_multistream_harness/public/qa-cue.wav")
+    await uploadDialog.getByRole("textbox", { name: "Name" }).fill(universalAudioName)
     await uploadDialog.getByRole("button", { name: "Upload File" }).click()
+    await expect(uploadDialog).toBeHidden()
     await expect(page.locator(`[data-file-name="${universalAudioName}"]`)).toBeVisible()
     const uploadedProjectResponse = await request.get(`/api/v1/projects/${project.public_id}`)
     expect(uploadedProjectResponse.ok()).toBe(true)

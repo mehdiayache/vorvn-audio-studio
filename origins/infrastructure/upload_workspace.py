@@ -153,12 +153,6 @@ class LocalUploadWorkspace:
         self, source: Path, *, original_name: str, size_bytes: int,
     ) -> StoredFileVersion:
         return self._store_file_version(
-            source, original_name=original_name, allow_documents=False)
-
-    def store_file(
-        self, source: Path, *, original_name: str, size_bytes: int,
-    ) -> StoredFileVersion:
-        return self._store_file_version(
             source, original_name=original_name, allow_documents=True)
 
     def _store_file_version(
