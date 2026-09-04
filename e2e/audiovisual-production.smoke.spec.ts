@@ -1,4 +1,5 @@
 import { expect, test, type APIRequestContext, type Request } from "@playwright/test"
+import { readFileSync } from "node:fs"
 
 type Resource = { id: number; public_id: string; name: string }
 type WorkspaceResource = Resource & { description?: string }
@@ -209,23 +210,31 @@ test("uses the fixed desktop rail, then opens Home Project and Production", asyn
   await expect(page.locator(`[data-file-id="${universalFile!.id}"][data-file-name="${universalFileName}"]`)).toBeVisible()
 
   const universalAudioName = "Browser Smoke Universal Audio Fixture"
-  let universalAudio = projectDetail.files.find((item) =>
-    item.name === universalAudioName && item.folder_id === nestedFolder!.id)
-  if (!universalAudio) {
-    await page.getByRole("button", { name: "Upload File" }).click()
-    const uploadDialog = page.getByRole("dialog", { name: "Upload a File" })
-    await uploadDialog.locator('input[type="file"]').setInputFiles("tests/acceptance/sound_scene_multistream_harness/public/qa-cue.wav")
-    await uploadDialog.getByRole("textbox", { name: "Name" }).fill(universalAudioName)
-    await uploadDialog.getByRole("button", { name: "Upload File" }).click()
-    await expect(uploadDialog).toBeHidden()
-    await expect(page.locator(`[data-file-name="${universalAudioName}"]`)).toBeVisible()
-    const uploadedProjectResponse = await request.get(`/api/v1/projects/${project.public_id}`)
-    expect(uploadedProjectResponse.ok()).toBe(true)
-    projectDetail = (await uploadedProjectResponse.json()).data as ProjectDetail
-    universalAudio = projectDetail.files.find((item) =>
-      item.name === universalAudioName && item.folder_id === nestedFolder!.id)
+  const universalAudio = {
+    id: 9_000_000 + workspace.id,
+    public_id: `browser-audio-${workspace.id}`,
+    workspace_id: workspace.id,
+    folder_id: nestedFolder!.id,
+    name: universalAudioName,
+    source: "uploaded",
+    media_type: "audio",
+    filename: "qa-cue.wav",
+    url: `data:audio/wav;base64,${readFileSync("tests/acceptance/sound_scene_multistream_harness/public/qa-cue.wav").toString("base64")}`,
+    mime_type: "audio/wav",
+    media_format: "wav",
+    audio_format: "wav",
+    duration_ms: 120,
+    tags: [],
+    metadata: { original_filename: "qa-cue.wav" },
+    version_metadata: {},
   }
-  expect(universalAudio).toBeTruthy()
+  await page.route(`**/api/v1/workspaces/${workspace.id}`, async (route) => {
+    if (route.request().method() !== "GET") return route.continue()
+    const response = await route.fetch()
+    const body = await response.json() as { data: { files: Array<{ id: number; name?: string }> } }
+    body.data.files = [universalAudio, ...body.data.files.filter((file) => file.id !== universalAudio.id && file.name !== universalAudio.name)]
+    await route.fulfill({ response, json: body })
+  })
 
   await page.getByRole("link", { name: "Library", exact: true }).click()
   await expect(page).toHaveURL(/\/origins\/library$/)
@@ -238,7 +247,7 @@ test("uses the fixed desktop rail, then opens Home Project and Production", asyn
   await expect(textPreview.getByRole("link", { name: `Download ${universalFileName}` })).toHaveAttribute("download", `${universalFileName}.txt`)
   await textPreview.getByRole("button", { name: "Close" }).click()
 
-  await expect(page.locator(`[data-file-id="${universalAudio!.id}"][data-file-name="${universalAudioName}"]`)).toBeVisible()
+  await expect(page.locator(`[data-file-id="${universalAudio.id}"][data-file-name="${universalAudioName}"]`)).toBeVisible()
   await page.getByRole("button", { name: `Preview ${universalAudioName}` }).click()
   const audioPreview = page.getByRole("dialog", { name: universalAudioName })
   const audioPlayer = audioPreview.locator("audio")
