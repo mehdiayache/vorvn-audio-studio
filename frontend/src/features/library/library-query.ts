@@ -88,7 +88,7 @@ export function libraryFileType(file: WorkspaceFile): LibraryFileType | "other" 
 export function libraryFileSearchText(file: WorkspaceFile) {
   const sourceTags = Array.isArray(file.metadata?.source_tags) ? file.metadata.source_tags : []
   return [
-    libraryFileName(file), file.filename, file.category, file.file_category,
+    libraryFileName(file), file.filename, file.category,
     file.mime_type, file.source, ...(file.tags || []), ...sourceTags,
   ].filter(Boolean).join(" ").toLocaleLowerCase()
 }

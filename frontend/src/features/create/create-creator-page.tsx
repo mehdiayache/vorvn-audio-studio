@@ -85,6 +85,7 @@ export function CreateCreatorPage() {
   const { workspaces, overview, selectedWorkspaceId, refresh } = useWorkspaceExplorer()
   const player = useGlobalPlayer()
   const uploadInputRef = useRef<HTMLInputElement>(null)
+  const creatorDialogRef = useRef<HTMLDivElement>(null)
   const [uploadingFile, setUploadingFile] = useState(false)
   const [previewFile, setPreviewFile] = useState<WorkspaceFile | null>(null)
   const [activeCapability, setActiveCapability] = useState<CreatorCapabilityId | null>(
@@ -157,11 +158,19 @@ export function CreateCreatorPage() {
     <WorkspaceExplorerPage view="home" />
     <input ref={uploadInputRef} hidden type="file" accept="image/*,video/*,audio/*,.srt,.vtt,.txt,.md,.pdf,.json,.csv,.zip" disabled={uploadingFile} onChange={(event) => { const file = event.target.files?.[0]; if (file) void uploadLibraryFile(file); event.target.value = "" }} />
     <Dialog open onOpenChange={(open) => { if (!open) navigate("/origins/") }}>
-      <DialogContent className="create-creator-dialog">
+      <DialogContent
+        ref={creatorDialogRef}
+        tabIndex={-1}
+        className="create-creator-dialog"
+        onOpenAutoFocus={(event) => {
+          event.preventDefault()
+          creatorDialogRef.current?.focus({ preventScroll: true })
+        }}
+      >
         <DialogHeader className="create-creator-header">
           <span className={`create-creator-icon is-${visibleAction.capability}`}><Icon /></span>
-          <span className="create-creator-heading"><DialogTitle>{visibleAction.title}</DialogTitle><DialogDescription>{visibleAction.description}</DialogDescription></span>
-          <span className="create-creator-destination"><small>Saving to</small><b>{workspaceName}</b></span>
+          <span className="create-creator-heading"><DialogTitle>{visibleAction.title}</DialogTitle><DialogDescription className="sr-only">{visibleAction.description}</DialogDescription></span>
+          <span className="create-creator-destination" title={workspaceName}><span>Saving to</span><b>{workspaceName}</b></span>
         </DialogHeader>
         <div className="create-creator-workspace">
       {isTool ? <CreatorLibraryWorkspace

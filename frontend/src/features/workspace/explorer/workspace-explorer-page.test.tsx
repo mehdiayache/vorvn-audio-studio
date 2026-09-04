@@ -26,7 +26,7 @@ const overview: WorkspaceOverview = {
     created_at: "2026-01-01T00:00:00Z", updated_at: "2026-01-02T00:00:00Z",
   }],
   productions: [{ id: 8, public_id: "production-8", workspace_id: 4, folder_id: null, project_id: null, production_type: "audiovisual", name: "Launch film", description: "", status: "draft", updated_at: "2026-01-02T00:00:00Z", file_count: 1, part_count: 3 }],
-  files: [{ id: 9, public_id: "file-9", workspace_id: 4, folder_id: null, name: "Score.wav", source: "generated", tags: ["music"], metadata: {}, created_at: "2026-01-01T00:00:00Z", updated_at: "2026-01-02T00:00:00Z", current_version: { id: 10, public_id: "version-10", version: 1, filename: "score.wav", storage_key: "score.wav", url: "/audio/score.wav", size_bytes: 20, duration_ms: 5_000, mime_type: "audio/wav", family: "audio", width: null, height: null } }],
+  files: [{ id: 9, public_id: "file-9", workspace_id: 4, folder_id: null, version_id: 10, name: "Score.wav", source: "generated", media_type: "audio", filename: "score.wav", url: "/audio/score.wav", size_bytes: 20, duration_ms: 5_000, mime_type: "audio/wav", audio_format: "wav", tags: ["music"], metadata: {}, version_metadata: {}, created_at: "2026-01-01T00:00:00Z", updated_at: "2026-01-02T00:00:00Z" }],
 }
 
 function LocationControls() {

@@ -14,7 +14,7 @@ export function fileDisplayName(file: WorkspaceFile) {
 
 export function fileKind(file: WorkspaceFile): FileKind {
   if (file.media_type === "image" || file.media_type === "video") return file.media_type
-  const category = normalized(file.category || file.file_category)
+  const category = normalized(file.category)
   const tags = new Set((file.tags || []).map(normalized))
   const filename = normalized(file.filename)
   const mimeType = normalized(file.mime_type)
@@ -37,6 +37,44 @@ export function fileDisplayUrl(file: WorkspaceFile) {
   if (file.url) return file.url
   if (!file.filename) return ""
   return `/${file.media_type === "audio" ? "audio" : "media"}/${encodeURIComponent(file.filename)}`
+}
+
+const textPreviewMimeTypes = new Set([
+  "application/json",
+  "application/xml",
+  "application/yaml",
+  "application/x-yaml",
+])
+const textPreviewExtensions = /\.(?:txt|md|markdown|json|csv|srt|vtt|xml|ya?ml)$/i
+
+export function isTextPreviewFile(file: WorkspaceFile) {
+  const mimeType = normalized(file.mime_type)
+  return fileKind(file) === "subtitle"
+    || mimeType.startsWith("text/")
+    || mimeType.endsWith("+json")
+    || mimeType.endsWith("+xml")
+    || textPreviewMimeTypes.has(mimeType)
+    || textPreviewExtensions.test(String(file.filename || ""))
+}
+
+export function fileTextFormat(file: WorkspaceFile) {
+  const mimeType = normalized(file.mime_type)
+  const filename = normalized(file.filename)
+  if (mimeType === "application/json" || mimeType.endsWith("+json") || filename.endsWith(".json")) return "JSON"
+  const extension = filename.match(/\.([^.]+)$/)?.[1]
+  return (extension || mimeType.split("/")[1] || "text").toUpperCase()
+}
+
+export function fileDownloadName(file: WorkspaceFile) {
+  const metadata = { ...(file.metadata || {}), ...(file.version_metadata || {}) }
+  const originalFilename = typeof metadata.original_filename === "string" ? metadata.original_filename.trim() : ""
+  if (originalFilename) return originalFilename.split(/[\\/]/).pop() || originalFilename
+  if (file.filename) {
+    const extension = String(file.filename).match(/\.[^.]+$/)?.[0] || ""
+    const name = fileDisplayName(file)
+    return extension && !name.toLocaleLowerCase().endsWith(extension.toLocaleLowerCase()) ? `${name}${extension}` : name
+  }
+  return fileDisplayName(file)
 }
 
 export function filePosterUrl(file: WorkspaceFile) {

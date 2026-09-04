@@ -67,7 +67,11 @@ describe("CreateCreatorPage", () => {
   it("runs music creation directly in the current Workspace and keeps a File", async () => {
     render(<MemoryRouter initialEntries={["/origins/create/generate-music?folder_id=27"]}><Routes><Route path="/origins/create/:actionId" element={<CreateCreatorPage />} /></Routes></MemoryRouter>)
 
-    expect(screen.getByRole("dialog", { name: "Create music" })).toBeTruthy()
+    const dialog = screen.getByRole("dialog", { name: "Create music" })
+    expect(dialog).toBeTruthy()
+    await waitFor(() => expect(document.activeElement).toBe(dialog))
+    expect(screen.getByText("Create a reusable music File in this Workspace.").classList.contains("sr-only")).toBe(true)
+    expect(dialog.querySelector(".create-creator-destination")?.textContent).toBe("Saving toSandbox")
     expect(screen.getAllByText(/Create music/).length).toBeGreaterThan(0)
     expect(screen.getAllByText("Sandbox").length).toBeGreaterThan(0)
     const workspace = screen.getByRole("button", { name: "Keep generated file" })

@@ -9,6 +9,27 @@ type ProjectFolder = Resource & { project_id: number | null; parent_id: number |
 type FileResource = Resource & { folder_id: number | null }
 type ProjectDetail = ProjectResource & { folders: ProjectFolder[]; productions: ProductionResource[]; files: FileResource[] }
 
+function silentWavFixture() {
+  const sampleRate = 8_000
+  const sampleCount = sampleRate
+  const dataSize = sampleCount * 2
+  const buffer = Buffer.alloc(44 + dataSize)
+  buffer.write("RIFF", 0)
+  buffer.writeUInt32LE(36 + dataSize, 4)
+  buffer.write("WAVE", 8)
+  buffer.write("fmt ", 12)
+  buffer.writeUInt32LE(16, 16)
+  buffer.writeUInt16LE(1, 20)
+  buffer.writeUInt16LE(1, 22)
+  buffer.writeUInt32LE(sampleRate, 24)
+  buffer.writeUInt32LE(sampleRate * 2, 28)
+  buffer.writeUInt16LE(2, 32)
+  buffer.writeUInt16LE(16, 34)
+  buffer.write("data", 36)
+  buffer.writeUInt32LE(dataSize, 40)
+  return buffer
+}
+
 async function reusableBrowserFixture(request: APIRequestContext) {
   const listedResponse = await request.get("/api/v1/workspaces")
   expect(listedResponse.ok()).toBe(true)
@@ -208,10 +229,46 @@ test("uses the fixed desktop rail, then opens Home Project and Production", asyn
   expect(universalFile).toBeTruthy()
   await expect(page.locator(`[data-file-id="${universalFile!.id}"][data-file-name="${universalFileName}"]`)).toBeVisible()
 
+  const universalAudioName = "Browser Smoke Universal Audio"
+  let universalAudio = projectDetail.files.find((item) =>
+    item.name === universalAudioName && item.folder_id === nestedFolder!.id)
+  if (!universalAudio) {
+    await page.getByRole("button", { name: "Upload File" }).click()
+    const uploadDialog = page.getByRole("dialog", { name: "Upload a File" })
+    await uploadDialog.locator('input[type="file"]').setInputFiles({
+      name: `${universalAudioName}.wav`,
+      mimeType: "audio/wav",
+      buffer: silentWavFixture(),
+    })
+    await uploadDialog.getByRole("button", { name: "Upload File" }).click()
+    await expect(page.locator(`[data-file-name="${universalAudioName}"]`)).toBeVisible()
+    const uploadedProjectResponse = await request.get(`/api/v1/projects/${project.public_id}`)
+    expect(uploadedProjectResponse.ok()).toBe(true)
+    projectDetail = (await uploadedProjectResponse.json()).data as ProjectDetail
+    universalAudio = projectDetail.files.find((item) =>
+      item.name === universalAudioName && item.folder_id === nestedFolder!.id)
+  }
+  expect(universalAudio).toBeTruthy()
+
   await page.getByRole("link", { name: "Library", exact: true }).click()
   await expect(page).toHaveURL(/\/origins\/library$/)
   await expect(page.locator(`[data-file-id="${universalFile!.id}"][data-file-name="${universalFileName}"]`)).toBeVisible()
   await expect(page.getByRole("button", { name: `Add ${universalFileName} to Timeline` })).toHaveCount(0)
+  await page.getByRole("button", { name: `Preview ${universalFileName}` }).click()
+  const textPreview = page.getByRole("dialog", { name: universalFileName })
+  await expect(textPreview.getByText("Origins universal File browser fixture")).toBeVisible()
+  await expect(textPreview.getByRole("button", { name: "Copy" })).toBeVisible()
+  await expect(textPreview.getByRole("link", { name: `Download ${universalFileName}` })).toHaveAttribute("download", `${universalFileName}.txt`)
+  await textPreview.getByRole("button", { name: "Close" }).click()
+
+  await expect(page.locator(`[data-file-id="${universalAudio!.id}"][data-file-name="${universalAudioName}"]`)).toBeVisible()
+  await page.getByRole("button", { name: `Preview ${universalAudioName}` }).click()
+  const audioPreview = page.getByRole("dialog", { name: universalAudioName })
+  const audioPlayer = audioPreview.locator("audio")
+  await expect(audioPlayer).toBeVisible()
+  expect(await audioPlayer.evaluate((element) => element.getBoundingClientRect().width)).toBeGreaterThan(250)
+  await expect(audioPreview.getByRole("link", { name: `Download ${universalAudioName}` })).toBeVisible()
+  await audioPreview.getByRole("button", { name: "Close" }).click()
   await page.goto(`/origins/projects/${project.public_id}?folder=${nestedFolder!.public_id}`)
   await expect(page.getByRole("button", { name: nestedFolder!.name, current: "page" })).toBeVisible()
 
@@ -305,7 +362,14 @@ test("opens standalone Speech in the shared Creator Library grammar", async ({ p
 
   await page.goto("/origins/create/generate-speech")
 
-  await expect(page.getByRole("dialog", { name: "Create speech" })).toBeVisible()
+  const creatorDialog = page.getByRole("dialog", { name: "Create speech" })
+  await expect(creatorDialog).toBeVisible()
+  await expect(creatorDialog).toBeFocused()
+  await expect(page.getByRole("tooltip", { name: /Hide Creator/ })).toHaveCount(0)
+  await expect(creatorDialog.locator("[data-slot='dialog-description']")).toHaveClass(/sr-only/)
+  const destination = creatorDialog.locator(".create-creator-destination")
+  await expect(destination).toHaveCSS("white-space", "nowrap")
+  expect(await destination.locator(":scope > *").evaluateAll((elements) => new Set(elements.map((element) => Math.round(element.getBoundingClientRect().top))).size)).toBe(1)
   await expect(page.getByRole("region", { name: "Creator Library" })).toBeVisible()
   const creator = page.getByRole("complementary", { name: "Creator" })
   await expect(creator).toBeVisible()

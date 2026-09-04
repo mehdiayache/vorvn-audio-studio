@@ -15355,7 +15355,6 @@
         "type": "object"
       },
       "WorkspaceFileResponse": {
-        "additionalProperties": true,
         "properties": {
           "audio_format": {
             "anyOf": [

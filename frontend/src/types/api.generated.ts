@@ -7548,8 +7548,6 @@ export interface components {
             width?: number | null;
             /** Workspace Id */
             workspace_id: number;
-        } & {
-            [key: string]: unknown;
         };
         /** WorkspaceFolderResponse */
         WorkspaceFolderResponse: {

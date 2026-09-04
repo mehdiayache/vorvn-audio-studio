@@ -3,6 +3,7 @@
 import unittest
 
 from origins.http.app import app
+from origins.http.file_contracts import WorkspaceFileResponse
 
 
 class ContentContractTests(unittest.TestCase):
@@ -69,6 +70,21 @@ class ContentContractTests(unittest.TestCase):
         self.assertTrue({"expected_revision", "document"}.issubset(sound_scene))
         self.assertIn("storage_settings",
                       components["SettingsSnapshotResponse"]["required"])
+
+    def test_workspace_file_contract_filters_storage_internals(self):
+        public_file = WorkspaceFileResponse.model_validate({
+            "id": 4,
+            "public_id": "file_public_id",
+            "workspace_id": 2,
+            "name": "Brief",
+            "source": "uploaded",
+            "path": "/private/origins/workspaces/2/brief.txt",
+            "storage_key": "workspaces/2/private/brief.txt",
+        }).model_dump()
+
+        self.assertNotIn("path", public_file)
+        self.assertNotIn("storage_key", public_file)
+        self.assertEqual(public_file["name"], "Brief")
 
 
 if __name__ == "__main__":
