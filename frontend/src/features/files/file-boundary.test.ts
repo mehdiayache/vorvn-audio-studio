@@ -4,6 +4,7 @@ import fileCardSource from "./file-card.tsx?raw"
 import filePresentationSource from "./file-presentation.ts?raw"
 import filePreviewSource from "./file-preview-dialog.tsx?raw"
 import filePreviewMediaSource from "./file-preview-media.tsx?raw"
+import fileTextPreviewSource from "./file-text-preview.tsx?raw"
 import fileUploadSource from "./file-upload-dialog.tsx?raw"
 
 describe("shared File presentation boundary", () => {
@@ -13,6 +14,7 @@ describe("shared File presentation boundary", () => {
       filePresentationSource,
       filePreviewSource,
       filePreviewMediaSource,
+      fileTextPreviewSource,
       fileUploadSource,
     ].join("\n")
 

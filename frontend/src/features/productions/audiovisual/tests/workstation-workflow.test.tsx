@@ -272,7 +272,7 @@ describe("Production workflow", () => {
 
     const gallery = document.querySelector<HTMLElement>(".production-library-gallery-items")
     expect(gallery).toBeTruthy()
-    expect(gallery?.style.getPropertyValue("--production-library-gallery-columns")).toBe("5")
+    expect(gallery?.style.getPropertyValue("--file-masonry-columns")).toBe("5")
     expect(screen.queryByRole("radio", { name: "List view" })).toBeNull()
     expect(Array.from(document.querySelectorAll<HTMLButtonElement>(".file-card-stage-target")).map((button) => button.getAttribute("aria-label"))).toEqual([
       "Preview Visual 6", "Preview Visual 5", "Preview Visual 4", "Preview Visual 3", "Preview Visual 2", "Preview Visual 1",

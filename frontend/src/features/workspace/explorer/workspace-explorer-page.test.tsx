@@ -217,6 +217,7 @@ describe("WorkspaceExplorerPage", () => {
     expect(await screen.findByRole("heading", { name: "Files" })).toBeTruthy()
     expect(screen.queryByRole("heading", { name: "Productions" })).toBeNull()
     expect(document.querySelector(".workspace-library-layout.has-single-column")).toBeTruthy()
+    expect(document.querySelector(".workspace-file-grid.file-masonry")).toBeTruthy()
   })
 
   it("searches and filters Workspace Files with the universal Library semantics", async () => {

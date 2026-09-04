@@ -180,7 +180,6 @@
 .workspace-production-meta { text-align: end; }
 .workspace-production-row > svg { color: var(--muted-foreground); }
 
-.workspace-file-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: .75rem; }
 .workspace-quiet-empty { min-block-size: 8rem; grid-column: 1 / -1; display: grid; place-items: center; align-content: center; gap: .25rem; color: var(--foreground); text-align: center; }
 .workspace-quiet-empty svg { inline-size: 1.25rem; }
 .workspace-quiet-empty b { color: var(--foreground); font-size: var(--type-small); font-weight: var(--weight-emphasis); }
@@ -231,5 +230,4 @@
   .workspace-home-creator-actions { grid-template-columns: 1fr; }
   .workspace-library-toolbar { flex-wrap: wrap; }
   .workspace-library-toolbar > label { flex-basis: 100%; }
-  .workspace-file-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 }

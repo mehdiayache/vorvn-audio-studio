@@ -103,6 +103,16 @@
   --file-image-soft: oklch(0.97 0.025 330);
   --file-video: oklch(0.56 0.15 275);
   --file-video-soft: oklch(0.97 0.025 275);
+  --file-document: oklch(0.32 0.012 255);
+  --file-document-surface: oklch(0.995 0.002 90);
+  --file-document-foreground: oklch(0.19 0.009 255);
+  --file-data: oklch(0.72 0.045 245);
+  --file-data-surface: oklch(0.145 0.012 245);
+  --file-data-foreground: oklch(0.95 0.008 245);
+  --file-subtitle: oklch(0.53 0.12 205);
+  --file-subtitle-soft: oklch(0.97 0.025 205);
+  --file-other: oklch(0.48 0.012 255);
+  --file-other-soft: oklch(0.97 0.005 255);
 
   --space-1: 0.25rem;
   --space-2: 0.5rem;

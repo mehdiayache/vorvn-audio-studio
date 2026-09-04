@@ -45,7 +45,7 @@ const textPreviewMimeTypes = new Set([
   "application/yaml",
   "application/x-yaml",
 ])
-const textPreviewExtensions = /\.(?:txt|md|markdown|json|csv|srt|vtt|xml|ya?ml)$/i
+const textPreviewExtensions = /\.(?:txt|md|markdown|json|csv|tsv|srt|vtt|xml|ya?ml)$/i
 
 export function isTextPreviewFile(file: WorkspaceFile) {
   const mimeType = normalized(file.mime_type)

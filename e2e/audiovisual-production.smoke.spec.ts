@@ -238,13 +238,16 @@ test("uses the fixed desktop rail, then opens Home Project and Production", asyn
 
   await page.getByRole("link", { name: "Library", exact: true }).click()
   await expect(page).toHaveURL(/\/origins\/library$/)
+  await expect(page.locator(".workspace-file-grid.file-masonry")).toBeVisible()
   await expect(page.locator(`[data-file-id="${universalFile!.id}"][data-file-name="${universalFileName}"]`)).toBeVisible()
   await expect(page.getByRole("button", { name: `Add ${universalFileName} to Timeline` })).toHaveCount(0)
   await page.getByRole("button", { name: `Preview ${universalFileName}` }).click()
   const textPreview = page.getByRole("dialog", { name: universalFileName })
   await expect(textPreview.getByText("Origins universal File browser fixture")).toBeVisible()
-  await expect(textPreview.getByRole("button", { name: "Copy" })).toBeVisible()
-  await expect(textPreview.getByRole("link", { name: `Download ${universalFileName}` })).toHaveAttribute("download", `${universalFileName}.txt`)
+  const fileActions = textPreview.getByRole("toolbar", { name: "File actions" })
+  await expect(fileActions.getByRole("button", { name: "Copy" })).toBeVisible()
+  await expect(fileActions.getByRole("link", { name: `Download ${universalFileName}` })).toHaveAttribute("download", `${universalFileName}.txt`)
+  await expect(textPreview.getByRole("complementary", { name: "File details" }).getByRole("link")).toHaveCount(0)
   await textPreview.getByRole("button", { name: "Close" }).click()
 
   await expect(page.locator(`[data-file-id="${universalAudio.id}"][data-file-name="${universalAudioName}"]`)).toBeVisible()

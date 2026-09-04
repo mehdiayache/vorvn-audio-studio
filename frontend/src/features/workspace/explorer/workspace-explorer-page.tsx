@@ -18,6 +18,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Textarea } from "@/components/ui/textarea"
 import { CreateProductionDialog } from "@/features/productions/create-production-dialog"
 import { FileCard } from "@/features/files/file-card"
+import { FileMasonry } from "@/features/files/file-masonry"
 import { FilePreviewDialog } from "@/features/files/file-preview-dialog"
 import { FileUploadDialog } from "@/features/files/file-upload-dialog"
 import {
@@ -299,9 +300,8 @@ function ExplorerContent({ workspaceOverview, view, actions, actionsError, onRet
 
       {showFiles && <section className="workspace-library-section" aria-labelledby="workspace-files-title">
         <header><div><h2 id="workspace-files-title">Files</h2><p>Reusable outputs and uploads, independent from Productions.</p></div><span>{files.length}</span></header>
-        <div className="workspace-file-grid">{files.slice(0, view === "files" ? undefined : 8).map((file) => <FileCard key={file.id} file={file} preview={{ onOpen: () => onPreviewFile(file) }} />)}
-          {!files.length && <div className="workspace-quiet-empty"><FileImage /><b>No Files here yet</b><span>Your generated and uploaded Files will appear here.</span></div>}
-        </div>
+        {files.length ? <FileMasonry className="workspace-file-grid" maximumColumns={4} minimumColumnWidth={224} gap={12}>{files.slice(0, view === "files" ? undefined : 8).map((file) => <FileCard key={file.id} file={file} preview={{ onOpen: () => onPreviewFile(file) }} />)}</FileMasonry>
+          : <div className="workspace-quiet-empty"><FileImage /><b>No Files here yet</b><span>Your generated and uploaded Files will appear here.</span></div>}
       </section>}
     </div>
 

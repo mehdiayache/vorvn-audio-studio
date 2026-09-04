@@ -1,5 +1,5 @@
 import { AlertTriangle, Expand, EyeOff, FolderOpen, Images, Plus, Search, Upload, X } from "lucide-react"
-import { useEffect, useMemo, useRef, useState, type CSSProperties } from "react"
+import { useMemo, useState } from "react"
 
 import { OperatorIconButton } from "@/components/operator-action"
 import { Button } from "@/components/ui/button"
@@ -8,6 +8,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group"
 import type { CreatorLibraryCreationItem } from "@/features/creator/library/creator-library-creation-item"
 import { FileCard } from "@/features/files/file-card"
+import { FileMasonry } from "@/features/files/file-masonry"
 import { fileDisplayName, fileDisplayUrl } from "@/features/files/file-presentation"
 import {
   createLibraryQuery, LIBRARY_SCOPE_OPTIONS, LIBRARY_SOURCE_OPTIONS, LIBRARY_TYPE_OPTIONS,
@@ -17,14 +18,6 @@ import {
 import type { WorkspaceFile, WorkspaceFolder } from "@/types/domain"
 import { ProductionLibraryUploadCard, type ProductionLibraryUploadItem } from "./production-library-upload-card"
 import { TimelineFileUsageState } from "./timeline-file-usage-state"
-
-function galleryColumnCount(width: number) {
-  if (width < 400) return 1
-  if (width < 580) return 2
-  if (width < 740) return 3
-  if (width < 880) return 4
-  return 5
-}
 
 function uploadType(item: ProductionLibraryUploadItem): LibraryEntry["type"] {
   if (item.file.type.startsWith("image/")) return "image"
@@ -72,8 +65,6 @@ export function ProductionLibraryGallery({
   const [search, setSearch] = useState("")
   const [folder, setFolder] = useState("all")
   const [showFailed, setShowFailed] = useState(false)
-  const [columnCount, setColumnCount] = useState(5)
-  const galleryRef = useRef<HTMLDivElement>(null)
   const productionIds = useMemo(() => new Set(productionFileIds), [productionFileIds])
   const collectedIds = useMemo(() => new Set(libraryFileIds), [libraryFileIds])
   const usedIds = useMemo(() => new Set(usageCounts?.keys() || []), [usageCounts])
@@ -122,17 +113,6 @@ export function ProductionLibraryGallery({
     ]
     return queryLibraryEntries(candidates.filter((entry) => entry.kind !== "generation" || showFailed || (entry.item.status !== "failed" && entry.item.status !== "canceled")), query, queryContext)
   }, [creationItems, currentFolderId, files, query, queryContext, showFailed, uploads])
-
-  useEffect(() => {
-    const element = galleryRef.current
-    if (!element) return
-    const update = (width: number) => { if (width > 0) setColumnCount(galleryColumnCount(width)) }
-    update(element.getBoundingClientRect().width)
-    if (typeof ResizeObserver === "undefined") return
-    const observer = new ResizeObserver((entries) => { const entry = entries[0]; if (entry) update(entry.contentRect.width) })
-    observer.observe(element)
-    return () => observer.disconnect()
-  }, [])
 
   if (!creationItems.length && !uploads.length && !files.length) return <section className="production-library-empty" aria-label="Production Library is empty">
     <span><Images aria-hidden="true" /></span>
@@ -186,8 +166,8 @@ export function ProductionLibraryGallery({
       </div>
     </header>
     {!items.length && <div className="production-library-filter-empty"><Images /><p>No Files match this Library scope or these filters.</p><Button variant="outline" size="sm" onClick={() => { setSearch(""); setFolder("all"); setType("all"); setSource("all"); setUsage("any"); setShowFailed(false) }}>Clear filters</Button></div>}
-    <div ref={galleryRef} className={`production-library-gallery-items${items.length <= columnCount ? " is-single-row" : ""}`} style={{ "--production-library-gallery-columns": columnCount } as CSSProperties}>
+    <FileMasonry className="production-library-gallery-items" maximumColumns={5} minimumColumnWidth={166} gap={10}>
       {items.map(renderEntry)}
-    </div>
+    </FileMasonry>
   </section>
 }

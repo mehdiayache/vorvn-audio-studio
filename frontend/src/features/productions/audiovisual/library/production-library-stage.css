@@ -53,11 +53,7 @@
 .production-library-filter-empty { min-height: 15rem; display: grid; align-content: center; justify-items: center; gap: .65rem; color: var(--foreground); text-align: center; }
 .production-library-filter-empty > svg { width: 1.5rem; color: var(--primary); }
 .production-library-filter-empty p { margin: 0; }
-.production-library-gallery-items { min-width: 0; column-count: var(--production-library-gallery-columns, 5); column-gap: .65rem; }
 .production-library-gallery-items { padding: 0 .8rem .8rem; }
-.production-library-gallery-items > * { width: 100%; display: inline-block; break-inside: avoid; margin: 0 0 .65rem; vertical-align: top; }
-.production-library-gallery-items.is-single-row { display: grid; grid-template-columns: repeat(var(--production-library-gallery-columns, 5), minmax(0, 1fr)); align-items: start; gap: .65rem; }
-.production-library-gallery-items.is-single-row > * { display: block; margin: 0; }
 .production-library-generation-gallery-entry { min-width: 0; }
 .production-library-upload-card { min-width: 0; overflow: hidden; border: 1px dashed var(--border); border-radius: var(--radius-lg); background: var(--surface-raised); }
 .production-library-upload-card[data-status="failed"] { border-color: var(--danger-border); }

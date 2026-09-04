@@ -1,6 +1,8 @@
 .file-card {
   --file-card-accent: var(--file);
   --file-card-soft: var(--file-soft);
+  --file-card-surface: color-mix(in oklab, var(--file-card-soft) 78%, var(--surface-subtle));
+  --file-card-stage-foreground: var(--foreground);
   min-inline-size: 0;
   inline-size: 100%;
   overflow: hidden;
@@ -16,15 +18,19 @@
 .file-card.is-music { --file-card-accent: var(--audio-music); --file-card-soft: var(--audio-music-soft); }
 .file-card.is-sfx { --file-card-accent: var(--audio-sfx); --file-card-soft: var(--audio-sfx-soft); }
 .file-card[data-audio-family="ambience"] { --file-card-accent: var(--audio-ambience); --file-card-soft: var(--audio-ambience-soft); }
+.file-card.is-document { --file-card-accent: var(--file-document); --file-card-soft: var(--file-document-surface); --file-card-surface: var(--file-document-surface); --file-card-stage-foreground: var(--file-document-foreground); }
+.file-card.is-data { --file-card-accent: var(--file-data); --file-card-soft: var(--file-data-surface); --file-card-surface: var(--file-data-surface); --file-card-stage-foreground: var(--file-data-foreground); }
+.file-card.is-subtitle { --file-card-accent: var(--file-subtitle); --file-card-soft: var(--file-subtitle-soft); }
+.file-card.is-other { --file-card-accent: var(--file-other); --file-card-soft: var(--file-other-soft); }
 .file-card.is-selected { border-color: var(--primary); box-shadow: 0 0 0 1px var(--primary); }
-.file-card-stage { position: relative; min-block-size: 7.5rem; overflow: hidden; color: var(--file-card-accent); background: color-mix(in oklab, var(--file-card-soft) 78%, var(--surface-subtle)); }
+.file-card-stage { position: relative; min-block-size: 7.5rem; overflow: hidden; color: var(--file-card-accent); background: var(--file-card-surface); }
 .file-card-stage-target { inline-size: 100%; block-size: 100%; display: grid; place-items: center; overflow: hidden; padding: 0; border: 0; color: inherit; background: transparent; }
 button.file-card-stage-target { cursor: zoom-in; }
 .file-card-stage-target:focus-visible { outline: 3px solid color-mix(in oklab, var(--ring) 38%, transparent); outline-offset: -3px; }
 .file-card-stage-target img, .file-card-stage-target video { inline-size: 100%; block-size: 100%; display: block; object-fit: cover; transition: transform var(--motion-normal) var(--ease-out-ui); }
 .file-card-symbol { display: grid; place-items: center; gap: var(--space-2); }
 .file-card-symbol svg { inline-size: 1.65rem; }
-.file-card-symbol b { color: var(--foreground); font-size: var(--type-caption); font-weight: var(--weight-emphasis); }
+.file-card-symbol b { color: var(--file-card-stage-foreground); font-size: var(--type-caption); font-weight: var(--weight-emphasis); }
 .file-card-kind, .file-card-duration, .file-card-origin { position: absolute; z-index: 1; display: inline-flex; align-items: center; gap: .28rem; padding: .28rem .42rem; border-radius: var(--radius-sm); color: white; background: rgb(20 17 15 / 78%); font-size: .68rem; line-height: 1; backdrop-filter: blur(5px); }
 .file-card-kind { inset-block-start: .5rem; inset-inline-start: .5rem; }
 .file-card-duration { inset-block-start: .5rem; inset-inline-end: .5rem; }

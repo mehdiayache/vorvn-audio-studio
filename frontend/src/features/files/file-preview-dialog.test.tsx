@@ -1,5 +1,5 @@
 // @vitest-environment jsdom
-import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react"
+import { cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react"
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
 
 import { FilePreviewDialog } from "./file-preview-dialog"
@@ -32,11 +32,45 @@ describe("FilePreviewDialog", () => {
 
     expect(await screen.findByText(/Origins universal File/)).toBeTruthy()
     expect(fetchMock).toHaveBeenCalledWith("/media/stored-brief.txt", expect.objectContaining({ signal: expect.any(AbortSignal) }))
-    fireEvent.click(screen.getByRole("button", { name: "Copy" }))
+    const toolbar = screen.getByRole("toolbar", { name: "File actions" })
+    fireEvent.click(within(toolbar).getByRole("button", { name: "Copy" }))
     await waitFor(() => expect(writeText).toHaveBeenCalledWith("Origins universal File\nSecond line"))
-    const download = screen.getByRole("link", { name: "Download Production brief" })
+    const download = within(toolbar).getByRole("link", { name: "Download Production brief" })
     expect(download.getAttribute("href")).toBe("/media/stored-brief.txt")
     expect(download.getAttribute("download")).toBe("client-brief.txt")
+    expect(document.querySelector(".file-text-preview button[aria-label='Copy']")).toBeNull()
+  })
+
+  it("renders Markdown as a safe document and keeps its source available", async () => {
+    render(<FilePreviewDialog file={{
+      id: 25,
+      name: "Read me",
+      media_type: "document",
+      filename: "read-me.md",
+      mime_type: "text/markdown",
+      text: "# Origins brief\n\n**Important** context.\n\n<script>unsafe()</script>",
+    }} onOpenChange={vi.fn()} />)
+
+    expect(await screen.findByRole("heading", { name: "Origins brief" })).toBeTruthy()
+    expect(document.querySelector(".file-markdown-document script")).toBeNull()
+    fireEvent.click(screen.getByRole("button", { name: "Source" }))
+    expect(screen.getByRole("region", { name: "MD preview" }).querySelector("pre")?.textContent).toContain("# Origins brief")
+  })
+
+  it("presents CSV content as a bounded data table", async () => {
+    render(<FilePreviewDialog file={{
+      id: 26,
+      name: "Campaign metrics",
+      media_type: "data",
+      filename: "metrics.csv",
+      mime_type: "text/csv",
+      text: 'channel,headline,notes\nemail,"Launch, now","Line one\nLine two"',
+    }} onOpenChange={vi.fn()} />)
+
+    const table = await screen.findByRole("table")
+    expect(within(table).getByRole("columnheader", { name: "channel" })).toBeTruthy()
+    expect(within(table).getByRole("cell", { name: "Launch, now" })).toBeTruthy()
+    expect(within(table).getByRole("cell", { name: /Line one/ }).textContent).toBe("Line one\nLine two")
   })
 
   it("formats valid JSON without executing it", async () => {
