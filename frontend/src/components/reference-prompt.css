@@ -16,3 +16,7 @@
 /* A stable row-sized fallback remains resizable in engines without field-sizing. */
 .reference-prompt textarea{height:auto;min-height:6rem;max-height:min(18rem,40dvh);overflow-y:auto;resize:vertical}
 @supports(field-sizing:content){.reference-prompt textarea{field-sizing:content}}
+
+/* Composer owns the input surface and focus; standalone reference fields retain theirs. */
+.reference-prompt[data-surface="composer"] :is(textarea,.reference-rich-input){border:0;border-radius:0;background:transparent;box-shadow:none;padding:0;resize:none}
+.reference-prompt[data-surface="composer"] .dp-field{margin:0}
