@@ -53,14 +53,11 @@
 
 /* Work is part of the folder's face, never a floating badge or a second action. */
 .interactive-folder__status{position:absolute;inset:35% 10% 10%;display:flex;align-items:center;justify-content:center;gap:var(--space-1);color:var(--primary-foreground);font-size:var(--type-small);font-weight:var(--weight-label);pointer-events:none}
-.interactive-folder__status>svg{width:1.15em;height:1.15em;flex:none}
-.interactive-folder[data-attention=true] .interactive-folder__status{color:var(--attention);background:var(--attention-surface);border-radius:var(--radius-sm);inset:35% 25% 15%}
 .interactive-folder__working-lines{display:flex;align-items:center;gap:2px;height:1em}
 .interactive-folder__working-lines i{display:block;width:2px;height:65%;background:currentColor;animation:folder-working 1.2s ease-in-out infinite}
 .interactive-folder__working-lines i:nth-child(2){animation-delay:.15s}.interactive-folder__working-lines i:nth-child(3){animation-delay:.3s}
 .interactive-folder[data-working=true] .interactive-folder__paper{animation:folder-paper-working 2.2s ease-in-out infinite}
 .interactive-folder[data-navigation=true] .interactive-folder__status{inset:15% 8% 5%;font-size:10px;gap:0}
-.interactive-folder[data-navigation=true][data-attention=true] .interactive-folder__status{background:var(--attention-surface)}
 .interactive-folder[data-compact=true]:not([data-navigation=true]) .interactive-folder__status{font-size:9px;inset:20% 5% 5%;gap:2px}
 @keyframes folder-working{0%,100%{transform:scaleY(.45)}50%{transform:scaleY(1)}}
 @keyframes folder-paper-working{0%,100%{transform:translate(-50%,10%)}50%{transform:translate(-50%,-1%)}}
