@@ -1,0 +1,49 @@
+/* References preserve source proportions inside a stable, compact identity. */
+.creator-input-slot{--reference-height:3rem;--reference-tag-font-size:.6875rem;display:grid;gap:var(--space-2);min-width:0;padding:0;border:0;}
+.creator-input-slot>header{display:flex;align-items:center;justify-content:space-between;gap:var(--space-2);font-size:var(--control-font-size);font-weight:var(--weight-label);min-height:2rem;}
+.creator-input-slot>header>span,.creator-reference-actions{display:flex;align-items:center;gap:var(--space-2);}
+.creator-input-slot>header small{color:var(--muted-foreground);font-size:var(--type-caption);font-variant-numeric:tabular-nums;}
+/* Vertical wheel movement belongs to the form. Arrows and native horizontal gestures browse the rail. */
+.creator-reference-tiles{display:flex;flex-wrap:nowrap;gap:var(--space-2);overflow-x:auto;overflow-y:hidden;padding:var(--space-1);align-items:start;overscroll-behavior-x:contain;overscroll-behavior-y:auto;scrollbar-width:none;}
+.creator-reference-tiles::-webkit-scrollbar{display:none;}
+.creator-selected-file{position:relative;flex:0 0 auto;min-width:var(--reference-height);background:transparent;font-size:var(--type-caption);}
+.creator-reference-preview{display:flex;width:var(--reference-height);min-width:var(--reference-height);height:var(--reference-height);aspect-ratio:1;align-items:center;justify-content:center;overflow:hidden;padding:0;border:0;border-radius:var(--radius-sm);background:var(--surface-subtle);cursor:pointer;}
+.creator-reference-preview>img,.creator-reference-preview>video,.creator-reference-preview>.pp-video-thumbnail{width:100%;height:100%;object-fit:contain;}
+.creator-reference-preview .pp-video-thumbnail img,.creator-reference-preview .pp-video-thumbnail video{width:100%;height:100%;object-fit:contain;}
+.creator-reference-caption{display:flex;margin-top:var(--space-1);pointer-events:none;}
+.creator-reference-caption .reference-tag{padding:0;background:transparent;font-size:var(--reference-tag-font-size);}
+.creator-selected-file>[data-ui-button]{position:absolute;top:0;inset-inline-end:0;transform:translate(25%,-15%);}
+.creator-selected-file[data-media="false"]{max-width:12rem;}
+.creator-selected-file[data-media="false"] .creator-reference-preview{width:100%;height:2rem;aspect-ratio:auto;justify-content:start;gap:var(--space-2);padding:var(--space-2);padding-inline-end:2rem;}
+.creator-selected-file[data-media="false"] .creator-reference-preview>span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.creator-selected-file[data-media="false"] .creator-reference-preview>svg{flex-shrink:0;}
+.creator-selected-file[data-media="false"]:has(.creator-reference-caption) .creator-reference-preview{width:var(--reference-height);height:var(--reference-height);align-items:center;justify-content:center;padding:var(--space-2);}
+.creator-reference-add{display:inline-flex;align-items:center;justify-content:center;gap:var(--space-1);min-height:1.75rem;padding:var(--space-1) var(--space-2);border:0;border-radius:var(--field-radius);background:var(--surface-subtle);font-size:var(--type-caption);cursor:pointer;}
+.creator-reference-add:disabled{opacity:var(--disabled-opacity,.5);cursor:not-allowed;}
+.creator-reference-preview:focus-visible,.creator-reference-add:focus-visible{outline:2px solid var(--ring);outline-offset:-2px;}
+@media(hover:hover){.creator-reference-add:hover:not(:disabled){background:var(--accent);}}
+.creator-reference-groups{display:flex;flex-wrap:wrap;align-items:start;gap:var(--space-2) var(--space-4);min-width:0;}
+.creator-reference-groups[data-mode="references"]>.creator-input-slot{flex:0 1 auto;max-inline-size:100%;}
+.creator-reference-groups[data-mode="references"]>.creator-input-slot[data-empty="true"]>header{gap:var(--space-1);}
+.creator-reference-groups[data-mode="references"]>.creator-input-slot:not([data-empty="true"]){flex-basis:auto;min-inline-size:min(12rem,100%);}
+.creator-reference-groups[data-mode="references"] .creator-reference-tiles{flex-wrap:wrap;max-block-size:10rem;overflow:auto;scrollbar-width:thin;padding:var(--space-2);}
+.creator-reference-groups[data-mode="references"] .creator-reference-tiles::-webkit-scrollbar{display:initial;}
+.creator-reference-groups[data-mode="frames"]{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));align-items:start;gap:var(--space-3);}
+
+.creator-reference-preview .video-thumbnail-play{width:var(--space-5);height:var(--space-5);}
+.creator-reference-preview .video-thumbnail-play svg{width:var(--space-3);height:var(--space-3);}
+
+.creator-input-slot[data-presentation="frame"] .creator-selected-file{width:100%;}
+.creator-input-slot[data-presentation="frame"] .creator-reference-preview{width:100%;height:6rem;}
+.creator-frame-add{height:6rem;width:100%;flex-direction:column;border-radius:var(--field-radius);}
+
+.creator-input-slot[data-presentation="frame"] .creator-reference-tiles{padding:0;overflow:visible;}
+
+/* Audio references use the shared compact transport, never a document thumbnail. */
+.creator-reference-audio{display:flex;align-items:center;gap:var(--space-1);min-height:var(--reference-height);padding:var(--space-1) var(--space-3) var(--space-1) var(--space-2);border:var(--stroke-hairline) solid var(--border);border-radius:var(--field-radius);background:var(--surface-subtle);min-width:var(--reference-audio-width,8rem)}
+.creator-reference-audio-identity{display:grid;place-items:center;padding:var(--space-1);border:0;background:transparent;color:var(--muted-foreground);cursor:pointer}
+.creator-reference-audio-identity>svg{width:var(--space-5);height:var(--space-5)}
+.creator-reference-audio-identity:focus-visible{outline:2px solid var(--focus-color);outline-offset:-2px;border-radius:var(--field-radius)}
+.creator-selected-file[data-kind=audio]{max-width:none}
+.creator-selected-file[data-kind=video] .creator-reference-preview{position:relative;width:var(--reference-video-width,5rem);aspect-ratio:auto}
+.creator-reference-duration{position:absolute;inset-inline-end:var(--space-1);bottom:var(--space-1);padding:0 var(--space-1);border-radius:var(--radius-sm);background:var(--background);color:var(--foreground);font-size:var(--type-caption);font-family:var(--font-mono);line-height:1.3;pointer-events:none}

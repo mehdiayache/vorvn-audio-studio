@@ -1,0 +1,18 @@
+.reference-prompt{position:relative;min-width:0;display:grid;gap:var(--space-2);}
+.reference-prompt-options{display:flex;flex-direction:column;gap:var(--space-1);max-height:12rem;overflow-y:auto;overflow-x:hidden;padding:var(--space-2);background:var(--popover);border-radius:var(--field-radius);box-shadow:var(--shadow-sm);}
+.reference-prompt-option{flex:none;display:flex;align-items:center;gap:var(--space-2);text-align:start;background:transparent;border:0;padding:var(--space-1);border-radius:var(--radius-sm);cursor:pointer;}
+.reference-prompt-option[data-active="true"],.reference-prompt-option:focus-visible{outline:none;background:var(--surface-subtle);}
+.reference-prompt-hint{font-size:var(--type-caption);color:var(--foreground);}
+.reference-prompt-missing{font-size:var(--type-small);color:var(--destructive);}
+
+.reference-rich-input{min-height:6rem;height:auto;max-height:min(18rem,40dvh);resize:vertical;overflow-y:auto;white-space:pre-wrap;overflow-wrap:anywhere;padding:var(--space-3);border:var(--stroke-hairline) solid var(--input);border-radius:var(--field-radius);background:var(--background);font-size:var(--type-small);line-height:1.5;outline:none;}
+.reference-rich-input:focus-visible{box-shadow:var(--field-focus-shadow);border-color:var(--field-focus-color);}
+.reference-rich-input:empty:before{content:attr(data-placeholder);color:var(--muted-foreground);pointer-events:none;}
+.reference-rich-input .reference-tag{vertical-align:middle;padding:0 var(--space-1);font-size:inherit;line-height:1.25;font-weight:400;cursor:pointer;}
+
+.reference-prompt-menu{position:fixed;z-index:100;box-shadow:var(--shadow-lg);}
+.reference-prompt-option:hover{background:var(--surface-subtle);}
+
+/* A stable row-sized fallback remains resizable in engines without field-sizing. */
+.reference-prompt textarea{height:auto;min-height:6rem;max-height:min(18rem,40dvh);overflow-y:auto;resize:vertical}
+@supports(field-sizing:content){.reference-prompt textarea{field-sizing:content}}
