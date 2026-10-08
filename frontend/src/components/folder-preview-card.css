@@ -1,0 +1,67 @@
+/* Folder silhouette shares resource-card surface, contour and interaction tokens. */
+.folder-preview-card{position:relative;isolation:isolate;min-width:0;border-radius:var(--resource-card-radius)}
+.folder-preview-card__body{position:relative;isolation:isolate;aspect-ratio:1;border-radius:inherit;background:transparent;box-shadow:none}
+.folder-preview-card__silhouette{position:absolute;bottom:15%;left:10%;width:80%;height:60%;z-index:0;overflow:visible;pointer-events:none;filter:none}
+.folder-preview-card__back{fill:var(--selection-surface);stroke:none}
+.folder-preview-card__front{fill:var(--resource-card-surface);stroke:var(--primary);stroke-width:1}
+.folder-preview-card__open{display:block;position:relative;width:100%;height:100%;border-radius:inherit;background:none;border:0;cursor:pointer}
+.folder-preview-card__open:focus-visible{outline:2px solid var(--ring);outline-offset:3px}
+.folder-preview-card__caption{display:block;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;width:100%;text-align:start;padding:var(--space-2) 0 0;font:var(--file-name-weight,var(--weight-label)) var(--file-name-size,var(--type-item-name))/var(--file-name-line,1.35) var(--font-sans);color:var(--foreground);background:none;border:0;cursor:pointer}
+.folder-preview-card__metadata{display:block;margin-top:var(--space-1);font-size:var(--type-caption);font-weight:var(--weight-label);line-height:1.35;color:var(--muted-foreground)}
+.folder-preview-card__actions{position:absolute;inset-inline-end:var(--space-3);top:var(--space-3)}
+.folder-preview-card[data-selected="true"]{background:var(--selection-surface);outline:2px solid var(--selection-border,var(--primary));outline-offset:2px;border-radius:var(--radius-control)}
+.folder-preview-card__samples{display:none}
+.folder-preview-card__watermark{position:absolute;left:var(--space-4);bottom:var(--space-3);color:var(--muted-foreground);opacity:.16;pointer-events:none}
+.folder-preview-card__watermark svg{width:3rem;height:3rem}
+.fl-folder-preview-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:var(--space-4)}
+.fl-system-folder-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(0,11rem));gap:var(--space-4)}
+@media(max-width:1250px){.fl-folder-preview-grid{grid-template-columns:repeat(3,minmax(0,1fr))}}
+@media(max-width:1000px){.fl-folder-preview-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media(max-width:600px){.fl-folder-preview-grid{grid-template-columns:minmax(0,1fr)}}
+@media(max-width:420px){.fl-system-folder-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
+
+.folder-preview-card__symbol{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);color:var(--primary);pointer-events:none}
+
+/* Reference: https://codepen.io/shunyadezain/pen/GRqoWdG
+   Preserve its 100×80 anatomy, three papers and opening transforms; blue follows the app accent. */
+.interactive-folder{display:block;width:100px;height:80px;max-width:100%;--folder-icon-radius:min(5px,var(--radius-control));--folder-fill:var(--primary);--folder-back:color-mix(in srgb,var(--primary),#000 16%);transition:transform var(--motion-fast) var(--ease-out-ui)}
+.interactive-folder__back{display:block;position:relative;width:100%;height:100%;background:var(--folder-back);border-radius:0 var(--folder-icon-radius) var(--folder-icon-radius) var(--folder-icon-radius)}
+.interactive-folder__back::after{position:absolute;bottom:98%;left:0;content:"";width:30%;height:12.5%;background:var(--folder-back);border-radius:var(--folder-icon-radius) var(--folder-icon-radius) 0 0}
+.interactive-folder__paper{position:absolute;bottom:10%;left:50%;transform:translate(-50%,10%);width:70%;height:80%;background:#e6e6e6;border-radius:var(--folder-icon-radius);transition:transform .3s ease-in-out}
+.interactive-folder__paper:nth-child(2){background:#f2f2f2;width:80%;height:70%}
+.interactive-folder__paper:nth-child(3){background:#fff;width:90%;height:60%}
+.interactive-folder__front{position:absolute;inset:0;background:var(--folder-fill);border-radius:var(--folder-icon-radius);transform-origin:bottom;transition:transform .3s ease-in-out}
+.interactive-folder[data-compact=true]{width:30px;height:24px}
+.interactive-folder[data-compact=true] :is(.interactive-folder__back,.interactive-folder__paper,.interactive-folder__front){border-radius:min(2px,var(--radius-control))}
+
+@media(hover:hover) and (pointer:fine){
+ .folder-preview-card:hover .interactive-folder{transform:translateY(-8px)}
+ .folder-preview-card:hover .interactive-folder__paper{transform:translate(-50%,0%)}
+ .folder-preview-card:hover .interactive-folder__front{transform:skew(15deg) scaleY(.6)}
+ .folder-preview-card:hover .interactive-folder__front--right{transform:skew(-15deg) scaleY(.6)}
+}
+.folder-preview-card:has(:focus-visible) .interactive-folder__paper{transform:translate(-50%,0%)}
+.folder-preview-card:has(:focus-visible) .interactive-folder__front{transform:skew(15deg) scaleY(.6)}
+.folder-preview-card:has(:focus-visible) .interactive-folder__front--right{transform:skew(-15deg) scaleY(.6)}
+@media(prefers-reduced-motion:reduce){.interactive-folder,.interactive-folder__paper,.interactive-folder__front{transition:none}.folder-preview-card:hover .interactive-folder{transform:none}}
+
+/* Keyboard focus follows the folder itself, not the invisible grid slot. */
+.collection-surface [data-resource-id]:has(.folder-preview-card__open:focus-visible,.folder-preview-card__caption:focus-visible) .folder-preview-card__body{outline:none}
+.folder-preview-card:has(:focus-visible) .interactive-folder,[data-drop-target=true] .interactive-folder{filter:drop-shadow(0 0 3px var(--ring))}
+
+.interactive-folder[data-navigation=true]{width:var(--space-4);height:calc(var(--space-4) * .8);flex-shrink:0;transform:none}
+
+/* Work is part of the folder's face, never a floating badge or a second action. */
+.interactive-folder__status{position:absolute;inset:35% 10% 10%;display:flex;align-items:center;justify-content:center;gap:var(--space-1);color:var(--primary-foreground);font-size:var(--type-small);font-weight:var(--weight-label);pointer-events:none}
+.interactive-folder__status>svg{width:1.15em;height:1.15em;flex:none}
+.interactive-folder[data-attention=true] .interactive-folder__status{color:var(--attention);background:var(--attention-surface);border-radius:var(--radius-sm);inset:35% 25% 15%}
+.interactive-folder__working-lines{display:flex;align-items:center;gap:2px;height:1em}
+.interactive-folder__working-lines i{display:block;width:2px;height:65%;background:currentColor;animation:folder-working 1.2s ease-in-out infinite}
+.interactive-folder__working-lines i:nth-child(2){animation-delay:.15s}.interactive-folder__working-lines i:nth-child(3){animation-delay:.3s}
+.interactive-folder[data-working=true] .interactive-folder__paper{animation:folder-paper-working 2.2s ease-in-out infinite}
+.interactive-folder[data-navigation=true] .interactive-folder__status{inset:15% 8% 5%;font-size:10px;gap:0}
+.interactive-folder[data-navigation=true][data-attention=true] .interactive-folder__status{background:var(--attention-surface)}
+.interactive-folder[data-compact=true]:not([data-navigation=true]) .interactive-folder__status{font-size:9px;inset:20% 5% 5%;gap:2px}
+@keyframes folder-working{0%,100%{transform:scaleY(.45)}50%{transform:scaleY(1)}}
+@keyframes folder-paper-working{0%,100%{transform:translate(-50%,10%)}50%{transform:translate(-50%,-1%)}}
+@media(prefers-reduced-motion:reduce){.interactive-folder__working-lines i,.interactive-folder[data-working=true] .interactive-folder__paper{animation:none}}
