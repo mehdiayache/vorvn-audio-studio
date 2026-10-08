@@ -10,7 +10,7 @@
 .reference-rich-input:empty:before{content:attr(data-placeholder);color:var(--muted-foreground);pointer-events:none;}
 .reference-rich-input .reference-tag{vertical-align:middle;padding:0 var(--space-1);font-size:inherit;line-height:1.25;font-weight:400;cursor:pointer;}
 
-.reference-prompt-menu{position:fixed;z-index:100;box-shadow:var(--shadow-lg);}
+.reference-prompt-menu{inline-size:min(18rem,calc(100vw - 24px));max-block-size:min(12rem,var(--radix-popover-content-available-height));box-shadow:var(--shadow-lg);overscroll-behavior:contain;}
 .reference-prompt-option:hover{background:var(--surface-subtle);}
 
 /* A stable row-sized fallback remains resizable in engines without field-sizing. */
