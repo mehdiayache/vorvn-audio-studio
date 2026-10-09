@@ -1,0 +1,64 @@
+.fl-location-menu {overflow:hidden;max-height:var(--radix-dropdown-menu-content-available-height);padding:var(--space-1);}
+.fl-location-scroll [data-slot="scroll-area-viewport"] {height:auto;max-height:min(32rem,calc(var(--radix-dropdown-menu-content-available-height,70dvh) - var(--space-2)));overscroll-behavior:contain;}
+.fl-location-scroll [data-slot="scroll-area-viewport"]>div {padding-inline-end:var(--space-2);}
+.fl-location-scroll [data-slot="scroll-area-scrollbar"] {width:6px;}
+.fl-location-scroll [data-slot="scroll-area-thumb"] {background:var(--border-strong);}
+
+.fl-destination { display:flex; align-items:center; gap:var(--space-2); min-width:0; }
+.fl-destination>span { overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.fl-destination>svg { flex-shrink:0; }
+
+.upload-folder-trigger { border:1px solid var(--border); border-radius:var(--field-radius); }
+
+.fl-tree-children:not(:empty) {margin-inline-start:var(--space-4);padding-inline-start:var(--space-3);}
+.fl-tree-children>.fl-tree-branch {position:relative;}
+.fl-tree-children>.fl-tree-branch::before {content:"";position:absolute;inset-inline-start:calc(-1 * var(--space-3));top:0;bottom:0;border-inline-start:1px solid var(--border-strong);pointer-events:none;}
+.fl-tree-children>.fl-tree-branch:last-child::before {bottom:auto;height:1rem;}
+.fl-tree-children>.fl-tree-branch::after {content:"";position:absolute;inset-inline-start:calc(-1 * var(--space-3));top:1rem;width:var(--space-3);border-top:1px solid var(--border-strong);pointer-events:none;}
+
+.fl-location-menu [role="menuitemradio"] {min-height:2rem;padding-block:var(--space-1);}
+.fl-destination-tree {border:0;padding:0;max-height:45dvh;overflow:auto;min-width:0;}
+.fl-destination-tree legend {font-size:var(--type-small);margin-bottom:var(--space-2);}
+.fl-tree-choice {display:flex;align-items:center;gap:var(--space-2);min-height:2rem;padding:var(--space-1) var(--space-2);border-radius:var(--radius-sm);font-size:var(--type-small);cursor:pointer;}
+.fl-tree-choice:has(input:checked),.fl-tree-choice:hover {background:var(--surface-subtle);}
+.fl-tree-choice input {accent-color:var(--foreground);}
+.fl-new-folder {display:flex;flex-direction:column;align-items:center;justify-content:center;gap:var(--space-2);aspect-ratio:var(--folder-preview-ratio);border:1px dashed var(--border-strong);border-radius:var(--resource-card-radius);color:var(--muted-foreground);}
+.fl-new-folder:hover {background:var(--surface-subtle);color:var(--foreground);}
+
+/* A selected-location marker belongs at the end, not in a false tree gutter. */
+.fl-location-menu [data-slot="dropdown-menu-radio-item"] {padding-inline:var(--space-2) var(--space-6);}
+.fl-location-menu [data-slot="dropdown-menu-radio-item"]>span:first-child {left:auto;right:var(--space-2);}
+.fl-location-menu [data-slot="dropdown-menu-label"] {padding:var(--space-1) var(--space-2);font-size:var(--type-caption);color:var(--muted-foreground);}
+
+.fl-location-menu [role="menuitemradio"] {height:2rem;min-height:2rem;}
+
+.folder-navigator-popover{width:min(24rem,calc(100vw - 2rem));padding:var(--space-2);}
+.folder-navigator{display:flex;flex-direction:column;gap:var(--space-2);min-width:0;}
+.folder-navigator .dp-search{width:100%;min-width:0;}
+.folder-navigator-results{padding:var(--space-1);scroll-padding:var(--space-1);max-height: min(24rem,50dvh);overflow:auto;overscroll-behavior:contain;}
+.folder-navigator-row{display:flex;align-items:center;gap:var(--space-2);width:100%;text-align:start;min-height:2.25rem;padding:var(--space-2);border-radius:var(--field-radius);font:var(--file-name-weight) var(--file-name-size)/var(--file-name-line) var(--font-sans);}
+.folder-navigator-row:hover,.folder-navigator-row[aria-current]{background:var(--surface-subtle);}
+.folder-navigator-row>svg{flex-shrink:0;}.folder-navigator-row>span:not(.interactive-folder){flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.folder-navigator-row small{display:block;color:var(--muted-foreground);font-size:var(--type-caption);overflow:hidden;text-overflow:ellipsis;}
+
+.folder-navigator-entry{display:flex;align-items:center;min-width:0;}
+.folder-navigator-entry .folder-navigator-row{flex:1;min-width:0;padding-block:var(--space-1);min-height:2rem;}
+.folder-navigator-expand,.folder-navigator-gutter{width:1.25rem;flex:0 0 1.25rem;}
+.folder-navigator-expand{display:grid;place-items:center;height:2rem;border-radius:var(--radius-sm);color:var(--muted-foreground);}
+.folder-navigator-expand:hover{background:var(--surface-subtle);color:var(--foreground);}
+.folder-navigator-expand[aria-expanded="true"] svg{transform:rotate(90deg);}
+[dir="rtl"] .folder-navigator-expand[aria-expanded="false"] svg{transform:rotate(180deg);}
+.folder-navigator-row:disabled{opacity:.5;cursor:not-allowed;}
+.folder-navigator-row .folder-navigator-hint{flex:0 0 auto;font-size:var(--type-caption);}
+
+.upload-folder-trigger{display:flex;align-items:center;gap:var(--space-2);min-width:0}.upload-folder-trigger>.interactive-folder{flex:0 0 var(--space-4);width:var(--space-4);height:calc(var(--space-4) * .8)}.upload-folder-trigger>.collection-filter-value{flex:1;min-width:0;text-align:start;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+
+.folder-navigator-section{font-size:var(--type-caption);font-weight:var(--weight-label);color:var(--muted-foreground);margin:var(--space-4) 0 var(--space-1);padding-inline:calc(1.25rem + var(--space-2));line-height:var(--type-panel-line)}
+
+.folder-navigator-section>button{display:flex;align-items:center;justify-content:space-between;width:100%;min-height:1.75rem;text-align:start;color:inherit;border-radius:var(--radius-sm);padding-inline-end:var(--space-2)}
+.folder-navigator-section>button:hover{color:var(--foreground);background:var(--control-hover-surface)}
+.folder-navigator-section>button[aria-expanded="true"] svg{transform:rotate(90deg)}
+[dir="rtl"] .folder-navigator-section>button[aria-expanded="false"] svg{transform:rotate(180deg)}
+
+/* Keep content clear of the trigger edge for every folder picker. */
+.upload-folder-trigger{padding-inline:var(--space-3);}
