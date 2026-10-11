@@ -181,7 +181,7 @@ export function TimelineWorkspace({ session, visual, productionFileIds = [], ins
     if (file.media_type === "audio") await session.addTrack(file, currentPlayhead)
     else if (visual && (file.media_type === "image" || file.media_type === "video")) await visual.session.addVisual(file, currentPlayhead * 1_000)
   }, [session, visual])
-  return <section className={cn("timeline-workspace", tracksCollapsed && "tracks-collapsed", viewport.panning && "is-panning")} style={{ "--timeline-workbench-height": `${layout.workbenchHeight}px` } as CSSProperties}>
+  return <section ref={layout.containerRef} className={cn("timeline-workspace", tracksCollapsed && "tracks-collapsed", viewport.panning && "is-panning")} style={{ "--timeline-workbench-height": `${layout.workbenchHeight}px` } as CSSProperties}>
     <TimelineWorkbench
       selection={workstationSelection}
       previewTarget={previewTarget}
@@ -209,7 +209,7 @@ export function TimelineWorkspace({ session, visual, productionFileIds = [], ins
       if (event.key !== "ArrowUp" && event.key !== "ArrowDown") return
       event.preventDefault()
       layout.setWorkbenchHeight(Math.max(220, Math.min(620, layout.workbenchHeight + (event.key === "ArrowDown" ? 16 : -16))))
-    }} onPointerDown={layout.begin} onPointerMove={layout.move} onPointerUp={layout.end} onPointerCancel={layout.end} />
+    }} onPointerDown={layout.begin} onPointerMove={layout.move} onPointerUp={layout.end} onPointerCancel={layout.cancel} />
     <TimelineToolbar
       canUndo={history.canUndo}
       canRedo={history.canRedo}

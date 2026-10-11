@@ -1,0 +1,19 @@
+/* Extracted Studio controls, scoped so other Timeline implementations cannot style them. */
+.studio-timeline-toolbar.timeline-command-bar { min-width: 0; display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: var(--space-2); padding: var(--space-1) var(--space-2); border-bottom: 1px solid var(--border); background: var(--background); -webkit-user-select: none; user-select: none; }
+.studio-timeline-toolbar svg { width: .85rem; }
+.studio-timeline-toolbar .timeline-editing-tools, .studio-timeline-toolbar .timeline-insert-actions { min-width: 0; display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-1); }
+.studio-timeline-toolbar .timeline-insert-actions { margin-inline-start: auto; justify-content: flex-end; }
+.studio-timeline-toolbar .sound-scene-toolbar-title { min-width: 0; display: flex; align-items: baseline; color: var(--foreground); }
+.studio-timeline-toolbar .sound-scene-toolbar-title b { font-size: var(--type-caption); font-weight: var(--weight-emphasis); }
+.studio-timeline-toolbar .sound-scene-history { display: flex; gap: .05rem; padding-inline-end: var(--space-1); border-inline-end: 1px solid var(--border); }
+.studio-timeline-toolbar .sound-scene-history [data-slot="button"] { width: 1.75rem; height: 1.75rem; padding: 0; color: var(--foreground); }
+.studio-timeline-toolbar .sound-scene-viewport-tools { display: flex; align-items: center; gap: .08rem; }
+.studio-timeline-toolbar .sound-scene-viewport-tools > [data-slot="button"] { color: var(--foreground); font-size: var(--type-small); }
+.studio-timeline-toolbar .sound-scene-viewport-tools > [data-slot="button"].is-active { color: var(--primary); background: var(--primary-soft); }
+.studio-timeline-toolbar .sound-scene-save-state { min-width: 0; color: var(--foreground); font-size: var(--type-small); white-space: nowrap; }
+.studio-timeline-zoom-dock.sound-scene-zoom-dock { z-index: 14; display: flex; align-items: center; gap: .08rem; padding: var(--space-1); border: 1px solid var(--border); border-radius: var(--radius-control); background: var(--background); box-shadow: var(--shadow-sm); }
+.studio-timeline-zoom-dock .sound-scene-zoom { width: 8.75rem; display: grid; grid-template-columns: 1.7rem minmax(0, 1fr) 1.7rem; align-items: center; gap: .18rem; }
+.studio-timeline-zoom-dock .sound-scene-zoom [data-slot="slider-track"] { height: 3px; }
+.studio-timeline-zoom-dock .sound-scene-zoom [data-slot="slider-thumb"] { width: .72rem; height: .72rem; border-color: var(--foreground); background: var(--background); }
+.studio-timeline-zoom-dock > [data-slot="button"] { color: var(--foreground); font-size: var(--type-small); }
+@media (max-width: 1180px) { .studio-timeline-toolbar .sound-scene-viewport-tools > [data-slot="button"] span { display: none; } }

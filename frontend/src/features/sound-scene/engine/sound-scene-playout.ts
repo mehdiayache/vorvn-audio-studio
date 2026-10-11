@@ -1,3 +1,4 @@
+import {connectAudioEffects} from '../../../lib/audio-effects';
 import { NativePlayoutAdapter } from "@dawcore/transport"
 
 import type { SequenceMixOverride, SoundScene, SoundSceneClip, SoundSceneEffect } from "@/types/domain"
@@ -343,129 +344,8 @@ export class SoundScenePlayout {
     return element
   }
 
-  private telephone(input: AudioNode, nodes: AudioNode[]) {
-    const high = this.context!.createBiquadFilter()
-    high.type = "highpass"
-    high.frequency.value = 300
-    const low = this.context!.createBiquadFilter()
-    low.type = "lowpass"
-    low.frequency.value = 3_400
-    input.connect(high)
-    high.connect(low)
-    nodes.push(high, low)
-    return low
-  }
-
   private fixedEffects(input: AudioNode, effects: SoundSceneEffect[], nodes: AudioNode[]) {
-    let current = input
-    for (const effect of effects) {
-      if (!effect.enabled) continue
-      if (effect.type === "telephone") {
-        current = this.telephone(current, nodes)
-        continue
-      }
-      if (effect.type === "filter") {
-        const filter = this.context!.createBiquadFilter()
-        filter.type = effect.mode
-        filter.frequency.value = effect.frequency_hz
-        filter.Q.value = effect.q
-        current.connect(filter)
-        nodes.push(filter)
-        current = filter
-        continue
-      }
-      if (effect.type === "compressor") {
-        const compressor = this.context!.createDynamicsCompressor()
-        compressor.threshold.value = effect.threshold_db
-        // FFmpeg acompressor's fixed knee=2.82843 is approximately 9 dB.
-        // Keeping the Web Audio knee explicit avoids browser-default drift.
-        compressor.knee.value = 9
-        compressor.ratio.value = effect.ratio
-        compressor.attack.value = effect.attack_ms / 1_000
-        compressor.release.value = effect.release_ms / 1_000
-        const makeup = this.context!.createGain()
-        makeup.gain.value = 10 ** (effect.makeup_db / 20)
-        current.connect(compressor)
-        compressor.connect(makeup)
-        nodes.push(compressor, makeup)
-        current = makeup
-        continue
-      }
-      if (effect.type === "pan") {
-        const panner = this.context!.createStereoPanner()
-        panner.pan.value = effect.pan
-        current.connect(panner)
-        nodes.push(panner)
-        current = panner
-        continue
-      }
-      if (effect.type === "reverb") {
-        const sum = this.context!.createGain()
-        const dry = this.context!.createGain()
-        dry.gain.value = 1 - effect.mix
-        current.connect(dry)
-        dry.connect(sum)
-        const scale = .6 + 1.8 * effect.room_size
-        ;[[.035, .64], [.067, .44], [.113, .29], [.173, .18]].forEach(([delaySeconds, decay]) => {
-          const delay = this.context!.createDelay(1)
-          const tap = this.context!.createGain()
-          delay.delayTime.value = delaySeconds! * scale
-          tap.gain.value = decay! * effect.mix
-          current.connect(delay)
-          delay.connect(tap)
-          tap.connect(sum)
-          nodes.push(delay, tap)
-        })
-        nodes.push(sum, dry)
-        current = sum
-        continue
-      }
-      if (effect.type === "distortion") {
-        const sum = this.context!.createGain()
-        const dry = this.context!.createGain()
-        const shaper = this.context!.createWaveShaper()
-        const wet = this.context!.createGain()
-        const threshold = Math.max(.08, 1 - effect.amount * .85)
-        const curve = new Float32Array(2_048)
-        const normalizer = Math.tanh(1 / threshold)
-        for (let index = 0; index < curve.length; index += 1) {
-          const inputValue = index / (curve.length - 1) * 2 - 1
-          curve[index] = Math.tanh(inputValue / threshold) / normalizer
-        }
-        shaper.curve = curve
-        shaper.oversample = "4x"
-        dry.gain.value = 1 - effect.mix
-        wet.gain.value = effect.mix
-        current.connect(dry)
-        dry.connect(sum)
-        current.connect(shaper)
-        shaper.connect(wet)
-        wet.connect(sum)
-        nodes.push(sum, dry, shaper, wet)
-        current = sum
-        continue
-      }
-      if (effect.type !== "echo") continue
-      const sum = this.context!.createGain()
-      const dry = this.context!.createGain()
-      const delay = this.context!.createDelay(1)
-      const feedback = this.context!.createGain()
-      const wet = this.context!.createGain()
-      delay.delayTime.value = effect.delay_ms / 1_000
-      feedback.gain.value = effect.feedback
-      dry.gain.value = 1 - effect.mix
-      wet.gain.value = effect.mix
-      current.connect(dry)
-      dry.connect(sum)
-      current.connect(delay)
-      delay.connect(feedback)
-      feedback.connect(delay)
-      delay.connect(wet)
-      wet.connect(sum)
-      nodes.push(sum, dry, delay, feedback, wet)
-      current = sum
-    }
-    return current
+    return connectAudioEffects(this.context!, input, effects, nodes)
   }
 
   private rebuildEffectRoute(
