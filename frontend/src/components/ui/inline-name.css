@@ -1,0 +1,11 @@
+.fd-inline-name{font:inherit;letter-spacing:inherit;display:inline-flex;align-items:center;gap:var(--space-2);text-align:start;max-width:100%;min-width:0;border-radius:var(--radius);padding:var(--space-1)}
+.fd-inline-name>span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.fd-inline-name:hover{background:var(--accent);color:var(--accent-foreground)}
+.fd-inline-name svg{color:var(--muted-foreground);flex-shrink:0}
+.fd-inline-name-editor{min-width:0;width:100%;max-width:24rem}
+.inline-name-field{display:flex;align-items:center;gap:var(--space-2)}
+.inline-name-field input{width:100%;min-width:0}
+.inline-name-extension{font-size:var(--type-small);flex:none}
+.inline-name-error{display:block;color:var(--destructive);font-size:var(--type-caption);margin-top:var(--space-1);white-space:normal}
+
+.inline-name-field [data-slot="input"]{font:inherit;letter-spacing:inherit;line-height:inherit;height:auto;min-height:var(--cta-height);padding:var(--space-1) var(--space-2)}
