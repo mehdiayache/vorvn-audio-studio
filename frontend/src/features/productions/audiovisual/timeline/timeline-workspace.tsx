@@ -68,7 +68,6 @@ export function TimelineWorkspace({ session, visual, productionFileIds = [], ins
   const total = Math.max(productionTimelineDurationMs(scene, visualState.document) / 1000, 1)
   const pixelsPerSecond = SAMPLE_RATE / engine.samplesPerPixel
   const viewport = useTimelineViewport({ session, total, pixelsPerSecond, samplesPerPixel: engine.samplesPerPixel, playhead, playback })
-  const snapping = useTimelineSnapping({ pixelsPerSecond, playhead, sequence: scene.resolved.sequence_projection.spans, audioTracks: tracks, visualTracks })
   const history = useTimelineHistory({
     audioRevision: scene.revision,
     audioRevisionKind: revisionKind,
@@ -133,8 +132,9 @@ export function TimelineWorkspace({ session, visual, productionFileIds = [], ins
   const canCrossfade = Boolean(session.crossfadeOverlap(selectedRefs))
   const canSplit = session.canSplitClipsAtPlayhead(selectedRefs, playhead)
 
-  const audioGesture = useAudioTimelineGestures({ session, visualSession: visual?.session, engine, selectedRefs, saving, pixelsPerSecond, snap: snapping.snap, clearSnapGuide: snapping.clearGuide, activeCancel: viewport.activeCancel })
-  const visualGesture = useVisualTimelineGestures({ session, visualSession: visual?.session, files: visual?.files || [], visualTracks, selectedRefs: selectedVisualRefs, saving: visualState.saving, pixelsPerSecond, snap: snapping.snap, clearSnapGuide: snapping.clearGuide, activeCancel: viewport.activeCancel })
+  const snapping = useTimelineSnapping({ pixelsPerSecond, playhead, sequence: scene.resolved.sequence_projection.spans, audioTracks: tracks, visualTracks, excludeClipIds: [...selectedRefs,...selectedVisualRefs].map(ref=>ref.clipId) })
+  const audioGesture = useAudioTimelineGestures({ session, visualSession: visual?.session, engine, selectedRefs, saving, pixelsPerSecond, snap: snapping.snap, snapPlacement: snapping.snapPlacement, clearSnapGuide: snapping.clearGuide, activeCancel: viewport.activeCancel })
+  const visualGesture = useVisualTimelineGestures({ session, visualSession: visual?.session, files: visual?.files || [], visualTracks, selectedRefs: selectedVisualRefs, saving: visualState.saving, pixelsPerSecond, snap: snapping.snap, snapPlacement: snapping.snapPlacement, clearSnapGuide: snapping.clearGuide, activeCancel: viewport.activeCancel })
   const deleteVisualSelection = () => {
     if (!visual || !selectedVisualRefs.length) return
     visual.onRemoveClip(selectedVisualRefs, selectedVisualRefs.length === 1 && selectedVisualFile ? visualFileName(selectedVisualFile) : `${selectedVisualRefs.length} media clips`)
@@ -181,7 +181,7 @@ export function TimelineWorkspace({ session, visual, productionFileIds = [], ins
     if (file.media_type === "audio") await session.addTrack(file, currentPlayhead)
     else if (visual && (file.media_type === "image" || file.media_type === "video")) await visual.session.addVisual(file, currentPlayhead * 1_000)
   }, [session, visual])
-  return <section ref={layout.containerRef} className={cn("timeline-workspace", tracksCollapsed && "tracks-collapsed", viewport.panning && "is-panning")} style={{ "--timeline-workbench-height": `${layout.workbenchHeight}px` } as CSSProperties}>
+  return <section ref={layout.containerRef} tabIndex={0} onPointerDownCapture={event=>{const target=event.target as HTMLElement;if(event.currentTarget.contains(target)&&!target.closest('input,button,textarea,select,a,[role="slider"],[role="combobox"],[data-slot="slider"],[contenteditable="true"]'))event.currentTarget.focus({preventScroll:true})}} className={cn("timeline-workspace", tracksCollapsed && "tracks-collapsed", viewport.panning && "is-panning")} style={{ "--timeline-workbench-height": `${layout.workbenchHeight}px` } as CSSProperties}>
     <TimelineWorkbench
       selection={workstationSelection}
       previewTarget={previewTarget}

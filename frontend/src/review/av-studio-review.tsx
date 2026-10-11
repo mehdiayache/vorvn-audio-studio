@@ -1,37 +1,79 @@
-import {createRoot} from 'react-dom/client';
-import {MemoryRouter} from 'react-router-dom';
-import {GlobalPlayerProvider} from '@/components/global-player-provider';
-import {ProductReadinessProvider} from '@/components/product-readiness';
-import {TooltipProvider} from '@/components/ui/tooltip';
-import {AudiovisualProductionPage} from '@/features/productions/audiovisual/audiovisual-production-page';
-import type {Production,SoundScene,VisualScene} from '@/types/domain';
+import { createRoot } from 'react-dom/client';
+import { useSyncExternalStore } from 'react';
+import { MemoryRouter } from 'react-router-dom';
+import { GlobalPlayerProvider } from '@/components/global-player-provider';
+import { ProductReadinessProvider } from '@/components/product-readiness';
+import { TooltipProvider } from '@/components/ui/tooltip';
+import { AudiovisualProductionPage } from '@/features/productions/audiovisual/audiovisual-production-page';
+import { originsApi } from '@/lib/api';
+import { HistoricalReviewModel, REVIEW_AUDIO_NAMES, reviewFiles } from './historical-review-model';
+import { createReviewStem, reviewPcm, reviewPeaks } from './historical-review-media';
 import '@fontsource-variable/inter';
 import '@/styles/base.css';
 import '@/styles/studio-deck.css';
-
-// This isolated entry never contacts the old backend. In particular, generation,
-// upload, exports and persistence requests cannot reach an API or provider.
-const originalFetch=window.fetch.bind(window);
-window.fetch=async(input,init)=>{
- const request=input instanceof Request?input:null;
- const url=new URL(request?.url ?? String(input),location.href);
- const method=(init?.method ?? request?.method ?? 'GET').toUpperCase();
- if(method!=='GET'||url.origin!==location.origin||url.pathname.startsWith('/api')||url.pathname.startsWith('/audio')||url.pathname.startsWith('/download'))return new Response(JSON.stringify({detail:'Local comparison only: backend and persistence are disabled.'}),{status:503,headers:{'Content-Type':'application/json'}});
- return originalFetch(input,init);
+// The page and editing sessions are original. Only their backend/source ports
+// are replaced here with an explicitly local QA model and named fixture Files.
+const originalFetch = window.fetch.bind(window);
+const sources = new Map<string, Int16Array>();
+for (const name of REVIEW_AUDIO_NAMES) {
+    const response = await originalFetch(`/origins/review-media/${name}`);
+    if (!response.ok)
+        throw Error(`QA fixture missing: ${name}`);
+    sources.set(name, reviewPcm(new Uint8Array(await response.arrayBuffer())));
+}
+const blockedRequests: Array<{
+    method: string;
+    path: string;
+}> = [];
+window.fetch = async (input, init) => {
+    const request = input instanceof Request ? input : null;
+    const url = new URL(request?.url ?? String(input), location.href);
+    const method = (init?.method ?? request?.method ?? 'GET').toUpperCase();
+    const peakName = url.pathname.match(/^\/api\/v1\/media\/peaks\/(review-qa-(?:opening|dialogue|music|effect)\.wav)$/)?.[1];
+    if (method === 'GET' && url.origin === location.origin && peakName) {
+        const pcm = sources.get(peakName)!;
+        return Response.json({ data: { peaks: reviewPeaks(pcm, Number(url.searchParams.get('bars')) || 128) } });
+    }
+    const audioName = url.pathname.match(/^\/audio\/(review-qa-(?:opening|dialogue|music|effect)\.wav)$/)?.[1];
+    if (method === 'GET' && url.origin === location.origin && audioName)
+        return originalFetch(`/origins/review-media/${audioName}`, init);
+    if (method !== 'GET' || url.origin !== location.origin || url.pathname.startsWith('/api') || url.pathname.startsWith('/audio') || url.pathname.startsWith('/download')) {
+        blockedRequests.push({ method, path: url.pathname });
+        return new Response(JSON.stringify({ detail: 'Historical QA only: production backend, generation, uploads, captions jobs and exports are unavailable. Use Timeline Play for local composition preview.' }), { status: 503, headers: { 'Content-Type': 'application/json' } });
+    }
+    return originalFetch(input, init);
 };
-const parts:Production['parts']=[
- {id:1,public_id:'review-opening',created_at:'2026-10-11',position:0,enabled:true,kind:'draft',title:'Opening',authored_role:'Narrator',text:'A quiet morning. The first light reaches the mountains.',cost:0},
- {id:2,public_id:'review-pause',created_at:'2026-10-11',position:1,enabled:true,kind:'silence',title:'Pause',text:'',duration_ms:1500,cost:0},
- {id:3,public_id:'review-dialogue',created_at:'2026-10-11',position:2,enabled:true,kind:'draft',title:'Dialogue',authored_role:'Guide',text:'Take your time. There is more to hear along the way.',cost:0},
- {id:4,public_id:'review-disabled',created_at:'2026-10-11',position:3,enabled:false,kind:'draft',title:'Alternate take',authored_role:'Narrator',text:'This optional line is disabled.',cost:0},
-];
-const production:Production={id:1,public_id:'local-comparison',production_type:'audiovisual',name:'Original Studio comparison',description:'Isolated in-memory sample',status:'draft',workspace_id:1,project_id:null,settings:{},parts,exports:[],total_cost:0,current_sequence_cost:0,accounting:{historical_spend:0,current_sequence_cost:0,retained_generation_cost:0,tracked_spend:0},total_bytes:0};
-const mix={muted:false,gain:1,fade_in_ms:0,fade_out_ms:0,effects:[]};
-const track={id:'review-audio-track',kind:'audio' as const,role:'ambience' as const,name:'Ambience · unavailable sample source',volume:1,muted:false,clips:[{id:'review-audio-clip',file_id:99,duration_ms:1500,source_offset_ms:0,gain:.4,fade_in_ms:0,fade_out_ms:0,loop:false,ducking:false,muted:false,locked:false,effects:[],anchor:{kind:'absolute' as const,position_ms:0},file_name:'Illustrative placement (no source media)',missing:true,resolved_start_ms:0,resolved_duration_ms:1500}]};
-const soundScene:SoundScene={production_id:1,revision:1,document:{version:1,sequence_overrides:{},tracks:[track]},can_undo:false,can_redo:false,updated_at:'2026-10-11',resolved:{version:1,signature:'review',duration_ms:1500,sequence_projection:{signature:'review',duration_ms:1500,sample_rate:48000,spans:[{part_id:2,part_public_id:'review-pause',position:1,kind:'silence',title:'Pause',role:'',voice_name:'',filename:'',start_ms:0,duration_ms:1500,silence:true,missing:false,mix}]},tracks:[track],orphans:[]},sequence_stem:{url:'',filename:'',duration_ms:1500,signature:'review',cached:false}};
-const visualScene:VisualScene={production_id:1,revision:1,document:{version:1,canvas:{width:1920,height:1080},tracks:[]},updated_at:'2026-10-11'};
-const resources={folders:[],files:[],productionFileIds:[],libraryFileIds:[]};
+const model = new HistoricalReviewModel(createReviewStem(sources));
+Object.assign(originsApi, {
+    updateSoundScene: async (_id: number, revision: number, document: Parameters<HistoricalReviewModel['updateSound']>[0], kind?: string) => model.updateSound(document, revision, kind),
+    undoSoundScene: async () => model.undoSound(), redoSoundScene: async () => model.redoSound(),
+    updateVisualScene: async (_id: number, revision: number, document: Parameters<HistoricalReviewModel['updateVisual']>[0]) => model.updateVisual(document, revision),
+    updateProduction: async (_id: number, changes: {
+        name?: string;
+    }) => model.rename(changes.name || model.snapshot().production.name),
+    reorder: async (_id: number, order: number[]) => { model.reorder(order); return { ok: true }; },
+    savePartEditorial: async (_production: number, id: number, values: {
+        script?: string;
+        authored_role?: string;
+    }) => { model.editPart(id, { ...(values.script === undefined ? {} : { text: values.script }), ...(values.authored_role === undefined ? {} : { authored_role: values.authored_role }) }); return { ok: true }; },
+    setPartEnabled: async (_production: number, id: number, enabled: boolean) => { model.editPart(id, { enabled }); return { ok: true }; },
+    editSilence: async (_production: number, id: number, seconds: number) => { model.editPart(id, { duration_ms: Math.max(100, Math.round(seconds * 1000)) }); return { ok: true }; },
+    addSilence: async (_production: number, seconds: number, before: string | null) => ({ id: model.addPause(seconds, before) }),
+    duplicatePart: async (_production: number, id: number) => ({ id: model.duplicatePart(id) }),
+    deletePart: async (_production: number, id: number) => { model.removeParts([id]); return { ok: true }; },
+    deleteParts: async (_production: number, ids: number[]) => { model.removeParts(ids); return { ok: true }; },
+    captions: async () => ({ transcripts: [] }),
+});
+// Read-only observability for browser QA; it cannot mutate the editing sessions.
+Object.defineProperty(window, '__VEVOLD_HISTORICAL_QA__', { value: { snapshot: () => structuredClone(model.snapshot()), blockedRequests: () => structuredClone(blockedRequests), mediaNames: [...REVIEW_AUDIO_NAMES] }, configurable: true });
+const resources = { folders: [], files: reviewFiles, productionFileIds: reviewFiles.map(file => file.id), libraryFileIds: reviewFiles.map(file => file.id) };
+function ReviewPage() {
+    const { production, soundScene, visualScene } = useSyncExternalStore(model.subscribe, model.snapshot);
+    return <>
+  <div role="note" style={{ padding: '10px 18px', background: '#fff2ca', color: '#483b12', fontSize: 13 }}>Historical Studio QA · original editing sessions with local, in-memory saves/history. WAVs are synthetic QA pulses/chords/clicks; image is a local geometric fixture. No generated voices, production persistence, uploads, transcription or backend exports. Refresh resets this sample. Use Timeline Play for composition playback.</div>
+  <AudiovisualProductionPage production={production} project={null} soundScene={soundScene} visualScene={visualScene} {...resources} fileState={{ status: 'ready', data: resources }} config={null} directory={{ config: null, cloned: [], meta: {}, catalog: [] }} refresh={async () => { }} refreshFiles={async () => { }}/>
+ </>;
+}
 createRoot(document.getElementById('root')!).render(<MemoryRouter><TooltipProvider><ProductReadinessProvider><GlobalPlayerProvider>
- <div role="note" style={{padding:'10px 18px',background:'#fff2ca',color:'#483b12',fontSize:13}}>Original Audio Visual Studio · local in-memory comparison sample. No backend, persistence, generation or export. Script drafts and a real 1.5-second pause; the illustrative audio placement has no source media.</div>
- <AudiovisualProductionPage production={production} project={null} soundScene={soundScene} visualScene={visualScene} {...resources} fileState={{status:'ready',data:resources}} config={null} directory={{config:null,cloned:[],meta:{},catalog:[]}} refresh={async()=>{}} refreshFiles={async()=>{}}/>
+ <ReviewPage />
  </GlobalPlayerProvider></ProductReadinessProvider></TooltipProvider></MemoryRouter>);

@@ -1,0 +1,12 @@
+.audio-volume-control { display: grid; gap: .48rem; min-width: 0; }
+.audio-volume-heading { min-height: 1.35rem; display: flex; align-items: center; gap: .42rem; color: var(--foreground); font-size: var(--type-workstation-label); }
+.audio-volume-heading > span { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.audio-volume-heading > strong { margin-left: auto; font: var(--weight-emphasis) var(--type-workstation-data)/1 var(--font-mono); font-variant-numeric: tabular-nums; }
+.audio-volume-heading [data-slot="button"] { width: 1.35rem; height: 1.35rem; }
+.audio-volume-row { display: flex; align-items: center; gap: .55rem; min-width: 0; }
+.audio-volume-mute.is-active { color: var(--destructive); background: color-mix(in srgb, var(--destructive) 10%, transparent); }
+.audio-volume-slider { position: relative; flex: 1; min-width: 4rem; }
+.audio-volume-slider > i { position: absolute; z-index: 0; top: 50%; left: 50%; width: 1px; height: .55rem; background: var(--border-strong, var(--border)); transform: translate(-50%, -50%); pointer-events: none; }
+.audio-volume-slider [data-slot="slider"] { position: relative; z-index: 1; }
+.audio-volume-control.is-compact { gap: .4rem; }
+.audio-volume-control.is-compact .audio-volume-heading { min-height: 1.2rem; }

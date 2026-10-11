@@ -1,4 +1,5 @@
 import { useEffect } from "react"
+import {TimelineContextBar as StudioTimelineContextBar} from "../../../../components/studio-timeline/timeline-context-bar"
 import { toast } from "sonner"
 
 import type { SoundSceneSession, SoundClipRef } from "@/features/sound-scene/engine/sound-scene-session"
@@ -43,8 +44,7 @@ export function TimelineContextBar({ audioSession, visualSession, selectedAudioR
     visualSession?.clearError()
   }, [audioSession, feedback, visualSession])
 
-  return <footer className="timeline-selection-bar" aria-label="Selection actions">
-    {selectedVisualRef && selectedVisualTrack && selectedVisualClip && visualSession ? <VisualContextToolbar
+  const toolbar = selectedVisualRef && selectedVisualTrack && selectedVisualClip && visualSession ? <VisualContextToolbar
       count={selectedVisualRefs.length}
       track={selectedVisualTrack}
       clip={selectedVisualClip}
@@ -76,6 +76,6 @@ export function TimelineContextBar({ audioSession, visualSession, selectedAudioR
       onPlaySelection={() => { onFollowPlayhead(); void audioSession.playSelection(false, selectedAudioRefs) }}
       onLoopSelection={() => { onFollowPlayhead(); void audioSession.playSelection(true, selectedAudioRefs) }}
       onDelete={onRemoveAudio}
-    /> : <span className="selection-bar-empty">Select a clip or Script Part to edit it</span>}
-  </footer>
+    /> : <span className="selection-bar-empty">Select a clip or Script Part to edit it</span>
+  return <StudioTimelineContextBar audioToolbar={toolbar}/>
 }

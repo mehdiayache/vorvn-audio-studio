@@ -807,7 +807,7 @@ export class SoundSceneSession {
   async undo() {
     if (this.snapshotValue.saving) return
     this.set({ saving: true, error: "", revisionKind: "history" })
-    try { this.reconcile(await this.persistence.undo(), false, "history") }
+    try { this.reconcile(await this.persistence.undo(), true, "history") }
     catch (reason) {
       this.set({ error: reason instanceof Error ? reason.message : "The last Timeline edit could not be undone." })
     }
@@ -816,7 +816,7 @@ export class SoundSceneSession {
   async redo() {
     if (this.snapshotValue.saving) return
     this.set({ saving: true, error: "", revisionKind: "history" })
-    try { this.reconcile(await this.persistence.redo(), false, "history") }
+    try { this.reconcile(await this.persistence.redo(), true, "history") }
     catch (reason) {
       this.set({ error: reason instanceof Error ? reason.message : "The Timeline edit could not be restored." })
     }

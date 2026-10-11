@@ -1,4 +1,49 @@
-// Review-only compatibility for legacy callers of the removed waveform hook.
-// Missing source media is honestly unavailable; no synthetic peaks are drawn.
-export { AudioWaveform, denseWaveformPeaks } from '../components/audio-waveform';
-export function useAudioPeaks(_url?: string, _count?: number, _peaksUrl?: string): number[] { return []; }
+// Original 35b3482 waveform presentation, isolated to the historical QA entry.
+// Its peaks endpoint is handled from actual local PCM bytes by the QA adapter.
+import { useEffect, useId, useState } from 'react';
+const waveformCache = new Map<string, Promise<number[]>>();
+async function fetchWaveform(url: string, bars: number, endpoint?: string) {
+    const filename = decodeURIComponent(new URL(url, window.location.origin).pathname.split('/').pop() || '');
+    const target = endpoint ? `${endpoint}${endpoint.includes('?') ? '&' : '?'}bars=${bars}` : `/api/v1/media/peaks/${encodeURIComponent(filename)}?bars=${bars}`;
+    const response = await fetch(target);
+    if (!response.ok)
+        throw Error(`Waveform unavailable (${response.status})`);
+    const payload = await response.json() as {
+        data: {
+            peaks: number[];
+        };
+    };
+    return payload.data.peaks;
+}
+export function useAudioPeaks(url?: string, bars = 48, endpoint?: string) {
+    const [peaks, setPeaks] = useState<number[] | null>(null);
+    useEffect(() => {
+        let active = true;
+        if (!url) {
+            setPeaks(null);
+            return () => { active = false; };
+        }
+        const key = `${url}:${endpoint || 'media'}:${bars}`, pending = waveformCache.get(key) || fetchWaveform(url, bars, endpoint);
+        waveformCache.set(key, pending);
+        pending.then(value => { if (active)
+            setPeaks(value); }).catch(() => { if (active)
+            setPeaks([]); });
+        return () => { active = false; };
+    }, [url, bars, endpoint]);
+    return peaks;
+}
+export function AudioWaveform({ url, bars = 48 }: {
+    url?: string;
+    bars?: number;
+}) {
+    const peaks = useAudioPeaks(url, bars), gradientId = useId().replace(/:/g, '');
+    if (!url || peaks?.length === 0)
+        return <span className="waveform-unavailable" aria-hidden="true"/>;
+    if (!peaks)
+        return <span className="waveform-loading" aria-hidden="true"/>;
+    const gap = 1.5, barWidth = 2, width = peaks.length * (barWidth + gap);
+    return <svg className="audio-waveform" viewBox={`0 0 ${width} 28`} preserveAspectRatio="none" aria-hidden="true">
+  <defs><linearGradient id={gradientId} x1="0" y1="0" x2="0" y2="1"><stop stopColor="currentColor" stopOpacity=".78"/><stop offset="1" stopColor="currentColor" stopOpacity=".28"/></linearGradient></defs>
+  {peaks.map((peak, index) => { const height = Math.max(2, peak * 24); return <rect key={index} x={index * (barWidth + gap)} y={(28 - height) / 2} width={barWidth} height={height} rx="1" fill={`url(#${gradientId})`}/>; })}
+ </svg>;
+}

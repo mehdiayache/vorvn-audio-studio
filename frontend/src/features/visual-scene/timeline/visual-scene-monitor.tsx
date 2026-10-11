@@ -1,5 +1,6 @@
 import { Image as ImageIcon } from "lucide-react"
 import { useEffect, useRef, type CSSProperties, type PointerEvent as ReactPointerEvent } from "react"
+import { useStudioPreviewGestures } from "@/components/studio-timeline/use-studio-preview-gestures"
 
 import type { WorkspaceFile, VisualSceneDocument } from "@/types/domain"
 import { visualFileName, visualFilePlaybackUrl, visualFilePosterUrl, visualFileUrl } from "@/features/files/file-presentation"
@@ -64,36 +65,19 @@ export function VisualSceneMonitor({ document, files, playheadMs, playback, sele
     "--visual-scene-aspect": document.canvas.width / document.canvas.height,
   } as CSSProperties
 
+  const movePreview = useStudioPreviewGestures({
+    selection,
+    active: active.some(item => item.track.id === selection?.trackId && item.clip.id === selection?.clipId),
+    editable: Boolean(session),
+    revisionKey: `${document.canvas.width}:${document.canvas.height}`,
+    onBegin: () => session?.beginGesture(),
+    onPreview: (ref, transform) => session?.previewClipTransform(ref, { position_x: (transform.positionX - .5) * document.canvas.width, position_y: (transform.positionY - .5) * document.canvas.height }),
+    onCommit: () => session?.commitGesture(),
+    onCancel: () => session?.cancelGesture(),
+    onError: reason => session?.reportError(reason instanceof Error ? reason.message : "The visual placement could not be saved."),
+  })
   function moveSelected(event: ReactPointerEvent, ref: VisualClipRef, clip: VisualSceneClip) {
-    if (!session || !selection || selection.trackId !== ref.trackId || selection.clipId !== ref.clipId || clip.locked || event.button !== 0) return
-    event.preventDefault()
-    event.stopPropagation()
-    const frame = event.currentTarget.parentElement
-    if (!frame) return
-    const rect = frame.getBoundingClientRect()
-    const startX = event.clientX
-    const startY = event.clientY
-    const originalX = clip.position_x
-    const originalY = clip.position_y
-    let started = false
-    const move = (next: PointerEvent) => {
-      if (!started && Math.hypot(next.clientX - startX, next.clientY - startY) < 3) return
-      if (!started) { started = true; session.beginGesture() }
-      session.previewClipTransform(ref, {
-        position_x: originalX + (next.clientX - startX) * document.canvas.width / rect.width,
-        position_y: originalY + (next.clientY - startY) * document.canvas.height / rect.height,
-      })
-    }
-    const cleanup = () => {
-      window.removeEventListener("pointermove", move)
-      window.removeEventListener("pointerup", finish)
-      window.removeEventListener("pointercancel", cancel)
-    }
-    const finish = () => { cleanup(); if (started) void session.commitGesture() }
-    const cancel = () => { cleanup(); if (started) session.cancelGesture() }
-    window.addEventListener("pointermove", move)
-    window.addEventListener("pointerup", finish, { once: true })
-    window.addEventListener("pointercancel", cancel, { once: true })
+    movePreview(event, ref, { positionX: .5 + clip.position_x / document.canvas.width, positionY: .5 + clip.position_y / document.canvas.height }, event.currentTarget.parentElement, clip.locked || Boolean(document.tracks.find(track => track.id === ref.trackId)?.locked))
   }
 
   return <section className="visual-scene-monitor" aria-label="Visual monitor">
