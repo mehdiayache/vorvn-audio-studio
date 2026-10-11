@@ -1,0 +1,8 @@
+.caption-workspace-view {display:flex;flex-direction:column;min-width:0;min-height:0;height:100%;overflow:auto;gap:var(--space-3);}
+.caption-workspace-context {display:grid;gap:var(--space-2);flex:none;}
+.caption-workspace-navigation,.caption-workspace-tools,.caption-workspace-footer {display:flex;align-items:center;flex-wrap:wrap;gap:var(--space-2);flex:none;}
+.caption-workspace-navigation {border-block-end:1px solid var(--border);padding-block-end:var(--space-2);}
+.caption-workspace-main {display:flex;flex-direction:column;min-height:0;min-width:0;flex:none;gap:var(--space-3);}
+.caption-workspace-cues {min-height:0;min-width:0;overflow:visible;flex:none;}
+.caption-workspace-inspector {border-block-start:1px solid var(--border);padding-block-start:var(--space-3);max-height:none;overflow:visible;min-width:0;flex:none;}
+.caption-workspace-footer {border-block-start:1px solid var(--border);padding-block-start:var(--space-2);}

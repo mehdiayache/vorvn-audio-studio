@@ -1,0 +1,27 @@
+/* The browser owns controls and one collection scroll region. */
+.studio-media-browser.timeline-media-browser {display:grid;grid-template-rows:auto auto minmax(0,1fr);min-width:0;min-height:0;overflow:hidden;}
+.studio-media-browser .studio-media-browser-controls {display:grid;gap:var(--space-1);padding:var(--space-2);min-width:0;}
+.studio-media-browser .timeline-media-scope {display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:var(--space-1);}
+.studio-media-browser .timeline-media-types {display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:var(--space-1);}
+.studio-media-browser .timeline-media-scope button,.studio-media-browser .timeline-media-types button {min-width:0;min-height:1.65rem;padding:var(--space-1);font-size:var(--type-caption);border-radius:var(--radius-sm);color:var(--muted-foreground);}
+.studio-media-browser .timeline-media-scope button[aria-pressed=true],.studio-media-browser .timeline-media-types button[aria-pressed=true] {background:var(--muted);color:var(--foreground);}
+.studio-media-browser .timeline-media-results {display:block;min-height:0;overflow:auto;padding:var(--space-2);}
+.studio-media-card-grid,.studio-media-loading {display:grid;grid-template-columns:repeat(auto-fill,minmax(8rem,1fr));gap:var(--space-3);}
+.studio-media-loading .ui-skeleton {aspect-ratio:1;border-radius:var(--radius-md);}
+.studio-media-file {position:relative;min-width:0;display:grid;gap:var(--space-2);}
+.studio-media-file-preview {display:grid;place-items:center;width:100%;aspect-ratio:1;background:var(--muted);border-radius:var(--radius-md);overflow:hidden;}
+.studio-media-file-caption {display:flex;align-items:start;gap:var(--space-1);}
+.studio-media-file-caption>button:first-child {flex:1;min-width:0;text-align:start;font-size:var(--type-small);}
+.studio-media-usage {position:absolute;inset-block-start:var(--space-2);inset-inline-end:var(--space-2);color:var(--muted-foreground);}
+.studio-media-usage svg {width:1rem;height:1rem;}
+.studio-media-browser.is-collapsed {display:flex;align-items:start;justify-content:center;padding:var(--space-2);}
+
+.studio-media-browser .timeline-media-search {margin:0;min-height:1.9rem;}
+.studio-media-browser .timeline-media-search input {min-height:1.9rem;height:1.9rem;}
+
+.studio-media-browser {container-type:inline-size;}
+.studio-media-browser .timeline-media-types button {display:flex;align-items:center;justify-content:center;gap:var(--space-1);}
+.studio-media-browser .timeline-media-types svg {width:1rem;height:1rem;flex:none;}
+@container (max-width: 18rem) {
+ .studio-media-browser .timeline-media-types button>span {display:none;}
+}

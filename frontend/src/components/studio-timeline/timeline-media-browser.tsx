@@ -1,18 +1,19 @@
-import {CheckCircle2,Film,Image as ImageIcon,Library,PanelLeftClose,PanelLeftOpen,Plus,Search,Waves} from "lucide-react";
+import {CheckCircle2,Library,PanelLeftClose,PanelLeftOpen,Plus,Search,Grid3X3,Image,Video,Music} from "lucide-react";
 import {memo,useMemo,useState,type ReactNode} from "react";
 import {OperatorIconButton} from "../operator-action";
 import {Input} from "../ui/input";
-import {LoadError,FeedbackMessage} from "../ui/feedback-message";
+import {LoadError} from "../ui/feedback-message";
 import {cn} from "../../lib/utils";
-import {SoundMediaIcon} from "./studio-audio-presentation";
+import {FileThumbnail} from "../ui/file-thumbnail";
+import {FileIdentity} from "../file-identity";
+import "./timeline-media-browser.css";
 import type {WorkspaceFile} from "./studio-timeline-model";
 import {WorkstationPaneHeader} from "./workstation-pane-header";
-type MediaFilter="all"|"image"|"video"|"audio";type ScopeFilter="production"|"workspace";
+export type MediaFilter="all"|"image"|"video"|"audio";
+export type ScopeFilter="production"|"workspace";
+export type StudioMediaQuery={scope:ScopeFilter;media:MediaFilter;query:string};
 export type StudioBrowserFile=WorkspaceFile&{searchText?:string;createdAt?:string|null;libraryType?:"image"|"video"|"audio"|"speech"|"music"|"sfx"|"document"|"data"|"subtitle"|"other"};
 const libraryFileName=(file:WorkspaceFile)=>file.name||file.title||file.filename||"Media";
-const visualFileUrl=(file:WorkspaceFile)=>file.url||"";
-const visualFilePlaybackUrl=visualFileUrl;
-const visualFilePosterUrl=(file:WorkspaceFile)=>file.posterUrl||"";
 const searchText=(file:StudioBrowserFile)=>file.searchText??[libraryFileName(file),file.filename,file.category,file.source,...(file.tags??[])].filter(Boolean).join(" ").toLocaleLowerCase();
 /** Actual LibraryQuery matching/recent ordering on host-normalized descriptors. */
 export function queryStudioMedia(files:readonly StudioBrowserFile[],scope:ScopeFilter,media:MediaFilter,query:string,productionIds:ReadonlySet<string|number>){
@@ -30,63 +31,52 @@ export function queryStudioMedia(files:readonly StudioBrowserFile[],scope:ScopeF
   return left.order-right.order;
  }).map(({file})=>file);
 }
-export const TimelineMediaBrowser = memo(function TimelineMediaBrowser({ files, productionFileIds, usedFileIds, collapsed, onCollapsedChange, selectedFileId, onPreview, onAdd, disabled=false, loading=false, error=false, onRetry, onBrowse, projectLabel="This Project", renderOrigin }: {
-  disabled?:boolean
-  loading?:boolean
-  error?:boolean
-  onRetry?:()=>void
-  onBrowse?:()=>void
-  renderOrigin?:(file:WorkspaceFile)=>ReactNode
-  projectLabel?:string
-  files: StudioBrowserFile[]
-  productionFileIds: (string|number)[]
-  usedFileIds: (string|number)[]
-  collapsed: boolean
-  onCollapsedChange: (collapsed: boolean) => void
-  selectedFileId?: string|number
-  onPreview: (file: WorkspaceFile) => void
-  onAdd: (file: WorkspaceFile) => Promise<void> | void
-}) {
-  const [query, setQuery] = useState("")
-  const [media, setMedia] = useState<MediaFilter>("all")
-  const [scope, setScope] = useState<ScopeFilter>("production")
-  const [pendingId, setPendingId] = useState<string|number|null>(null)
-  const productionIds = useMemo(() => new Set(productionFileIds), [productionFileIds])
-  const usedIds = useMemo(() => new Set(usedFileIds), [usedFileIds])
-  const visible=useMemo(()=>queryStudioMedia(files,scope,media,query,productionIds),[files,media,query,scope,productionIds]);
-
-  if (collapsed) return <aside className="timeline-media-browser is-collapsed" aria-label="Media Browser">
-    <OperatorIconButton label="Show Media Browser" detail="Browse Production and Workspace Files without leaving the Timeline." onClick={() => onCollapsedChange(false)}><PanelLeftOpen /></OperatorIconButton>
-  </aside>
-
-  return <aside className="timeline-media-browser" aria-label="Media Browser">
-    <WorkstationPaneHeader icon={<Library />} title="Media" actions={<>{onBrowse&&<OperatorIconButton label="Browse Files" onClick={onBrowse} disabled={disabled}><Plus/></OperatorIconButton>}<OperatorIconButton label="Hide Media Browser" onClick={() => onCollapsedChange(true)}><PanelLeftClose /></OperatorIconButton></>} />
-    <div className="timeline-media-scope" aria-label="Media scope">
-      {(["production", "workspace"] as ScopeFilter[]).map((value) => <button key={value} aria-pressed={scope === value} onClick={() => setScope(value)}>{value === "production" ? projectLabel : "Workspace"}</button>)}
-    </div>
-    <label className="timeline-media-search"><Search /><Input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Search media" /></label>
-    <div className="timeline-media-types" aria-label="Media type">
-      {(["all", "image", "video", "audio"] as MediaFilter[]).map((value) => <button key={value} aria-pressed={media === value} onClick={() => setMedia(value)}>{value === "all" ? "All" : value}</button>)}
-    </div>
-    <div className="timeline-media-results" aria-busy={loading}>
-      {loading&&<p role="status">Loading media…</p>}
-      {error&&(onRetry?<LoadError retryLabel="Retry" onRetry={onRetry} busy={loading}>Could not load media.</LoadError>:<FeedbackMessage tone="error" announce>Could not load media.</FeedbackMessage>)}
-      {visible.map((file) => {
-        const name = libraryFileName(file)
-        const selected = file.id === selectedFileId
-        return <article key={file.id} className={cn("timeline-media-card", selected && "is-selected")} data-media-type={file.media_type}>
-          <button className="timeline-media-card-preview" aria-label={`Preview ${name}`} onClick={() => onPreview(file)}>
-            {file.media_type === "image" ? <img src={visualFileUrl(file)} alt="" loading="lazy" decoding="async" />
-              : file.media_type === "video" ? <video src={visualFilePlaybackUrl(file)} poster={visualFilePosterUrl(file)} muted preload="metadata" playsInline />
-                : <span className="timeline-media-audio-art"><SoundMediaIcon kind={String(file.category || "audio").toLowerCase() === "sfx" ? "sfx" : String(file.category || "").toLowerCase() === "music" ? "music" : "audio"} /></span>}
-            <span className="timeline-media-kind">{file.media_type === "image" ? <ImageIcon /> : file.media_type === "video" ? <Film /> : <Waves />}</span>
-            {renderOrigin ? renderOrigin(file) : <span className="timeline-media-origin">{file.source}</span>}
-            {usedIds.has(file.id) && <span className="timeline-media-used"><CheckCircle2 /></span>}
-          </button>
-          <footer><button className="timeline-media-name" title={name} onClick={() => onPreview(file)}>{name}</button><OperatorIconButton label={`Add ${name} at playhead`} disabled={disabled||pendingId!==null} busy={pendingId === file.id} busyLabel={`Adding ${name}…`} onClick={async () => { setPendingId(file.id); try { await onAdd(file) } catch { /* Host displays the actionable error. */ } finally { setPendingId(null) } }}><Plus /></OperatorIconButton></footer>
-        </article>
-      })}
-      {!visible.length&&!loading&&!error && <div className="timeline-media-empty"><Library /><b>No matching media</b><small>Change the scope, type or search.</small></div>}
-    </div>
-  </aside>
-})
+const copy = {
+ en:{media:'Media',project:'This Project',workspace:'Workspace',search:'Search media',all:'All',image:'Images',video:'Videos',audio:'Audio',browse:'Browse Files',hide:'Hide Media Browser',show:'Show Media Browser',loading:'Loading media',retry:'Retry',error:'Could not load media.',empty:'No matching media',refine:'Change the scope, type or search.',add:'Add at playhead',preview:'Preview',adding:'Adding…'},
+ fr:{media:'Médias',project:'Ce Project',workspace:'Espace',search:'Rechercher des médias',all:'Tous',image:'Images',video:'Vidéos',audio:'Audio',browse:'Parcourir les Files',hide:'Masquer les médias',show:'Afficher les médias',loading:'Chargement des médias',retry:'Réessayer',error:'Impossible de charger les médias.',empty:'Aucun média correspondant',refine:'Changez le périmètre, le type ou la recherche.',add:'Ajouter au point de lecture',preview:'Aperçu',adding:'Ajout…'},
+ ar:{media:'الوسائط',project:'هذا المشروع',workspace:'مساحة العمل',search:'البحث في الوسائط',all:'الكل',image:'الصور',video:'الفيديو',audio:'الصوت',browse:'تصفح الملفات',hide:'إخفاء الوسائط',show:'عرض الوسائط',loading:'تحميل الوسائط',retry:'إعادة المحاولة',error:'تعذر تحميل الوسائط.',empty:'لا توجد وسائط مطابقة',refine:'غيّر النطاق أو النوع أو البحث.',add:'إضافة عند موضع التشغيل',preview:'معاينة',adding:'جارٍ الإضافة…'},
+ id:{media:'Media',project:'Project ini',workspace:'Ruang kerja',search:'Cari media',all:'Semua',image:'Gambar',video:'Video',audio:'Audio',browse:'Jelajahi File',hide:'Sembunyikan media',show:'Tampilkan media',loading:'Memuat media',retry:'Coba lagi',error:'Media tidak dapat dimuat.',empty:'Tidak ada media yang cocok',refine:'Ubah cakupan, jenis, atau pencarian.',add:'Tambah pada posisi putar',preview:'Pratinjau',adding:'Menambahkan…'}
+};
+export type TimelineMediaBrowserProps={
+ files:StudioBrowserFile[];productionFileIds:(string|number)[];usedFileIds:(string|number)[];
+ collapsed:boolean;onCollapsedChange:(value:boolean)=>void;selectedFileId?:string|number;
+ onPreview:(file:WorkspaceFile)=>void;onAdd:(file:WorkspaceFile)=>Promise<void>|void;
+ disabled?:boolean;loading?:boolean;error?:boolean;onRetry?:()=>void;onBrowse?:()=>void;
+ renderOrigin?:(file:WorkspaceFile)=>ReactNode;projectLabel?:string;locale?:'en'|'fr'|'ar'|'id';
+ value?:StudioMediaQuery;onQueryChange?:(value:StudioMediaQuery)=>void;
+ serverFiltered?:boolean;filters?:ReactNode;headerControls?:ReactNode;footer?:ReactNode;
+ renderCollection?:(files:StudioBrowserFile[])=>ReactNode;
+};
+/** The historical Studio shell hosts the same File presentation and collection ports. */
+export const TimelineMediaBrowser=memo(function TimelineMediaBrowser({files,productionFileIds,usedFileIds,collapsed,onCollapsedChange,selectedFileId,onPreview,onAdd,disabled=false,loading=false,error=false,onRetry,onBrowse,projectLabel,renderOrigin,locale='en',value,onQueryChange,serverFiltered=false,filters,headerControls,footer,renderCollection}:TimelineMediaBrowserProps){
+ const c=copy[locale];
+ const [local,setLocal]=useState<StudioMediaQuery>({query:'',media:'all',scope:'production'});
+ const current=value??local;
+ const change=(patch:Partial<StudioMediaQuery>)=>{const next={...current,...patch};if(onQueryChange)onQueryChange(next);else setLocal(next)};
+ const [pendingId,setPendingId]=useState<string|number|null>(null);
+ const productionIds=useMemo(()=>new Set(productionFileIds),[productionFileIds]);
+ const usedIds=useMemo(()=>new Set(usedFileIds),[usedFileIds]);
+ const visible=useMemo(()=>serverFiltered?files:queryStudioMedia(files,current.scope,current.media,current.query,productionIds),[files,current,productionIds,serverFiltered]);
+ if(collapsed)return <aside className="timeline-media-browser studio-media-browser is-collapsed" aria-label={c.media}><OperatorIconButton label={c.show} onClick={()=>onCollapsedChange(false)}><PanelLeftOpen/></OperatorIconButton></aside>;
+ return <aside className="timeline-media-browser studio-media-browser" aria-label={c.media} dir={locale==='ar'?'rtl':'ltr'}>
+  <WorkstationPaneHeader icon={<Library/>} title={c.media} actions={<>{headerControls}{onBrowse&&<OperatorIconButton label={c.browse} onClick={onBrowse}><Library/></OperatorIconButton>}<OperatorIconButton label={c.hide} onClick={()=>onCollapsedChange(true)}><PanelLeftClose/></OperatorIconButton></>}/>
+  <div className="studio-media-browser-controls">
+   <div className="timeline-media-scope" role="group" aria-label={c.media}>{(['production','workspace'] as const).map(scope=><button key={scope} type="button" aria-pressed={current.scope===scope} onClick={()=>change({scope})}>{scope==='production'?projectLabel??c.project:c.workspace}</button>)}</div>
+   <label className="timeline-media-search"><Search/><Input type="search" aria-label={c.search} value={current.query} onChange={event=>change({query:event.target.value})} placeholder={c.search}/></label>
+   <div className="timeline-media-types" role="group" aria-label={c.media}>{(['all','image','video','audio'] as const).map(media=><button key={media} type="button" aria-label={c[media]} title={c[media]} aria-pressed={current.media===media} onClick={()=>change({media})}>{media==='all'?<Grid3X3/>:media==='image'?<Image/>:media==='video'?<Video/>:<Music/>}<span>{c[media]}</span></button>)}</div>
+   {filters}
+  </div>
+  <div className="timeline-media-results quiet-scroll" aria-busy={loading}>
+   {error&&<LoadError retryLabel={c.retry} onRetry={onRetry??(()=>{})} busy={loading}>{c.error}</LoadError>}
+   {loading&&!visible.length?<div className="studio-media-loading" aria-label={c.loading}>{Array.from({length:6},(_,index)=><span key={index} className="ui-skeleton"/>)}</div>:renderCollection?renderCollection(visible):<div className="studio-media-card-grid">{visible.map(file=>{
+    const name=libraryFileName(file);return <article key={file.id} className={cn('studio-media-file',file.id===selectedFileId&&'is-selected')}>
+     <button type="button" className="studio-media-file-preview" aria-label={`${c.preview} ${name}`} onClick={()=>onPreview(file)}><FileThumbnail name={name} url={file.url??undefined} previewKey={String(file.id)} durationHint={(file.duration_ms??0)/1000}/></button>
+     {renderOrigin?.(file)}{usedIds.has(file.id)&&<span className="studio-media-usage"><CheckCircle2/></span>}
+     <div className="studio-media-file-caption"><button type="button" onClick={()=>onPreview(file)}><FileIdentity name={name} format={false} wrapName/></button><OperatorIconButton label={`${c.add} · ${name}`} disabled={disabled||pendingId!==null} busy={pendingId===file.id} busyLabel={c.adding} onClick={async()=>{setPendingId(file.id);try{await onAdd(file)}catch{/* Host owns write errors. */}finally{setPendingId(null)}}}><Plus/></OperatorIconButton></div>
+    </article>;
+   })}</div>}
+   {!visible.length&&!loading&&!error&&<div className="timeline-media-empty"><Library/><b>{c.empty}</b><small>{c.refine}</small></div>}
+   {footer}
+  </div>
+ </aside>;
+});

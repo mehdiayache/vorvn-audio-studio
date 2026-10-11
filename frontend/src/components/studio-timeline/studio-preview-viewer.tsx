@@ -1,5 +1,5 @@
 import { ChevronDown, Grid2X2, Hand, Maximize2, Minus, MonitorPlay, Plus, Ratio } from "lucide-react"
-import { useCallback, useEffect, useRef, useState, type CSSProperties, type PointerEvent as ReactPointerEvent, type ReactNode } from "react"
+import { useEffect, useState, type CSSProperties, type ReactNode } from "react"
 
 import { OperatorIconButton } from "@/components/operator-action"
 import { Button } from "@/components/ui/button"
@@ -16,6 +16,7 @@ import { cn } from "@/lib/utils"
 
 import { WorkstationPaneHeader } from "./workstation-pane-header"
 import "./studio-preview-viewer.css"
+import {useStudioPreviewViewport} from "./use-studio-preview-viewport"
 
 export const STUDIO_CANVAS_PRESETS = [
   { id: "16:9", width: 1920, height: 1080 },
@@ -51,67 +52,12 @@ export function StudioPreviewViewer({ canvas, children, transport, saving = fals
 }) {
   const copy = { ...DEFAULT_LABELS, ...labels }
   const [error, setError] = useState(false)
-  const [previewZoom, setPreviewZoom] = useState(1)
-  const [previewPan, setPreviewPan] = useState({ x: 0, y: 0 })
-  const [panMode, setPanMode] = useState(false)
-  const [transparencyGrid, setTransparencyGrid] = useState(false)
-  const panGesture = useRef<{ node: HTMLDivElement; pointerId: number; x: number; y: number; originX: number; originY: number } | null>(null)
-  const preset = canvasPreset(canvas)
-  const releasePan = useCallback(() => {
-    const gesture = panGesture.current
-    panGesture.current = null
-    if (gesture) { try { gesture.node.releasePointerCapture?.(gesture.pointerId) } catch { /* capture may already have ended */ } }
-    return gesture
-  }, [])
-  const cancelPan = useCallback(() => { const gesture = releasePan(); if (gesture) setPreviewPan({ x: gesture.originX, y: gesture.originY }) }, [releasePan])
-  useEffect(() => {
-    const escape = (event: KeyboardEvent) => { if (event.key === "Escape" && panGesture.current) { event.preventDefault(); event.stopPropagation(); cancelPan() } }
-    const release = (event: PointerEvent) => { if (panGesture.current?.pointerId === event.pointerId) releasePan() }
-    const cancel = (event: PointerEvent) => { if (panGesture.current?.pointerId === event.pointerId) cancelPan() }
-    window.addEventListener("blur", cancelPan)
-    window.addEventListener("keydown", escape, true)
-    window.addEventListener("pointerup", release)
-    window.addEventListener("pointercancel", cancel)
-    return () => { window.removeEventListener("blur", cancelPan); window.removeEventListener("keydown", escape, true); window.removeEventListener("pointerup", release); window.removeEventListener("pointercancel", cancel); cancelPan() }
-  }, [active, canvas.width, canvas.height, cancelPan, releasePan])
-
-  function changePreviewZoom(next: number) {
-    cancelPan()
-    const zoom = Math.max(MIN_PREVIEW_ZOOM, Math.min(MAX_PREVIEW_ZOOM, Number(next.toFixed(2))))
-    setPreviewZoom(zoom)
-    if (zoom <= 1) {
-      setPreviewPan({ x: 0, y: 0 })
-      setPanMode(false)
-    }
-  }
-
-  function fitPreview() {
-    cancelPan()
-    setPreviewZoom(1)
-    setPreviewPan({ x: 0, y: 0 })
-    setPanMode(false)
-  }
-
-  function startPreviewPan(event: ReactPointerEvent<HTMLDivElement>) {
-    if (!active || !panMode || previewZoom <= 1 || event.button !== 0) return
-    event.preventDefault()
-    event.stopPropagation()
-    panGesture.current = { node: event.currentTarget, pointerId: event.pointerId, x: event.clientX, y: event.clientY, originX: previewPan.x, originY: previewPan.y }
-    try { event.currentTarget.setPointerCapture?.(event.pointerId) } catch { /* window cancellation remains available */ }
-  }
-
-  function movePreviewPan(event: ReactPointerEvent<HTMLDivElement>) {
-    const active = panGesture.current
-    if (!active || active.pointerId !== event.pointerId) return
-    event.preventDefault()
-    setPreviewPan({ x: active.originX + event.clientX - active.x, y: active.originY + event.clientY - active.y })
-  }
-
-  function endPreviewPan(event: ReactPointerEvent<HTMLDivElement>) {
-    const active = panGesture.current
-    if (!active || active.pointerId !== event.pointerId) return
-    releasePan()
-  }
+  const viewport=useStudioPreviewViewport(active)
+  const previewZoom=viewport.view.zoom,previewPan=viewport.view.pan,panMode=viewport.panMode
+  const [transparencyGrid,setTransparencyGrid]=useState(false)
+  const preset=canvasPreset(canvas)
+  useEffect(()=>{viewport.cancel()},[canvas.width,canvas.height,viewport.cancel])
+  const changePreviewZoom=viewport.zoom,fitPreview=viewport.fit
 
   const stageStyle = {
     "--preview-zoom": previewZoom,
@@ -121,11 +67,11 @@ export function StudioPreviewViewer({ canvas, children, transport, saving = fals
 
   const canvasControls = <div className="preview-canvas-controls" aria-label={copy.controls}>
     <span className="preview-mode-label">{copy.mode}</span>
-    <OperatorIconButton label={copy.zoomOut} disabled={!active || previewZoom <= MIN_PREVIEW_ZOOM} onClick={() => changePreviewZoom(previewZoom - PREVIEW_ZOOM_STEP)}><Minus /></OperatorIconButton>
+    <OperatorIconButton className="preview-zoom-out" label={copy.zoomOut} disabled={!active || previewZoom <= MIN_PREVIEW_ZOOM} onClick={() => changePreviewZoom(previewZoom - PREVIEW_ZOOM_STEP)}><Minus /></OperatorIconButton>
     <Button variant="ghost" size="sm" className="preview-zoom-value" aria-label={copy.fit} disabled={!active} onClick={fitPreview}>{previewZoom === 1 ? copy.fitValue : `${Math.round(previewZoom * 100)}%`}</Button>
-    <OperatorIconButton label={copy.zoomIn} disabled={!active || previewZoom >= MAX_PREVIEW_ZOOM} onClick={() => changePreviewZoom(previewZoom + PREVIEW_ZOOM_STEP)}><Plus /></OperatorIconButton>
+    <OperatorIconButton className="preview-zoom-in" label={copy.zoomIn} disabled={!active || previewZoom >= MAX_PREVIEW_ZOOM} onClick={() => changePreviewZoom(previewZoom + PREVIEW_ZOOM_STEP)}><Plus /></OperatorIconButton>
     <OperatorIconButton label={copy.fit} disabled={!active} onClick={fitPreview}><Maximize2 /></OperatorIconButton>
-    <OperatorIconButton label={panMode ? copy.stopPan : copy.pan} detail={previewZoom <= 1 ? copy.panZoomDetail : copy.panDetail} disabled={!active || previewZoom <= 1} aria-pressed={panMode} onClick={() => { cancelPan(); setPanMode((value) => !value) }}><Hand /></OperatorIconButton>
+    <OperatorIconButton className="preview-pan-control" label={panMode ? copy.stopPan : copy.pan} detail={previewZoom <= 1 ? copy.panZoomDetail : copy.panDetail} disabled={!active || previewZoom <= 1} aria-pressed={panMode} onClick={viewport.togglePan}><Hand /></OperatorIconButton>
     <OperatorIconButton label={transparencyGrid ? copy.gridHide : copy.gridShow} disabled={!active} aria-pressed={transparencyGrid} onClick={() => setTransparencyGrid((visible) => !visible)}><Grid2X2 /></OperatorIconButton>
     <span className="preview-canvas-controls-separator" />
     <DropdownMenu>
@@ -152,11 +98,8 @@ export function StudioPreviewViewer({ canvas, children, transport, saving = fals
     <div
       className={cn("timeline-viewer-stage", previewZoom > 1 && "can-pan", panMode && "is-pan-mode", transparencyGrid && "show-transparency-grid")}
       style={stageStyle}
-      onPointerDownCapture={startPreviewPan}
-      onPointerMove={movePreviewPan}
-      onPointerUp={endPreviewPan}
-      onPointerCancel={(event) => { if (panGesture.current?.pointerId === event.pointerId) cancelPan() }}
-      onLostPointerCapture={(event) => { if (panGesture.current?.pointerId === event.pointerId) cancelPan() }}
+      ref={viewport.stageRef}
+      {...viewport.stageProps}
     >
       {children}
     </div>

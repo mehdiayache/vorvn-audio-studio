@@ -1,6 +1,8 @@
-import { useState, type DragEvent, type HTMLAttributes } from "react"
+import { useState } from "react"
+import {StudioScriptCard,StudioScriptPauseCard,type StudioScriptDragHandleProps} from "@/components/studio-script/studio-script-card"
+import {StudioScriptSequence} from "@/components/studio-script/studio-script-sequence"
 import {
-  Captions, Check, CircleAlert, Clock3, Edit3, GripVertical,
+  Captions, Check, CircleAlert, Clock3, Edit3,
   FileAudio, LoaderCircle, Mic2, Minus, MoreHorizontal, Pause, Play, Plus, RotateCw, Search, Sparkles,
 } from "lucide-react"
 
@@ -41,7 +43,7 @@ export type WorkstationPartActions = {
 }
 
 export type SequenceInsertKind = "speech" | "silence" | "file"
-type DragHandleProps = HTMLAttributes<HTMLElement> & { draggable?: boolean }
+type DragHandleProps = StudioScriptDragHandleProps
 
 function operationJob(part: ProductionPart, liveJobs: Record<string, DurableJob<unknown>>) {
   if (!part.speech_job) return null
@@ -136,29 +138,10 @@ export function WorkstationOutline({ parts, selectedId, playingKey, playerPlayin
   </div>
 }
 
-function SequenceDragHandle({ part, index, dragHandleProps, compact = false }: {
-  part: ProductionPart
-  index: number
-  dragHandleProps?: DragHandleProps
-  compact?: boolean
-}) {
-  const label = `Drag Part ${formatPartNumber(part.position ?? index)} to reorder`
-  return <button type="button" className={cn("ws-part-index", compact && "is-compact")} aria-label={label} {...dragHandleProps}>
-    {!compact && <span>{formatPartNumber(part.position ?? index)}</span>}
-    <GripVertical aria-hidden="true" />
-  </button>
-}
-
 function SilenceCard({ part, index, selected, actions, dragHandleProps }: { part: ProductionPart; index: number; selected: boolean; actions: WorkstationPartActions; dragHandleProps?: DragHandleProps }) {
   const seconds = partDurationMs(part) / 1000
   const state = workstationPartState(part)
-  return <article id={`ws-part-${part.id}`} className={cn("ws-silence-card", selected && "is-selected", part.enabled === false && "is-disabled")} onClick={() => actions.select(part)}>
-    <SequenceDragHandle part={part} index={index} dragHandleProps={dragHandleProps} compact />
-    <span className="ws-silence-line" />
-    <div><Clock3 /><b>Pause</b><input aria-label="Silence duration" aria-busy={actions.isPending(part, "silence") || undefined} disabled={actions.isPending(part, "silence")} type="number" min="0.1" step="0.1" defaultValue={seconds} onClick={(event) => event.stopPropagation()} onBlur={(event) => actions.editSilence(part, Number(event.target.value))} />{actions.isPending(part, "silence") ? <span><LoaderCircle className="spin" /> Saving…</span> : <span>seconds</span>}<PartStateIndicator state={state} /></div>
-    <PartInclusionButton part={part} actions={actions} noun="Pause" />
-    <span className="ws-silence-line" />
-  </article>
+  return <StudioScriptPauseCard id={`ws-part-${part.id}`} number={formatPartNumber(part.position ?? index)} selected={selected} skipped={part.enabled===false} dragHandleProps={dragHandleProps} onSelect={()=>actions.select(part)} actions={<PartInclusionButton part={part} actions={actions} noun="Pause"/>}><Clock3 /><b>Pause</b><input aria-label="Silence duration" aria-busy={actions.isPending(part, "silence") || undefined} disabled={actions.isPending(part, "silence")} type="number" min="0.1" step="0.1" defaultValue={seconds} onClick={(event) => event.stopPropagation()} onBlur={(event) => actions.editSilence(part, Number(event.target.value))} />{actions.isPending(part, "silence") ? <span><LoaderCircle className="spin" /> Saving…</span> : <span>seconds</span>}<PartStateIndicator state={state} /></StudioScriptPauseCard>
 }
 
 function PartActionsMenu({ part, actions }: { part: ProductionPart; actions: WorkstationPartActions }) {
@@ -191,29 +174,16 @@ export function WorkstationFileCard({ part, index, selected, playing, actions, d
   const playable = Boolean(part.filename && !part.missing)
   const hasIssue = state === "issue"
   const source: PlayerSource = { key: `part:${part.id}`, url: audioUrl(part.filename || ""), title, subtitle: `${category} · Part ${formatPartNumber(part.position ?? index)}`, kind: "file" }
-  return <article id={`ws-part-${part.id}`} className={cn("ws-part-card", "ws-file-card", selected && "is-selected", hasIssue && "has-issue", part.enabled === false && "is-disabled")} onClick={() => actions.select(part)}>
-    <SequenceDragHandle part={part} index={index} dragHandleProps={dragHandleProps} />
-    <div className="ws-part-main ws-file-main">
-      <header className="ws-part-identity">
-        <div className="ws-file-identity"><span><FileAudio /></span><div><b>{title}</b><small>{category} · Workspace File</small></div></div>
-        <div className="ws-part-actions">
-          <PartInclusionButton part={part} actions={actions} />
+  return <StudioScriptCard id={`ws-part-${part.id}`} number={formatPartNumber(part.position ?? index)} selected={selected} skipped={part.enabled===false} issue={hasIssue} kind="file" dragHandleProps={dragHandleProps} onSelect={()=>actions.select(part)} identity={<div className="ws-file-identity"><span><FileAudio /></span><div><b>{title}</b><small>{category} · Workspace File</small></div></div>} actions={<><PartInclusionButton part={part} actions={actions} />
           <Button variant="outline" size="sm" onClick={(event) => { event.stopPropagation(); actions.replaceFile(part) }}><FileAudio /> Replace source</Button>
-          <PartActionsMenu part={part} actions={actions} />
-        </div>
-      </header>
-      <footer className="ws-part-footer ws-file-footer">
-        {playable ? <OperatorIconButton label={playing ? "Pause linked audio" : "Play linked audio"} variant="ghost" size="icon" className="ws-play" onClick={(event) => { event.stopPropagation(); actions.play(source) }}>{playing ? <Pause /> : <Play />}</OperatorIconButton> : <span className="ws-record-state"><CircleAlert /> Source missing</span>}
+          <PartActionsMenu part={part} actions={actions} /></>} footer={<>{playable ? <OperatorIconButton label={playing ? "Pause linked audio" : "Play linked audio"} variant="ghost" size="icon" className="ws-play" onClick={(event) => { event.stopPropagation(); actions.play(source) }}>{playing ? <Pause /> : <Play />}</OperatorIconButton> : <span className="ws-record-state"><CircleAlert /> Source missing</span>}
         {playable && <AudioDownloadButton url={audioUrl(part.filename || "")} label={`${title} audio`} compact onClick={(event) => event.stopPropagation()} />}
         {playable && <span className={cn("ws-waveform", playing && "is-active")}><AudioWaveform url={audioUrl(part.filename || "")} bars={72} /></span>}
         <span className="ws-duration">{duration}</span>
         <span className="ws-file-source"><FileAudio /> Reusable Workspace audio</span>
         {hasIssue && <span className="ws-card-issue"><CircleAlert /> Review source</span>}
         <PartStateIndicator state={state} />
-        <strong>{part.cost > 0 ? formatMoney(part.cost) : "Free · reusable"}</strong>
-      </footer>
-    </div>
-  </article>
+        <strong>{part.cost > 0 ? formatMoney(part.cost) : "Free · reusable"}</strong></>}/>
 }
 
 export function WorkstationSequenceCard({ part, index, selected, playing, liveJobs, directory, actions, dragHandleProps }: {
@@ -235,115 +205,22 @@ export function WorkstationSequenceCard({ part, index, selected, playing, liveJo
   const isDraft = state === "draft"
   const hasIssue = state === "issue"
   const source: PlayerSource = { key: `part:${part.id}`, url: audioUrl(part.filename || ""), title: role || facts.selectedVoiceName, subtitle: `Part ${formatPartNumber(part.position ?? index)} · ${facts.durationLabel}`, kind: "clip" }
-  return <article id={`ws-part-${part.id}`} className={cn("ws-part-card", selected && "is-selected", isDraft && "is-draft", hasIssue && "has-issue", part.enabled === false && "is-disabled")} onClick={() => actions.select(part)}>
-    <SequenceDragHandle part={part} index={index} dragHandleProps={dragHandleProps} />
-    <div className="ws-part-main">
-      <header className="ws-part-identity">
-        <div className="ws-role-voice">
+  return <StudioScriptCard id={`ws-part-${part.id}`} number={formatPartNumber(part.position ?? index)} selected={selected} skipped={part.enabled===false} draft={isDraft} issue={hasIssue} dragHandleProps={dragHandleProps} onSelect={()=>actions.select(part)} identity={<div className="ws-role-voice">
           {role && <span className="ws-role-label">{role}</span>}
           <VoiceIdentity voice={part.catalogue_voice_id || part.voice || part.voice_name} identityId={part.voice_identity_id} directory={directory} compact gender={facts.voice.gender} showDetail={false} showEditorialFlag={false} />
           <span className="ws-method-line">{facts.methodLine}</span>
-        </div>
-        <div className="ws-part-actions">
-          <PartInclusionButton part={part} actions={actions} />
+        </div>} actions={<><PartInclusionButton part={part} actions={actions} />
           <Button variant="outline" size="sm" onClick={(event) => { event.stopPropagation(); actions.edit(part) }}><Edit3 /> Edit</Button>
-          <PartActionsMenu part={part} actions={actions} />
-        </div>
-      </header>
-      <p className="ws-part-script" dir={textDirection(facts.script)}>{facts.scriptState === "tagged" ? <InlineDeliveryTags text={facts.script} /> : facts.script}</p>
-      {facts.operation.kind !== "idle" && <div className={cn("ws-operation", `is-${facts.operation.kind}`)}><Sparkles className={facts.operation.kind === "active" ? "spin" : ""} /><b>{facts.operation.label}</b><span>{facts.operation.detail}</span>{facts.operation.progress !== null && <i style={{ width: `${facts.operation.progress}%` }} />}{speechJob && facts.operation.canConfirm && <Button size="sm" onClick={(event) => { event.stopPropagation(); actions.confirm(part, speechJob) }}>Confirm and continue</Button>}{speechJob && facts.operation.canRetry && <Button size="sm" variant="outline" onClick={(event) => { event.stopPropagation(); actions.retry(part, speechJob) }}><RotateCw /> Retry</Button>}</div>}
-      <footer className="ws-part-footer">
-        {facts.playable ? <OperatorIconButton label={playing ? "Pause part" : "Play part"} variant="ghost" size="icon" className="ws-play" onClick={(event) => { event.stopPropagation(); actions.play(source) }}>{playing ? <Pause /> : <Play />}</OperatorIconButton> : <span className="ws-record-state"><Mic2 /> Not recorded</span>}
+          <PartActionsMenu part={part} actions={actions} /></>} text={<>{facts.scriptState === "tagged" ? <InlineDeliveryTags text={facts.script} /> : facts.script}</>} textDirection={textDirection(facts.script)} operation={<>{facts.operation.kind !== "idle" && <div className={cn("ws-operation", `is-${facts.operation.kind}`)}><Sparkles className={facts.operation.kind === "active" ? "spin" : ""} /><b>{facts.operation.label}</b><span>{facts.operation.detail}</span>{facts.operation.progress !== null && <i style={{ width: `${facts.operation.progress}%` }} />}{speechJob && facts.operation.canConfirm && <Button size="sm" onClick={(event) => { event.stopPropagation(); actions.confirm(part, speechJob) }}>Confirm and continue</Button>}{speechJob && facts.operation.canRetry && <Button size="sm" variant="outline" onClick={(event) => { event.stopPropagation(); actions.retry(part, speechJob) }}><RotateCw /> Retry</Button>}</div>}</>} footer={<>{facts.playable ? <OperatorIconButton label={playing ? "Pause part" : "Play part"} variant="ghost" size="icon" className="ws-play" onClick={(event) => { event.stopPropagation(); actions.play(source) }}>{playing ? <Pause /> : <Play />}</OperatorIconButton> : <span className="ws-record-state"><Mic2 /> Not recorded</span>}
         {facts.playable && part.filename && <AudioDownloadButton url={audioUrl(part.filename)} label={`Part ${formatPartNumber(part.position ?? index)} recording`} compact onClick={(event) => event.stopPropagation()} />}
         {facts.playable && <span className={cn("ws-waveform", playing && "is-active")}><AudioWaveform url={part.filename ? audioUrl(part.filename) : undefined} bars={56} /></span>}
         <span className="ws-duration">{facts.durationLabel}</span>
         <button className={cn("ws-caption-state", `is-${facts.captionTone}`)} onClick={(event) => { event.stopPropagation(); actions.captions(part) }}><Captions /> {facts.captionSummary}</button>
         {facts.inputLabel && <span className="ws-input-state"><Check /> {facts.inputLabel}</span>}
         <PartStateIndicator state={state} />
-        <strong>{facts.spendValue}</strong>
-      </footer>
-    </div>
-  </article>
+        <strong>{facts.spendValue}</strong></>}/>
 }
 
-function SequenceInsertMenu({ label, className, onSelect }: { label: string; className: string; onSelect: (kind: SequenceInsertKind) => void }) {
-  return <DropdownMenu>
-    <OperatorTooltip label={label}><DropdownMenuTrigger asChild><button className={className} aria-label={label}><Plus />{className === "ws-add-ending" && <span>Add Part</span>}</button></DropdownMenuTrigger></OperatorTooltip>
-    <DropdownMenuContent align="center">
-      <DropdownMenuItem onSelect={() => onSelect("speech")}><Mic2 /> Speech</DropdownMenuItem>
-      <DropdownMenuItem onSelect={() => onSelect("silence")}><Clock3 /> Pause</DropdownMenuItem>
-      <DropdownMenuItem onSelect={() => onSelect("file")}><FileAudio /> Linked audio</DropdownMenuItem>
-    </DropdownMenuContent>
-  </DropdownMenu>
-}
-
-export function WorkstationSequence({ parts, selectedId, playingKey, playerPlaying, liveJobs, directory, actions, onAddEnd }: {
-  parts: ProductionPart[]
-  selectedId: number | null
-  playingKey?: string
-  playerPlaying: boolean
-  liveJobs: Record<string, DurableJob<unknown>>
-  directory: VoiceDirectory
-  actions: WorkstationPartActions
-  onAddEnd: (kind: SequenceInsertKind) => void
-}) {
-  const [draggedId, setDraggedId] = useState<number | null>(null)
-  const [dropIndex, setDropIndex] = useState<number | null>(null)
-  const draggedPart = draggedId === null ? null : parts.find((part) => part.id === draggedId) || null
-
-  function autoScroll(event: DragEvent<HTMLElement>) {
-    const scroller = event.currentTarget.closest(".ws-center-pane")
-    if (!(scroller instanceof HTMLElement)) return
-    const bounds = scroller.getBoundingClientRect()
-    const edge = 72
-    if (event.clientY < bounds.top + edge) scroller.scrollBy({ top: -22 })
-    else if (event.clientY > bounds.bottom - edge) scroller.scrollBy({ top: 22 })
-  }
-
-  function targetPosition(boundary: number) {
-    if (!draggedPart) return null
-    const from = parts.findIndex((part) => part.id === draggedPart.id)
-    if (from < 0) return null
-    const adjusted = boundary > from ? boundary - 1 : boundary
-    return adjusted === from ? null : adjusted + 1
-  }
-
-  function drop(boundary: number) {
-    const position = targetPosition(boundary)
-    if (draggedPart && position !== null) actions.reorderToPosition(draggedPart, position)
-    setDraggedId(null)
-    setDropIndex(null)
-  }
-
-  function dragHandleProps(part: ProductionPart): DragHandleProps {
-    return {
-      draggable: true,
-      onDragStart: (event) => {
-        event.stopPropagation()
-        event.dataTransfer.effectAllowed = "move"
-        event.dataTransfer.setData("text/plain", String(part.id))
-        setDraggedId(part.id)
-      },
-      onDragEnd: () => { setDraggedId(null); setDropIndex(null) },
-      onClick: (event) => event.stopPropagation(),
-    }
-  }
-
-  return <div className="ws-sequence-canvas" aria-label="Production sequence">
-    <div className={cn("ws-sequence-list", draggedId !== null && "is-reordering")}>
-      {parts.map((part, index) => <div className={cn("ws-sequence-slot", dropIndex === index && targetPosition(index) !== null && "is-drop-target", draggedId === part.id && "is-dragging")} key={part.id}
-        onDragEnter={(event) => { if (draggedId !== null) { event.preventDefault(); setDropIndex(index) } }}
-        onDragOver={(event) => { if (draggedId !== null) { event.preventDefault(); event.dataTransfer.dropEffect = "move"; setDropIndex(index); autoScroll(event) } }}
-        onDrop={(event) => { event.preventDefault(); drop(index) }}>
-        <SequenceInsertMenu label={`Add a Part before Part ${index + 1}`} className="ws-insert-control" onSelect={(kind) => actions.addBefore(part, kind)} />
-        <WorkstationSequenceCard part={part} index={index} selected={selectedId === part.id} playing={playerPlaying && playingKey === `part:${part.id}`} liveJobs={liveJobs} directory={directory} actions={actions} dragHandleProps={dragHandleProps(part)} />
-      </div>)}
-      <div className={cn("ws-sequence-end", dropIndex === parts.length && targetPosition(parts.length) !== null && "is-drop-target")}
-        onDragEnter={(event) => { if (draggedId !== null) { event.preventDefault(); setDropIndex(parts.length) } }}
-        onDragOver={(event) => { if (draggedId !== null) { event.preventDefault(); event.dataTransfer.dropEffect = "move"; setDropIndex(parts.length); autoScroll(event) } }}
-        onDrop={(event) => { event.preventDefault(); drop(parts.length) }}>
-        <SequenceInsertMenu label="Add a Part at the end" className="ws-add-ending" onSelect={onAddEnd} />
-      </div>
-    </div>
-  </div>
+export function WorkstationSequence({parts,selectedId,playingKey,playerPlaying,liveJobs,directory,actions,onAddEnd}:{parts:ProductionPart[];selectedId:number|null;playingKey?:string;playerPlaying:boolean;liveJobs:Record<string,DurableJob<unknown>>;directory:VoiceDirectory;actions:WorkstationPartActions;onAddEnd:(kind:SequenceInsertKind)=>void}){
+ return <StudioScriptSequence entries={parts} onReorder={(part,index)=>actions.reorderToPosition(part,index+1)} onInsert={(before,kind)=>before?actions.addBefore(before,kind):onAddEnd(kind)} renderCard={(part,index,dragHandleProps)=><WorkstationSequenceCard part={part} index={index} selected={selectedId===part.id} playing={playerPlaying&&playingKey===`part:${part.id}`} liveJobs={liveJobs} directory={directory} actions={actions} dragHandleProps={dragHandleProps}/>}/>
 }

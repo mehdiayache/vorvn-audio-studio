@@ -13,6 +13,9 @@ import type { AudioVolumeMix } from "./audio-volume-control"
 import { SelectionVolumeControl } from "./selection-volume-control"
 import { cn } from "@/lib/utils"
 import "./visual-timeline.css"
+import "./timeline-track-colors.css"
+import {trackColorStyle,type TimelineTrackColor} from "@/lib/timeline-track-colors"
+import {TrackColorChoices} from "./track-color-choices"
 import type { WorkspaceFile, VisualSceneClip, VisualSceneTrack } from "./studio-timeline-model"
 
 function visualFileName(file: WorkspaceFile) { return file.name || file.title || file.filename || "Untitled media" }
@@ -46,8 +49,9 @@ export function visualTrackDisplayName(track: VisualSceneTrack, files: Workspace
   return track.name.trim() || (track.media_type === "video" ? "Video" : "Image")
 }
 
-export function VisualTrackControl({ track, files, collapsed, first, last, onVisible, onLocked, onAdd, onMove, onRename, onRemove, disabled = false }: {
+export function VisualTrackControl({ track, files, collapsed, first, last, onVisible, onLocked, onAdd, onMove, onRename, onRemove, onColor, disabled = false }: {
   track: VisualSceneTrack
+  onColor?:(color:TimelineTrackColor)=>void
   files: WorkspaceFile[]
   collapsed: boolean
   first: boolean
@@ -61,31 +65,39 @@ export function VisualTrackControl({ track, files, collapsed, first, last, onVis
   disabled?: boolean
 }) {
   const [renaming, setRenaming] = useState(false)
+  const [menuOpen,setMenuOpen]=useState(false)
   const media = trackMediaSummary(track, files)
   const displayName = visualTrackDisplayName(track, files)
   const TrackIcon = track.media_type === "video" ? Film : ImageIcon
   const meta = track.visible ? media.label : `Hidden · ${media.label}`
-  const identity = renaming ? <Input className="timeline-track-name-input" defaultValue={displayName} autoFocus disabled={disabled} aria-label="Track name" onBlur={(event) => { onRename(event.target.value); setRenaming(false) }} onKeyDown={(event) => { if (event.key === "Enter") event.currentTarget.blur(); if (event.key === "Escape") setRenaming(false) }} /> : <span className="timeline-track-header-copy" onDoubleClick={() => { if (!disabled) setRenaming(true) }}><b>{displayName}</b></span>
+  const renameInput = <Input className="timeline-track-name-input" defaultValue={displayName} autoFocus disabled={disabled} aria-label="Track name" onBlur={(event) => { const name=event.target.value.trim();if(name&&name!==displayName){onRename(name);setRenaming(false)} }} onKeyDown={(event) => { if (event.key === "Enter") { event.preventDefault(); const name=event.currentTarget.value.trim(); if(name&&name!==displayName)onRename(name); event.currentTarget.value=displayName; setRenaming(false) } if (event.key === "Escape") { event.preventDefault(); event.currentTarget.value=displayName; setRenaming(false) } }} />
+  const identity = renaming&&!menuOpen?renameInput:<span className="timeline-track-header-copy" onDoubleClick={() => { if (!disabled) setRenaming(true) }}><b>{displayName}</b></span>
+  const visibilityAction = <OperatorIconButton label={track.visible ? `Hide ${displayName}` : `Show ${displayName}`} detail="Controls the monitor without deleting media placements." disabled={disabled} onClick={onVisible}>{track.visible ? <Eye /> : <EyeOff />}</OperatorIconButton>
   const stateActions = <>
-      <OperatorIconButton label={track.visible ? `Hide ${displayName}` : `Show ${displayName}`} detail="Controls the monitor without deleting media placements." disabled={disabled} onClick={onVisible}>{track.visible ? <Eye /> : <EyeOff />}</OperatorIconButton>
+      {visibilityAction}
       <OperatorIconButton label={track.locked ? `Unlock ${displayName}` : `Lock ${displayName}`} detail="Prevents accidental movement and trimming on this track." className={cn(track.locked && "is-active")} disabled={disabled} onClick={onLocked}>{track.locked ? <Lock /> : <Unlock />}</OperatorIconButton>
     </>
-  const structureActions = <>
-      <OperatorIconButton label={`Add ${displayName.toLowerCase()} to ${displayName} track`} detail="Choose a compatible visual File and place it in this exact track at the playhead." className="visual-track-add" disabled={disabled} onClick={onAdd}><Plus /></OperatorIconButton>
-      <DropdownMenu>
+  const moreAction = <DropdownMenu onOpenChange={open=>{setMenuOpen(open);if(!open)setRenaming(false)}}>
         <OperatorTooltip label={`More actions for ${displayName}`}><DropdownMenuTrigger asChild><Button variant="ghost" size="icon-sm" disabled={disabled} aria-label={`Actions for ${displayName}`}><MoreHorizontal /></Button></DropdownMenuTrigger></OperatorTooltip>
         <DropdownMenuContent side="right" align="center">
           <DropdownMenuItem disabled={disabled || first} onSelect={() => onMove(-1)}><ChevronUp /> Move track up</DropdownMenuItem>
           <DropdownMenuItem disabled={disabled || last} onSelect={() => onMove(1)}><ChevronDown /> Move track down</DropdownMenuItem>
-          <DropdownMenuItem disabled={disabled} onSelect={() => setRenaming(true)}><Pencil /> Rename track</DropdownMenuItem>
+          {renaming?<div className="sound-track-rename">{renameInput}</div>:<DropdownMenuItem disabled={disabled} onSelect={event=>{event.preventDefault();setRenaming(true)}}><Pencil /> Rename track</DropdownMenuItem>}
+          {collapsed&&<><DropdownMenuItem disabled={disabled} onSelect={onLocked}>{track.locked?<Unlock/>:<Lock/>}{track.locked?"Unlock track":"Lock track"}</DropdownMenuItem><DropdownMenuItem disabled={disabled} onSelect={onAdd}><Plus/>Add media clip</DropdownMenuItem></>}
+          {onColor&&<TrackColorChoices value={track.color} disabled={disabled} onChange={onColor}/>}
           <DropdownMenuSeparator />
           <DropdownMenuItem variant="destructive" disabled={disabled} onSelect={onRemove}><Trash2 /> Remove “{displayName}”</DropdownMenuItem>
         </DropdownMenuContent>
       </DropdownMenu>
+  const structureActions = <>
+      <OperatorIconButton label={`Add ${displayName.toLowerCase()} to ${displayName} track`} detail="Choose a compatible visual File and place it in this exact track at the playhead." className="visual-track-add" disabled={disabled} onClick={onAdd}><Plus /></OperatorIconButton>
+      {moreAction}
     </>
   return <TimelineTrackHeader
     className={cn("is-visual", !track.visible && "is-hidden", track.locked && "is-locked")}
     collapsed={collapsed}
+    style={trackColorStyle(track.id,track.color)} color={track.color??"auto"}
+    compactActions={<>{visibilityAction}{moreAction}</>}
     icon={<TrackIcon />}
     iconClassName="is-visual"
     name={displayName}

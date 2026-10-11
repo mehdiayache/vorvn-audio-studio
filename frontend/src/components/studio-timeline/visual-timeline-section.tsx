@@ -2,10 +2,12 @@ import { Plus } from "lucide-react"
 import type { CSSProperties, PointerEvent as ReactPointerEvent, SyntheticEvent } from "react"
 
 import { VisualTimelineClip, VisualTrackControl } from "./visual-timeline-parts"
+import {trackColorStyle,type TimelineTrackColor} from "@/lib/timeline-track-colors"
 import { cn } from "@/lib/utils"
 import type { WorkspaceFile, VisualSceneTrack, VisualClipRef } from "./studio-timeline-model"
 
-export function VisualTrackHeaders({ tracks, files, collapsed, onVisible, onLocked, onAdd, onMove, onRename, onRemove, disabled = false }: {
+export function VisualTrackHeaders({ tracks, files, collapsed, onVisible, onLocked, onAdd, onMove, onRename, onRemove, onColor, disabled = false }: {
+  onColor?:(trackId:string,color:TimelineTrackColor)=>void
   tracks: VisualSceneTrack[]
   files: WorkspaceFile[]
   collapsed: boolean
@@ -20,6 +22,7 @@ export function VisualTrackHeaders({ tracks, files, collapsed, onVisible, onLock
   return <>{tracks.map((track, index) => <VisualTrackControl
     key={track.id}
     track={track}
+    onColor={onColor?color=>onColor(track.id,color):undefined}
     files={files}
     collapsed={collapsed}
     disabled={disabled}
@@ -46,7 +49,7 @@ export function VisualTimelineSection({ tracks, files, selection, styleFor, onSe
   onPan: (event: ReactPointerEvent) => void
 }) {
   const byId = new Map(files.map((file) => [file.id, file]))
-  return <>{tracks.map((track) => <div className={cn("sound-scene-lane visual-scene-lane", !track.visible && "is-hidden")} key={track.id} onPointerDown={onPan}>
+  return <>{tracks.map((track) => <div className={cn("sound-scene-lane visual-scene-lane", !track.visible && "is-hidden")} key={track.id} data-track-color={track.color??"auto"} style={trackColorStyle(track.id,track.color)} onPointerDown={onPan}>
     {track.clips.map((clip) => {
       const ref = { trackId: track.id, clipId: clip.id }
       return <VisualTimelineClip

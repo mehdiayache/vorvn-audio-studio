@@ -4,7 +4,7 @@
 .preview-canvas-controls [data-slot="button"] svg { width: .75rem; }
 .preview-canvas-controls [data-slot="button"][aria-pressed="true"] { color: var(--primary); background: var(--primary-soft); }
 .preview-canvas-controls .preview-zoom-value { width: auto; min-width: 2.6rem; padding-inline: .3rem; font: var(--weight-regular) var(--type-small)/1 var(--font-mono); font-variant-numeric: tabular-nums; }
-.preview-canvas-controls [aria-label^="Production format"] { width: auto; min-width: 3.8rem; padding-inline: .35rem; font-family: var(--font-mono); }
+.preview-canvas-controls [data-slot="dropdown-menu-trigger"] { width: auto; min-width: 3.8rem; padding-inline: .35rem; font-family: var(--font-mono); }
 .preview-canvas-controls-separator { width: 1px; height: 1rem; margin: 0 .18rem; background: var(--border); }
 .timeline-viewer-stage { min-height: 0; display: grid; place-items: center; overflow: hidden; padding: .7rem 1rem; background: color-mix(in oklab, var(--surface-subtle) 62%, var(--background)); container-type: size; touch-action: none; }
 .timeline-viewer .visual-scene-monitor { width: 100%; height: 100%; display: grid; place-items: center; padding: 0; border: 0; background: transparent; }
@@ -17,7 +17,8 @@
 .timeline-viewer-format-menu [data-slot="dropdown-menu-radio-item"] { min-width: 10rem; }
 .timeline-viewer-format-menu [data-slot="dropdown-menu-radio-item"] small { margin-left: auto; color: var(--muted-foreground); font: var(--weight-regular) var(--type-small)/1 var(--font-mono); }
 @container (max-width: 42rem) {
-  .preview-canvas-controls [aria-label="Zoom Timeline Preview out"], .preview-canvas-controls [aria-label="Zoom Timeline Preview in"], .preview-canvas-controls [aria-label^="Pan Timeline Preview"], .preview-canvas-controls [aria-label^="Stop panning"] { display: none; }
+  .preview-canvas-controls .preview-mode-label { display: none; }
+  .preview-canvas-controls { gap: 0; }
 }
 
 .studio-preview-viewer:has(.timeline-preview-footer) { grid-template-rows: var(--workstation-pane-header-height, 2.25rem) minmax(0, 1fr) auto; }

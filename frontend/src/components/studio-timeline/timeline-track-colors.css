@@ -1,0 +1,14 @@
+.timeline-track-header[data-track-color]{border-inline-start:3px solid var(--track-color)}
+.timeline-track-header[data-track-color] .timeline-track-header-icon{color:color-mix(in oklab,var(--track-color) 78%,var(--foreground));background:color-mix(in oklab,var(--track-color) 15%,var(--background))}
+.sound-scene-lane[data-track-color] :is(.sound-music-clip,.sound-sequence-clip){border-color:color-mix(in oklab,var(--track-color) 65%,var(--border));color:var(--foreground);background:color-mix(in oklab,var(--track-color) 22%,var(--background))}
+.sound-scene-lane[data-track-color] :is(.sound-music-clip,.sound-sequence-clip).is-selected{border-color:var(--foreground);box-shadow:inset 0 0 0 1px var(--foreground)}
+.sound-scene-lane[data-track-color] .audio-waveform{color:color-mix(in oklab,var(--track-color) 75%,var(--foreground))}
+.visual-scene-lane[data-track-color] .visual-timeline-clip{border-color:var(--track-color);background:color-mix(in oklab,var(--track-color) 20%,var(--background));box-shadow:inset 0 3px 0 var(--track-color)}
+.visual-scene-lane[data-track-color] .visual-timeline-clip.is-image::after{background:linear-gradient(90deg,transparent min(6.5rem,82%),color-mix(in oklab,var(--track-color) 22%,transparent))}
+.visual-scene-lane[data-track-color] .visual-timeline-clip.is-selected{border-color:var(--foreground);box-shadow:inset 0 0 0 1px var(--foreground),inset 0 4px 0 var(--track-color)}
+.sound-scene-lane[data-track-color] .visual-trim-handle::after{background:var(--track-color)}
+.timeline-track-color-choices{display:grid;grid-template-columns:repeat(6,1.75rem);gap:.25rem;padding:.4rem}
+.timeline-track-color-choices [data-slot=button]{position:relative;width:1.75rem;height:1.75rem;padding:.25rem;border-radius:var(--radius-sm)}
+.timeline-track-color-choices [data-slot=button]>span:first-child{width:100%;height:100%;border-radius:50%;background:var(--track-color)}
+.timeline-track-color-choices [aria-pressed=true]{box-shadow:inset 0 0 0 1px var(--foreground)}
+.track-color-selected{position:absolute;color:var(--foreground);font-size:.75rem;line-height:1}

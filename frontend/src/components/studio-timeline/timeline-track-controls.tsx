@@ -9,6 +9,8 @@ import { AudioTrackHeaders } from "./audio-timeline-section"
 import { VisualTrackHeaders } from "./visual-timeline-section"
 
 
+import type {TimelineTrackColor} from "@/lib/timeline-track-colors"
+
 export interface AudioTrackSessionPort {
   addTrack(file?: undefined, timelinePosition?: number, role?: AudioFamily): Promise<unknown> | void
   commitTrackMix(trackId: string, mix: {volume: number; muted: boolean}): Promise<unknown> | void
@@ -16,6 +18,7 @@ export interface AudioTrackSessionPort {
   toggleTrackSolo(trackId: string): void
   renameTrack(trackId: string, name: string): Promise<unknown> | void
   setTrackRole(trackId: string, role: AudioFamily): Promise<unknown> | void
+  setTrackColor?(trackId:string,color:TimelineTrackColor):Promise<unknown>|void
   reportError?(message: string): void
 }
 export interface VisualTrackSessionPort {
@@ -24,6 +27,7 @@ export interface VisualTrackSessionPort {
   setTrackLocked(trackId: string, locked: boolean): Promise<unknown> | void
   moveTrack(trackId: string, direction: -1 | 1): Promise<unknown> | void
   renameTrack(trackId: string, name: string): Promise<unknown> | void
+  setTrackColor?(trackId:string,color:TimelineTrackColor):Promise<unknown>|void
   reportError?(message: string): void
 }
 
@@ -57,7 +61,7 @@ export function TimelineTrackControls({ audioSession, visualSession, audioTracks
       <div className="sound-scene-track-head-actions">
         {!collapsed && <DropdownMenu>
           <OperatorTooltip label="Create an empty Timeline track" detail="Choose the media type now, then add compatible sources inside that track.">
-            <DropdownMenuTrigger asChild><Button variant="ghost" size="sm" disabled={disabled} aria-label="New Timeline track"><Plus data-icon="inline-start" />New track</Button></DropdownMenuTrigger>
+            <DropdownMenuTrigger asChild><Button variant="outline" className="studio-track-create" size="sm" disabled={disabled} aria-label="New Timeline track"><Plus data-icon="inline-start" />New track</Button></DropdownMenuTrigger>
           </OperatorTooltip>
           <DropdownMenuContent side="right" align="start">
             <DropdownMenuLabel>Visual</DropdownMenuLabel>
@@ -79,6 +83,7 @@ export function TimelineTrackControls({ audioSession, visualSession, audioTracks
       files={files}
       collapsed={collapsed}
       disabled={disabled}
+      onColor={visualSession?.setTrackColor?(id,color)=>run(visualSession,()=>visualSession.setTrackColor?.(id,color)):undefined}
       onVisible={(track) => run(visualSession, () => visualSession?.setTrackVisible(track.id, !track.visible))}
       onLocked={(track) => run(visualSession, () => visualSession?.setTrackLocked(track.id, !track.locked))}
       onAdd={trackId => { if (!disabled) onAddVisual(trackId) }}
@@ -93,6 +98,7 @@ export function TimelineTrackControls({ audioSession, visualSession, audioTracks
       disabled={disabled}
       soloTrackIds={soloTrackIds}
       sequenceSummary={sequenceSummary}
+      onColor={audioSession.setTrackColor?(track,color)=>run(audioSession,()=>audioSession.setTrackColor?.(track.id,color)):undefined}
       onMute={(track) => run(audioSession, () => audioSession.commitTrackMix(track.id, { volume: track.volume > 0 ? track.volume : 1, muted: !(track.muted || track.volume <= 0) }))}
       onSolo={(track) => audioSession.toggleTrackSolo(track.id)}
       onVolumeChange={(track, mix) => { if (!disabled) audioSession.setTrackMix(track.id, { volume: mix.gain, muted: mix.muted }) }}

@@ -1,5 +1,5 @@
 import type { ReactNode } from "react"
-import { ChevronLeft, ChevronRight, Image as ImageIcon, LocateFixed, Magnet, Maximize2, Minus, Plus, Redo2, Undo2, Waves } from "lucide-react"
+import { ChevronLeft, ChevronRight, Film, Image as ImageIcon, LocateFixed, Magnet, Maximize2, Minus, Plus, Redo2, Undo2, Waves } from "lucide-react"
 
 import { OperatorIconButton } from "./operator-action"
 import { OperatorTooltip } from "./operator-tooltip"
@@ -17,12 +17,12 @@ const labels = {
 } satisfies Record<StudioTimelineLocale, Record<string, string>>
 
 /** The actual Studio command bar; the host owns editing and navigation state. */
-export function StudioTimelineToolbar({ canUndo, canRedo, disabled = false, saving = false, snapping, followPlayhead, onUndo, onRedo, onMoveView, onSnappingChange, onFollowPlayheadChange, onAddVisual, onAddAudio, extraTools, locale = "en", undoLabel, redoLabel }: {
+export function StudioTimelineToolbar({ canUndo, canRedo, disabled = false, saving = false, snapping, followPlayhead, onUndo, onRedo, onMoveView, onSnappingChange, onFollowPlayheadChange, onAddVisual, onAddVideo, onAddAudio, extraTools, locale = "en", undoLabel, redoLabel }: {
   canUndo: boolean; canRedo: boolean; disabled?: boolean; saving?: boolean
   snapping: boolean; followPlayhead: boolean
   onUndo: () => void; onRedo: () => void; onMoveView: (direction: -1 | 1) => void
   onSnappingChange: (enabled: boolean) => void; onFollowPlayheadChange: (enabled: boolean) => void
-  onAddVisual?: () => void; onAddAudio?: () => void; extraTools?: ReactNode
+  onAddVisual?: () => void; onAddVideo?:()=>void; onAddAudio?: () => void; extraTools?: ReactNode
   locale?: StudioTimelineLocale; undoLabel?: string; redoLabel?: string
 }) {
   const c = labels[locale]
@@ -49,7 +49,8 @@ export function StudioTimelineToolbar({ canUndo, canRedo, disabled = false, savi
         <DropdownMenuContent align="end" className="sound-scene-add-menu">
           <DropdownMenuLabel>{c.place}</DropdownMenuLabel>
           <DropdownMenuGroup>
-            {onAddVisual && <DropdownMenuItem onSelect={onAddVisual}><ImageIcon />{c.visual}</DropdownMenuItem>}
+            {onAddVisual && <DropdownMenuItem onSelect={onAddVisual}><ImageIcon />{onAddVideo?({en:"Image",fr:"Image",ar:"صورة",id:"Gambar"}[locale]):c.visual}</DropdownMenuItem>}
+            {onAddVideo&&<DropdownMenuItem onSelect={onAddVideo}><Film/>{({en:"Video",fr:"Vidéo",ar:"فيديو",id:"Video"}[locale])}</DropdownMenuItem>}
             {onAddAudio && <DropdownMenuItem onSelect={onAddAudio}><Waves />{c.audio}</DropdownMenuItem>}
           </DropdownMenuGroup>
         </DropdownMenuContent>
