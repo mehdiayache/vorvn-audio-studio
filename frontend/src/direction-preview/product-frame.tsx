@@ -1,5 +1,6 @@
 import type {ReactNode} from 'react';
 import './product-frame.css';
+import '../styles/chrome-tokens.css';
 export function ProductFrame({header,navigation,panel,brand,utilities,drawer,drawerOpen=false,chrome=false,tabbar,collapsed,mainClass='',children}:{header:ReactNode;navigation:ReactNode;panel?:ReactNode;brand?:ReactNode;utilities?:ReactNode;drawer?:ReactNode;drawerOpen?:boolean;chrome?:boolean;tabbar?:ReactNode;collapsed:boolean;mainClass?:string;children:ReactNode}) {
  if(chrome)return <div className="dp-chrome-frame">
   <header className="dp-chrome-header"><div className="dp-chrome-brand">{brand}</div>{header}<div className="dp-chrome-navigation">{navigation}</div>{utilities}</header>

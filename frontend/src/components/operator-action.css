@@ -1,0 +1,8 @@
+/* Same geometry for every tool; icon shape never changes the hit target. */
+:root button.operator-icon-button[data-ui-button][data-variant][data-size]{display:inline-flex;align-items:center;justify-content:center;padding:0;gap:0;border:1px solid transparent;border-radius:var(--radius-control);box-shadow:none;}
+:root button.operator-icon-button[data-ui-button][data-size="icon-sm"]{width:var(--space-8);height:var(--space-8);}
+:root button.operator-icon-button[data-ui-button]>svg{width:var(--operator-icon-size);height:var(--operator-icon-size);flex:none;}
+:root button.operator-icon-button[data-ui-button]:enabled{background:transparent;}
+@media(hover:hover) and (pointer:fine){:root button.operator-icon-button[data-ui-button]:enabled:hover{background:var(--control-hover-surface);}}
+:root button.operator-icon-button[data-ui-button]:enabled:is([aria-pressed=true],[aria-expanded=true],[data-state=open]){background:var(--selection-surface);color:var(--selection-foreground);border-color:transparent;}
+:root button.operator-icon-button[data-ui-button]:enabled:active{background:var(--control-pressed-surface);}

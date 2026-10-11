@@ -1,0 +1,47 @@
+/* Approved macOS chrome materials. Content and document typography keep their own roles. */
+:root {
+  --chrome-font: -apple-system, BlinkMacSystemFont, "Helvetica Neue", sans-serif;
+  --chrome-height: 2.625rem;
+  --chrome-control-height: 1.875rem;
+  --chrome-tab-height: 1.875rem;
+  --chrome-glyph: 1rem;
+  --chrome-tab-glyph: .875rem;
+  --chrome-type: .8125rem;
+  --chrome-tab-type: .75rem;
+  --chrome-control-weight: var(--weight-regular);
+  --chrome-workspace-weight: var(--weight-medium);
+  --chrome-heading-weight: var(--weight-semibold);
+  --chrome-control-inset: .5625rem;
+  --chrome-utility-gap: .125rem;
+  --chrome-group-gap: .1875rem;
+  --chrome-menu-width: 19.375rem;
+  --chrome-menu-icon-gap: .625rem;
+  --chrome-profile-size: 1.3125rem;
+  --chrome-profile-type: .625rem;
+  --chrome-surface: #ededf0;
+  --chrome-foreground: #29292f;
+  --chrome-hover: #dedee5;
+  --chrome-selected: #fff;
+  --chrome-body: #fff;
+  --chrome-divider: #c9c9d1;
+  --chrome-popover: #f9f9fb;
+  --chrome-popover-border: #dddde4;
+  --chrome-secondary: #686870;
+  --chrome-close: #e4e4ea;
+  --chrome-profile-background: #dacdc2;
+  --chrome-profile-foreground: #3b3633;
+}
+:root.dark, .ui-theme-dark {
+  --chrome-surface: #202023;
+  --chrome-foreground: #f3f3f5;
+  --chrome-hover: #353539;
+  --chrome-selected: #414147;
+  --chrome-body: #29292d;
+  --chrome-divider: #47474c;
+  --chrome-popover: #29292d;
+  --chrome-popover-border: #48484f;
+  --chrome-secondary: #c4c4cd;
+  --chrome-close: #44444c;
+  --chrome-profile-background: #645c56;
+  --chrome-profile-foreground: #f3f3f5;
+}
