@@ -1,6 +1,8 @@
 import { CheckCircle2, Film, Image as ImageIcon, Library, PanelLeftClose, PanelLeftOpen, Plus, Search, Waves, X } from "lucide-react"
 import { memo, useMemo, useState, type ReactNode } from "react"
 
+import { StudioWorkbench } from "@/components/studio-workbench"
+
 import { OperatorIconButton } from "@/components/operator-action"
 import { FileSourceIndicator } from "@/components/file-source-indicator"
 import { Input } from "@/components/ui/input"
@@ -95,11 +97,14 @@ export function TimelineWorkbench({ selection, previewTarget, files, productionF
   onAddFile: (file: WorkspaceFile) => Promise<void> | void
 }) {
   const selectedFileId = previewTarget.kind === "source" ? previewTarget.fileId : undefined
-  return <div className={cn("timeline-workbench", browserCollapsed && "browser-collapsed", !inspector && "inspector-closed")}>
-    <TimelineMediaBrowser files={files} productionFileIds={productionFileIds} usedFileIds={usedFileIds} collapsed={browserCollapsed} onCollapsedChange={onBrowserCollapsedChange} selectedFileId={selectedFileId} onPreview={onPreviewFile} onAdd={onAddFile} />
-    <section className="timeline-monitor" aria-label="Preview">
-      <PreviewPane target={previewTarget} selection={selection} files={files} document={document} hasVisualPlacements={hasVisualPlacements} playheadMs={playheadMs} playback={playback} visualSession={visualSession} soundSession={soundSession} visualSaving={visualSaving} timelineTransport={timelineTransport} onReturnTimeline={onReturnTimeline} />
-    </section>
-    {inspector && <aside className="timeline-workbench-inspector" aria-label="Contextual inspector"><WorkstationPaneHeader title={inspectorTitle || "Inspector"} heading actions={onCloseInspector ? <OperatorIconButton label="Close Inspector" onClick={onCloseInspector}><X /></OperatorIconButton> : undefined} /><div>{inspector}</div></aside>}
-  </div>
+  return <StudioWorkbench
+    className={cn("timeline-workbench", browserCollapsed && "browser-collapsed", !inspector && "inspector-closed")}
+    previewClassName="timeline-monitor"
+    inspectorClassName="timeline-workbench-inspector"
+    previewLabel="Preview"
+    inspectorLabel="Contextual inspector"
+    mediaBrowser={<TimelineMediaBrowser files={files} productionFileIds={productionFileIds} usedFileIds={usedFileIds} collapsed={browserCollapsed} onCollapsedChange={onBrowserCollapsedChange} selectedFileId={selectedFileId} onPreview={onPreviewFile} onAdd={onAddFile} />}
+    preview={<PreviewPane target={previewTarget} selection={selection} files={files} document={document} hasVisualPlacements={hasVisualPlacements} playheadMs={playheadMs} playback={playback} visualSession={visualSession} soundSession={soundSession} visualSaving={visualSaving} timelineTransport={timelineTransport} onReturnTimeline={onReturnTimeline} />}
+    inspector={inspector && <><WorkstationPaneHeader title={inspectorTitle || "Inspector"} heading actions={onCloseInspector ? <OperatorIconButton label="Close Inspector" onClick={onCloseInspector}><X /></OperatorIconButton> : undefined} /><div>{inspector}</div></>}
+  />
 }
